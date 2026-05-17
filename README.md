@@ -4,7 +4,7 @@
 
 Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v3 · FlyEnv (Windows).
 
-[![CI](https://github.com/unsil/silogy/actions/workflows/ci.yml/badge.svg)](https://github.com/unsil/silogy/actions/workflows/ci.yml)
+[![CI](https://github.com/unsil/silogy/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/unsil/silogy/actions/workflows/ci.yml)
 
 ## Dokumen Referensi
 
