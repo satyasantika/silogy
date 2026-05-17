@@ -2,7 +2,7 @@
 
 namespace App\Modules\Kurikulum\States;
 
-use App\Modules\MK\Models\KelasMk;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\MkUnit;
 
 class SetdosenmkState extends KurikulumState

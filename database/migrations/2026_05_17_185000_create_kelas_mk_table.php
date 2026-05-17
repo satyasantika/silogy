@@ -28,10 +28,26 @@ return new class extends Migration
 
             $table->unique(['mk_unit_id', 'semester_id', 'kode_kelas'], 'uq_kmk_unit_sem_kls');
         });
+
+        Schema::create('kelas_mk_mahasiswa', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('kelas_mk_id')
+                ->constrained('kelas_mk')
+                ->cascadeOnDelete();
+            $table->foreignUuid('mahasiswa_id')
+                ->constrained('mahasiswas')
+                ->cascadeOnDelete();
+            $table->decimal('nilai_angka', 5, 2)->nullable();
+            $table->string('nilai_huruf', 5)->nullable();
+            $table->timestamps();
+
+            $table->unique(['kelas_mk_id', 'mahasiswa_id'], 'uq_kmm');
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('kelas_mk_mahasiswa');
         Schema::dropIfExists('kelas_mk');
     }
 };

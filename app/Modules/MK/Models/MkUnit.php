@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Models;
 
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kelas\Models\KelasMk;
 use Database\Factories\MkUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
