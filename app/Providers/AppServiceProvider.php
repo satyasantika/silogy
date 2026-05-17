@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Policies\AcademicUnitPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
     }
 }

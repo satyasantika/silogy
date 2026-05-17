@@ -36,6 +36,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode(condition: true, isForced: false)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+            ->discoverResources(
+                in: app_path('Modules/Institusi/Filament/Resources'),
+                for: 'App\Modules\Institusi\Filament\Resources',
+            )
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
