@@ -7,6 +7,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "bezhansalleh/filament-shield": "^4.0",
+        "filament/filament": "^4.0",
+        "spatie/laravel-permission": "^6.0",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0"
     },
@@ -58,7 +61,8 @@
         "stan": "vendor/bin/phpstan analyse --memory-limit=512M",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
+            "@php artisan package:discover --ansi",
+            "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
@@ -87,6 +91,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "block-insecure": false
         }
     },
     "minimum-stability": "stable",

@@ -26,7 +26,9 @@ Pastikan site `silogy.test` sudah dikonfigurasi di FlyEnv, lalu buka:
 http://silogy.test
 ```
 
-Panel admin Filament: `http://silogy.test/admin`
+Panel admin Filament: `http://silogy.test/admin` · login: `http://silogy.test/admin/login`
+
+> **Catatan:** Proyek memakai **Laravel 13**; Filament **v4** (bukan v3) karena v3 belum mendukung `illuminate/*` ^13 di Composer. Livewire **3.x** terpasang otomatis.
 
 **Opsi B — Artisan serve**
 
