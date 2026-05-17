@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             AcademicUnitSeeder::class,
             RolePermissionSeeder::class,
             MahasiswaSeeder::class,
+            SemesterSeeder::class,
         ]);
     }
 }
