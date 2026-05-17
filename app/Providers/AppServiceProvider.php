@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Modules\Auth\Policies\UserPolicy;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Policies\AcademicUnitPolicy;
+use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
 use Illuminate\Support\Facades\Gate;
@@ -28,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Mahasiswa::class, MahasiswaPolicy::class);
     }
 }

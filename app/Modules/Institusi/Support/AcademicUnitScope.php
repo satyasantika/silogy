@@ -124,4 +124,29 @@ class AcademicUnitScope
             ->whereIn('academic_unit_id', $scopeIds)
             ->exists();
     }
+
+    /**
+     * ID program studi yang boleh diakses user (descendant dari pivot).
+     *
+     * @return Collection<int, string>
+     */
+    public static function scopedStudyProgramIdsFor(User $user): Collection
+    {
+        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+            return AcademicUnit::query()
+                ->where('type', 'study_program')
+                ->pluck('id');
+        }
+
+        $managedIds = static::managedUnitIdsFor($user);
+
+        if ($managedIds->isEmpty()) {
+            return collect();
+        }
+
+        return AcademicUnit::query()
+            ->where('type', 'study_program')
+            ->whereIn('id', $managedIds)
+            ->pluck('id');
+    }
 }

@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Modules\Mahasiswa\Policies\Concerns;
+
+use App\Models\User;
+use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Mahasiswa\Models\Mahasiswa;
+
+trait AuthorizesMahasiswaByAcademicUnit
+{
+    protected function isSuperAdmin(User $user): bool
+    {
+        return $user->hasRole('Super Admin');
+    }
+
+    protected function isAuditor(User $user): bool
+    {
+        return $user->hasRole('Auditor Mutu');
+    }
+
+    protected function isAdminUniversitas(User $user): bool
+    {
+        return $user->hasRole('Admin Universitas');
+    }
+
+    protected function hasAnyKelolaUserPermission(User $user): bool
+    {
+        return $user->can('kelola_user_universitas')
+            || $user->can('kelola_user_fakultas')
+            || $user->can('kelola_user_jurusan')
+            || $user->can('kelola_user_prodi');
+    }
+
+    protected function canViewMahasiswaModule(User $user): bool
+    {
+        if ($this->isSuperAdmin($user) || $this->isAuditor($user)) {
+            return true;
+        }
+
+        if ($this->hasAnyKelolaUserPermission($user)) {
+            return true;
+        }
+
+        return $user->hasAnyRole([
+            'Pimpinan Universitas',
+            'Pimpinan Fakultas',
+            'Pimpinan Jurusan',
+            'Pimpinan Program Studi',
+        ]) && AcademicUnitScope::userHasAnyPivot($user);
+    }
+
+    protected function canAccessMahasiswa(User $user, Mahasiswa $mahasiswa): bool
+    {
+        if ($this->isSuperAdmin($user) || $this->isAuditor($user)) {
+            return true;
+        }
+
+        $unit = $mahasiswa->academicUnit;
+
+        if (! $unit || $unit->type !== 'study_program') {
+            return false;
+        }
+
+        return AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit);
+    }
+
+    public function canAccessStudyProgram(User $user, ?string $academicUnitId): bool
+    {
+        if ($this->isSuperAdmin($user) || $this->isAuditor($user)) {
+            return true;
+        }
+
+        if (! $academicUnitId) {
+            return false;
+        }
+
+        $unit = AcademicUnit::query()->find($academicUnitId);
+
+        if (! $unit || $unit->type !== 'study_program') {
+            return false;
+        }
+
+        return AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit);
+    }
+}
