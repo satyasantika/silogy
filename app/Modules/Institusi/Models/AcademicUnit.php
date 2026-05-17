@@ -2,6 +2,7 @@
 
 namespace App\Modules\Institusi\Models;
 
+use App\Modules\Mahasiswa\Models\Mahasiswa;
 use Database\Factories\AcademicUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,6 +58,14 @@ class AcademicUnit extends Model
     public function users(): HasMany
     {
         return $this->hasMany(AcademicUnitUser::class);
+    }
+
+    /**
+     * @return HasMany<Mahasiswa, $this>
+     */
+    public function mahasiswas(): HasMany
+    {
+        return $this->hasMany(Mahasiswa::class);
     }
 
     /**
