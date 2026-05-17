@@ -4,14 +4,16 @@ namespace App\Modules\Kurikulum\Models;
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\States\KurikulumState;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\ModelStates\HasStates;
 
 class Kurikulum extends Model
 {
-    use HasUuids;
+    use HasStates, HasUuids;
 
     protected $table = 'kurikulum';
 
@@ -27,6 +29,7 @@ class Kurikulum extends Model
             'tahun' => 'integer',
             'target_capaian_lulusan' => 'integer',
             'is_active' => 'boolean',
+            'state' => KurikulumState::class,
         ];
     }
 
@@ -52,5 +55,14 @@ class Kurikulum extends Model
     public function profilLulusan(): HasMany
     {
         return $this->hasMany(ProfilLulusan::class);
+    }
+
+    /**
+     * @return HasMany<StateTransition, $this>
+     */
+    public function stateTransitions(): HasMany
+    {
+        return $this->hasMany(StateTransition::class, 'model_id')
+            ->where('model_type', self::class);
     }
 }
