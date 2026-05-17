@@ -1,0 +1,84 @@
+# Laravel
+/.phpunit.cache
+/.phpunit.result.cache
+/.phpactor.json
+/auth.json
+/vendor
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+Homestead.json
+Homestead.yaml
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.docker
+
+# Node / Vite
+/node_modules
+/public/build
+/public/hot
+
+# IDE — PhpStorm
+/.idea/
+*.iml
+*.ipr
+*.iws
+
+# IDE — VS Code
+/.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# IDE — Cursor
+/.cursor/
+
+# IDE — lainnya
+/.fleet/
+/.nova/
+/.zed/
+/.codex/
+
+# OS — macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# OS — Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# OS — Linux
+*~
+.directory
+
+# Testing & coverage
+/coverage
+.phpunit.cache
+.phpunit.result.cache
+phpunit.xml.bak
+
+# Misc
+*.cache
+*.swp
+*.swo
+*.bak

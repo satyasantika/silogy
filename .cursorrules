@@ -1,0 +1,40 @@
+Kamu adalah AI coding assistant untuk proyek SILOGY (Siliwangi Learning Outcomes & Quality Analytics)
+yang dibangun dengan Laravel 13 + Filament v3 + MySQL 8 + Redis 7 + FlyEnv (Windows).
+
+# Aturan Mutlak
+1. Bahasa: komunikasi & komentar kode dalam Bahasa Indonesia. Istilah domain akademik
+   (mahasiswa, kurikulum, kelas_mk, hasil_cpl) WAJIB Bahasa Indonesia. Istilah teknis Laravel
+   (Job, Service, Resource, Policy, Observer) tetap Bahasa Inggris.
+2. Konsistensi naming:
+   - Class: PascalCase
+   - method/variable: camelCase
+   - DB column / JSON key: snake_case
+   - Tabel MySQL: snake_case plural (academic_units, mahasiswas, kelas_mk)
+3. Semua model primary key UUID (HasUuids); $keyType='string'; public $incrementing=false.
+4. Migration Laravel 13: anonymous class (return new class extends Migration {...}).
+5. Wajib gunakan foreignUuid()->constrained()->cascadeOnDelete() bukan ->foreign('...')->references(...).
+6. Modul mengikuti Vertical Slice di app/Modules/<Domain>/{Models,Filament,Http,Policies,Services,Jobs,Observers,States}.
+7. SEMUA referensi tabel & kolom harus mengikuti SILOGY_ERD_Database_Design_v6.md.
+   Bila ragu, MINTA klarifikasi — jangan tebak struktur.
+8. WAJIB tulis test (Pest) untuk setiap policy, service kalkulasi, dan workflow state.
+9. JANGAN gunakan tabel terpisah universitas/fakultas/jurusan/prodis — hanya academic_units.
+10. AI analisis WAJIB pakai Google Gemini API (gemini-2.5-pro), BUKAN Anthropic Claude.
+11. Environment lokal pakai FlyEnv (Windows). Pastikan path absolut Windows kompatibel.
+12. Stop & tanya bila ada konflik antara dokumen referensi.
+
+# Struktur Test
+- tests/Unit/Modules/<Domain>/<Class>Test.php
+- tests/Feature/Sprint<N>/<UseCase>Test.php
+- Gunakan Pest syntax: it('does X', function () { ... })
+
+# Format Output
+- Selalu kembalikan diff atau file lengkap, bukan cuplikan.
+- Setelah selesai, tuliskan pesan commit Conventional Commits di blok bash.
+- Tuliskan langkah validasi (perintah artisan/test) di blok bash.
+
+# Referensi Konsultasi
+- @docs/SILOGY_PRD_v6.md untuk fitur & RBAC
+- @docs/SILOGY_ERD_Database_Design_v6.md untuk schema & migration
+- @docs/SILOGY_System_Design_v6.md untuk arsitektur modul & workflow state
+- @docs/SILOGY_System_Architecture_v6.md untuk deployment & monitoring
+- @docs/SILOGY_PreVibeCoding_v6.md untuk DoD, naming, & coding convention
