@@ -47,6 +47,36 @@ php artisan migrate --seed
 
 Detail kontribusi, branching, dan DoD: lihat [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Tooling Kualitas Kode (tanpa Docker)
+
+Stack: **Pint** · **Larastan (level 6)** · **Pest** · test paralel via SQLite `:memory:`.
+
+| Perintah | Fungsi |
+|---|---|
+| `composer pint` | Format kode (PSR-12 / Laravel preset) |
+| `composer pint -- --test` | Cek format tanpa menulis file |
+| `composer stan` | Static analysis Larastan level 6 |
+| `composer test:parallel` | Test paralel (Pest + PHPUnit) |
+
+### Helper PowerShell (`scripts/`)
+
+Jalankan dari root proyek dengan FlyEnv PHP di PATH:
+
+```powershell
+pwsh scripts/test.ps1    # php artisan test --parallel
+pwsh scripts/lint.ps1    # pint --test + phpstan
+pwsh scripts/fresh.ps1   # migrate:fresh --seed
+pwsh scripts/serve.ps1   # artisan serve :8000 (alternatif FlyEnv)
+```
+
+Contoh validasi cepat sebelum PR:
+
+```powershell
+composer pint -- --test
+composer stan
+pwsh scripts/test.ps1
+```
+
 ## Lisensi
 
 Proprietary — Universitas Siliwangi.
