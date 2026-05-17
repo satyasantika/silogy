@@ -15,10 +15,10 @@ class AcademicUnitFactory extends Factory
     public function definition(): array
     {
         return [
-            'type' => 'university',
+            'type' => 'study_program',
             'code' => fake()->unique()->lexify('???'),
             'nama' => fake()->company(),
-            'status' => 'draft',
+            'status' => 'aktif',
         ];
     }
 
@@ -26,27 +26,31 @@ class AcademicUnitFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'university',
+            'parent_id' => null,
         ]);
     }
 
-    public function faculty(): static
+    public function faculty(AcademicUnit $parent): static
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'faculty',
+            'parent_id' => $parent->id,
         ]);
     }
 
-    public function department(): static
+    public function department(AcademicUnit $parent): static
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'department',
+            'parent_id' => $parent->id,
         ]);
     }
 
-    public function studyProgram(): static
+    public function studyProgram(AcademicUnit $parent): static
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'study_program',
+            'parent_id' => $parent->id,
             'jenjang' => 'S1',
         ]);
     }

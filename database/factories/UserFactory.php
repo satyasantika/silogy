@@ -18,19 +18,17 @@ class UserFactory extends Factory
 
     public function definition(): array
     {
-        $fullName = fake()->name();
-
         return [
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'nidn' => null,
             'prefix' => null,
-            'full_name' => $fullName,
+            'full_name' => fake('id_ID')->name(),
             'suffix' => null,
             'jenis_kelamin' => fake()->randomElement(['L', 'P']),
-            'nomor_wa' => fake()->numerify('08##########'),
+            'nomor_wa' => '628'.fake()->numerify('#########'),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= Hash::make('Silogy2026!'),
             'remember_token' => Str::random(10),
         ];
     }
