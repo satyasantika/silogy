@@ -28,6 +28,23 @@ class AcademicUnitScope
     }
 
     /**
+     * Unit tempat user ditetapkan sebagai tim kurikulum.
+     *
+     * @return Collection<int, string>
+     */
+    public static function scopedTimKurikulumUnitIdsFor(User $user): Collection
+    {
+        if ($user->hasRole('Super Admin')) {
+            return AcademicUnit::query()->pluck('id');
+        }
+
+        return AcademicUnitUser::query()
+            ->where('user_id', $user->id)
+            ->where('status_tim_kurikulum', true)
+            ->pluck('academic_unit_id');
+    }
+
+    /**
      * Rantai unit dari diri sendiri ke atas (termasuk unit itu sendiri).
      *
      * @return list<string>
@@ -79,6 +96,19 @@ class AcademicUnitScope
             $assignedIds,
             static::ancestorIdsIncludingSelf($unit),
         );
+    }
+
+    public static function userIsTimKurikulumOnUnit(User $user, AcademicUnit $unit): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return AcademicUnitUser::query()
+            ->where('user_id', $user->id)
+            ->where('academic_unit_id', $unit->id)
+            ->where('status_tim_kurikulum', true)
+            ->exists();
     }
 
     /**

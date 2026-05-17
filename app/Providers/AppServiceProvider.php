@@ -7,6 +7,8 @@ use App\Modules\Auth\Policies\UserPolicy;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Policies\AcademicUnitPolicy;
 use App\Modules\Kurikulum\Listeners\LogStateTransition;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
@@ -34,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Mahasiswa::class, MahasiswaPolicy::class);
+        Gate::policy(Kurikulum::class, KurikulumPolicy::class);
 
         Event::listen(StateChanged::class, LogStateTransition::class);
     }
