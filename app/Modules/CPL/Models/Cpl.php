@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\BoK\Models\Bok;
+use App\Modules\Kurikulum\Models\ProfilLulusan;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -50,5 +53,31 @@ class Cpl extends Model
     public function cplProfilLulusan(): HasMany
     {
         return $this->hasMany(CplProfilLulusan::class);
+    }
+
+    /**
+     * @return BelongsToMany<ProfilLulusan, $this>
+     */
+    public function profilLulusan(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ProfilLulusan::class,
+            'cpl_profil_lulusan',
+            'cpl_id',
+            'profil_lulusan_id',
+        )->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Bok, $this>
+     */
+    public function boks(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Bok::class,
+            'cpl_bok',
+            'cpl_id',
+            'bok_id',
+        )->withPivot(['id', 'bobot'])->withTimestamps();
     }
 }

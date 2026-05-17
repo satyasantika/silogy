@@ -52,6 +52,18 @@ class AdminPanelProvider extends PanelProvider
                 in: app_path('Modules/Kurikulum/Filament/Resources'),
                 for: 'App\Modules\Kurikulum\Filament\Resources',
             )
+            ->discoverResources(
+                in: app_path('Modules/CPL/Filament/Resources'),
+                for: 'App\Modules\CPL\Filament\Resources',
+            )
+            ->discoverResources(
+                in: app_path('Modules/BoK/Filament/Resources'),
+                for: 'App\Modules\BoK\Filament\Resources',
+            )
+            ->discoverResources(
+                in: app_path('Modules/MK/Filament/Resources'),
+                for: 'App\Modules\MK\Filament\Resources',
+            )
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,

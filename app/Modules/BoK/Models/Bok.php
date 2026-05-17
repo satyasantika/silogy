@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Modules\CPL\Models\Cpl;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -43,5 +45,18 @@ class Bok extends Model
     public function cplBoks(): HasMany
     {
         return $this->hasMany(CplBok::class);
+    }
+
+    /**
+     * @return BelongsToMany<Cpl, $this>
+     */
+    public function cpls(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Cpl::class,
+            'cpl_bok',
+            'bok_id',
+            'cpl_id',
+        )->withPivot(['id', 'bobot'])->withTimestamps();
     }
 }
