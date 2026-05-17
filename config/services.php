@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model_default' => env('GEMINI_MODEL_DEFAULT', 'gemini-2.5-pro'),
+        'model_flash' => env('GEMINI_MODEL_FLASH', 'gemini-2.5-flash'),
+        'max_output_tokens' => env('GEMINI_MAX_TOKENS', 4096),
+        'safety_settings' => [
+            'HARM_CATEGORY_HARASSMENT' => 'BLOCK_MEDIUM_AND_ABOVE',
+            'HARM_CATEGORY_HATE_SPEECH' => 'BLOCK_MEDIUM_AND_ABOVE',
+            'HARM_CATEGORY_SEXUALLY_EXPLICIT' => 'BLOCK_MEDIUM_AND_ABOVE',
+            'HARM_CATEGORY_DANGEROUS_CONTENT' => 'BLOCK_MEDIUM_AND_ABOVE',
+        ],
+    ],
+
 ];

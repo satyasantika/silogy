@@ -9,6 +9,7 @@
         "php": "^8.3",
         "bezhansalleh/filament-shield": "^4.0",
         "filament/filament": "^4.0",
+        "google-gemini-php/laravel": "^2.0",
         "laravel/framework": "^13.8",
         "spatie/laravel-activitylog": "^4.0",
         "spatie/laravel-model-states": "^2.0",
