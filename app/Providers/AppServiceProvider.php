@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Notifications\ResetPassword as ResetPasswordNotification;
+use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(FilamentResetPassword::class, ResetPasswordNotification::class);
     }
 
     /**

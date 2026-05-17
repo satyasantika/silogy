@@ -224,7 +224,7 @@ class RolePermissionSeeder extends Seeder
                 ['username' => $a['username']],
                 [
                     'id' => (string) Str::uuid(),
-                    'email' => $a['username'].'@silaris.test',
+                    'email' => $a['username'].'@silogy.test',
                     'nidn' => $a['nidn'],
                     'full_name' => $a['full_name'],
                     'password' => Hash::make('Silogy2026!'),
