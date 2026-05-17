@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             MahasiswaSeeder::class,
             SemesterSeeder::class,
+            EvaluasiSeeder::class,
         ]);
     }
 }
