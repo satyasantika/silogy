@@ -3,9 +3,8 @@
 use App\Modules\Kalender\Models\Semester;
 use Database\Seeders\SemesterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-uses(TestCase::class, RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 it('mengisi 8 semester dari 20241 sampai 20272', function () {
     $this->seed(SemesterSeeder::class);
