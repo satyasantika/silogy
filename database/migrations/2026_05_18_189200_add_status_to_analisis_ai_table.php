@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('analisis_ai', function (Blueprint $table) {
-            $table->enum('status', ['pending', 'running', 'completed', 'failed'])
-                ->default('pending')
+            $table->enum('status', ['queued', 'pending', 'running', 'completed', 'failed'])
+                ->default('queued')
                 ->after('jenis');
         });
     }

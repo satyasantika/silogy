@@ -77,7 +77,7 @@ function buatAnalisisRingkasan(): AnalisisAi
         'academic_unit_id' => $prodi->id,
         'semester_id' => $semester->id,
         'jenis' => 'ringkasan_cpl',
-        'status' => 'pending',
+        'status' => 'queued',
         'prompt' => '-',
         'dibuat_oleh' => $user->id,
     ]);

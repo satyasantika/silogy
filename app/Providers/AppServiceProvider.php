@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\AI\Models\AnalisisAi;
+use App\Modules\AI\Policies\AnalisisAiPolicy;
 use App\Modules\AI\RateLimiters\GeminiPerUserPerDay;
 use App\Modules\Audit\Models\Activity;
 use App\Modules\Audit\Policies\ActivityLogPolicy;
@@ -67,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->id ?? $request->ip());
         });
 
+        Gate::policy(AnalisisAi::class, AnalisisAiPolicy::class);
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
