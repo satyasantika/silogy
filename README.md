@@ -2,9 +2,10 @@
 
 **Siliwangi Learning Outcomes & Quality Analytics** — platform manajemen dan analitik capaian pembelajaran berbasis paradigma **Outcome-Based Education (OBE)** untuk Universitas Siliwangi.
 
-**Versi dokumen:** P0.1 · Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v4 · Docker Compose
+**Versi rilis:** [6.0.0](CHANGELOG.md#600---2026-05-18) (MVP) · Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v4 · Docker Compose
 
 [![CI](https://github.com/unsil/silogy/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/unsil/silogy/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/unsil/silogy?include_prereleases&label=release)](https://github.com/unsil/silogy/releases)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
 ---

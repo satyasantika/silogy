@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Spatie\ModelStates\HasStates;
 
 class Kurikulum extends Model
@@ -81,7 +82,7 @@ class Kurikulum extends Model
     /**
      * @return HasMany<CplBok, $this>
      */
-    public function cplBoks(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    public function cplBoks(): HasManyThrough
     {
         return $this->hasManyThrough(
             CplBok::class,

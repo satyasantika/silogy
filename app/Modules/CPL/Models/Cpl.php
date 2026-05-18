@@ -2,15 +2,15 @@
 
 namespace App\Modules\CPL\Models;
 
+use App\Modules\BoK\Models\Bok;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\CplFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Modules\BoK\Models\Bok;
-use App\Modules\Kurikulum\Models\ProfilLulusan;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
