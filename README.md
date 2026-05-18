@@ -60,6 +60,15 @@ Stack: **Pint** · **Larastan (level 6)** · **Pest** · test paralel via SQLite
 | `composer stan` | Static analysis Larastan level 6 |
 | `composer test:parallel` | Test paralel (Pest + PHPUnit) |
 
+### Waktu eksekusi test E2E MVP
+
+| Perintah | Durasi (referensi lokal) |
+|---|---|
+| `php artisan test --filter=MvpEndToEndTest` | ~2 s |
+| `composer test:parallel --filter=MvpEndToEndTest` | ~11 s |
+
+Target DoD: **< 30 detik** untuk filter `MvpEndToEndTest` (lihat [SILOGY_PreVibeCoding_v6.md](docs/SILOGY_PreVibeCoding_v6.md) §1.5).
+
 ### Helper PowerShell (`scripts/`)
 
 Jalankan dari root proyek dengan FlyEnv PHP di PATH:

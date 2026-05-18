@@ -66,7 +66,7 @@ class CplPerMkUnitTable extends TableWidget
     }
 
     /**
-     * @return list<object>
+     * @return list<array<string, mixed>>
      */
     protected function resolveMkUnitRows(): array
     {

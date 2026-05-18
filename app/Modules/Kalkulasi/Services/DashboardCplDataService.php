@@ -30,7 +30,7 @@ class DashboardCplDataService
     }
 
     /**
-     * @return list<object{
+     * @return list<array{
      *     mk_nama: string,
      *     mk_unit_kode: string,
      *     rata_rata: float|null,
@@ -87,7 +87,7 @@ class DashboardCplDataService
     }
 
     /**
-     * @return list<object{
+     * @return list<array{
      *     mk_nama: string,
      *     mk_unit_kode: string,
      *     rata_rata: float|null,
@@ -139,7 +139,7 @@ class DashboardCplDataService
                 ? round($tercapai / $jumlahMahasiswa * 100, 2)
                 : null;
 
-            $rows[] = (object) [
+            $rows[] = [
                 'mk_nama' => $mkUnit->mk?->nama ?? '—',
                 'mk_unit_kode' => $mkUnit->kode,
                 'rata_rata' => $rataRata,
