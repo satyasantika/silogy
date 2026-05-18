@@ -1,11 +1,11 @@
 <?php
 
 use App\Models\User;
-use App\Modules\AI\Exceptions\GeminiRateLimitExceededException;
+use App\Modules\AI\Exceptions\GeminiQuotaExceededException;
+use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\AI\Jobs\RunAnalisisAiJob;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Notifications\AnalisisAiGagalNotification;
-use App\Modules\AI\RateLimiters\GeminiPerUserPerDay;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
 use Database\Seeders\RolePermissionSeeder;
@@ -15,7 +15,6 @@ use Gemini\Testing\ClientFake;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\RateLimiter;
 use Tests\Unit\Kalkulasi\Concerns\SetsUpKalkulasiFixtures;
 
 uses(RefreshDatabase::class, SetsUpKalkulasiFixtures::class);
@@ -134,16 +133,24 @@ it('marks safety blocked when finish reason is safety', function () {
 });
 
 it('respects rate limit per user', function () {
-    $user = User::where('username', 'superadmin')->firstOrFail();
-    RateLimiter::clear(GeminiPerUserPerDay::keyForUser($user->id));
+    $user = User::where('username', 'kaprodi')->firstOrFail();
+    $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+    $semester = \App\Modules\Kalender\Models\Semester::query()->where('status_aktif', true)->firstOrFail();
+    $guard = app(GeminiCostGuard::class);
 
-    for ($i = 0; $i < GeminiPerUserPerDay::MAX_ATTEMPTS; $i++) {
-        GeminiPerUserPerDay::ensure($user->id);
+    for ($i = 0; $i < GeminiCostGuard::MAX_REQUESTS_PER_USER_PER_DAY; $i++) {
+        AnalisisAi::query()->create([
+            'academic_unit_id' => $prodi->id,
+            'semester_id' => $semester->id,
+            'jenis' => 'ringkasan_cpl',
+            'status' => 'queued',
+            'prompt' => '-',
+            'dibuat_oleh' => $user->id,
+        ]);
     }
 
-    expect(fn () => GeminiPerUserPerDay::ensure($user->id))
-        ->toThrow(GeminiRateLimitExceededException::class)
-        ->and(GeminiPerUserPerDay::remaining($user->id))->toBe(0);
+    expect(fn () => $guard->check($user, $prodi))
+        ->toThrow(GeminiQuotaExceededException::class);
 });
 
 it('dispatches job on ai-analysis queue', function () {

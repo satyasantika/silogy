@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Filament\Support\Concerns\CanAccessDashboardWidgets;
 use App\Modules\Kalkulasi\Filament\Support\DashboardAcademicUnitOptions;
+use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\Kalkulasi\Filament\Widgets\CplPerMkUnitTable;
 use App\Modules\Kalkulasi\Filament\Widgets\CplUnitChartWidget;
 use App\Modules\Kalkulasi\Services\DashboardCplDataService;
@@ -40,6 +41,7 @@ class Dashboard extends BaseDashboard
         }
 
         return [
+            AiInsightWidget::class,
             CplUnitChartWidget::class,
             CplPerMkUnitTable::class,
             AccountWidget::class,

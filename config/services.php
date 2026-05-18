@@ -40,6 +40,7 @@ return [
         'model_default' => env('GEMINI_MODEL_DEFAULT', 'gemini-2.5-pro'),
         'model_flash' => env('GEMINI_MODEL_FLASH', 'gemini-2.5-flash'),
         'max_output_tokens' => env('GEMINI_MAX_TOKENS', 4096),
+        'monthly_token_budget' => env('GEMINI_MONTHLY_TOKEN_BUDGET', 5_000_000),
         'safety_settings' => [
             'HARM_CATEGORY_HARASSMENT' => 'BLOCK_MEDIUM_AND_ABOVE',
             'HARM_CATEGORY_HATE_SPEECH' => 'BLOCK_MEDIUM_AND_ABOVE',

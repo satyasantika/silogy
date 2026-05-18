@@ -6,6 +6,8 @@ use App\Modules\AI\Builders\AnalisisCplBuilder;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Notifications\AnalisisAiGagalNotification;
 use App\Modules\AI\Services\GeminiClientService;
+use App\Models\User;
+use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use Illuminate\Bus\Queueable;
@@ -40,12 +42,17 @@ class RunAnalisisAiJob implements ShouldQueue
     public function handle(
         GeminiClientService $gemini,
         AnalisisCplBuilder $builder,
+        GeminiCostGuard $costGuard,
     ): void {
         $analisis = AnalisisAi::query()->findOrFail($this->analisisAiId);
 
+        $unit = AcademicUnit::query()->findOrFail($analisis->academic_unit_id);
+        $user = User::query()->findOrFail($analisis->dibuat_oleh);
+
+        $costGuard->check($user, $unit, $analisis->id);
+
         $analisis->update(['status' => 'running']);
 
-        $unit = AcademicUnit::query()->findOrFail($analisis->academic_unit_id);
         $semester = Semester::query()->findOrFail($analisis->semester_id);
 
         $payload = $builder

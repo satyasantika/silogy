@@ -3,11 +3,12 @@
 namespace App\Modules\AI\Filament\Pages;
 
 use App\Models\User;
-use App\Modules\AI\Exceptions\GeminiRateLimitExceededException;
+use App\Modules\AI\Exceptions\GeminiQuotaExceededException;
 use App\Modules\AI\Jobs\RunAnalisisAiJob;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Policies\AnalisisAiPolicy;
-use App\Modules\AI\RateLimiters\GeminiPerUserPerDay;
+use App\Modules\AI\Services\GeminiCostGuard;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\AI\Support\AnalisisAiUnitOptions;
 use App\Modules\Kalender\Models\Semester;
 use Filament\Actions\Action;
@@ -105,11 +106,13 @@ class RequestAnalisis extends Page
             return;
         }
 
+        $unit = AcademicUnit::query()->findOrFail($data['academic_unit_id']);
+
         try {
-            GeminiPerUserPerDay::ensure($user->id);
-        } catch (GeminiRateLimitExceededException $e) {
+            app(GeminiCostGuard::class)->check($user, $unit);
+        } catch (GeminiQuotaExceededException $e) {
             Notification::make()
-                ->title('Batas harian tercapai')
+                ->title('Kuota analisis AI habis')
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
@@ -118,7 +121,7 @@ class RequestAnalisis extends Page
         }
 
         $analisis = AnalisisAi::query()->create([
-            'academic_unit_id' => $data['academic_unit_id'],
+            'academic_unit_id' => $unit->id,
             'semester_id' => $data['semester_id'],
             'jenis' => $data['jenis'],
             'status' => 'queued',
