@@ -3,13 +3,14 @@
 namespace App\Modules\Penilaian\Models;
 
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NilaiMahasiswa extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsSilogyActivity;
 
     protected $table = 'nilai_mahasiswas';
 

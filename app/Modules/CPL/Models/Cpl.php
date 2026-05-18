@@ -3,6 +3,7 @@
 namespace App\Modules\CPL\Models;
 
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\CplFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Cpl extends Model
 {
     /** @use HasFactory<CplFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsSilogyActivity;
 
     protected $table = 'cpl';
 

@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\Audit\Models\Activity;
+use App\Modules\Audit\Policies\ActivityLogPolicy;
 use App\Modules\Auth\Policies\UserPolicy;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\BoK\Policies\BokPolicy;
@@ -59,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->ip());
         });
 
+        Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Mahasiswa::class, MahasiswaPolicy::class);

@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -21,7 +22,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements CanResetPasswordContract, FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use CanResetPassword, HasFactory, HasRoles, HasUuids, Notifiable;
+    use CanResetPassword, HasFactory, HasRoles, HasUuids, LogsSilogyActivity, Notifiable;
 
     protected $keyType = 'string';
 
@@ -79,5 +80,13 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         return $this->belongsToMany(AcademicUnit::class, 'academic_unit_users')
             ->withPivot(['status_pimpinan', 'status_tim_kurikulum', 'jabatan'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function activityLogHiddenAttributes(): array
+    {
+        return ['password', 'remember_token'];
     }
 }

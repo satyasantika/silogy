@@ -3,13 +3,14 @@
 namespace App\Modules\Institusi\Models;
 
 use App\Models\User;
+use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AcademicUnitUser extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsSilogyActivity;
 
     protected $table = 'academic_unit_users';
 

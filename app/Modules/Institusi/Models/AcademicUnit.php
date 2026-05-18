@@ -3,6 +3,7 @@
 namespace App\Modules\Institusi\Models;
 
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\AcademicUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AcademicUnit extends Model
 {
     /** @use HasFactory<AcademicUnitFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsSilogyActivity;
 
     protected $table = 'academic_units';
 

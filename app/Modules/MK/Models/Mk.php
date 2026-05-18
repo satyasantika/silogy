@@ -4,6 +4,7 @@ namespace App\Modules\MK\Models;
 
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 class Mk extends Model
 {
     /** @use HasFactory<MkFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsSilogyActivity;
 
     protected $table = 'mk';
 

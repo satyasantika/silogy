@@ -9,6 +9,7 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\States\KurikulumState;
+use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,7 +18,7 @@ use Spatie\ModelStates\HasStates;
 
 class Kurikulum extends Model
 {
-    use HasStates, HasUuids;
+    use HasStates, HasUuids, LogsSilogyActivity;
 
     protected $table = 'kurikulum';
 

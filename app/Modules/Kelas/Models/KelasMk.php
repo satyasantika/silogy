@@ -7,6 +7,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KelasMk extends Model
 {
-    use HasUuids;
+    use HasUuids, LogsSilogyActivity;
 
     protected $table = 'kelas_mk';
 

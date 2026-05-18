@@ -4,6 +4,7 @@ namespace App\Modules\MK\Models;
 
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class MkUnit extends Model
 {
     /** @use HasFactory<MkUnitFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsSilogyActivity;
 
     protected $table = 'mk_units';
 
