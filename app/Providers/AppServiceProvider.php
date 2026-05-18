@@ -32,8 +32,11 @@ use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Spatie\ModelStates\Events\StateChanged;
 
@@ -52,6 +55,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('health', function (Request $request): Limit {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Mahasiswa::class, MahasiswaPolicy::class);

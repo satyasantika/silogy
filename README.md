@@ -135,6 +135,65 @@ Target DoD: **< 30 detik** untuk filter di atas.
 
 ---
 
+## Operasional Produksi
+
+### Health check
+
+Endpoint publik (tanpa auth), envelope JSON §5.1 PreVibeCoding:
+
+```bash
+curl -s http://localhost:8080/health | jq
+```
+
+Contoh respons sehat:
+
+```json
+{
+  "success": true,
+  "data": {
+    "db": "ok",
+    "redis": "ok",
+    "disk_free": "42.15GB"
+  },
+  "meta": { "request_id": "01J9..." },
+  "message": "OK"
+}
+```
+
+Rate limit: **60 request/menit** per IP.
+
+### Backup harian
+
+Skrip: [`scripts/silogy-backup.sh`](scripts/silogy-backup.sh) — `mysqldump` database `silogy_prod` (single-transaction, routines, triggers) → gzip → enkripsi `openssl aes-256-cbc -pbkdf2`, plus arsip `storage/app/public`, retensi **30 hari**.
+
+1. Salin & sesuaikan variabel di `/etc/silogy/backup.env`:
+
+```bash
+SILOGY_DB_USER=silogy
+SILOGY_DB_PASS=<password-produksi>
+SILOGY_BACKUP_KEY=<passphrase-enkripsi-panjang>
+SILOGY_APP_ROOT=/var/www/silogy
+SILOGY_BACKUP_DIR=/var/backups/silogy
+```
+
+2. Jadwalkan cron **01:00** (user deploy, mis. `www-data` atau `silogy`):
+
+```cron
+0 1 * * * . /etc/silogy/backup.env && /var/www/silogy/scripts/silogy-backup.sh >> /var/log/silogy/backup.log 2>&1
+```
+
+3. Pastikan direktori log & backup ada:
+
+```bash
+sudo mkdir -p /var/log/silogy /var/backups/silogy
+sudo chown deploy:deploy /var/log/silogy /var/backups/silogy
+chmod +x /var/www/silogy/scripts/silogy-backup.sh
+```
+
+Detail recovery: [System Architecture §5](docs/SILOGY_System_Architecture_v6.md).
+
+---
+
 ## Kontribusi
 
 Branching, conventional commits, dan DoD PR: [CONTRIBUTING.md](CONTRIBUTING.md).
