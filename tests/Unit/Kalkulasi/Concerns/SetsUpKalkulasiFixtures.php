@@ -8,8 +8,12 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kalkulasi\Services\CpmkCalculator;
+use App\Modules\Kalkulasi\Services\SubcpmkCalculator;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\States\DraftState;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -40,7 +44,12 @@ trait SetsUpKalkulasiFixtures
      *     mk: Mk,
      *     cpmk: Cpmk,
      *     subcpmk: Subcpmk,
-     *     evaluasi: Evaluasi
+     *     evaluasi: Evaluasi,
+     *     cpl: Cpl,
+     *     cplBok: CplBok,
+     *     cplMk: CplMk,
+     *     mkUnit: MkUnit,
+     *     semester: Semester
      * }
      */
     protected function createKelasPenilaianDasar(string $kodeMkUnit = 'IF-KALK'): array
@@ -80,7 +89,51 @@ trait SetsUpKalkulasiFixtures
 
         $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-        return compact('kelas', 'kmm', 'mk', 'cpmk', 'subcpmk', 'evaluasi');
+        return compact(
+            'kelas',
+            'kmm',
+            'mk',
+            'mkUnit',
+            'cpmk',
+            'subcpmk',
+            'evaluasi',
+            'cpl',
+            'cplBok',
+            'cplMk',
+            'semester',
+        );
+    }
+
+    protected function buatKurikulumAktif(AcademicUnit $unit, int $targetCapaian = 75): Kurikulum
+    {
+        return Kurikulum::query()->create([
+            'academic_unit_id' => $unit->id,
+            'nama' => 'Kurikulum '.$unit->code,
+            'tahun' => 2025,
+            'target_capaian_lulusan' => $targetCapaian,
+            'state' => DraftState::class,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $dasar
+     */
+    protected function jalankanKalkulasiHinggaCpmk(array $dasar, float $nilai = 85): void
+    {
+        $skp = $this->buatKomponenSkp(
+            $dasar['kelas'],
+            $dasar['subcpmk'],
+            $dasar['evaluasi'],
+            'UTS',
+            100,
+            100,
+        );
+
+        $this->isiNilai($skp, $dasar['kmm'], $nilai);
+
+        app(SubcpmkCalculator::class)->calculate($dasar['kelas']->id);
+        app(CpmkCalculator::class)->calculate($dasar['kelas']->id);
     }
 
     protected function buatKomponenSkp(
