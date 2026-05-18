@@ -14,6 +14,7 @@ readonly class GeminiResponse
         public int $candidates_token_count,
         public int $total_token_count,
         public int $latency_ms,
+        public string $model,
         public array $raw_payload,
     ) {}
 }

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Modules\AI\RateLimiters\GeminiPerUserPerDay;
 use App\Modules\Audit\Models\Activity;
 use App\Modules\Audit\Policies\ActivityLogPolicy;
 use App\Modules\Auth\Policies\UserPolicy;
@@ -59,6 +60,11 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('health', function (Request $request): Limit {
             return Limit::perMinute(60)->by($request->ip());
+        });
+
+        RateLimiter::for(GeminiPerUserPerDay::rateLimiterName(), function (Request $request): Limit {
+            return Limit::perDay(GeminiPerUserPerDay::MAX_ATTEMPTS)
+                ->by($request->user()?->id ?? $request->ip());
         });
 
         Gate::policy(Activity::class, ActivityLogPolicy::class);

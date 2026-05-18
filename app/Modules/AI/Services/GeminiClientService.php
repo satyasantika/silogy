@@ -45,7 +45,7 @@ class GeminiClientService
             $response = $generativeModel->generateContent($this->buildInput($prompt, $context));
             $latencyMs = (int) ((hrtime(true) - $startedAt) / 1_000_000);
 
-            return $this->mapResponse($response, $latencyMs);
+            return $this->mapResponse($response, $latencyMs, $model);
         } catch (Throwable $e) {
             throw AiServiceException::from($e);
         }
@@ -98,8 +98,11 @@ class GeminiClientService
         return $settings;
     }
 
-    private function mapResponse(GenerateContentResponse $response, int $latencyMs): GeminiResponse
-    {
+    private function mapResponse(
+        GenerateContentResponse $response,
+        int $latencyMs,
+        string $model,
+    ): GeminiResponse {
         return new GeminiResponse(
             text: $this->extractText($response),
             finish_reason: $this->resolveFinishReason($response),
@@ -107,6 +110,7 @@ class GeminiClientService
             candidates_token_count: $response->usageMetadata->candidatesTokenCount ?? 0,
             total_token_count: $response->usageMetadata->totalTokenCount,
             latency_ms: $latencyMs,
+            model: $model,
             raw_payload: $response->toArray(),
         );
     }
