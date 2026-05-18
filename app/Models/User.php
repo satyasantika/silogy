@@ -6,6 +6,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
@@ -17,7 +18,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements CanResetPasswordContract, FilamentUser
+class User extends Authenticatable implements CanResetPasswordContract, FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
     use CanResetPassword, HasFactory, HasRoles, HasUuids, Notifiable;
@@ -55,6 +56,11 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
     public function canAccessPanel(Panel $panel): bool
     {
         return true;
+    }
+
+    public function getFilamentName(): string
+    {
+        return $this->full_name ?? $this->username ?? 'Pengguna';
     }
 
     /**

@@ -71,7 +71,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_user_jurusan', 'kelola_user_prodi',
             'kelola_fakultas', 'kelola_jurusan', 'kelola_prodi',
             'setdosen_mk',
-            'lihat_laporan', 'ekspor_data',
+            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
         ]);
 
         $adminFak = Role::firstOrCreate(['name' => 'Admin Fakultas', 'guard_name' => 'web']);
@@ -79,7 +79,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_user_fakultas', 'kelola_user_jurusan', 'kelola_user_prodi',
             'kelola_jurusan', 'kelola_prodi',
             'setdosen_mk',
-            'lihat_laporan', 'ekspor_data',
+            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
         ]);
 
         $adminJur = Role::firstOrCreate(['name' => 'Admin Jurusan', 'guard_name' => 'web']);
@@ -87,7 +87,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_user_jurusan', 'kelola_user_prodi',
             'kelola_prodi',
             'setdosen_mk',
-            'lihat_laporan', 'ekspor_data',
+            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
         ]);
 
         $adminProdi = Role::firstOrCreate(['name' => 'Admin Program Studi', 'guard_name' => 'web']);
@@ -95,7 +95,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_user_prodi',
             'kelola_kelas',
             'setdosen_mk',
-            'lihat_laporan', 'ekspor_data',
+            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
         ]);
 
         // --- Tim Kurikulum (Profil khusus prodi; CPL→BoK→MK untuk semua unit) ---
@@ -105,7 +105,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_profil_lulusan', // hanya berlaku ketika status_tim_kurikulum=1 pada unit study_program
             'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit',
             'setdosen_mk',
-            'lihat_laporan',
+            'lihat_laporan', 'lihat_dashboard',
         ]);
 
         // --- Koordinator Mata Kuliah ---

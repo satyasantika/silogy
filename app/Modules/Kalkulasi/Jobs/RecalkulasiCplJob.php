@@ -7,6 +7,7 @@ use App\Modules\Kalkulasi\Services\CplMkUnitCalculator;
 use App\Modules\Kalkulasi\Services\CplUnitAggregator;
 use App\Modules\Kalkulasi\Services\CpmkCalculator;
 use App\Modules\Kalkulasi\Services\SubcpmkCalculator;
+use App\Modules\Kalkulasi\Support\DashboardCplCache;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -41,5 +42,7 @@ class RecalkulasiCplJob implements ShouldQueue
         $cplMkCalculator->calculate($this->kelasMkId, $this->semesterId);
         $cplMkUnitCalculator->calculate($this->academicUnitId, $this->semesterId);
         $cplUnitAggregator->aggregate($this->academicUnitId, $this->semesterId);
+
+        DashboardCplCache::invalidate($this->academicUnitId, $this->semesterId);
     }
 }
