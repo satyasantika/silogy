@@ -26,6 +26,8 @@ use App\Modules\MK\Policies\MkPolicy;
 use App\Modules\MK\Policies\MkUnitPolicy;
 use App\Modules\MK\Policies\SubcpmkPolicy;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\NilaiMahasiswa;
+use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
@@ -66,5 +68,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
 
         Event::listen(StateChanged::class, LogStateTransition::class);
+
+        NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
     }
 }
