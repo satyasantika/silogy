@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\Penilaian\Models\KomponenPenilaian;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -69,6 +70,14 @@ class KelasMk extends Model
     public function kelasMkMahasiswas(): HasMany
     {
         return $this->hasMany(KelasMkMahasiswa::class);
+    }
+
+    /**
+     * @return HasMany<KomponenPenilaian, $this>
+     */
+    public function komponenPenilaians(): HasMany
+    {
+        return $this->hasMany(KomponenPenilaian::class);
     }
 
     /**

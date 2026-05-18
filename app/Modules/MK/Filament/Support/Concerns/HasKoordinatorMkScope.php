@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Modules\MK\Filament\Support\Concerns;
+
+use App\Models\User;
+use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\MK\Models\Mk;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+
+trait HasKoordinatorMkScope
+{
+    /**
+     * MK yang user koordinasikan lewat kelas_mk.koordinator_mk_id.
+     *
+     * @return Collection<int, string>
+     */
+    public static function scopedKoordinatorMkIds(User $user): Collection
+    {
+        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+            return Mk::query()->pluck('id');
+        }
+
+        return KelasMk::query()
+            ->where('koordinator_mk_id', $user->id)
+            ->whereHas('mkUnit')
+            ->with('mkUnit')
+            ->get()
+            ->pluck('mkUnit.mk_id')
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public static function scopedKoordinatorKelasMkIds(User $user): Collection
+    {
+        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+            return KelasMk::query()->pluck('id');
+        }
+
+        return KelasMk::query()
+            ->where('koordinator_mk_id', $user->id)
+            ->pluck('id');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function scopedKoordinatorMkOptions(): array
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        $mkIds = static::scopedKoordinatorMkIds($user);
+
+        if ($mkIds->isEmpty()) {
+            return [];
+        }
+
+        return Mk::query()
+            ->whereIn('id', $mkIds)
+            ->orderBy('nama')
+            ->pluck('nama', 'id')
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function scopedKoordinatorKelasMkOptions(): array
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        $query = KelasMk::query()
+            ->with(['mkUnit.mk', 'semester'])
+            ->orderBy('kode_kelas');
+
+        if (! $user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+            $query->where('koordinator_mk_id', $user->id);
+        }
+
+        return $query
+            ->get()
+            ->mapWithKeys(fn (KelasMk $kelas): array => [
+                $kelas->id => sprintf(
+                    '%s – Kelas %s (%s)',
+                    $kelas->mkUnit?->mk?->nama ?? '—',
+                    $kelas->kode_kelas,
+                    $kelas->semester?->kode ?? '—',
+                ),
+            ])
+            ->all();
+    }
+
+    public static function userCanManageMkAsKoordinator(User $user, string $mkId): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return static::scopedKoordinatorMkIds($user)->contains($mkId);
+    }
+
+    public static function userCanManageKelasAsKoordinator(User $user, KelasMk $kelasMk): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return $kelasMk->koordinator_mk_id === $user->id;
+    }
+
+    public static function userCanManageKelasByAdminUnit(User $user, KelasMk $kelasMk): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        if (! $user->hasAnyRole([
+            'Admin Program Studi',
+            'Admin Jurusan',
+            'Admin Fakultas',
+            'Admin Universitas',
+        ])) {
+            return false;
+        }
+
+        $kelasMk->loadMissing('mkUnit.academicUnit');
+        $unit = $kelasMk->mkUnit?->academicUnit;
+
+        return $unit instanceof AcademicUnit
+            && AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit);
+    }
+}

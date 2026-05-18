@@ -17,10 +17,16 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
+use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Policies\CpmkPolicy;
 use App\Modules\MK\Policies\MkPolicy;
 use App\Modules\MK\Policies\MkUnitPolicy;
+use App\Modules\MK\Policies\SubcpmkPolicy;
+use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
 use Illuminate\Support\Facades\Event;
@@ -52,6 +58,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Mk::class, MkPolicy::class);
         Gate::policy(MkUnit::class, MkUnitPolicy::class);
         Gate::policy(KelasMk::class, KelasMkPolicy::class);
+        Gate::policy(Cpmk::class, CpmkPolicy::class);
+        Gate::policy(Subcpmk::class, SubcpmkPolicy::class);
+        Gate::policy(KomponenPenilaian::class, KomponenPenilaianPolicy::class);
 
         Event::listen(StateChanged::class, LogStateTransition::class);
     }
