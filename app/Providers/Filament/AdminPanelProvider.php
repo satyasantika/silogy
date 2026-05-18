@@ -73,6 +73,10 @@ class AdminPanelProvider extends PanelProvider
                 for: 'App\Modules\Penilaian\Filament\Resources',
             )
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+            ->discoverPages(
+                in: app_path('Modules/Penilaian/Filament/Pages'),
+                for: 'App\Modules\Penilaian\Filament\Pages',
+            )
             ->pages([
                 Dashboard::class,
             ])

@@ -26,6 +26,7 @@ use App\Modules\MK\Policies\MkPolicy;
 use App\Modules\MK\Policies\MkUnitPolicy;
 use App\Modules\MK\Policies\SubcpmkPolicy;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
@@ -61,6 +62,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Cpmk::class, CpmkPolicy::class);
         Gate::policy(Subcpmk::class, SubcpmkPolicy::class);
         Gate::policy(KomponenPenilaian::class, KomponenPenilaianPolicy::class);
+
+        Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
 
         Event::listen(StateChanged::class, LogStateTransition::class);
     }
