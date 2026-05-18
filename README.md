@@ -1,10 +1,23 @@
 # SILOGY
 
-**Siliwangi Learning Outcomes & Quality Analytics** — platform analitik capaian pembelajaran berbasis paradigma **Outcome-Based Education (OBE)** untuk Universitas Siliwangi.
+**Siliwangi Learning Outcomes & Quality Analytics** — platform manajemen dan analitik capaian pembelajaran berbasis paradigma **Outcome-Based Education (OBE)** untuk Universitas Siliwangi.
 
-Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v3 · FlyEnv (Windows).
+**Versi dokumen:** P0.1 · Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v4 · Docker Compose
 
 [![CI](https://github.com/unsil/silogy/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/unsil/silogy/actions/workflows/ci.yml)
+![License](https://img.shields.io/badge/License-Proprietary-red)
+
+---
+
+## Tiga Pilar SILOGY
+
+| Pilar | Fokus | Outcome untuk institusi |
+|---|---|---|
+| **Pengukuran** | Rantai nilai terstruktur: mahasiswa → sub-CPMK → CPMK → CPL | Setiap capaian dapat ditelusuri ke bukti penilaian di kelas |
+| **Analitik** | Mesin kalkulasi 5 tahap + dashboard CPL per `academic_unit` | Pimpinan melihat persentase tercapai vs target kurikulum per semester |
+| **Peningkatan** | Rekomendasi berbasis data lintas unit | Tim kurikulum dan prodi punya dasar empiris untuk revisi kurikulum & pembelajaran |
+
+---
 
 ## Dokumen Referensi
 
@@ -16,78 +29,118 @@ Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v3 · FlyEnv (Windows).
 | [SILOGY_System_Architecture_v6.md](docs/SILOGY_System_Architecture_v6.md) | Deployment & monitoring |
 | [SILOGY_PreVibeCoding_v6.md](docs/SILOGY_PreVibeCoding_v6.md) | DoD, konvensi kode, sprint breakdown |
 
-## Menjalankan Lokal (FlyEnv / Windows)
+**Panduan developer & demo:**
 
-**Opsi A — FlyEnv (disarankan)**
+- [ONBOARDING.md](docs/ONBOARDING.md) — setup laptop & alur 30 menit
+- [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — skrip presentasi 15 menit
 
-Pastikan site `silogy.test` sudah dikonfigurasi di FlyEnv, lalu buka:
+---
 
-```
-http://silogy.test
-```
+## Quick Start (Docker)
 
-Panel admin Filament: `http://silogy.test/admin` · login: `http://silogy.test/admin/login`
-
-> **Catatan:** Proyek memakai **Laravel 13**; Filament **v4** (bukan v3) karena v3 belum mendukung `illuminate/*` ^13 di Composer. Livewire **3.x** terpasang otomatis.
-
-**Opsi B — Artisan serve**
+Prasyarat: [Docker Desktop](https://www.docker.com/products/docker-desktop/) (atau Docker Engine + Compose v2) dan `make` (Git Bash / WSL / Linux / macOS).
 
 ```bash
-php artisan serve
+git clone https://github.com/unsil/silogy.git
+cd silogy
+cp .env.docker .env
+make up
+make fresh
 ```
 
-Buka `http://127.0.0.1:8000` (atau port yang ditampilkan).
+Buka panel admin:
 
-## Setup Awal
+| URL | Keterangan |
+|---|---|
+| http://localhost:8080/admin | Dashboard Filament |
+| http://localhost:8080/admin/login | Halaman login |
+| http://localhost:8080 | Redirect ke aplikasi |
 
-```bash
-cp .env.example .env
-composer install
-php artisan key:generate
-php artisan migrate --seed
-```
+Login awal: **`superadmin`** / **`Silogy2026!`**
 
-Detail kontribusi, branching, dan DoD: lihat [CONTRIBUTING.md](CONTRIBUTING.md).
+Layanan tambahan setelah `make up`:
 
-## Tooling Kualitas Kode (tanpa Docker)
+| Layanan | URL / Port |
+|---|---|
+| Mailpit (email dev) | http://localhost:8025 |
+| MySQL | `localhost:3306` (user `silogy` / pass `silogy`) |
+| Redis | `localhost:6379` |
 
-Stack: **Pint** · **Larastan (level 6)** · **Pest** · test paralel via SQLite `:memory:`.
+---
+
+## Akun Siap Pakai (setelah `make fresh`)
+
+Password default semua akun: **`Silogy2026!`**
+
+| Username | Role |
+|---|---|
+| `superadmin` | Super Admin |
+| `rektor` | Pimpinan Universitas |
+| `wakilrektor` | Pimpinan Universitas |
+| `dekan` | Pimpinan Fakultas |
+| `wakildekan` | Pimpinan Fakultas |
+| `kajur` | Pimpinan Jurusan |
+| `sekjur` | Pimpinan Jurusan |
+| `kaprodi` | Pimpinan Program Studi |
+| `adminuniv` | Admin Universitas |
+| `adminfak` | Admin Fakultas |
+| `adminjur` | Admin Jurusan |
+| `adminprodi` | Admin Program Studi |
+| `timkur` | Tim Kurikulum |
+| `korma` | Koordinator Mata Kuliah |
+| `dosen` | Dosen Pengampu |
+| `auditor` | Auditor Mutu |
+
+Sumber lengkap: [PreVibeCoding §7.2](docs/SILOGY_PreVibeCoding_v6.md).
+
+---
+
+## Perintah Make
 
 | Perintah | Fungsi |
 |---|---|
-| `composer pint` | Format kode (PSR-12 / Laravel preset) |
-| `composer pint -- --test` | Cek format tanpa menulis file |
-| `composer stan` | Static analysis Larastan level 6 |
-| `composer test:parallel` | Test paralel (Pest + PHPUnit) |
+| `make up` | Build & jalankan container, `composer install`, generate `APP_KEY` |
+| `make fresh` | `migrate:fresh --seed` (data demo siap dipakai) |
+| `make down` | Hentikan container |
+| `make logs` | Tail log semua service |
+| `make sh` | Shell ke container `app` |
+| `make test` | Jalankan test paralel di container |
+| `make pint` | Format kode (Pint) |
+| `make stan` | Static analysis (Larastan level 6) |
 
-### Waktu eksekusi test E2E MVP
+---
 
-| Perintah | Durasi (referensi lokal) |
+## Kualitas Kode & Test
+
+Di dalam container (`make sh`) atau host dengan PHP 8.3+:
+
+```bash
+composer pint -- --test
+composer stan
+composer test:parallel
+```
+
+Test E2E MVP (alur lengkap §1.5 PreVibeCoding):
+
+```bash
+composer test:parallel -- --filter=MvpEndToEndTest
+```
+
+| Perintah | Durasi referensi |
 |---|---|
 | `php artisan test --filter=MvpEndToEndTest` | ~2 s |
 | `composer test:parallel --filter=MvpEndToEndTest` | ~11 s |
 
-Target DoD: **< 30 detik** untuk filter `MvpEndToEndTest` (lihat [SILOGY_PreVibeCoding_v6.md](docs/SILOGY_PreVibeCoding_v6.md) §1.5).
+Target DoD: **< 30 detik** untuk filter di atas.
 
-### Helper PowerShell (`scripts/`)
+---
 
-Jalankan dari root proyek dengan FlyEnv PHP di PATH:
+## Kontribusi
 
-```powershell
-pwsh scripts/test.ps1    # php artisan test --parallel
-pwsh scripts/lint.ps1    # pint --test + phpstan
-pwsh scripts/fresh.ps1   # migrate:fresh --seed
-pwsh scripts/serve.ps1   # artisan serve :8000 (alternatif FlyEnv)
-```
+Branching, conventional commits, dan DoD PR: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Contoh validasi cepat sebelum PR:
-
-```powershell
-composer pint -- --test
-composer stan
-pwsh scripts/test.ps1
-```
+---
 
 ## Lisensi
 
-Proprietary — Universitas Siliwangi.
+**Proprietary** — Universitas Siliwangi. Tidak untuk redistribusi tanpa izin tertulis.
