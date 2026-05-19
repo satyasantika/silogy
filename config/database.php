@@ -145,7 +145,9 @@ return [
 
     'redis' => [
 
-        'client' => env('REDIS_CLIENT', 'phpredis'),
+        // Tanpa ekstensi PHP redis, gunakan predis (Composer). Jika terpasang, phpredis lebih cepat.
+        'client' => env('REDIS_CLIENT')
+            ?: (extension_loaded('redis') ? 'phpredis' : 'predis'),
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),

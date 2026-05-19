@@ -27,9 +27,10 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('')
             ->login(Login::class)
             ->passwordReset()
+            ->homeUrl('/dashboard')
             ->brandName('SILOGY')
             ->colors([
                 'primary' => Color::hex('#1e3a5f'),

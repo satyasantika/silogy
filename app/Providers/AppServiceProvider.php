@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Auth\Http\Responses\FilamentDefaultLoginRedirect;
 use App\Models\User;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Policies\AnalisisAiPolicy;
@@ -36,7 +37,9 @@ use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
-use Filament\Auth\Notifications\ResetPassword as FilamentResetPassword;
+use Filament\Auth\Http\Responses\Contracts\LoginResponse as FilamentLoginResponseContract;
+use Filament\Auth\Http\Responses\LoginResponse as FilamentVendorLoginResponse;
+use Filament\Auth\Notifications\ResetPassword as FilamentResetPasswordNotification;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -52,7 +55,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(FilamentResetPassword::class, ResetPasswordNotification::class);
+        $this->app->bind(FilamentLoginResponseContract::class, FilamentDefaultLoginRedirect::class);
+        $this->app->bind(FilamentVendorLoginResponse::class, FilamentDefaultLoginRedirect::class);
+        $this->app->bind(FilamentResetPasswordNotification::class, ResetPasswordNotification::class);
     }
 
     /**

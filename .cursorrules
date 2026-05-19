@@ -29,7 +29,7 @@ yang dibangun dengan Laravel 13 + Filament v3 + MySQL 8 + Redis 7 + FlyEnv (Wind
 
 # Format Output
 - Selalu kembalikan diff atau file lengkap, bukan cuplikan.
-- Setelah selesai, tuliskan pesan commit Conventional Commits di blok bash.
+- Setelah selesai, selalu sarankan pesan untuk dicommit secara Conventional Commits di blok bash.
 - Tuliskan langkah validasi (perintah artisan/test) di blok bash.
 
 # Referensi Konsultasi

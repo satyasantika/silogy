@@ -2,10 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Filament\Support\Concerns\CanAccessDashboardWidgets;
 use App\Modules\Kalkulasi\Filament\Support\DashboardAcademicUnitOptions;
-use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\Kalkulasi\Filament\Widgets\CplPerMkUnitTable;
 use App\Modules\Kalkulasi\Filament\Widgets\CplUnitChartWidget;
 use App\Modules\Kalkulasi\Services\DashboardCplDataService;
@@ -24,10 +24,8 @@ class Dashboard extends BaseDashboard
     use CanAccessDashboardWidgets;
     use HasFiltersForm;
 
-    public static function canAccess(): bool
-    {
-        return static::canViewDashboardWidgets();
-    }
+    /** Beranda aplikasi ada di `/` — dashboard panel di slug terpisah agar tidak bentrok dengan landing. */
+    protected static string $routePath = 'dashboard';
 
     /**
      * @return array<class-string<Widget> | WidgetConfiguration>

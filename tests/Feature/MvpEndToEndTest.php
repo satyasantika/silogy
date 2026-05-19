@@ -1,6 +1,5 @@
 <?php
 
-use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Dashboard;
 use App\Models\Role;
 use App\Models\User;
@@ -51,6 +50,7 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
+use Filament\Auth\Pages\Login;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -77,7 +77,7 @@ it('completes full mvp journey for prodi', function () {
     // 1. Login superadmin → buat hierarki unit E2E
     Livewire::test(Login::class)
         ->fillForm([
-            'login' => 'superadmin',
+            'email' => 'superadmin@silogy.test',
             'password' => 'Silogy2026!',
         ])
         ->call('authenticate')

@@ -49,13 +49,14 @@ make up
 make fresh
 ```
 
-Buka panel admin:
+Buka aplikasi:
 
 | URL | Keterangan |
 |---|---|
-| http://localhost:8080/admin | Dashboard Filament |
-| http://localhost:8080/admin/login | Halaman login |
-| http://localhost:8080 | Redirect ke aplikasi |
+| http://localhost:8080/ | Landing SILOGY (publik) |
+| http://localhost:8080/login | Masuk (Filament) |
+| http://localhost:8080/dashboard | Dashboard (setelah masuk; panel Filament kini di akar domain) |
+| http://localhost:8080/admin | Alihan permanen menuju `/dashboard` (kompatibilitas URL lama) |
 
 Login awal: **`superadmin`** / **`Silogy2026!`**
 

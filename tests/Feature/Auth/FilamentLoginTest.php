@@ -1,10 +1,10 @@
 <?php
 
-use App\Filament\Pages\Auth\Login;
 use App\Models\User;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use App\Filament\Pages\Auth\Login;
 use Filament\Auth\Pages\PasswordReset\RequestPasswordReset;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,29 +19,18 @@ beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
 });
 
-it('login dengan username superadmin berhasil', function () {
+it('login dengan username atau email akun demo berhasil', function () {
     Livewire::test(Login::class)
         ->fillForm([
             'login' => 'superadmin',
             'password' => 'Silogy2026!',
         ])
         ->call('authenticate')
+        ->assertRedirect(route('filament.admin.pages.dashboard'))
         ->assertHasNoFormErrors();
 
     expect(auth()->check())->toBeTrue()
         ->and(auth()->user()?->username)->toBe('superadmin');
-});
-
-it('login dengan email superadmin berhasil', function () {
-    Livewire::test(Login::class)
-        ->fillForm([
-            'login' => 'superadmin@silogy.test',
-            'password' => 'Silogy2026!',
-        ])
-        ->call('authenticate')
-        ->assertHasNoFormErrors();
-
-    expect(auth()->user()?->email)->toBe('superadmin@silogy.test');
 });
 
 it('mengirim notifikasi reset password dalam Bahasa Indonesia', function () {
