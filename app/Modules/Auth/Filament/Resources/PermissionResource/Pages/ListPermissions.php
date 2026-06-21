@@ -1,0 +1,16 @@
+<?php
+
+namespace App\Modules\Auth\Filament\Resources\PermissionResource\Pages;
+
+use App\Modules\Auth\Filament\Resources\PermissionResource;
+use Filament\Resources\Pages\ListRecords;
+
+class ListPermissions extends ListRecords
+{
+    protected static string $resource = PermissionResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [];
+    }
+}

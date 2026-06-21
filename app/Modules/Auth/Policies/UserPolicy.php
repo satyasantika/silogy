@@ -11,6 +11,10 @@ class UserPolicy
 {
     public function viewAny(User $user): bool
     {
+        if (app('impersonate')->isImpersonating()) {
+            return true;
+        }
+
         return $this->hasAnyKelolaUserPermission($user);
     }
 
@@ -84,6 +88,11 @@ class UserPolicy
     public function reorder(User $user): bool
     {
         return false;
+    }
+
+    public function assignPermissions(User $user, User $model): bool
+    {
+        return $user->can('kelola_permission');
     }
 
     protected function canManageTargetUser(User $admin, User $target): bool

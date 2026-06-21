@@ -59,6 +59,16 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         return true;
     }
 
+    public function canImpersonate(): bool
+    {
+        return $this->hasRole('Super Admin');
+    }
+
+    public function canBeImpersonated(): bool
+    {
+        return ! $this->hasRole('Super Admin');
+    }
+
     public function getFilamentName(): string
     {
         return $this->full_name ?? $this->username ?? 'Pengguna';

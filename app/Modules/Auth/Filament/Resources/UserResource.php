@@ -2,6 +2,7 @@
 
 namespace App\Modules\Auth\Filament\Resources;
 
+use App\Models\Permission;
 use App\Models\User;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\EditUser;
@@ -9,6 +10,7 @@ use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
+use App\Modules\Auth\Support\DomainPermissionLabels;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -28,6 +30,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Password;
+use STS\FilamentImpersonate\Actions\Impersonate;
 
 class UserResource extends Resource
 {
@@ -113,12 +116,35 @@ class UserResource extends Resource
                     ->schema([
                         Select::make('roles')
                             ->label('Role')
-                            ->relationship('roles', 'name')
+                            ->relationship(
+                                'roles',
+                                'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => auth()->user()?->hasRole('Super Admin')
+                                    ? $query
+                                    : $query->where('name', '!=', 'Super Admin'),
+                            )
                             ->multiple()
                             ->preload()
                             ->searchable()
                             ->required(),
                     ])
+                    ->columnSpanFull(),
+
+                Section::make('Permission Langsung')
+                    ->description('Permission tambahan di luar role. Hanya Super Admin yang dapat mengatur.')
+                    ->schema([
+                        Select::make('permissions')
+                            ->label('Permission langsung')
+                            ->relationship('permissions', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(
+                                fn (Permission $record): string => DomainPermissionLabels::label($record->name)
+                            )
+                            ->dehydrated(fn (): bool => auth()->user()?->can('kelola_permission') ?? false),
+                    ])
+                    ->visible(fn (): bool => auth()->user()?->can('kelola_permission') ?? false)
                     ->columnSpanFull(),
 
                 Section::make('Penugasan Unit')
@@ -223,6 +249,8 @@ class UserResource extends Resource
                     }),
             ])
             ->recordActions([
+                Impersonate::make()
+                    ->redirectTo('/dashboard'),
                 Action::make('resetPassword')
                     ->label('Reset password')
                     ->icon(Heroicon::OutlinedEnvelope)

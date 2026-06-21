@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Auth\Http\Responses\FilamentDefaultLoginRedirect;
+use App\Models\Permission;
 use App\Models\User;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Policies\AnalisisAiPolicy;
 use App\Modules\AI\RateLimiters\GeminiPerUserPerDay;
 use App\Modules\Audit\Models\Activity;
 use App\Modules\Audit\Policies\ActivityLogPolicy;
+use App\Modules\Auth\Policies\PermissionPolicy;
 use App\Modules\Auth\Policies\UserPolicy;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\BoK\Policies\BokPolicy;
@@ -78,6 +80,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Permission::class, PermissionPolicy::class);
         Gate::policy(Mahasiswa::class, MahasiswaPolicy::class);
         Gate::policy(Kurikulum::class, KurikulumPolicy::class);
         Gate::policy(Cpl::class, CplPolicy::class);

@@ -24,7 +24,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_semester', 'kelola_evaluasi',
 
             // ---- Admin & Auth ----
-            'kelola_user', 'kelola_role', 'kelola_permission',
+            'kelola_user', 'kelola_role', 'kelola_permission', 'impersonate_user',
             'lihat_audit_log', 'konfigurasi_sistem',
 
             // ---- User-management per tipe unit ----
@@ -58,7 +58,7 @@ class RolePermissionSeeder extends Seeder
         $super->syncPermissions([
             'kelola_universitas', 'kelola_fakultas', 'kelola_jurusan', 'kelola_prodi',
             'kelola_semester', 'kelola_evaluasi',
-            'kelola_user', 'kelola_role', 'kelola_permission',
+            'kelola_user', 'kelola_role', 'kelola_permission', 'impersonate_user',
             'lihat_audit_log', 'konfigurasi_sistem',
             'kelola_user_universitas', 'kelola_user_fakultas',
             'kelola_user_jurusan', 'kelola_user_prodi',
@@ -227,7 +227,7 @@ class RolePermissionSeeder extends Seeder
                     'email' => $a['username'].'@silogy.test',
                     'nidn' => $a['nidn'],
                     'full_name' => $a['full_name'],
-                    'password' => Hash::make('Silogy2026!'),
+                    'password' => Hash::make('siliwangi'),
                 ]
             );
 
