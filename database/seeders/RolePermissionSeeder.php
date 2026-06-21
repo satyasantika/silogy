@@ -208,8 +208,17 @@ class RolePermissionSeeder extends Seeder
                 'nidn' => '0000000030', 'role' => 'Koordinator Mata Kuliah', 'unit' => $prodi,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Koordinator MK'],
 
-            // Dosen
-            ['username' => 'dosen', 'full_name' => 'Dosen Pengampu',
+            // Dosen per level unit
+            ['username' => 'dosenuniv', 'full_name' => 'Dosen Pengampu Universitas',
+                'nidn' => '0000000041', 'role' => 'Dosen Pengampu', 'unit' => $univ,
+                'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Dosen'],
+            ['username' => 'dosenfak', 'full_name' => 'Dosen Pengampu Fakultas',
+                'nidn' => '0000000042', 'role' => 'Dosen Pengampu', 'unit' => $fak,
+                'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Dosen'],
+            ['username' => 'dosenjur', 'full_name' => 'Dosen Pengampu Jurusan',
+                'nidn' => '0000000043', 'role' => 'Dosen Pengampu', 'unit' => $jur,
+                'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Dosen'],
+            ['username' => 'dosen', 'full_name' => 'Dosen Pengampu Program Studi',
                 'nidn' => '0000000040', 'role' => 'Dosen Pengampu', 'unit' => $prodi,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Dosen'],
 
@@ -228,8 +237,13 @@ class RolePermissionSeeder extends Seeder
                     'nidn' => $a['nidn'],
                     'full_name' => $a['full_name'],
                     'password' => Hash::make('siliwangi'),
+                    'email_verified_at' => now(),
                 ]
             );
+
+            if ($user->email_verified_at === null) {
+                $user->update(['email_verified_at' => now()]);
+            }
 
             $user->syncRoles([$a['role']]);
 

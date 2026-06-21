@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             MahasiswaSeeder::class,
             SemesterSeeder::class,
             EvaluasiSeeder::class,
+            SimulasiSeeder::class,
         ]);
     }
 }
