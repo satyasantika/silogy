@@ -2,6 +2,7 @@
 
 namespace App\Modules\MK\Models;
 
+use App\Models\User;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Support\Concerns\LogsSilogyActivity;
@@ -61,6 +62,17 @@ class Mk extends Model
     public function academicUnit(): BelongsTo
     {
         return $this->belongsTo(AcademicUnit::class);
+    }
+
+    /**
+     * Koordinator MK ditetapkan tim kurikulum pemilik MK; menjadi default
+     * koordinator saat kelas MK dibuat.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function koordinatorMk(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'koordinator_mk_id');
     }
 
     /**

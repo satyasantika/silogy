@@ -13,6 +13,7 @@ use App\Modules\Kelas\Filament\Support\Concerns\HasKelasMkUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -24,6 +25,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -103,7 +105,21 @@ class KelasMkResource extends Resource
                             ->options(static::mkUnitOptions())
                             ->searchable()
                             ->required()
-                            ->live(),
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                                if (filled($get('koordinator_mk_id'))) {
+                                    return;
+                                }
+
+                                $koordinatorDefault = MkUnit::query()
+                                    ->with('mk')
+                                    ->find($state)
+                                    ?->mk?->koordinator_mk_id;
+
+                                if ($koordinatorDefault !== null) {
+                                    $set('koordinator_mk_id', $koordinatorDefault);
+                                }
+                            }),
 
                         Select::make('semester_id')
                             ->label('Semester')

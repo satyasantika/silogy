@@ -2,6 +2,7 @@
 
 namespace App\Modules\MK\Filament\Resources;
 
+use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
@@ -137,6 +138,17 @@ class MkResource extends Resource
                             ->required()
                             ->default('wajib'),
 
+                        Select::make('koordinator_mk_id')
+                            ->label('Koordinator MK')
+                            ->helperText('Menjadi koordinator default saat kelas MK dibuat.')
+                            ->options(fn (): array => User::query()
+                                ->role(['Koordinator Mata Kuliah', 'Dosen Pengampu'])
+                                ->orderBy('full_name')
+                                ->pluck('full_name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->nullable(),
+
                         Toggle::make('is_active')
                             ->label('Aktif')
                             ->default(true)
@@ -178,6 +190,9 @@ class MkResource extends Resource
                     ->formatStateUsing(fn (string $state): string => static::jenisOptions()[$state] ?? $state),
                 TextColumn::make('state')->label('State')->badge(),
                 TextColumn::make('academicUnit.nama')->label('Unit pemilik'),
+                TextColumn::make('koordinatorMk.full_name')
+                    ->label('Koordinator MK')
+                    ->placeholder('—'),
                 IconColumn::make('is_active')->label('Aktif')->boolean(),
             ])
             ->filters([

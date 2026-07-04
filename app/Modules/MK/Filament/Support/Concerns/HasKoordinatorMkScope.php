@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Auth;
 trait HasKoordinatorMkScope
 {
     /**
-     * MK yang user koordinasikan lewat kelas_mk.koordinator_mk_id.
+     * MK yang user koordinasikan: lewat penetapan tim kurikulum pada
+     * mk.koordinator_mk_id (berlaku sebelum kelas ada) maupun lewat
+     * kelas_mk.koordinator_mk_id.
      *
      * @return Collection<int, string>
      */
@@ -23,15 +25,19 @@ trait HasKoordinatorMkScope
             return Mk::query()->pluck('id');
         }
 
-        return KelasMk::query()
+        $viaMk = Mk::query()
+            ->where('koordinator_mk_id', $user->id)
+            ->pluck('id');
+
+        $viaKelas = KelasMk::query()
             ->where('koordinator_mk_id', $user->id)
             ->whereHas('mkUnit')
             ->with('mkUnit')
             ->get()
             ->pluck('mkUnit.mk_id')
-            ->filter()
-            ->unique()
-            ->values();
+            ->filter();
+
+        return $viaMk->merge($viaKelas)->unique()->values();
     }
 
     /**

@@ -13,6 +13,24 @@ class CreateKelasMk extends BaseCreateRecord
 {
     protected static string $resource = KelasMkResource::class;
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Koordinator default kelas diambil dari koordinator MK yang
+        // ditetapkan tim kurikulum, kecuali diisi manual.
+        if (blank($data['koordinator_mk_id'] ?? null) && filled($data['mk_unit_id'] ?? null)) {
+            $data['koordinator_mk_id'] = MkUnit::query()
+                ->with('mk')
+                ->find($data['mk_unit_id'])
+                ?->mk?->koordinator_mk_id;
+        }
+
+        return $data;
+    }
+
     protected function beforeCreate(): void
     {
         $data = $this->form->getState();

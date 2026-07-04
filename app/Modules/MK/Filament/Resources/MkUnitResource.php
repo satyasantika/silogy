@@ -2,9 +2,13 @@
 
 namespace App\Modules\MK\Filament\Resources;
 
+use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
+use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\CreateMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\EditMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
+use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -12,12 +16,17 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\In;
+use Illuminate\Validation\Rules\Unique;
 
 class MkUnitResource extends Resource
 {
@@ -29,43 +38,110 @@ class MkUnitResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
 
+    protected static ?int $navigationSort = 5;
+
+    protected static ?string $navigationLabel = 'Penawaran MK';
+
     protected static ?string $modelLabel = 'penawaran MK';
 
     protected static ?string $pluralModelLabel = 'penawaran MK';
 
     protected static ?string $slug = 'mk-units';
 
-    public static function shouldRegisterNavigation(): bool
-    {
-        return false;
-    }
-
     public static function getEloquentQuery(): Builder
     {
         return static::scopeEloquentByTimKurikulumUnits(
-            parent::getEloquentQuery()->with(['mk', 'academicUnit']),
+            parent::getEloquentQuery()->with(['mk.academicUnit', 'academicUnit']),
         );
+    }
+
+    /**
+     * MK yang dapat diadaptasi unit penawaran: milik unit sendiri
+     * atau milik unit induknya (fakultas/universitas).
+     *
+     * @return array<string, string>
+     */
+    public static function adaptableMkOptions(?string $unitId): array
+    {
+        if (blank($unitId)) {
+            return [];
+        }
+
+        $unit = AcademicUnit::query()->find($unitId);
+
+        if (! $unit) {
+            return [];
+        }
+
+        $ids = AcademicUnitScope::ancestorIdsIncludingSelf($unit);
+
+        return Mk::query()
+            ->whereIn('academic_unit_id', $ids)
+            ->where('is_active', true)
+            ->with('academicUnit')
+            ->orderBy('nama')
+            ->get()
+            ->mapWithKeys(fn (Mk $mk): array => [
+                $mk->id => "{$mk->nama} — {$mk->academicUnit?->nama}",
+            ])
+            ->all();
     }
 
     public static function form(Schema $schema): Schema
     {
+        $unitIds = static::scopedTimKurikulumUnitIds();
+
         return $schema
             ->components([
-                Section::make('Penawaran MK')
+                Section::make('Adaptasi / Penawaran MK')
+                    ->description('Pilih MK milik unit sendiri atau unit induk (fakultas/universitas), lalu tentukan kode dan semester pelaksanaannya di unit Anda.')
                     ->schema([
-                        Select::make('mk_id')
-                            ->label('Mata kuliah')
-                            ->relationship('mk', 'nama')
-                            ->searchable()
-                            ->required(),
                         Select::make('academic_unit_id')
                             ->label('Unit penawaran')
-                            ->relationship('academicUnit', 'nama')
+                            ->options(static::timKurikulumUnitOptions())
                             ->searchable()
-                            ->required(),
-                        TextInput::make('kode')->label('Kode')->required()->maxLength(20),
-                        TextInput::make('semester_ke')->label('Semester ke-')->numeric(),
-                        Toggle::make('is_active')->label('Aktif')->default(true),
+                            ->required()
+                            ->default($unitIds->count() === 1 ? $unitIds->first() : null)
+                            ->disabled($unitIds->count() === 1)
+                            ->dehydrated()
+                            ->live()
+                            ->rule(fn (): In => Rule::in(static::scopedTimKurikulumUnitIds()->all()))
+                            ->afterStateUpdated(fn (Set $set) => $set('mk_id', null)),
+
+                        Select::make('mk_id')
+                            ->label('Mata kuliah')
+                            ->helperText('Termasuk MK penciri universitas/fakultas dari unit induk.')
+                            ->options(fn (Get $get): array => static::adaptableMkOptions($get('academic_unit_id')))
+                            ->searchable()
+                            ->required()
+                            ->rule(fn (Get $get): In => Rule::in(
+                                array_keys(static::adaptableMkOptions($get('academic_unit_id'))),
+                            ))
+                            ->rule(fn (Get $get, ?MkUnit $record): Unique => (new Unique('mk_units', 'mk_id'))
+                                ->where('academic_unit_id', $get('academic_unit_id'))
+                                ->ignore($record?->id))
+                            ->validationMessages([
+                                'unique' => 'MK ini sudah ditawarkan pada unit tersebut.',
+                            ]),
+
+                        TextInput::make('kode')
+                            ->label('Kode MK di unit')
+                            ->required()
+                            ->maxLength(20)
+                            ->rule(fn (Get $get, ?MkUnit $record): Unique => (new Unique('mk_units', 'kode'))
+                                ->where('academic_unit_id', $get('academic_unit_id'))
+                                ->ignore($record?->id)),
+
+                        TextInput::make('semester_ke')
+                            ->label('Semester ke-')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(14),
+
+                        Toggle::make('is_active')
+                            ->label('Aktif')
+                            ->default(true)
+                            ->inline(false),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -76,8 +152,9 @@ class MkUnitResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('mk.nama')->label('Mata kuliah'),
-                TextColumn::make('academicUnit.nama')->label('Unit'),
+                TextColumn::make('mk.nama')->label('Mata kuliah')->searchable(),
+                TextColumn::make('mk.academicUnit.nama')->label('Pemilik MK'),
+                TextColumn::make('academicUnit.nama')->label('Unit penawaran'),
                 TextColumn::make('kode')->label('Kode'),
                 TextColumn::make('semester_ke')->label('Semester ke-'),
                 IconColumn::make('is_active')->label('Aktif')->boolean(),
@@ -91,6 +168,7 @@ class MkUnitResource extends Resource
     {
         return [
             'index' => ListMkUnits::route('/'),
+            'create' => CreateMkUnit::route('/create'),
             'edit' => EditMkUnit::route('/{record}/edit'),
         ];
     }

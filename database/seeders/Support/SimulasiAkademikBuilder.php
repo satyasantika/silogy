@@ -146,6 +146,7 @@ class SimulasiAkademikBuilder
             [
                 'id' => (string) Str::uuid(),
                 'state' => 'penilaian',
+                'koordinator_mk_id' => $koordinator->id,
                 'sks_teori' => 2,
                 'sks_praktik' => 1,
                 'sks_lapangan' => 0,
@@ -371,6 +372,7 @@ class SimulasiAkademikBuilder
             [
                 'id' => (string) Str::uuid(),
                 'state' => 'penilaian',
+                'koordinator_mk_id' => $koordinator->id,
                 'sks_teori' => 2,
                 'sks_praktik' => 1,
                 'sks_lapangan' => 0,

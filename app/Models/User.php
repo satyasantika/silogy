@@ -8,6 +8,7 @@ use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\StateTransition;
+use App\Modules\MK\Models\Mk;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -110,6 +111,7 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
                     ->where('dosen_pengampu_id', $this->id)
                     ->orWhere('koordinator_mk_id', $this->id))
                 ->exists()
+            || Mk::query()->where('koordinator_mk_id', $this->id)->exists()
             || AnalisisAi::query()->where('dibuat_oleh', $this->id)->exists();
     }
 
