@@ -61,10 +61,7 @@ it('kurikulum dapat naik dari bok ke mk ke setdosenmk setelah pemetaan cpl bok d
     CplBok::query()->create(['cpl_id' => $cpl1->id, 'bok_id' => $bok2->id, 'bobot' => 50]);
     CplBok::query()->create(['cpl_id' => $cpl2->id, 'bok_id' => $bok3->id, 'bobot' => 100]);
 
-    expect($kurikulum->fresh()->state->canTransitionTo(MkState::class))->toBeTrue();
-    $kurikulum->state->transitionTo(MkState::class);
-    $kurikulum->refresh();
-    expect($kurikulum->state->getValue())->toBe('mk');
+    expect($kurikulum->fresh()->state->getValue())->toBe('mk');
 
     $mks = collect();
     for ($i = 1; $i <= 4; $i++) {
@@ -88,5 +85,5 @@ it('kurikulum dapat naik dari bok ke mk ke setdosenmk setelah pemetaan cpl bok d
         'bobot' => 100,
     ]);
 
-    expect($kurikulum->fresh()->state->canTransitionTo(SetdosenmkState::class))->toBeTrue();
+    expect($kurikulum->fresh()->state->getValue())->toBe('setdosenmk');
 });

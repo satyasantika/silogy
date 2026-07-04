@@ -74,5 +74,5 @@ it('workflow prodi naik dari draft ke cpl setelah profil dan pemetaan cpl', func
         'profil_lulusan_id' => $profil->id,
     ]);
 
-    expect($kurikulum->fresh()->state->canTransitionTo(BokState::class))->toBeTrue();
+    expect($kurikulum->fresh()->state->getValue())->toBe('bok');
 });

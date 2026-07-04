@@ -22,6 +22,7 @@ use App\Modules\Institusi\Policies\AcademicUnitPolicy;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Kurikulum\Listeners\LogStateTransition;
+use App\Modules\Kurikulum\Listeners\SyncKurikulumStateSubscriber;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
@@ -108,6 +109,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
 
         Event::listen(StateChanged::class, LogStateTransition::class);
+        Event::subscribe(SyncKurikulumStateSubscriber::class);
 
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
     }

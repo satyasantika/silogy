@@ -5,9 +5,22 @@ namespace Tests\Concerns;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Services\KurikulumStateSyncService;
 
 trait MvpEndToEndHelpers
 {
+    /**
+     * @var list<string>
+     */
+    protected array $urutanStateKurikulum = [
+        'draft',
+        'profil_lulusan',
+        'cpl',
+        'bok',
+        'mk',
+        'setdosenmk',
+        'aktif',
+    ];
     protected function loginUser(string $username): User
     {
         $user = User::query()->where('username', $username)->firstOrFail();
@@ -42,8 +55,21 @@ trait MvpEndToEndHelpers
 
     protected function lanjutkanKurikulumKe(Kurikulum $kurikulum, string $stateClass): void
     {
+        app(KurikulumStateSyncService::class)->sync($kurikulum->fresh());
+        $kurikulum->refresh();
+
+        $targetName = $stateClass::$name;
+        $currentValue = $kurikulum->state->getValue();
+
+        $currentIdx = array_search($currentValue, $this->urutanStateKurikulum, true);
+        $targetIdx = array_search($targetName, $this->urutanStateKurikulum, true);
+
+        if ($currentIdx !== false && $targetIdx !== false && $currentIdx >= $targetIdx) {
+            return;
+        }
+
         expect($kurikulum->state->canTransitionTo($stateClass))->toBeTrue(
-            "Tidak dapat transisi dari {$kurikulum->state->getValue()} ke {$stateClass::$name}",
+            "Tidak dapat transisi dari {$currentValue} ke {$targetName}",
         );
 
         $kurikulum->state->transitionTo($stateClass);

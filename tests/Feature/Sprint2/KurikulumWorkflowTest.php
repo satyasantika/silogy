@@ -74,7 +74,7 @@ it('runs full curriculum workflow for prodi', function () {
         ->where('nama', 'Kurikulum Prodi A 2025')
         ->firstOrFail();
 
-    expect($kurikulum->state->getValue())->toBe('draft');
+    expect($kurikulum->state->getValue())->toBe('profil_lulusan');
 
     $profil = ProfilLulusan::query()->create([
         'kurikulum_id' => $kurikulum->id,
@@ -90,8 +90,7 @@ it('runs full curriculum workflow for prodi', function () {
         'deskripsi' => 'Indikator PL-01',
     ]);
 
-    lanjutkanStateKurikulum($kurikulum, ProfilLulusanState::class);
-    expect($kurikulum->state->getValue())->toBe('profil_lulusan');
+    expect($kurikulum->fresh()->state->getValue())->toBe('cpl');
 
     $cpl1 = Cpl::query()->create([
         'academic_unit_id' => $this->prodiA->id,
@@ -115,8 +114,7 @@ it('runs full curriculum workflow for prodi', function () {
         'profil_lulusan_id' => $profil->id,
     ]);
 
-    lanjutkanStateKurikulum($kurikulum, CplState::class);
-    expect($kurikulum->state->getValue())->toBe('cpl');
+    expect($kurikulum->fresh()->state->getValue())->toBe('bok');
 
     $bok1 = Bok::factory()->forAcademicUnit($this->prodiA)->create(['kode' => 'BOK-01', 'nama' => 'BoK Algoritma']);
     $bok2 = Bok::factory()->forAcademicUnit($this->prodiA)->create(['kode' => 'BOK-02', 'nama' => 'BoK Basis Data']);
@@ -126,8 +124,7 @@ it('runs full curriculum workflow for prodi', function () {
     CplBok::query()->create(['cpl_id' => $cpl1->id, 'bok_id' => $bok2->id, 'bobot' => 60]);
     CplBok::query()->create(['cpl_id' => $cpl2->id, 'bok_id' => $bok3->id, 'bobot' => 100]);
 
-    lanjutkanStateKurikulum($kurikulum, BokState::class);
-    expect($kurikulum->state->getValue())->toBe('bok');
+    expect($kurikulum->fresh()->state->getValue())->toBe('mk');
 
     $mks = collect();
     foreach (range(1, 4) as $i) {
@@ -155,8 +152,7 @@ it('runs full curriculum workflow for prodi', function () {
         'bobot' => 100,
     ]);
 
-    lanjutkanStateKurikulum($kurikulum, MkState::class);
-    expect($kurikulum->fresh()->state->getValue())->toBe('mk');
+    expect($kurikulum->fresh()->state->getValue())->toBe('setdosenmk');
 });
 
 it('runs workflow for faculty skipping profil lulusan', function () {
@@ -188,12 +184,8 @@ it('runs workflow for faculty skipping profil lulusan', function () {
         ->where('nama', 'Kurikulum Fakultas 2025')
         ->firstOrFail();
 
-    expect($kurikulum->state->getValue())->toBe('draft')
+    expect($kurikulum->state->getValue())->toBe('cpl')
         ->and($kurikulum->academicUnit->isFaculty())->toBeTrue();
-
-    lanjutkanStateKurikulum($kurikulum, CplState::class);
-
-    expect($kurikulum->fresh()->state->getValue())->toBe('cpl');
 });
 
 it('blocks non tim kurikulum from managing kurikulum', function () {
