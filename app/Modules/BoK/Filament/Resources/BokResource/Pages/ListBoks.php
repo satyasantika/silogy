@@ -6,6 +6,8 @@ use App\Modules\BoK\Filament\Resources\BokResource;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
@@ -39,7 +41,7 @@ class ListBoks extends ListRecords
      */
     protected function importContextKeys(): array
     {
-        return ['import_unit_id'];
+        return ['import_kurikulum_id'];
     }
 
     /**
@@ -47,15 +49,13 @@ class ListBoks extends ListRecords
      */
     protected function importContextComponents(): array
     {
-        $unitIds = BokResource::scopedTimKurikulumUnitIds();
-
         return [
-            Select::make('import_unit_id')
-                ->label('Unit akademik pemilik BoK')
-                ->options(BokResource::timKurikulumUnitOptions())
+            Select::make('import_kurikulum_id')
+                ->label('Kurikulum')
+                ->options(KurikulumTerpilih::options())
                 ->searchable()
                 ->required()
-                ->default($unitIds->count() === 1 ? $unitIds->first() : null),
+                ->default(fn (): ?string => KurikulumTerpilih::currentId()),
         ];
     }
 
@@ -76,13 +76,15 @@ class ListBoks extends ListRecords
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        if (blank($context['import_unit_id'] ?? null)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih unit akademik terlebih dahulu.'];
+        $unitId = $this->unitIdDariKonteks($context);
+
+        if (blank($unitId)) {
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu.'];
         }
 
         if ($data['kode_cpl'] !== '') {
             $cplAda = Cpl::query()
-                ->where('academic_unit_id', $context['import_unit_id'])
+                ->where('academic_unit_id', $unitId)
                 ->where('kode', $data['kode_cpl'])
                 ->exists();
 
@@ -92,7 +94,7 @@ class ListBoks extends ListRecords
         }
 
         $existing = Bok::query()
-            ->where('academic_unit_id', $context['import_unit_id'])
+            ->where('academic_unit_id', $unitId)
             ->where('kode', $data['kode'])
             ->first();
 
@@ -110,8 +112,9 @@ class ListBoks extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
+        $unitId = $this->unitIdDariKonteks($context);
         $bok = Bok::query()->create([
-            'academic_unit_id' => $context['import_unit_id'],
+            'academic_unit_id' => $unitId,
             'kode' => $data['kode'],
             'nama' => $data['nama'],
             'deskripsi' => $data['deskripsi'] ?: null,
@@ -147,7 +150,7 @@ class ListBoks extends ListRecords
         }
 
         $cpl = Cpl::query()
-            ->where('academic_unit_id', $context['import_unit_id'])
+            ->where('academic_unit_id', $this->unitIdDariKonteks($context))
             ->where('kode', $data['kode_cpl'])
             ->first();
 
@@ -157,5 +160,21 @@ class ListBoks extends ListRecords
                 ['id' => (string) Str::uuid()],
             );
         }
+    }
+
+    /**
+     * Unit pemilik diturunkan dari kurikulum terpilih pada konteks impor.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    protected function unitIdDariKonteks(array $context): ?string
+    {
+        $kurikulumId = $context['import_kurikulum_id'] ?? null;
+
+        if (blank($kurikulumId)) {
+            return null;
+        }
+
+        return Kurikulum::query()->whereKey($kurikulumId)->value('academic_unit_id');
     }
 }

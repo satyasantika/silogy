@@ -3,6 +3,8 @@
 namespace App\Modules\MK\Filament\Resources\MkResource\Pages;
 
 use App\Models\User;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Models\Mk;
 use App\Support\Filament\Concerns\HasImporMassal;
@@ -38,7 +40,7 @@ class ListMks extends ListRecords
      */
     protected function importContextKeys(): array
     {
-        return ['import_unit_id'];
+        return ['import_kurikulum_id'];
     }
 
     /**
@@ -46,15 +48,13 @@ class ListMks extends ListRecords
      */
     protected function importContextComponents(): array
     {
-        $unitIds = MkResource::scopedTimKurikulumUnitIds();
-
         return [
-            Select::make('import_unit_id')
-                ->label('Unit pemilik MK')
-                ->options(MkResource::timKurikulumUnitOptions())
+            Select::make('import_kurikulum_id')
+                ->label('Kurikulum')
+                ->options(KurikulumTerpilih::options())
                 ->searchable()
                 ->required()
-                ->default($unitIds->count() === 1 ? $unitIds->first() : null),
+                ->default(fn (): ?string => KurikulumTerpilih::currentId()),
         ];
     }
 
@@ -77,8 +77,10 @@ class ListMks extends ListRecords
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        if (blank($context['import_unit_id'] ?? null)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih unit pemilik MK terlebih dahulu.'];
+        $unitId = $this->unitIdDariKonteks($context);
+
+        if (blank($unitId)) {
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum pemilik MK terlebih dahulu.'];
         }
 
         foreach (['sks_teori', 'sks_praktik', 'sks_lapangan'] as $key) {
@@ -97,7 +99,7 @@ class ListMks extends ListRecords
         }
 
         $existing = Mk::query()
-            ->where('academic_unit_id', $context['import_unit_id'])
+            ->where('academic_unit_id', $unitId)
             ->where('nama', $data['nama'])
             ->first();
 
@@ -115,10 +117,11 @@ class ListMks extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
+        $unitId = $this->unitIdDariKonteks($context);
         [$teori, $praktik, $lapangan] = $this->sksDariData($data);
 
         Mk::query()->create([
-            'academic_unit_id' => $context['import_unit_id'],
+            'academic_unit_id' => $unitId,
             'nama' => $data['nama'],
             'sks_teori' => $teori,
             'sks_praktik' => $praktik,
@@ -173,5 +176,21 @@ class ListMks extends ListRecords
         }
 
         return User::query()->where('username', $data['username_koordinator'])->value('id');
+    }
+
+    /**
+     * Unit pemilik diturunkan dari kurikulum terpilih pada konteks impor.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    protected function unitIdDariKonteks(array $context): ?string
+    {
+        $kurikulumId = $context['import_kurikulum_id'] ?? null;
+
+        if (blank($kurikulumId)) {
+            return null;
+        }
+
+        return Kurikulum::query()->whereKey($kurikulumId)->value('academic_unit_id');
     }
 }

@@ -45,6 +45,13 @@ beforeEach(function () {
 
     $this->univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+
+    $this->kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Uji Impor',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
 });
 
 it('unit akademik terpakai tidak dapat dihapus, unit kosong dapat', function () {
@@ -119,7 +126,7 @@ it('impor cpl per unit dengan validasi domain', function () {
         ->callAction('bulkImport', [
             'rows' => $rows,
             'mode_duplikat' => 'lewati',
-            'import_unit_id' => $this->prodi->id,
+            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     expect(Cpl::query()->where('kode', 'CPL-IMP-01')->where('academic_unit_id', $this->prodi->id)->exists())->toBeTrue()
@@ -133,7 +140,7 @@ it('impor bok sekaligus memetakan ke cpl', function () {
         ->callAction('bulkImport', [
             'rows' => 'BOK-IMP-01|Aljabar Dasar|Bahan kajian aljabar|CPL-MAP',
             'mode_duplikat' => 'lewati',
-            'import_unit_id' => $this->prodi->id,
+            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $bok = Bok::query()->where('kode', 'BOK-IMP-01')->first();
@@ -147,7 +154,7 @@ it('impor mk dengan sks, jenis, dan koordinator', function () {
         ->callAction('bulkImport', [
             'rows' => "Kalkulus Impor\t3\t1\t0\twajib\tkorma",
             'mode_duplikat' => 'lewati',
-            'import_unit_id' => $this->prodi->id,
+            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $mk = Mk::query()->where('nama', 'Kalkulus Impor')->first();
@@ -184,9 +191,9 @@ it('impor subcpmk pada cpmk dan semester terpilih', function () {
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'SUB-IMP-A|Menjelaskan definisi|50|Indikator A',
+            'rows' => 'CPMK-01|SUB-IMP-A|Menjelaskan definisi|50|Indikator A',
             'mode_duplikat' => 'lewati',
-            'import_mk_cpmk_id' => $mkCpmk->id,
+            'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
         ]);
 
@@ -254,7 +261,7 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
         ->callAction('bulkImport', [
             'rows' => 'CPL-TIMPA|Deskripsi baru hasil timpa|afektif',
             'mode_duplikat' => 'timpa',
-            'import_unit_id' => $this->prodi->id,
+            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $cpl = Cpl::query()->where('kode', 'CPL-TIMPA')->firstOrFail();
