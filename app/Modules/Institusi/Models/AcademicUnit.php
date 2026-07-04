@@ -2,7 +2,12 @@
 
 namespace App\Modules\Institusi\Models;
 
+use App\Modules\BoK\Models\Bok;
+use App\Modules\CPL\Models\Cpl;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\AcademicUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -76,6 +81,22 @@ class AcademicUnit extends Model
     public function scopeOfType(Builder $query, string $type): Builder
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Unit dianggap terpakai jika punya sub-unit, penugasan user, mahasiswa,
+     * kurikulum, CPL, BoK, MK, atau penawaran MK — dan tidak boleh dihapus.
+     */
+    public function hasDependentRecords(): bool
+    {
+        return $this->children()->exists()
+            || $this->users()->exists()
+            || $this->mahasiswas()->exists()
+            || Kurikulum::query()->where('academic_unit_id', $this->id)->exists()
+            || Cpl::query()->where('academic_unit_id', $this->id)->exists()
+            || Bok::query()->where('academic_unit_id', $this->id)->exists()
+            || Mk::query()->where('academic_unit_id', $this->id)->exists()
+            || MkUnit::query()->where('academic_unit_id', $this->id)->exists();
     }
 
     public function isUniversity(): bool

@@ -16,14 +16,23 @@ beforeEach(function () {
     $this->policy = new AcademicUnitPolicy;
 });
 
-it('superadmin boleh melihat semua unit dan menghapus', function () {
+it('superadmin boleh melihat semua unit dan menghapus unit yang tidak terpakai', function () {
     $user = User::where('username', 'superadmin')->first();
     $prodi = AcademicUnit::where('type', 'study_program')->first();
     $univ = AcademicUnit::where('type', 'university')->first();
+    $fakultas = AcademicUnit::where('type', 'faculty')->first();
 
+    $unitKosong = AcademicUnit::factory()->studyProgram($fakultas)->create([
+        'nama' => 'Prodi Tanpa Data',
+        'code' => 'TANPA',
+        'kode_pddikti' => null,
+    ]);
+
+    // Universitas punya sub-unit → terlindungi dari penghapusan.
     expect($this->policy->viewAny($user))->toBeTrue()
         ->and($this->policy->view($user, $prodi))->toBeTrue()
-        ->and($this->policy->delete($user, $univ))->toBeTrue();
+        ->and($this->policy->delete($user, $univ))->toBeFalse()
+        ->and($this->policy->delete($user, $unitKosong))->toBeTrue();
 });
 
 it('auditor boleh viewAny dan view tanpa pivot', function () {
@@ -52,11 +61,17 @@ it('admin fakultas tidak boleh update universitas', function () {
     expect($this->policy->update($user, $univ))->toBeFalse();
 });
 
-it('hanya superadmin yang boleh delete unit', function () {
+it('hanya superadmin yang boleh delete unit yang tidak terpakai', function () {
     $super = User::where('username', 'superadmin')->first();
     $adminProdi = User::where('username', 'adminprodi')->first();
-    $prodi = AcademicUnit::where('type', 'study_program')->first();
+    $fakultas = AcademicUnit::where('type', 'faculty')->first();
 
-    expect($this->policy->delete($super, $prodi))->toBeTrue()
-        ->and($this->policy->delete($adminProdi, $prodi))->toBeFalse();
+    $unitKosong = AcademicUnit::factory()->studyProgram($fakultas)->create([
+        'nama' => 'Prodi Kosong Kedua',
+        'code' => 'KOSONG2',
+        'kode_pddikti' => null,
+    ]);
+
+    expect($this->policy->delete($super, $unitKosong))->toBeTrue()
+        ->and($this->policy->delete($adminProdi, $unitKosong))->toBeFalse();
 });

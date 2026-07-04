@@ -55,6 +55,10 @@ class AcademicUnitPolicy
 
     public function delete(User $user, AcademicUnit $academicUnit): bool
     {
+        if ($academicUnit->hasDependentRecords()) {
+            return false;
+        }
+
         return $this->isSuperAdmin($user);
     }
 
