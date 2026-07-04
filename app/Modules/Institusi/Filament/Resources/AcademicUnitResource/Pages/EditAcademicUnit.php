@@ -3,10 +3,10 @@
 namespace App\Modules\Institusi\Filament\Resources\AcademicUnitResource\Pages;
 
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditAcademicUnit extends EditRecord
+class EditAcademicUnit extends BaseEditRecord
 {
     protected static string $resource = AcademicUnitResource::class;
 

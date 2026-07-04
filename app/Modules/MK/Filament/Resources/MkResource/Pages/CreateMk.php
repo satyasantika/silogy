@@ -3,9 +3,9 @@
 namespace App\Modules\MK\Filament\Resources\MkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\MkResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 
-class CreateMk extends CreateRecord
+class CreateMk extends BaseCreateRecord
 {
     protected static string $resource = MkResource::class;
 

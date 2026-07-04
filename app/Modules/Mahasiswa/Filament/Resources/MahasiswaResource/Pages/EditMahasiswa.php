@@ -3,10 +3,10 @@
 namespace App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource\Pages;
 
 use App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditMahasiswa extends EditRecord
+class EditMahasiswa extends BaseEditRecord
 {
     protected static string $resource = MahasiswaResource::class;
 

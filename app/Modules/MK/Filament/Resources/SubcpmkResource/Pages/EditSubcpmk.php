@@ -3,10 +3,10 @@
 namespace App\Modules\MK\Filament\Resources\SubcpmkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditSubcpmk extends EditRecord
+class EditSubcpmk extends BaseEditRecord
 {
     protected static string $resource = SubcpmkResource::class;
 

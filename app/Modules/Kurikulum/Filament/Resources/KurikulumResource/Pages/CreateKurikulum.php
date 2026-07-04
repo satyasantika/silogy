@@ -4,10 +4,10 @@ namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages;
 
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Kurikulum\States\DraftState;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Support\Facades\Auth;
 
-class CreateKurikulum extends CreateRecord
+class CreateKurikulum extends BaseCreateRecord
 {
     protected static string $resource = KurikulumResource::class;
 

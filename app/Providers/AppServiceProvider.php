@@ -39,6 +39,7 @@ use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
+use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -118,5 +119,12 @@ class AppServiceProvider extends ServiceProvider
         DeleteAction::configureUsing(fn (DeleteAction $action) => $action->icon(Heroicon::Trash));
         ViewAction::configureUsing(fn (ViewAction $action) => $action->icon(Heroicon::Eye));
         AttachAction::configureUsing(fn (AttachAction $action) => $action->icon(Heroicon::Link));
+
+        // Tombol submit/batal pada footer modal (konfirmasi, form action, dsb.)
+        // tidak ber-icon secara bawaan — pasang icon representatif untuk semuanya.
+        Action::configureUsing(function (Action $action): void {
+            $action->modalSubmitAction(fn (Action $action): Action => $action->icon(Heroicon::Check));
+            $action->modalCancelAction(fn (Action $action): Action => $action->icon(Heroicon::XMark));
+        });
     }
 }

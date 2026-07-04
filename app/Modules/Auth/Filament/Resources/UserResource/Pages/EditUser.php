@@ -3,11 +3,11 @@
 namespace App\Modules\Auth\Filament\Resources\UserResource\Pages;
 
 use App\Modules\Auth\Filament\Resources\UserResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 use STS\FilamentImpersonate\Actions\Impersonate;
 
-class EditUser extends EditRecord
+class EditUser extends BaseEditRecord
 {
     protected static string $resource = UserResource::class;
 

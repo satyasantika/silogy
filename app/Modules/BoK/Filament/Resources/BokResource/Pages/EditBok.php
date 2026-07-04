@@ -3,10 +3,10 @@
 namespace App\Modules\BoK\Filament\Resources\BokResource\Pages;
 
 use App\Modules\BoK\Filament\Resources\BokResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditBok extends EditRecord
+class EditBok extends BaseEditRecord
 {
     protected static string $resource = BokResource::class;
 

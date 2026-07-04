@@ -4,10 +4,10 @@ namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pag
 
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\Concerns\ValidatesBobotKomponenSama100;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditKomponenPenilaian extends EditRecord
+class EditKomponenPenilaian extends BaseEditRecord
 {
     use ValidatesBobotKomponenSama100;
 

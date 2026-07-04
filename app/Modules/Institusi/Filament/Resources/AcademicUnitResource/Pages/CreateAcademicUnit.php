@@ -4,9 +4,9 @@ namespace App\Modules\Institusi\Filament\Resources\AcademicUnitResource\Pages;
 
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Policies\AcademicUnitPolicy;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 
-class CreateAcademicUnit extends CreateRecord
+class CreateAcademicUnit extends BaseCreateRecord
 {
     protected static string $resource = AcademicUnitResource::class;
 

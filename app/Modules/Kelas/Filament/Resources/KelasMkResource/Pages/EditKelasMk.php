@@ -5,10 +5,10 @@ namespace App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditKelasMk extends EditRecord
+class EditKelasMk extends BaseEditRecord
 {
     protected static string $resource = KelasMkResource::class;
 

@@ -3,10 +3,10 @@
 namespace App\Modules\MK\Filament\Resources\CpmkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\CpmkResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditCpmk extends EditRecord
+class EditCpmk extends BaseEditRecord
 {
     protected static string $resource = CpmkResource::class;
 

@@ -8,10 +8,10 @@ use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\Concerns\ValidatesBobotKomponenSama100;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 
-class CreateKomponenPenilaian extends CreateRecord
+class CreateKomponenPenilaian extends BaseCreateRecord
 {
     use HasKoordinatorMkScope;
     use ValidatesBobotKomponenSama100;

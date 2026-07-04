@@ -5,10 +5,10 @@ namespace App\Modules\MK\Filament\Resources\SubcpmkResource\Pages;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Policies\SubcpmkPolicy;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 
-class CreateSubcpmk extends CreateRecord
+class CreateSubcpmk extends BaseCreateRecord
 {
     protected static string $resource = SubcpmkResource::class;
 

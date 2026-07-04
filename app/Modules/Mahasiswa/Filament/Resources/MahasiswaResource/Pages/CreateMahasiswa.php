@@ -4,10 +4,10 @@ namespace App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource\Pages;
 
 use App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource;
 use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 
-class CreateMahasiswa extends CreateRecord
+class CreateMahasiswa extends BaseCreateRecord
 {
     protected static string $resource = MahasiswaResource::class;
 

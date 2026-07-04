@@ -5,10 +5,10 @@ namespace App\Modules\MK\Filament\Resources\CpmkResource\Pages;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Policies\CpmkPolicy;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 
-class CreateCpmk extends CreateRecord
+class CreateCpmk extends BaseCreateRecord
 {
     use HasKoordinatorMkScope;
 

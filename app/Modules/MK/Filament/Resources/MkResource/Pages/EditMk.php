@@ -3,10 +3,10 @@
 namespace App\Modules\MK\Filament\Resources\MkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\MkResource;
+use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
-use Filament\Resources\Pages\EditRecord;
 
-class EditMk extends EditRecord
+class EditMk extends BaseEditRecord
 {
     protected static string $resource = MkResource::class;
 

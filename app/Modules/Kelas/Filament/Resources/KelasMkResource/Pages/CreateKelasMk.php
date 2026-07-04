@@ -6,10 +6,10 @@ use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\MK\Models\MkUnit;
-use Filament\Resources\Pages\CreateRecord;
+use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 
-class CreateKelasMk extends CreateRecord
+class CreateKelasMk extends BaseCreateRecord
 {
     protected static string $resource = KelasMkResource::class;
 
