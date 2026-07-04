@@ -3,60 +3,41 @@
 namespace App\Modules\Auth\Policies;
 
 use App\Models\User;
-use App\Modules\Institusi\Models\AcademicUnit;
-use App\Modules\Institusi\Models\AcademicUnitUser;
-use App\Modules\Institusi\Support\AcademicUnitScope;
 
+/**
+ * Pengaturan pengguna (/users) eksklusif untuk Super Admin.
+ * Role lain (termasuk admin unit dan dosen) tidak dapat melihat
+ * maupun mengelola daftar pengguna.
+ */
 class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        if (app('impersonate')->isImpersonating()) {
-            return true;
-        }
-
-        return $this->hasAnyKelolaUserPermission($user);
+        return $user->hasRole('Super Admin');
     }
 
     public function view(User $user, User $model): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
-        return $this->canManageTargetUser($user, $model);
+        return $user->hasRole('Super Admin');
     }
 
     public function create(User $user): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
-        return $this->hasAnyKelolaUserPermission($user)
-            && AcademicUnitScope::userHasAnyPivot($user);
+        return $user->hasRole('Super Admin');
     }
 
     public function update(User $user, User $model): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
-        return $this->canManageTargetUser($user, $model);
+        return $user->hasRole('Super Admin');
     }
 
     public function delete(User $user, User $model): bool
     {
-        if ($model->hasRole('Super Admin') && ! $user->hasRole('Super Admin')) {
+        if (! $user->hasRole('Super Admin')) {
             return false;
         }
 
-        if ($model->hasDependentRecords()) {
-            return false;
-        }
-
-        return $this->update($user, $model);
+        return ! $model->hasDependentRecords();
     }
 
     public function deleteAny(User $user): bool
@@ -96,51 +77,6 @@ class UserPolicy
 
     public function assignPermissions(User $user, User $model): bool
     {
-        return $user->can('kelola_permission');
-    }
-
-    protected function canManageTargetUser(User $admin, User $target): bool
-    {
-        if (! $this->hasAnyKelolaUserPermission($admin)) {
-            return false;
-        }
-
-        $pivots = AcademicUnitUser::query()
-            ->where('user_id', $target->id)
-            ->with('academicUnit')
-            ->get();
-
-        foreach ($pivots as $pivot) {
-            if ($pivot->academicUnit && $this->canKelolaUserAtUnit($admin, $pivot->academicUnit)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    protected function canKelolaUserAtUnit(User $admin, AcademicUnit $unit): bool
-    {
-        $permission = match ($unit->type) {
-            'university' => 'kelola_user_universitas',
-            'faculty' => 'kelola_user_fakultas',
-            'department' => 'kelola_user_jurusan',
-            'study_program' => 'kelola_user_prodi',
-            default => null,
-        };
-
-        if (! $permission || ! $admin->can($permission)) {
-            return false;
-        }
-
-        return AcademicUnitScope::userHasPivotToUnitOrAncestor($admin, $unit);
-    }
-
-    protected function hasAnyKelolaUserPermission(User $user): bool
-    {
-        return $user->can('kelola_user_universitas')
-            || $user->can('kelola_user_fakultas')
-            || $user->can('kelola_user_jurusan')
-            || $user->can('kelola_user_prodi');
+        return $user->hasRole('Super Admin') && $user->can('kelola_permission');
     }
 }

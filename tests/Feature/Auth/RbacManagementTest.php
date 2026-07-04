@@ -61,26 +61,16 @@ it('superadmin dapat menetapkan permission langsung ke pengguna', function () {
     expect($dosen->hasDirectPermission('lihat_audit_log'))->toBeTrue();
 });
 
-it('admin prodi tidak dapat menetapkan permission langsung ke pengguna', function () {
+it('admin prodi tidak dapat mengakses pengaturan pengguna', function () {
     $adminProdi = User::where('username', 'adminprodi')->first();
     $dosen = User::where('username', 'dosen')->first();
-    $permission = Permission::where('name', 'lihat_audit_log')->first();
 
     expect((new UserPolicy)->assignPermissions($adminProdi, $dosen))->toBeFalse();
 
     $this->actingAs($adminProdi);
 
     Livewire::test(EditUser::class, ['record' => $dosen->getRouteKey()])
-        ->assertSuccessful()
-        ->assertFormFieldIsHidden('permissions');
-
-    $dosen->givePermissionTo($permission);
-
-    Livewire::test(EditUser::class, ['record' => $dosen->getRouteKey()])
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    expect($dosen->fresh()->hasDirectPermission('lihat_audit_log'))->toBeTrue();
+        ->assertForbidden();
 });
 
 it('hanya superadmin yang boleh impersonate pengguna lain', function () {

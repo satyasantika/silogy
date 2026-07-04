@@ -24,23 +24,24 @@ it('superadmin boleh mengelola pengguna', function () {
         ->and($this->policy->update($user, $target))->toBeTrue();
 });
 
-it('admin prodi boleh viewAny via kelola_user_prodi', function () {
-    $user = User::where('username', 'adminprodi')->first();
+it('pengaturan pengguna eksklusif superadmin: admin unit tidak boleh', function () {
     $dosen = User::where('username', 'dosen')->first();
 
-    expect($this->policy->viewAny($user))->toBeTrue()
-        ->and($this->policy->update($user, $dosen))->toBeTrue();
+    foreach (['adminuniv', 'adminfak', 'adminjur', 'adminprodi'] as $username) {
+        $admin = User::where('username', $username)->first();
+
+        expect($this->policy->viewAny($admin))->toBeFalse()
+            ->and($this->policy->create($admin))->toBeFalse()
+            ->and($this->policy->update($admin, $dosen))->toBeFalse()
+            ->and($this->policy->delete($admin, $dosen))->toBeFalse();
+    }
 });
 
-it('dosen pengampu tidak boleh mengelola pengguna', function () {
+it('dosen pengampu tidak boleh melihat maupun mengelola pengguna', function () {
     $user = User::where('username', 'dosen')->first();
+    $target = User::where('username', 'korma')->first();
 
-    expect($this->policy->viewAny($user))->toBeFalse();
-});
-
-it('admin universitas tidak boleh update dosen tanpa pivot scope bersama', function () {
-    $adminUniv = User::where('username', 'adminuniv')->first();
-    $auditor = User::where('username', 'auditor')->first();
-
-    expect($this->policy->update($adminUniv, $auditor))->toBeFalse();
+    expect($this->policy->viewAny($user))->toBeFalse()
+        ->and($this->policy->view($user, $target))->toBeFalse()
+        ->and($this->policy->update($user, $target))->toBeFalse();
 });
