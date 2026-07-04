@@ -12,19 +12,20 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class BokResource extends Resource
 {
@@ -89,9 +90,8 @@ class BokResource extends Resource
                             ->required()
                             ->maxLength(150),
 
-                        Textarea::make('deskripsi')
+                        RichEditor::make('deskripsi')
                             ->label('Deskripsi')
-                            ->rows(3)
                             ->columnSpanFull(),
                     ])
                     ->columns(2)
@@ -101,30 +101,40 @@ class BokResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('kode')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('nama')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('academicUnit.nama')->label('Unit')->sortable(),
-            ])
-            ->filters([
-                static::kurikulumTerpilihFilter(fn (Builder $query, Kurikulum $kurikulum): Builder => $query->where('academic_unit_id', $kurikulum->academic_unit_id)),
-                SelectFilter::make('academic_unit_id')
-                    ->label('Unit')
-                    ->relationship('academicUnit', 'nama', fn (Builder $query) => $query->whereIn(
-                        'id',
-                        static::scopedTimKurikulumUnitIds(),
-                    )),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->recordActions([
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+        return static::applyKurikulumTerpilihCardTable(
+            $table
+                ->recordActions([
+                    EditAction::make(),
+                ])
+                ->toolbarActions([
+                    BulkActionGroup::make([
+                        DeleteBulkAction::make(),
+                    ]),
                 ]),
-            ]);
+            [
+                TextColumn::make('kode')
+                    ->label('Kode')
+                    ->searchable()
+                    ->sortable()
+                    ->weight(FontWeight::Bold),
+
+                TextColumn::make('nama')
+                    ->label('Nama')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('deskripsi')
+                    ->label('Deskripsi')
+                    ->formatStateUsing(fn (?string $state): string => filled($state)
+                        ? Str::limit(trim(strip_tags($state)), 100)
+                        : '—')
+                    ->size('sm')
+                    ->color('gray')
+                    ->placeholder('—'),
+            ],
+            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
+                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+        );
     }
 
     public static function getPages(): array

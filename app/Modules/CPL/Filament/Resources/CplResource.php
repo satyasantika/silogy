@@ -5,8 +5,6 @@ namespace App\Modules\CPL\Filament\Resources;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\CreateCpl;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\EditCpl;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
-use App\Modules\CPL\Filament\Resources\CplResource\RelationManagers\BokRelationManager;
-use App\Modules\CPL\Filament\Resources\CplResource\RelationManagers\ProfilLulusanRelationManager;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
@@ -14,19 +12,20 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class CplResource extends Resource
 {
@@ -99,10 +98,9 @@ class CplResource extends Resource
                                 ),
                             ]),
 
-                        Textarea::make('deskripsi')
+                        RichEditor::make('deskripsi')
                             ->label('Deskripsi')
                             ->required()
-                            ->rows(4)
                             ->columnSpanFull(),
 
                         Select::make('domain')
@@ -116,45 +114,47 @@ class CplResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('kode')->label('Kode')->searchable()->sortable(),
-                TextColumn::make('deskripsi')->label('Deskripsi')->limit(50),
-                TextColumn::make('domain')
-                    ->label('Domain')
-                    ->badge()
-                    ->formatStateUsing(fn (?string $state): string => $state ? (static::domainOptions()[$state] ?? $state) : '—'),
-                TextColumn::make('academicUnit.nama')->label('Unit')->sortable(),
-            ])
-            ->filters([
-                static::kurikulumTerpilihFilter(fn (Builder $query, Kurikulum $kurikulum): Builder => $query->where('academic_unit_id', $kurikulum->academic_unit_id)),
-                SelectFilter::make('academic_unit_id')
-                    ->label('Unit')
-                    ->relationship('academicUnit', 'nama', fn (Builder $query) => $query->whereIn(
-                        'id',
-                        static::scopedTimKurikulumUnitIds(),
-                    )),
-                SelectFilter::make('domain')
-                    ->label('Domain')
-                    ->options(static::domainOptions()),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->recordActions([
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+        return static::applyKurikulumTerpilihCardTable(
+            $table
+                ->recordActions([
+                    EditAction::make(),
+                ])
+                ->toolbarActions([
+                    BulkActionGroup::make([
+                        DeleteBulkAction::make(),
+                    ]),
                 ]),
-            ]);
+            [
+                Split::make([
+                    TextColumn::make('kode')
+                        ->label('Kode')
+                        ->searchable()
+                        ->sortable()
+                        ->weight(FontWeight::Bold),
+
+                    TextColumn::make('domain')
+                        ->label('Domain')
+                        ->badge()
+                        ->formatStateUsing(fn (?string $state): string => $state ? (static::domainOptions()[$state] ?? $state) : '—'),
+                ]),
+
+                TextColumn::make('deskripsi')
+                    ->label('Deskripsi')
+                    ->searchable()
+                    ->formatStateUsing(fn (?string $state): string => filled($state)
+                        ? Str::limit(trim(strip_tags($state)), 100)
+                        : '—')
+                    ->size('sm')
+                    ->color('gray'),
+            ],
+            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
+                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+        );
     }
 
     public static function getRelations(): array
     {
-        return [
-            ProfilLulusanRelationManager::class,
-            BokRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

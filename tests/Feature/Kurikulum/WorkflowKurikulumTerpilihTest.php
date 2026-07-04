@@ -6,6 +6,7 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\CPL\Models\CplProfilLulusan;
+use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Filament\Pages\CplBokMatrix;
@@ -86,16 +87,36 @@ it('menu profil lulusan hanya tampil bila kurikulum terpilih milik prodi', funct
     expect(ProfilLulusanResource::shouldRegisterNavigation())->toBeFalse();
 });
 
-it('daftar kurikulum menampilkan record dan progres pengisiannya', function () {
+it('daftar kurikulum menampilkan record dan ketersediaan menu', function () {
     $this->actingAs(User::query()->where('username', 'superadmin')->firstOrFail());
 
     Livewire::test(ListKurikulums::class)
         ->loadTable()
         ->assertSee('Kurikulum Prodi 2026')
-        ->assertSee('Progres pengisian');
+        ->assertSee('Profil ·')
+        ->assertSee('CPL ·');
 });
 
-it('progres pengisian kurikulum menampilkan jumlah per tahap', function () {
+it('filter kurikulum diterapkan otomatis saat dipilih tanpa tombol terapkan', function () {
+    $this->actingAs(User::query()->where('username', 'dosentimkur')->firstOrFail());
+
+    $cplProdi = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-AUTO-PRODI']);
+    $cplFak = Cpl::factory()->forAcademicUnit($this->fakultas)->create(['kode' => 'CPL-AUTO-FAK']);
+
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    Livewire::test(ListCpls::class)
+        ->loadTable()
+        ->assertCanSeeTableRecords([$cplProdi])
+        ->assertCanNotSeeTableRecords([$cplFak])
+        ->filterTable('kurikulum_terpilih', $this->kurikulumFak->id)
+        ->assertCanNotSeeTableRecords([$cplProdi])
+        ->assertCanSeeTableRecords([$cplFak]);
+
+    expect(KurikulumTerpilih::currentId())->toBe($this->kurikulumFak->id);
+});
+
+it('ketersediaan menu kurikulum menampilkan status ada atau belum', function () {
     Cpl::factory()->count(2)->forAcademicUnit($this->prodi)->create();
     ProfilLulusan::query()->create([
         'kurikulum_id' => $this->kurikulumProdi->id,
@@ -103,12 +124,12 @@ it('progres pengisian kurikulum menampilkan jumlah per tahap', function () {
         'deskripsi' => 'Profil uji',
     ]);
 
-    $html = KurikulumResource::progresPengisian($this->kurikulumProdi->fresh())->toHtml();
+    $menu = KurikulumResource::ketersediaanMenu($this->kurikulumProdi->fresh());
 
-    expect($html)->toContain('Profil 1')
-        ->toContain('CPL 2')
-        ->toContain('BoK 0')
-        ->toContain('Kelas 0');
+    expect($menu['profil'])->toBeTrue()
+        ->and($menu['cpl'])->toBeTrue()
+        ->and($menu['bok'])->toBeFalse()
+        ->and($menu['mk'])->toBeFalse();
 });
 
 it('matriks profil-cpl dapat memetakan dan melepas lewat toggle', function () {
@@ -144,6 +165,34 @@ it('matriks cpl-bok dapat memetakan lewat toggle', function () {
     Livewire::test(CplBokMatrix::class)->call('toggle', $cpl->id, $bok->id);
 
     expect(CplBok::query()->where('cpl_id', $cpl->id)->where('bok_id', $bok->id)->exists())->toBeTrue();
+});
+
+it('matriks cpl-bok menolak melepas centang bila sudah ada bobot cpl-mk', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+
+    CplMk::query()->create([
+        'mk_id' => $mk->id,
+        'cpl_bok_id' => $cplBok->id,
+        'bobot' => 40,
+    ]);
+
+    Livewire::test(CplBokMatrix::class)
+        ->assertSee('hapus bobot pada interaksi CPL ↔ MK terlebih dahulu')
+        ->call('toggle', $cpl->id, $bok->id);
+
+    expect(CplBok::query()->where('cpl_id', $cpl->id)->where('bok_id', $bok->id)->exists())->toBeTrue();
+
+    CplMk::query()->where('cpl_bok_id', $cplBok->id)->delete();
+
+    Livewire::test(CplBokMatrix::class)->call('toggle', $cpl->id, $bok->id);
+
+    expect(CplBok::query()->where('cpl_id', $cpl->id)->where('bok_id', $bok->id)->exists())->toBeFalse();
 });
 
 it('matriks cpl-mk menyimpan bobot dan menghitung total per mk', function () {

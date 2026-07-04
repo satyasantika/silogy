@@ -3,10 +3,10 @@
 namespace App\Modules\CPL\Filament\Resources\CplResource\Pages;
 
 use App\Modules\CPL\Filament\Resources\CplResource;
-use App\Support\Filament\Pages\BaseEditRecord;
+use App\Support\Filament\Pages\BaseSimpleEditRecord;
 use Filament\Actions\DeleteAction;
 
-class EditCpl extends BaseEditRecord
+class EditCpl extends BaseSimpleEditRecord
 {
     protected static string $resource = CplResource::class;
 

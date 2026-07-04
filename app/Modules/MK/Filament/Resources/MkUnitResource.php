@@ -24,7 +24,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
@@ -154,25 +153,20 @@ class MkUnitResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('mk.nama')->label('Mata kuliah')->searchable(),
-                TextColumn::make('mk.academicUnit.nama')->label('Pemilik MK'),
-                TextColumn::make('academicUnit.nama')->label('Unit penawaran'),
-                TextColumn::make('kode')->label('Kode'),
-                TextColumn::make('semester_ke')->label('Semester ke-'),
-                IconColumn::make('is_active')->label('Aktif')->boolean(),
-            ])
-            ->filters([
-                static::kurikulumTerpilihFilter(
-                    fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                        ->where('academic_unit_id', $kurikulum->academic_unit_id),
-                ),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->recordActions([
-                EditAction::make(),
-            ]);
+        return static::applyKurikulumTerpilihTable(
+            $table
+                ->columns([
+                    TextColumn::make('mk.nama')->label('Mata kuliah')->searchable(),
+                    TextColumn::make('kode')->label('Kode')->sortable(),
+                    TextColumn::make('semester_ke')->label('Semester ke-')->sortable(),
+                    IconColumn::make('is_active')->label('Aktif')->boolean(),
+                ])
+                ->recordActions([
+                    EditAction::make(),
+                ]),
+            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
+                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+        );
     }
 
     public static function getPages(): array

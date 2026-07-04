@@ -11,8 +11,6 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\CreateMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
-use App\Modules\MK\Filament\Resources\MkResource\RelationManagers\CpmkRelationManager;
-use App\Modules\MK\Filament\Resources\MkResource\RelationManagers\MkUnitRelationManager;
 use App\Modules\MK\Models\Mk;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -29,8 +27,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -185,49 +181,36 @@ class MkResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('nama')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('sks')->label('SKS')->sortable(),
-                TextColumn::make('jenis')
-                    ->label('Jenis')
-                    ->formatStateUsing(fn (string $state): string => static::jenisOptions()[$state] ?? $state),
-                TextColumn::make('state')->label('State')->badge(),
-                TextColumn::make('academicUnit.nama')->label('Unit pemilik'),
-                TextColumn::make('koordinatorMk.full_name')
-                    ->label('Koordinator MK')
-                    ->placeholder('—'),
-                IconColumn::make('is_active')->label('Aktif')->boolean(),
-            ])
-            ->filters([
-                static::kurikulumTerpilihFilter(fn (Builder $query, Kurikulum $kurikulum): Builder => $query->where('academic_unit_id', $kurikulum->academic_unit_id)),
-                SelectFilter::make('academic_unit_id')
-                    ->label('Unit')
-                    ->relationship('academicUnit', 'nama', fn (Builder $query) => $query->whereIn(
-                        'id',
-                        static::scopedTimKurikulumUnitIds(),
-                    )),
-                SelectFilter::make('jenis')
-                    ->label('Jenis')
-                    ->options(static::jenisOptions()),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->recordActions([
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+        return static::applyKurikulumTerpilihTable(
+            $table
+                ->columns([
+                    TextColumn::make('nama')->label('Nama')->searchable()->sortable(),
+                    TextColumn::make('sks')->label('SKS')->sortable(),
+                    TextColumn::make('jenis')
+                        ->label('Jenis')
+                        ->formatStateUsing(fn (string $state): string => static::jenisOptions()[$state] ?? $state),
+                    TextColumn::make('state')->label('State')->badge(),
+                    TextColumn::make('koordinatorMk.full_name')
+                        ->label('Koordinator MK')
+                        ->placeholder('—'),
+                    IconColumn::make('is_active')->label('Aktif')->boolean(),
+                ])
+                ->recordActions([
+                    EditAction::make(),
+                ])
+                ->toolbarActions([
+                    BulkActionGroup::make([
+                        DeleteBulkAction::make(),
+                    ]),
                 ]),
-            ]);
+            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
+                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+        );
     }
 
     public static function getRelations(): array
     {
-        return [
-            MkUnitRelationManager::class,
-            CpmkRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

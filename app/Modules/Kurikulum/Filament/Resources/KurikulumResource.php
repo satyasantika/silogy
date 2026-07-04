@@ -8,7 +8,6 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
-use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\CreateKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\ListKurikulums;
@@ -23,22 +22,21 @@ use App\Modules\Kurikulum\States\MkState;
 use App\Modules\Kurikulum\States\ProfilLulusanState;
 use App\Modules\Kurikulum\States\SetdosenmkState;
 use App\Modules\MK\Models\Mk;
-use App\Modules\MK\Models\MkUnit;
-use Filament\Actions\Action;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Slider;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -46,7 +44,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
-use Spatie\ModelStates\State;
 
 class KurikulumResource extends Resource
 {
@@ -186,12 +183,14 @@ class KurikulumResource extends Resource
                             ->required()
                             ->default($scopedUnitIds->count() === 1 ? $scopedUnitIds->first() : null)
                             ->disabled($scopedUnitIds->count() === 1)
-                            ->dehydrated(),
+                            ->dehydrated()
+                            ->columnSpanFull(),
 
                         TextInput::make('nama')
                             ->label('Nama kurikulum')
                             ->required()
-                            ->maxLength(150),
+                            ->maxLength(150)
+                            ->columnSpanFull(),
 
                         TextInput::make('kode')
                             ->label('Kode')
@@ -206,13 +205,26 @@ class KurikulumResource extends Resource
                             ->default((int) date('Y'))
                             ->required(),
 
+                        Placeholder::make('target_capaian_label')
+                            ->hiddenLabel()
+                            ->content(new HtmlString(
+                                '<p class="text-sm font-medium leading-6 text-gray-950 dark:text-white">'
+                                .'Target capaian lulusan ('
+                                .'<span x-text="Math.round($wire.data?.target_capaian_lulusan ?? 75)"></span>%)'
+                                .'</p>'
+                            ))
+                            ->columnSpanFull(),
+
                         Slider::make('target_capaian_lulusan')
-                            ->label('Target capaian lulusan (%)')
+                            ->hiddenLabel()
                             ->minValue(0)
                             ->maxValue(100)
                             ->step(1)
                             ->default(75)
-                            ->required(),
+                            ->required()
+                            ->tooltips(true)
+                            ->partiallyRenderAfterStateUpdated(false)
+                            ->columnSpanFull(),
 
                         RichEditor::make('deskripsi')
                             ->label('Deskripsi')
@@ -232,34 +244,49 @@ class KurikulumResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('nama')
-                    ->label('Nama')
-                    ->searchable()
-                    ->sortable(),
+                Stack::make([
+                    Split::make([
+                        TextColumn::make('kode')
+                            ->label('Kode')
+                            ->searchable()
+                            ->sortable()
+                            ->weight(FontWeight::Bold)
+                            ->placeholder('—'),
 
-                TextColumn::make('academicUnit.nama')
-                    ->label('Unit akademik')
-                    ->sortable(),
+                        TextColumn::make('tahun')
+                            ->label('Tahun')
+                            ->sortable()
+                            ->size('sm'),
 
-                TextColumn::make('tahun')
-                    ->label('Tahun')
-                    ->sortable(),
+                        IconColumn::make('is_active')
+                            ->label('Aktif')
+                            ->boolean(),
+                    ]),
 
-                TextColumn::make('state')
-                    ->label('State')
-                    ->badge()
-                    ->formatStateUsing(fn ($state): string => static::stateOptions()[(string) $state] ?? (string) $state)
-                    ->color(fn ($state): string => static::stateColor((string) $state)),
+                    TextColumn::make('nama')
+                        ->label('Nama')
+                        ->searchable()
+                        ->sortable(),
 
-                IconColumn::make('is_active')
-                    ->label('Aktif')
-                    ->boolean(),
+                    TextColumn::make('academicUnit.nama')
+                        ->label('Unit')
+                        ->sortable()
+                        ->size('sm')
+                        ->color('gray'),
 
-                TextColumn::make('progres')
-                    ->label('Progres pengisian')
-                    ->state(fn (Kurikulum $record): string => static::progresPengisian($record)->toHtml())
-                    ->html(),
+                    TextColumn::make('ketersediaan_menu')
+                        ->label('')
+                        ->state(fn (Kurikulum $record): string => static::ketersediaanMenuHtml($record)->toHtml())
+                        ->html(),
+                ])->space(1),
             ])
+            ->contentGrid([
+                'md' => 2,
+                'xl' => 3,
+            ])
+            ->paginated([6, 12, 24])
+            ->defaultPaginationPageOption(12)
+            ->selectable(false)
             ->filters([
                 SelectFilter::make('academic_unit_id')
                     ->label('Unit akademik')
@@ -291,99 +318,71 @@ class KurikulumResource extends Resource
             ])
             ->recordActions([
                 EditAction::make(),
-                Action::make('lanjutkanState')
-                    ->label('Lanjutkan State')
-                    ->icon(Heroicon::OutlinedArrowRightCircle)
-                    ->visible(fn (Kurikulum $record): bool => $record->state->hasTransitionableStates())
-                    ->form(function (Kurikulum $record): array {
-                        $options = collect($record->state->transitionableStateInstances())
-                            ->mapWithKeys(function (State $state): array {
-                                $name = $state::getMorphClass();
-
-                                return [$state::class => static::stateOptions()[$name] ?? $name];
-                            })
-                            ->all();
-
-                        return [
-                            Select::make('target_state')
-                                ->label('State berikutnya')
-                                ->options($options)
-                                ->required(),
-                        ];
-                    })
-                    ->action(function (Kurikulum $record, array $data): void {
-                        $targetClass = $data['target_state'];
-
-                        if (! is_subclass_of($targetClass, KurikulumState::class)) {
-                            Notification::make()
-                                ->title('State tidak valid')
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-
-                        if (! $record->state->canTransitionTo($targetClass)) {
-                            Notification::make()
-                                ->title('Transisi tidak diizinkan')
-                                ->body('Pastikan prasyarat state workflow sudah terpenuhi.')
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-
-                        $record->state->transitionTo($targetClass);
-
-                        Notification::make()
-                            ->title('State diperbarui')
-                            ->body('Kurikulum berpindah ke: '.(static::stateOptions()[$record->fresh()->state->getValue()] ?? ''))
-                            ->success()
-                            ->send();
-                    }),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
             ]);
     }
 
     /**
-     * Ringkasan keberadaan isian per tahap OBE untuk kurikulum ini:
-     * Profil (khusus prodi), CPL, BoK, MK, Penawaran MK, dan Kelas MK.
+     * @return array<string, bool>
      */
-    public static function progresPengisian(Kurikulum $kurikulum): HtmlString
+    public static function ketersediaanMenu(Kurikulum $kurikulum): array
     {
-        $unitId = $kurikulum->academic_unit_id;
         $kurikulum->loadMissing('academicUnit');
+        $unitId = $kurikulum->academic_unit_id;
 
-        $tahap = [];
+        $menu = [];
 
         if ($kurikulum->academicUnit?->isProdi()) {
-            $tahap['Profil'] = ProfilLulusan::query()
-                ->where('kurikulum_id', $kurikulum->id)->count();
+            $menu['profil'] = ProfilLulusan::query()
+                ->where('kurikulum_id', $kurikulum->id)
+                ->exists();
         }
 
-        $tahap['CPL'] = Cpl::query()->where('academic_unit_id', $unitId)->count();
-        $tahap['BoK'] = Bok::query()->where('academic_unit_id', $unitId)->count();
-        $tahap['MK'] = Mk::query()->where('academic_unit_id', $unitId)->count();
-        $tahap['Penawaran'] = MkUnit::query()->where('academic_unit_id', $unitId)->count();
-        $tahap['Kelas'] = KelasMk::query()
-            ->whereHas('mkUnit', fn (Builder $query): Builder => $query->where('academic_unit_id', $unitId))
-            ->count();
+        $menu['cpl'] = Cpl::query()->where('academic_unit_id', $unitId)->exists();
+        $menu['bok'] = Bok::query()->where('academic_unit_id', $unitId)->exists();
+        $menu['mk'] = Mk::query()->where('academic_unit_id', $unitId)->exists();
 
-        $badges = collect($tahap)
-            ->map(function (int $jumlah, string $label): string {
-                $warna = $jumlah > 0 ? '#16a34a' : '#9ca3af';
+        return $menu;
+    }
 
-                return '<span style="display:inline-block;margin:1px 2px;padding:1px 7px;border-radius:9999px;'
-                    .'font-size:11px;font-weight:600;color:#fff;background:'.$warna.';white-space:nowrap;">'
-                    .e($label).' '.$jumlah.'</span>';
+    /**
+     * Badge menu Profil/CPL/BoK/MK yang sekaligus menjadi tautan ke halaman terkait.
+     */
+    public static function ketersediaanMenuHtml(Kurikulum $kurikulum): HtmlString
+    {
+        $labels = [
+            'profil' => 'Profil',
+            'cpl' => 'CPL',
+            'bok' => 'BoK',
+            'mk' => 'MK',
+        ];
+
+        $badges = collect(static::ketersediaanMenu($kurikulum))
+            ->map(function (bool $ada, string $menu) use ($kurikulum, $labels): string {
+                $label = $labels[$menu] ?? strtoupper($menu);
+                $status = $ada ? 'Ada' : 'Belum';
+                $url = route('silogy.kurikulum-navigasi', [
+                    'kurikulum' => $kurikulum->id,
+                    'menu' => $menu,
+                ]);
+
+                $background = $ada ? '#dcfce7' : '#f3f4f6';
+                $color = $ada ? '#166534' : '#6b7280';
+                $border = $ada ? '#86efac' : '#d1d5db';
+
+                return '<a href="'.e($url).'" '
+                    .'style="display:inline-flex;align-items:center;padding:3px 8px;'
+                    .'border-radius:6px;font-size:11px;font-weight:600;line-height:1.4;text-decoration:none;'
+                    .'background:'.$background.';color:'.$color.';border:1px solid '.$border.';">'
+                    .e($label).' · '.e($status)
+                    .'</a>';
             })
             ->implode('');
 
-        return new HtmlString($badges);
+        return new HtmlString(
+            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;padding-top:6px;">'
+            .$badges
+            .'</div>'
+        );
     }
 
     public static function getRelations(): array
