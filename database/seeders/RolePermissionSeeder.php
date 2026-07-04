@@ -275,6 +275,9 @@ class RolePermissionSeeder extends Seeder
         $timkurUser = User::query()->where('username', 'timkur')->first();
 
         if ($timkurUser) {
+            // Dual-role sebagai contoh pemakaian role switcher di navigasi:
+            // timkur dapat berpindah peran Tim Kurikulum ↔ Dosen Pengampu.
+            $timkurUser->syncRoles(['Tim Kurikulum', 'Dosen Pengampu']);
             foreach (array_filter([$fak, $univ]) as $unitTimkur) {
                 AcademicUnitUser::updateOrCreate(
                     [

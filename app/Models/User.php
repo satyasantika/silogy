@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Modules\AI\Models\AnalisisAi;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kelas\Models\KelasMk;
@@ -28,7 +29,41 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements CanResetPasswordContract, FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
-    use CanResetPassword, HasFactory, HasRoles, HasUuids, LogsSilogyActivity, Notifiable;
+    use CanResetPassword, HasFactory, HasUuids, LogsSilogyActivity, Notifiable;
+
+    use HasRoles {
+        roles as protected spatieRoles;
+    }
+
+    /**
+     * Relasi roles mengikuti role aktif yang dipilih user multi-role lewat
+     * switcher navigasi. Filter diterapkan pada level baris (hanya pivot
+     * milik user yang sedang login) supaya tetap benar saat eager loading —
+     * Laravel membangun relasi eager dari instance model kosong — dan
+     * pengecekan role user lain tidak terpengaruh.
+     *
+     * @return BelongsToMany<Role, $this>
+     */
+    public function roles(): BelongsToMany
+    {
+        $relation = $this->spatieRoles();
+
+        $authUser = auth()->user();
+
+        if (! $authUser instanceof self) {
+            return $relation;
+        }
+
+        $activeRole = ActiveRole::currentFor($authUser);
+
+        if ($activeRole === null) {
+            return $relation;
+        }
+
+        return $relation->where(fn (Builder $query) => $query
+            ->where('model_has_roles.model_uuid', '!=', $authUser->getKey())
+            ->orWhere('roles.name', $activeRole));
+    }
 
     protected $keyType = 'string';
 
