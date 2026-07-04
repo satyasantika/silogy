@@ -3,9 +3,12 @@
 namespace App\Modules\Kurikulum\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\BoK\Models\Bok;
+use App\Modules\CPL\Models\Cpl;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\CreateKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\ListKurikulums;
@@ -14,6 +17,7 @@ use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\CplRelationManager;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\ProfilLulusanRelationManager;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\States\AktifState;
 use App\Modules\Kurikulum\States\BokState;
 use App\Modules\Kurikulum\States\CplState;
@@ -22,6 +26,8 @@ use App\Modules\Kurikulum\States\KurikulumState;
 use App\Modules\Kurikulum\States\MkState;
 use App\Modules\Kurikulum\States\ProfilLulusanState;
 use App\Modules\Kurikulum\States\SetdosenmkState;
+use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -43,6 +49,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 use Spatie\ModelStates\State;
 
 class KurikulumResource extends Resource
@@ -251,15 +258,20 @@ class KurikulumResource extends Resource
                 IconColumn::make('is_active')
                     ->label('Aktif')
                     ->boolean(),
+
+                TextColumn::make('progres')
+                    ->label('Progres pengisian')
+                    ->state(fn (Kurikulum $record): string => static::progresPengisian($record)->toHtml())
+                    ->html(),
             ])
             ->filters([
                 SelectFilter::make('academic_unit_id')
                     ->label('Unit akademik')
-                    ->relationship('academicUnit', 'nama')
-                    ->modifyQueryUsing(fn (Builder $query): Builder => $query->whereIn(
-                        'id',
-                        static::scopedKurikulumUnitIds(),
-                    )),
+                    ->relationship(
+                        'academicUnit',
+                        'nama',
+                        fn (Builder $query): Builder => $query->whereIn('id', static::scopedKurikulumUnitIds()),
+                    ),
 
                 SelectFilter::make('academic_unit_type')
                     ->label('Jenis unit')
@@ -339,6 +351,43 @@ class KurikulumResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Ringkasan keberadaan isian per tahap OBE untuk kurikulum ini:
+     * Profil (khusus prodi), CPL, BoK, MK, Penawaran MK, dan Kelas MK.
+     */
+    public static function progresPengisian(Kurikulum $kurikulum): HtmlString
+    {
+        $unitId = $kurikulum->academic_unit_id;
+        $kurikulum->loadMissing('academicUnit');
+
+        $tahap = [];
+
+        if ($kurikulum->academicUnit?->isProdi()) {
+            $tahap['Profil'] = ProfilLulusan::query()
+                ->where('kurikulum_id', $kurikulum->id)->count();
+        }
+
+        $tahap['CPL'] = Cpl::query()->where('academic_unit_id', $unitId)->count();
+        $tahap['BoK'] = Bok::query()->where('academic_unit_id', $unitId)->count();
+        $tahap['MK'] = Mk::query()->where('academic_unit_id', $unitId)->count();
+        $tahap['Penawaran'] = MkUnit::query()->where('academic_unit_id', $unitId)->count();
+        $tahap['Kelas'] = KelasMk::query()
+            ->whereHas('mkUnit', fn (Builder $query): Builder => $query->where('academic_unit_id', $unitId))
+            ->count();
+
+        $badges = collect($tahap)
+            ->map(function (int $jumlah, string $label): string {
+                $warna = $jumlah > 0 ? '#16a34a' : '#9ca3af';
+
+                return '<span style="display:inline-block;margin:1px 2px;padding:1px 7px;border-radius:9999px;'
+                    .'font-size:11px;font-weight:600;color:#fff;background:'.$warna.';white-space:nowrap;">'
+                    .e($label).' '.$jumlah.'</span>';
+            })
+            ->implode('');
+
+        return new HtmlString($badges);
     }
 
     public static function getRelations(): array
