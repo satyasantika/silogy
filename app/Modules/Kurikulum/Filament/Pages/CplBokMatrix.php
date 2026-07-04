@@ -5,7 +5,9 @@ namespace App\Modules\Kurikulum\Filament\Pages;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
+use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 
@@ -39,6 +41,16 @@ class CplBokMatrix extends Page
             ->first();
 
         if ($pivot) {
+            if ($this->cplBokMemilikiBobotMk($pivot)) {
+                Notification::make()
+                    ->title('Tidak dapat melepas pemetaan')
+                    ->body('Hapus bobot pada interaksi CPL ↔ MK terlebih dahulu sebelum melepas centang.')
+                    ->warning()
+                    ->send();
+
+                return;
+            }
+
             $pivot->delete();
 
             return;
@@ -58,7 +70,13 @@ class CplBokMatrix extends Page
         $kurikulum = $this->getKurikulum();
 
         if (! $kurikulum) {
-            return ['kurikulum' => null, 'boks' => collect(), 'cpls' => collect(), 'terpetakan' => collect()];
+            return [
+                'kurikulum' => null,
+                'boks' => collect(),
+                'cpls' => collect(),
+                'terpetakan' => collect(),
+                'terkunciBobot' => collect(),
+            ];
         }
 
         $cpls = Cpl::query()
@@ -71,9 +89,22 @@ class CplBokMatrix extends Page
             ->orderBy('kode')
             ->get();
 
-        $terpetakan = CplBok::query()
+        $pivotRows = CplBok::query()
             ->whereIn('cpl_id', $cpls->pluck('id'))
-            ->get()
+            ->get();
+
+        $terpetakan = $pivotRows->mapWithKeys(fn (CplBok $pivot): array => [
+            $pivot->cpl_id.'/'.$pivot->bok_id => true,
+        ]);
+
+        $cplBokIdsBerbobot = CplMk::query()
+            ->whereIn('cpl_bok_id', $pivotRows->pluck('id'))
+            ->where('bobot', '>', 0)
+            ->pluck('cpl_bok_id')
+            ->unique();
+
+        $terkunciBobot = $pivotRows
+            ->filter(fn (CplBok $pivot): bool => $cplBokIdsBerbobot->contains($pivot->id))
             ->mapWithKeys(fn (CplBok $pivot): array => [
                 $pivot->cpl_id.'/'.$pivot->bok_id => true,
             ]);
@@ -83,6 +114,15 @@ class CplBokMatrix extends Page
             'boks' => $boks,
             'cpls' => $cpls,
             'terpetakan' => $terpetakan,
+            'terkunciBobot' => $terkunciBobot,
         ];
+    }
+
+    private function cplBokMemilikiBobotMk(CplBok $cplBok): bool
+    {
+        return CplMk::query()
+            ->where('cpl_bok_id', $cplBok->id)
+            ->where('bobot', '>', 0)
+            ->exists();
     }
 }

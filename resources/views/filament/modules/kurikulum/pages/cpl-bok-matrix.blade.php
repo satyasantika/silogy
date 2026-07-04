@@ -33,12 +33,23 @@
                                     <strong>{{ $cpl->kode }}</strong>
                                 </td>
                                 @foreach ($boks as $bok)
+                                    @php
+                                        $kunciSel = $cpl->id.'/'.$bok->id;
+                                        $sudahTerpetakan = $terpetakan->has($kunciSel);
+                                        $terkunci = $terkunciBobot->has($kunciSel);
+                                    @endphp
                                     <td style="padding:8px;text-align:center;">
                                         <input
                                             type="checkbox"
-                                            style="width:18px;height:18px;cursor:pointer;accent-color:#16a34a;"
-                                            wire:click="toggle('{{ $cpl->id }}', '{{ $bok->id }}')"
-                                            @checked($terpetakan->has($cpl->id.'/'.$bok->id))
+                                            style="width:18px;height:18px;accent-color:#16a34a;{{ $terkunci ? 'cursor:not-allowed;opacity:.65;' : 'cursor:pointer;' }}"
+                                            @if (! $terkunci)
+                                                wire:click="toggle('{{ $cpl->id }}', '{{ $bok->id }}')"
+                                            @endif
+                                            @disabled($terkunci)
+                                            @checked($sudahTerpetakan)
+                                            @if ($terkunci)
+                                                title="Hapus bobot pada interaksi CPL ↔ MK terlebih dahulu"
+                                            @endif
                                         />
                                     </td>
                                 @endforeach
@@ -48,7 +59,9 @@
                 </table>
             </div>
             <p class="text-sm" style="margin-top:8px;opacity:.7;">
-                Melepas centang akan menghapus pemetaan CPL–BoK beserta pemetaan MK yang menggantung padanya.
+                Interaksi CPL–BoK yang sudah diberi bobot di matriks
+                <strong>CPL ↔ MK</strong> tidak dapat dilepas centang dari halaman ini.
+                Jika ingin membuang centang, hapus bobot pada interaksi CPL ↔ MK terlebih dahulu.
             </p>
         </x-filament::section>
     @endif
