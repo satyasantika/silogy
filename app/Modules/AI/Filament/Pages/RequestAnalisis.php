@@ -8,8 +8,8 @@ use App\Modules\AI\Jobs\RunAnalisisAiJob;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Policies\AnalisisAiPolicy;
 use App\Modules\AI\Services\GeminiCostGuard;
-use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\AI\Support\AnalisisAiUnitOptions;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -211,6 +211,7 @@ class RequestAnalisis extends Page
         return [
             Action::make('submit')
                 ->label('Minta analisis')
+                ->icon(Heroicon::OutlinedPaperAirplane)
                 ->submit('submit'),
         ];
     }

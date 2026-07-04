@@ -77,7 +77,7 @@
                     </div>
 
                     <div class="mt-4 flex flex-wrap items-center gap-3">
-                        <x-filament::button wire:click="save" color="primary">
+                        <x-filament::button wire:click="save" color="primary" icon="heroicon-o-check">
                             Simpan
                         </x-filament::button>
 

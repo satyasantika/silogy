@@ -39,9 +39,15 @@ use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
+use Filament\Actions\AttachAction;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse as FilamentLoginResponseContract;
 use Filament\Auth\Http\Responses\LoginResponse as FilamentVendorLoginResponse;
 use Filament\Auth\Notifications\ResetPassword as FilamentResetPasswordNotification;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
@@ -67,6 +73,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureFilamentActionIcons();
+
         RateLimiter::for('health', function (Request $request): Limit {
             return Limit::perMinute(60)->by($request->ip());
         });
@@ -97,5 +105,18 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(StateChanged::class, LogStateTransition::class);
 
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
+    }
+
+    /**
+     * Icon bawaan agar semua tombol aksi Filament (termasuk header action
+     * yang default-nya tanpa icon) selalu tampil ber-icon.
+     */
+    protected function configureFilamentActionIcons(): void
+    {
+        CreateAction::configureUsing(fn (CreateAction $action) => $action->icon(Heroicon::Plus));
+        EditAction::configureUsing(fn (EditAction $action) => $action->icon(Heroicon::PencilSquare));
+        DeleteAction::configureUsing(fn (DeleteAction $action) => $action->icon(Heroicon::Trash));
+        ViewAction::configureUsing(fn (ViewAction $action) => $action->icon(Heroicon::Eye));
+        AttachAction::configureUsing(fn (AttachAction $action) => $action->icon(Heroicon::Link));
     }
 }
