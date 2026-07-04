@@ -3,6 +3,8 @@
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers;
 
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -18,6 +20,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProfilLulusanRelationManager extends RelationManager
 {
+    use HasImporMassal;
+
     protected static string $relationship = 'profilLulusan';
 
     protected static ?string $title = 'Profil Lulusan';
@@ -85,6 +89,8 @@ class ProfilLulusanRelationManager extends RelationManager
                 TextColumn::make('urutan')->label('Urutan'),
             ])
             ->headerActions([
+                $this->makeImporMassalAction()
+                    ->visible(fn (): bool => $this->canCreate()),
                 CreateAction::make(),
             ])
             ->recordActions([
@@ -94,5 +100,74 @@ class ProfilLulusanRelationManager extends RelationManager
             ->toolbarActions([
                 DeleteBulkAction::make(),
             ]);
+    }
+
+    protected function importModalHeading(): string
+    {
+        return 'Impor profil lulusan massal';
+    }
+
+    protected function importColumns(): array
+    {
+        return [
+            ['key' => 'kode', 'label' => 'kode', 'wajib' => true],
+            ['key' => 'nama', 'label' => 'nama', 'wajib' => false],
+            ['key' => 'deskripsi', 'label' => 'deskripsi', 'wajib' => true],
+            ['key' => 'urutan', 'label' => 'urutan', 'wajib' => false],
+        ];
+    }
+
+    protected function importHelperNote(): string
+    {
+        return 'Profil diimpor ke kurikulum yang sedang dibuka.';
+    }
+
+    protected function resolveImportRow(array $data, array $context): array
+    {
+        if ($data['urutan'] !== '' && ! ctype_digit($data['urutan'])) {
+            return ['status' => 'invalid', 'keterangan' => 'Urutan harus angka.'];
+        }
+
+        $existing = ProfilLulusan::query()
+            ->where('kurikulum_id', $this->getOwnerRecord()->getKey())
+            ->where('kode', $data['kode'])
+            ->first();
+
+        if ($existing) {
+            return [
+                'status' => 'duplikat',
+                'keterangan' => 'Kode profil sudah ada pada kurikulum ini.',
+                'existing_id' => $existing->id,
+                'dedup' => mb_strtolower($data['kode']),
+            ];
+        }
+
+        return ['status' => 'baru', 'keterangan' => '', 'dedup' => mb_strtolower($data['kode'])];
+    }
+
+    protected function createImportRow(array $data, array $context): void
+    {
+        ProfilLulusan::query()->create([
+            'kurikulum_id' => $this->getOwnerRecord()->getKey(),
+            'kode' => $data['kode'],
+            'nama' => $data['nama'] ?: null,
+            'deskripsi' => $data['deskripsi'],
+            'urutan' => $data['urutan'] !== '' ? (int) $data['urutan'] : null,
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $data
+     * @param  array<string, mixed>  $context
+     */
+    protected function updateImportRow(string $existingId, array $data, array $context): void
+    {
+        $profil = ProfilLulusan::query()->findOrFail($existingId);
+
+        $profil->update([
+            'nama' => $data['nama'] ?: $profil->nama,
+            'deskripsi' => $data['deskripsi'],
+            'urutan' => $data['urutan'] !== '' ? (int) $data['urutan'] : $profil->urutan,
+        ]);
     }
 }

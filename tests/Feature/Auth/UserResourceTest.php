@@ -171,11 +171,12 @@ it('preview impor menandai status baru, duplikat, dan invalid', function () {
         'Rusak|dua-kolom',
     ]);
 
-    $parsed = collect(ListUsers::parseImportRows($rows))->pluck('status');
+    $page = new ListUsers;
+    $parsed = collect($page->parseImportRaw($rows))->pluck('status');
 
     expect($parsed->all())->toBe(['baru', 'duplikat', 'invalid']);
 
-    $preview = ListUsers::renderImportPreview($rows)->toHtml();
+    $preview = $page->renderImportPreview($rows)->toHtml();
 
     expect($preview)->toContain('1 baru')
         ->toContain('1 duplikat')
