@@ -12,9 +12,11 @@ use App\Modules\Kalkulasi\Services\DashboardCplDataService;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\Widget;
 use Filament\Widgets\WidgetConfiguration;
@@ -33,17 +35,29 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         if (! static::canViewDashboardWidgets()) {
-            return [
-                AccountWidget::class,
-            ];
+            return [];
         }
 
         return [
             AiInsightWidget::class,
             CplUnitChartWidget::class,
             CplPerMkUnitTable::class,
-            AccountWidget::class,
         ];
+    }
+
+    /**
+     * Ucapan selamat datang (AccountWidget) selalu paling atas setelah judul,
+     * sebelum filter dashboard.
+     */
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Grid::make(1)
+                    ->schema(fn (): array => $this->getWidgetsSchemaComponents([AccountWidget::class])),
+                ...(static::canViewDashboardWidgets() ? [$this->getFiltersFormContentComponent()] : []),
+                $this->getWidgetsContentComponent(),
+            ]);
     }
 
     public function mountHasFilters(): void
@@ -112,6 +126,9 @@ class Dashboard extends BaseDashboard
         return $schema
             ->components([
                 Section::make('Filter Dashboard CPL')
+                    ->description('Pilih unit, semester, dan CPL untuk data pada seluruh widget di bawah.')
+                    ->icon(Heroicon::OutlinedFunnel)
+                    ->columnSpanFull()
                     ->schema([
                         Select::make('academic_unit_id')
                             ->label('Unit Akademik')
@@ -180,7 +197,11 @@ class Dashboard extends BaseDashboard
                             })
                             ->required(),
                     ])
-                    ->columns(3),
+                    ->columns([
+                        'default' => 1,
+                        'md' => 2,
+                        'xl' => 3,
+                    ]),
             ]);
     }
 }
