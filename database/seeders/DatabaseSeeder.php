@@ -11,16 +11,15 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * SimulasiSistemSeeder sudah memanggil seluruh seeder dasar
+     * (unit akademik, role+akun, mahasiswa, semester, evaluasi)
+     * lalu membangun simulasi lengkap prodi Pendidikan Matematika.
      */
     public function run(): void
     {
         $this->call([
-            AcademicUnitSeeder::class,
-            RolePermissionSeeder::class,
-            MahasiswaSeeder::class,
-            SemesterSeeder::class,
-            EvaluasiSeeder::class,
-            SimulasiSeeder::class,
+            SimulasiSistemSeeder::class,
         ]);
     }
 }

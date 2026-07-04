@@ -18,7 +18,7 @@ beforeEach(function () {
     $this->seed(MahasiswaSeeder::class);
 
     $this->policy = new MahasiswaPolicy;
-    $this->prodiA = AcademicUnit::query()->where('type', 'study_program')->where('code', 'S1-IF')->first();
+    $this->prodiA = AcademicUnit::query()->where('type', 'study_program')->where('kode_pddikti', '84202')->firstOrFail();
     $jurusan = AcademicUnit::query()->where('type', 'department')->first();
 
     $this->prodiB = AcademicUnit::factory()->studyProgram($jurusan)->create([

@@ -78,7 +78,7 @@ it('completes full mvp journey for prodi', function () {
     Livewire::test(Login::class)
         ->fillForm([
             'email' => 'superadmin@silogy.test',
-            'password' => 'Silogy2026!',
+            'password' => 'siliwangi',
         ])
         ->call('authenticate')
         ->assertHasNoFormErrors();
@@ -90,8 +90,8 @@ it('completes full mvp journey for prodi', function () {
 
     $prodi = $this->buatUnitE2e($univ);
 
-    // 2. Login adminuniv → buat pengguna operasional E2E
-    $adminuniv = $this->loginUser('adminuniv');
+    // 2. Pengaturan pengguna eksklusif superadmin → buat pengguna operasional E2E
+    $pembuatUser = $this->loginUser('superadmin');
 
     $roleDosen = Role::query()->where('name', 'Dosen Pengampu')->value('id');
     $roleKorma = Role::query()->where('name', 'Koordinator Mata Kuliah')->value('id');
@@ -106,13 +106,13 @@ it('completes full mvp journey for prodi', function () {
         ['username' => 'adminprodiE2E', 'full_name' => 'Admin Prodi E2E', 'role' => $roleAdminProdi, 'tim_kur' => false, 'pimpinan' => false, 'jabatan' => 'Admin'],
         ['username' => 'kaprodiE2E', 'full_name' => 'Kaprodi E2E', 'role' => $roleKaprodi, 'tim_kur' => false, 'pimpinan' => true, 'jabatan' => 'Ketua Program Studi'],
     ] as $akun) {
-        Livewire::actingAs($adminuniv)
+        Livewire::actingAs($pembuatUser)
             ->test(CreateUser::class)
             ->fillForm([
                 'full_name' => $akun['full_name'],
                 'username' => $akun['username'],
                 'email' => $akun['username'].'@silogy.test',
-                'password' => 'Silogy2026!',
+                'password' => 'siliwangi',
                 'roles' => [$akun['role']],
                 'academicUnitUsers' => [
                     [

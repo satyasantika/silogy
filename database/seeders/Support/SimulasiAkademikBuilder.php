@@ -116,8 +116,10 @@ class SimulasiAkademikBuilder
             return;
         }
 
+        $suffixUnit = $this->kodeSingkatUnit($unit->type);
+
         $cpl = Cpl::query()->firstOrCreate(
-            ['academic_unit_id' => $unit->id, 'kode' => 'CPL-SIM-'.strtoupper($unit->type)],
+            ['academic_unit_id' => $unit->id, 'kode' => 'CPL-SIM-'.$suffixUnit],
             [
                 'id' => (string) Str::uuid(),
                 'deskripsi' => 'CPL simulasi '.$unit->nama,
@@ -126,7 +128,7 @@ class SimulasiAkademikBuilder
         );
 
         $bok = Bok::query()->firstOrCreate(
-            ['academic_unit_id' => $unit->id, 'kode' => 'BOK-SIM-'.strtoupper($unit->type)],
+            ['academic_unit_id' => $unit->id, 'kode' => 'BOK-SIM-'.$suffixUnit],
             [
                 'id' => (string) Str::uuid(),
                 'nama' => 'BoK simulasi '.$unit->nama,
@@ -566,5 +568,16 @@ class SimulasiAkademikBuilder
         }
 
         $kurikulum->state->transitionTo($stateClass);
+    }
+
+    protected function kodeSingkatUnit(string $type): string
+    {
+        return match ($type) {
+            'university' => 'UNIV',
+            'faculty' => 'FAK',
+            'department' => 'JUR',
+            'study_program' => 'PRODI',
+            default => strtoupper(substr($type, 0, 4)),
+        };
     }
 }

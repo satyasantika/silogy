@@ -1,13 +1,14 @@
 <?php
 
+use App\Models\Role;
 use App\Models\User;
 use App\Policies\RolePolicy;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\Role;
+use Tests\TestCase;
 
-uses(RefreshDatabase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed(AcademicUnitSeeder::class);

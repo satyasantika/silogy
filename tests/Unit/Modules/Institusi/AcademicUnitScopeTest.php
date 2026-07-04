@@ -17,14 +17,22 @@ beforeEach(function () {
 
 it('userCanViewUnit mengizinkan lihat ancestor dari penugasan', function () {
     $adminProdi = User::where('username', 'adminprodi')->first();
+    $fakultas = AcademicUnit::where('type', 'faculty')->first();
+
+    expect(AcademicUnitScope::userCanViewUnit($adminProdi, $fakultas))->toBeTrue();
+});
+
+it('userCanViewUnit menolak unit di luar rantai ancestor', function () {
+    $adminProdi = User::where('username', 'adminprodi')->first();
     $jurusan = AcademicUnit::where('type', 'department')->first();
 
-    expect(AcademicUnitScope::userCanViewUnit($adminProdi, $jurusan))->toBeTrue();
+    // Jurusan bukan ancestor prodi — prodi berinduk langsung ke fakultas.
+    expect(AcademicUnitScope::userCanViewUnit($adminProdi, $jurusan))->toBeFalse();
 });
 
 it('userHasPivotToUnitOrAncestor menolak kelola unit di atas penugasan', function () {
     $adminProdi = User::where('username', 'adminprodi')->first();
-    $jurusan = AcademicUnit::where('type', 'department')->first();
+    $fakultas = AcademicUnit::where('type', 'faculty')->first();
 
-    expect(AcademicUnitScope::userHasPivotToUnitOrAncestor($adminProdi, $jurusan))->toBeFalse();
+    expect(AcademicUnitScope::userHasPivotToUnitOrAncestor($adminProdi, $fakultas))->toBeFalse();
 });

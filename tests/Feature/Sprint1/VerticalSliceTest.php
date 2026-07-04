@@ -38,9 +38,11 @@ it('lets admin prodi see only its unit and ancestors', function () {
     $fakultas = AcademicUnit::where('type', 'faculty')->first();
     $universitas = AcademicUnit::where('type', 'university')->first();
 
+    // Prodi kini berinduk langsung ke fakultas — jurusan bukan lagi
+    // ancestor prodi sehingga tidak ikut terlihat.
     expect($this->policy->viewAny($adminProdi))->toBeTrue()
         ->and($this->policy->view($adminProdi, $prodi))->toBeTrue()
-        ->and($this->policy->view($adminProdi, $jurusan))->toBeTrue()
+        ->and($this->policy->view($adminProdi, $jurusan))->toBeFalse()
         ->and($this->policy->view($adminProdi, $fakultas))->toBeTrue()
         ->and($this->policy->view($adminProdi, $universitas))->toBeTrue();
 });
@@ -56,7 +58,7 @@ it('allows filament default login via email untuk akun demo', function () {
     Livewire::test(Login::class)
         ->fillForm([
             'email' => 'superadmin@silogy.test',
-            'password' => 'Silogy2026!',
+            'password' => 'siliwangi',
         ])
         ->call('authenticate')
         ->assertHasNoFormErrors();

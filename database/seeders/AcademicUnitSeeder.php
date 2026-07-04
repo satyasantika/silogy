@@ -27,8 +27,10 @@ class AcademicUnitSeeder extends Seeder
             ])->toArray()
         );
 
-        $jur = AcademicUnit::firstOrCreate(
-            ['parent_id' => $fak->id],
+        // Jurusan bersifat opsional dalam hierarki — dipertahankan sebagai contoh
+        // unit level jurusan, tetapi prodi simulasi berinduk langsung ke fakultas.
+        AcademicUnit::firstOrCreate(
+            ['parent_id' => $fak->id, 'type' => 'department'],
             AcademicUnit::factory()->department($fak)->make([
                 'nama' => 'Jurusan Pendidikan Matematika',
                 'code' => 'jurmat',
@@ -36,9 +38,9 @@ class AcademicUnitSeeder extends Seeder
             ])->toArray()
         );
 
-        AcademicUnit::firstOrCreate(
-            ['kode_pddikti' => '84202', 'parent_id' => $jur->id],
-            AcademicUnit::factory()->studyProgram($jur)->make([
+        $prodi = AcademicUnit::firstOrCreate(
+            ['kode_pddikti' => '84202'],
+            AcademicUnit::factory()->studyProgram($fak)->make([
                 'nama' => 'Program Studi S1 Pendidikan Matematika',
                 'code' => '2151',
                 'kode_pddikti' => '84202',
@@ -47,5 +49,9 @@ class AcademicUnitSeeder extends Seeder
                 'status' => 'aktif',
             ])->toArray()
         );
+
+        if ($prodi->parent_id !== $fak->id) {
+            $prodi->update(['parent_id' => $fak->id]);
+        }
     }
 }

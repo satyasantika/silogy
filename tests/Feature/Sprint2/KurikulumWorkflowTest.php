@@ -9,10 +9,10 @@ use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\CreateKurikulum;
-use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilIndikator;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Kurikulum\States\BokState;
 use App\Modules\Kurikulum\States\CplState;
 use App\Modules\Kurikulum\States\MkState;
@@ -36,7 +36,7 @@ beforeEach(function () {
 
     $this->prodiA = AcademicUnit::query()
         ->where('type', 'study_program')
-        ->where('code', 'S1-IF')
+        ->where('kode_pddikti', '84202')
         ->firstOrFail();
 
     $this->fakultas = AcademicUnit::query()

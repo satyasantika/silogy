@@ -242,7 +242,13 @@ class RolePermissionSeeder extends Seeder
             );
 
             if ($user->email_verified_at === null) {
-                $user->update(['email_verified_at' => now()]);
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            // Sinkronkan kata sandi demo walau akun sudah ada sebelumnya,
+            // agar seluruh akun demo selalu bisa login dengan kata sandi baku.
+            if (! Hash::check('siliwangi', $user->password)) {
+                $user->forceFill(['password' => Hash::make('siliwangi')])->save();
             }
 
             $user->syncRoles([$a['role']]);

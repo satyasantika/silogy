@@ -25,6 +25,6 @@ it('RolePermissionSeeder menyinkronkan kata sandi akun demo walau pengguna sudah
 
     $user = User::query()->where('username', 'superadmin')->firstOrFail();
 
-    expect(Hash::check('Silogy2026!', $user->password))->toBeTrue()
+    expect(Hash::check('siliwangi', $user->password))->toBeTrue()
         ->and(Hash::check('kata-sandi-salah-sebelum-seed', $user->password))->toBeFalse();
 });
