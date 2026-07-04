@@ -35,12 +35,16 @@ class KurikulumPolicy
 
     public function delete(User $user, Kurikulum $kurikulum): bool
     {
-        return $user->hasRole('Super Admin') && $this->manage($user, $kurikulum);
+        if (! $this->manage($user, $kurikulum)) {
+            return false;
+        }
+
+        return $kurikulum->belumDigunakanDiTabelLain();
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->hasRole('Super Admin');
+        return $this->viewAny($user);
     }
 
     public function restore(User $user, Kurikulum $kurikulum): bool

@@ -12,10 +12,6 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\CreateKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\ListKurikulums;
-use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\BokRelationManager;
-use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\CplMkRelationManager;
-use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\CplRelationManager;
-use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\ProfilLulusanRelationManager;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\States\AktifState;
@@ -392,12 +388,7 @@ class KurikulumResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            ProfilLulusanRelationManager::class,
-            CplRelationManager::class,
-            BokRelationManager::class,
-            CplMkRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

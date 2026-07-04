@@ -3,27 +3,38 @@
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages;
 
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
-use App\Modules\Kurikulum\Filament\Widgets\KurikulumStepperWidget;
+use App\Support\Filament\Concerns\ForcesFullPageRender;
 use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
+use Filament\Schemas\Schema;
 
 class EditKurikulum extends BaseEditRecord
 {
+    use ForcesFullPageRender;
+
     protected static string $resource = KurikulumResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->visible(fn (): bool => $this->getRecord()->belumDigunakanDiTabelLain()),
         ];
     }
 
-    protected function getHeaderWidgets(): array
+    /**
+     * @return array<class-string>
+     */
+    public function getRelationManagers(): array
     {
-        return [
-            KurikulumStepperWidget::make([
-                'record' => $this->getRecord(),
-            ]),
-        ];
+        return [];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getFormContentComponent(),
+            ]);
     }
 }

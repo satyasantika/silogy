@@ -116,4 +116,13 @@ class Kurikulum extends Model
         return $this->hasMany(StateTransition::class, 'model_id')
             ->where('model_type', self::class);
     }
+
+    /**
+     * Kurikulum masih hanya metadata awal — belum ada baris turunan yang
+     * mereferensi langsung ke record ini (saat ini: profil_lulusan).
+     */
+    public function belumDigunakanDiTabelLain(): bool
+    {
+        return ! $this->profilLulusan()->exists();
+    }
 }

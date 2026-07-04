@@ -12,13 +12,12 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
-class ProfilLulusanRelationManager extends RelationManager
+class ProfilLulusanRelationManager extends BaseKurikulumRelationManager
 {
     use HasImporMassal;
 

@@ -14,12 +14,11 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class CplRelationManager extends RelationManager
+class CplRelationManager extends BaseKurikulumRelationManager
 {
     protected static string $relationship = 'cpls';
 
