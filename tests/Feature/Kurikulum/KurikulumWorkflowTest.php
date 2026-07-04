@@ -7,6 +7,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilIndikator;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Kurikulum\States\BokState;
 use App\Modules\Kurikulum\States\CplState;
 use App\Modules\Kurikulum\States\DraftState;
 use App\Modules\Kurikulum\States\ProfilLulusanState;
@@ -73,5 +74,5 @@ it('workflow prodi naik dari draft ke cpl setelah profil dan pemetaan cpl', func
         'profil_lulusan_id' => $profil->id,
     ]);
 
-    expect($kurikulum->fresh()->state->canTransitionTo(\App\Modules\Kurikulum\States\BokState::class))->toBeTrue();
+    expect($kurikulum->fresh()->state->canTransitionTo(BokState::class))->toBeTrue();
 });

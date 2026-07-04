@@ -49,5 +49,4 @@ trait MvpEndToEndHelpers
         $kurikulum->state->transitionTo($stateClass);
         $kurikulum->refresh();
     }
-
 }

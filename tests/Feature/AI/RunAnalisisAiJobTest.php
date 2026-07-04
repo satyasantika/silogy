@@ -2,11 +2,12 @@
 
 use App\Models\User;
 use App\Modules\AI\Exceptions\GeminiQuotaExceededException;
-use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\AI\Jobs\RunAnalisisAiJob;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Notifications\AnalisisAiGagalNotification;
+use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
 use Database\Seeders\RolePermissionSeeder;
 use Gemini\Contracts\ClientContract;
@@ -135,7 +136,7 @@ it('marks safety blocked when finish reason is safety', function () {
 it('respects rate limit per user', function () {
     $user = User::where('username', 'kaprodi')->firstOrFail();
     $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
-    $semester = \App\Modules\Kalender\Models\Semester::query()->where('status_aktif', true)->firstOrFail();
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
     $guard = app(GeminiCostGuard::class);
 
     for ($i = 0; $i < GeminiCostGuard::MAX_REQUESTS_PER_USER_PER_DAY; $i++) {

@@ -7,6 +7,7 @@ use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -77,7 +78,7 @@ it('displays latest ai insight for kaprodi', function () {
 it('blocks when user exceeds daily quota', function () {
     $kaprodi = User::where('username', 'kaprodi')->firstOrFail();
     $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
-    $semester = \App\Modules\Kalender\Models\Semester::query()->where('status_aktif', true)->firstOrFail();
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
     $guard = app(GeminiCostGuard::class);
 
     for ($i = 0; $i < GeminiCostGuard::MAX_REQUESTS_PER_USER_PER_DAY; $i++) {
@@ -100,7 +101,7 @@ it('blocks when monthly token budget exhausted', function () {
 
     $kaprodi = User::where('username', 'kaprodi')->firstOrFail();
     $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
-    $semester = \App\Modules\Kalender\Models\Semester::query()->where('status_aktif', true)->firstOrFail();
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
     $guard = app(GeminiCostGuard::class);
 
     AnalisisAi::query()->create([
