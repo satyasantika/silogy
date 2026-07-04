@@ -160,12 +160,14 @@ it('runs full curriculum workflow for prodi', function () {
 });
 
 it('runs workflow for faculty skipping profil lulusan', function () {
-    AcademicUnitUser::query()
-        ->where('user_id', $this->timkur->id)
-        ->update([
-            'academic_unit_id' => $this->fakultas->id,
-            'status_tim_kurikulum' => true,
-        ]);
+    // Seeder kini menugaskan timkur sebagai tim kurikulum di fakultas.
+    expect(
+        AcademicUnitUser::query()
+            ->where('user_id', $this->timkur->id)
+            ->where('academic_unit_id', $this->fakultas->id)
+            ->where('status_tim_kurikulum', true)
+            ->exists()
+    )->toBeTrue();
 
     Livewire::actingAs($this->timkur)
         ->test(CreateKurikulum::class)

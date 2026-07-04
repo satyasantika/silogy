@@ -268,5 +268,27 @@ class RolePermissionSeeder extends Seeder
                 );
             }
         }
+
+        // Akun timkur bertugas lintas level: prodi (di atas) + fakultas +
+        // universitas, agar dapat mengelola kurikulum penanda di tiap level
+        // (mis. OBE-UNSIL-2025 dan OBE-FKIP-2025).
+        $timkurUser = User::query()->where('username', 'timkur')->first();
+
+        if ($timkurUser) {
+            foreach (array_filter([$fak, $univ]) as $unitTimkur) {
+                AcademicUnitUser::updateOrCreate(
+                    [
+                        'academic_unit_id' => $unitTimkur->id,
+                        'user_id' => $timkurUser->id,
+                    ],
+                    [
+                        'id' => (string) Str::uuid(),
+                        'status_pimpinan' => false,
+                        'status_tim_kurikulum' => true,
+                        'jabatan' => 'Anggota Tim Kurikulum',
+                    ]
+                );
+            }
+        }
     }
 }
