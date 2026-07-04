@@ -12,6 +12,7 @@ use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -29,6 +30,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Password;
 use STS\FilamentImpersonate\Actions\Impersonate;
 
@@ -272,9 +274,9 @@ class UserResource extends Resource
                     ->action(function (User $record): void {
                         $aktifkan = $record->email_verified_at === null;
 
-                        $record->update([
+                        $record->forceFill([
                             'email_verified_at' => $aktifkan ? now() : null,
-                        ]);
+                        ])->save();
 
                         Notification::make()
                             ->title($aktifkan ? 'Pengguna diaktifkan' : 'Pengguna dinonaktifkan')
@@ -287,6 +289,37 @@ class UserResource extends Resource
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('ubahStatus')
+                        ->label('Ubah status')
+                        ->icon(Heroicon::OutlinedArrowPath)
+                        ->requiresConfirmation()
+                        ->modalHeading('Ubah status pengguna terpilih?')
+                        ->schema([
+                            Select::make('status')
+                                ->label('Status')
+                                ->options([
+                                    'aktif' => 'Aktif',
+                                    'nonaktif' => 'Nonaktif',
+                                ])
+                                ->default('aktif')
+                                ->required(),
+                        ])
+                        ->authorizeIndividualRecords('update')
+                        ->action(function (Collection $records, array $data): void {
+                            $aktifkan = $data['status'] === 'aktif';
+
+                            $records->each(fn (User $record) => $record->forceFill([
+                                'email_verified_at' => $aktifkan
+                                    ? ($record->email_verified_at ?? now())
+                                    : null,
+                            ])->save());
+
+                            Notification::make()
+                                ->title($records->count().' pengguna '.($aktifkan ? 'diaktifkan' : 'dinonaktifkan'))
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make()
                         ->authorizeIndividualRecords('delete'),
                 ]),

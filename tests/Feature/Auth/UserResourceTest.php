@@ -83,14 +83,14 @@ it('superadmin dapat membuka halaman edit pengguna', function () {
         ->assertFormFieldExists('password');
 });
 
-it('dapat mengimpor pengguna massal lewat copypaste', function () {
+it('dapat mengimpor pengguna massal lewat copypaste dengan pemisah pipe', function () {
     $rows = implode("\n", [
         'Budi Santoso|budisantoso|RahasiaKuat123|budi@silogy.test|Dosen Pengampu',
         'Siti Aminah|sitiaminah|RahasiaKuat456|siti@silogy.test|Tim Kurikulum, Dosen Pengampu',
     ]);
 
     Livewire::test(ListUsers::class)
-        ->callAction('bulkImport', ['rows' => $rows])
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati'])
         ->assertHasNoActionErrors();
 
     $budi = User::where('username', 'budisantoso')->first();
@@ -104,25 +104,105 @@ it('dapat mengimpor pengguna massal lewat copypaste', function () {
         ->and($siti->hasRole(['Tim Kurikulum', 'Dosen Pengampu']))->toBeTrue();
 });
 
-it('membatalkan impor massal jika ada baris tidak valid', function () {
+it('dapat mengimpor pengguna dari tempelan excel (pemisah tab)', function () {
+    $rows = "Budi Excel\tbudiexcel\tRahasiaKuat123\tbudiexcel@silogy.test\tDosen Pengampu";
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati'])
+        ->assertHasNoActionErrors();
+
+    $budi = User::where('username', 'budiexcel')->first();
+
+    expect($budi)->not->toBeNull()
+        ->and($budi->hasRole('Dosen Pengampu'))->toBeTrue();
+});
+
+it('baris invalid dilewati sementara baris valid tetap diimpor', function () {
     $rows = implode("\n", [
         'Budi Santoso|budisantoso|RahasiaKuat123|budi@silogy.test|Dosen Pengampu',
-        'Baris Rusak|tanpa-email-dan-role',
+        'Baris Rusak|cuma-dua-kolom',
+        'Role Aneh|roleaneh|RahasiaKuat123|roleaneh@silogy.test|Role Tidak Ada',
     ]);
 
     Livewire::test(ListUsers::class)
-        ->callAction('bulkImport', ['rows' => $rows]);
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati']);
 
-    expect(User::where('username', 'budisantoso')->exists())->toBeFalse();
+    expect(User::where('username', 'budisantoso')->exists())->toBeTrue()
+        ->and(User::where('username', 'roleaneh')->exists())->toBeFalse();
 });
 
-it('menolak impor massal dengan role yang tidak dikenal', function () {
-    Livewire::test(ListUsers::class)
-        ->callAction('bulkImport', [
-            'rows' => 'Budi Santoso|budisantoso|RahasiaKuat123|budi@silogy.test|Role Tidak Ada',
-        ]);
+it('duplikat dilewati saat mode lewati dan ditimpa saat mode timpa', function () {
+    $lama = User::create([
+        'full_name' => 'Nama Lama',
+        'username' => 'userlama',
+        'email' => 'userlama@silogy.test',
+        'password' => 'PasswordLama123',
+    ]);
 
-    expect(User::where('username', 'budisantoso')->exists())->toBeFalse();
+    $rows = 'Nama Baru|userlama|PasswordBaru123|userlama@silogy.test|Dosen Pengampu';
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati']);
+
+    expect($lama->fresh()->full_name)->toBe('Nama Lama');
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'timpa']);
+
+    $lama->refresh();
+
+    expect($lama->full_name)->toBe('Nama Baru')
+        ->and(Hash::check('PasswordBaru123', $lama->password))->toBeTrue()
+        ->and($lama->hasRole('Dosen Pengampu'))->toBeTrue()
+        ->and(User::where('email', 'userlama@silogy.test')->count())->toBe(1);
+});
+
+it('preview impor menandai status baru, duplikat, dan invalid', function () {
+    User::create([
+        'full_name' => 'Sudah Ada',
+        'username' => 'sudahada',
+        'email' => 'sudahada@silogy.test',
+        'password' => 'RahasiaKuat123',
+    ]);
+
+    $rows = implode("\n", [
+        'Orang Baru|orangbaru|RahasiaKuat123|orangbaru@silogy.test|Dosen Pengampu',
+        'Sudah Ada|sudahada|RahasiaKuat123|sudahada@silogy.test|Dosen Pengampu',
+        'Rusak|dua-kolom',
+    ]);
+
+    $parsed = collect(ListUsers::parseImportRows($rows))->pluck('status');
+
+    expect($parsed->all())->toBe(['baru', 'duplikat', 'invalid']);
+
+    $preview = ListUsers::renderImportPreview($rows)->toHtml();
+
+    expect($preview)->toContain('1 baru')
+        ->toContain('1 duplikat')
+        ->toContain('1 invalid');
+});
+
+it('bulk action ubah status dapat mengaktifkan banyak pengguna sekaligus', function () {
+    $nonaktif = collect(range(1, 3))->map(fn (int $i) => User::create([
+        'full_name' => "Pengguna Nonaktif {$i}",
+        'username' => "nonaktif{$i}",
+        'email' => "nonaktif{$i}@silogy.test",
+        'password' => 'RahasiaKuat123',
+    ]));
+
+    Livewire::test(ListUsers::class)
+        ->callTableBulkAction('ubahStatus', $nonaktif->pluck('id')->all(), ['status' => 'aktif']);
+
+    $nonaktif->each(function (User $user): void {
+        expect($user->fresh()->email_verified_at)->not->toBeNull();
+    });
+});
+
+it('dosen pengampu tidak dapat mengakses daftar pengguna', function () {
+    $this->actingAs(User::where('username', 'dosen')->first());
+
+    Livewire::test(ListUsers::class)
+        ->assertForbidden();
 });
 
 it('tidak mengizinkan hapus user yang datanya dipakai tabel lain', function () {
