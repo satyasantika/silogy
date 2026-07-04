@@ -85,13 +85,19 @@ class AcademicUnitResource extends Resource
         ];
     }
 
-    public static function parentTypeFor(?string $type): ?string
+    /**
+     * Program studi dapat berinduk ke jurusan atau langsung ke fakultas
+     * (keberadaan jurusan bersifat opsional).
+     *
+     * @return list<string>
+     */
+    public static function parentTypesFor(?string $type): array
     {
         return match ($type) {
-            'faculty' => 'university',
-            'department' => 'faculty',
-            'study_program' => 'department',
-            default => null,
+            'faculty' => ['university'],
+            'department' => ['faculty'],
+            'study_program' => ['department', 'faculty'],
+            default => [],
         };
     }
 
@@ -118,13 +124,16 @@ class AcademicUnitResource extends Resource
                                 name: 'parent',
                                 titleAttribute: 'nama',
                                 modifyQueryUsing: function (Builder $query, Get $get): Builder {
-                                    $parentType = static::parentTypeFor($get('type'));
+                                    $parentTypes = static::parentTypesFor($get('type'));
 
-                                    if ($parentType === null) {
+                                    if ($parentTypes === []) {
                                         return $query->whereRaw('1 = 0');
                                     }
 
-                                    return $query->where('type', $parentType)->orderBy('nama');
+                                    return $query
+                                        ->whereIn('type', $parentTypes)
+                                        ->orderByRaw("CASE type WHEN 'university' THEN 1 WHEN 'faculty' THEN 2 WHEN 'department' THEN 3 ELSE 4 END")
+                                        ->orderBy('nama');
                                 },
                             )
                             ->getOptionLabelFromRecordUsing(
@@ -134,7 +143,10 @@ class AcademicUnitResource extends Resource
                             ->preload()
                             ->disabled(fn (Get $get): bool => $get('type') === 'university' || blank($get('type')))
                             ->dehydrated(fn (Get $get): bool => $get('type') !== 'university')
-                            ->required(fn (Get $get): bool => filled($get('type')) && $get('type') !== 'university'),
+                            ->required(fn (Get $get): bool => filled($get('type')) && $get('type') !== 'university')
+                            ->helperText(fn (Get $get): ?string => $get('type') === 'study_program'
+                                ? 'Pilih jurusan, atau langsung fakultas jika tidak memiliki jurusan.'
+                                : null),
 
                         TextInput::make('code')
                             ->label('Kode')

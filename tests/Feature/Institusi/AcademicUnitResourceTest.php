@@ -47,3 +47,44 @@ it('dapat membuat fakultas baru di bawah universitas', function () {
 
     expect(AcademicUnit::where('code', 'FK')->exists())->toBeTrue();
 });
+
+it('dapat membuat program studi langsung di bawah fakultas tanpa jurusan', function () {
+    $fakultas = AcademicUnit::where('type', 'faculty')->first();
+
+    Livewire::test(CreateAcademicUnit::class)
+        ->fillForm([
+            'type' => 'study_program',
+            'parent_id' => $fakultas->id,
+            'code' => 'PSTI',
+            'nama' => 'Program Studi Teknik Informatika Baru',
+            'status' => 'aktif',
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $prodi = AcademicUnit::where('code', 'PSTI')->first();
+
+    expect($prodi)->not->toBeNull()
+        ->and($prodi->parent_id)->toBe($fakultas->id)
+        ->and($prodi->parent->isFaculty())->toBeTrue();
+});
+
+it('program studi tetap dapat berinduk ke jurusan', function () {
+    $jurusan = AcademicUnit::where('type', 'department')->first();
+
+    Livewire::test(CreateAcademicUnit::class)
+        ->fillForm([
+            'type' => 'study_program',
+            'parent_id' => $jurusan->id,
+            'code' => 'PSJR',
+            'nama' => 'Program Studi Di Bawah Jurusan',
+            'status' => 'aktif',
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $prodi = AcademicUnit::where('code', 'PSJR')->first();
+
+    expect($prodi)->not->toBeNull()
+        ->and($prodi->parent->isJurusan())->toBeTrue();
+});
