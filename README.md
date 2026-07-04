@@ -88,7 +88,10 @@ Password default semua akun: **`siliwangi`**
 | `adminfak` | Admin Fakultas |
 | `adminjur` | Admin Jurusan |
 | `adminprodi` | Admin Program Studi |
-| `timkur` | Tim Kurikulum |
+| `timkur` | Tim Kurikulum (prodi) |
+| `timkurfak` | Tim Kurikulum (fakultas) |
+| `timkuruniv` | Tim Kurikulum (universitas) |
+| `dosentimkur` | Dosen Pengampu + Tim Kurikulum (universitas, fakultas, prodi) |
 | `korma` | Koordinator Mata Kuliah |
 | `dosen` | Dosen Pengampu |
 | `auditor` | Auditor Mutu |

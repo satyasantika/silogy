@@ -35,15 +35,23 @@ beforeEach(function () {
     $this->korma = User::query()->where('username', 'korma')->first();
 });
 
-it('seeder menugaskan timkur sebagai tim kurikulum di prodi, fakultas, dan universitas', function () {
+it('seeder menyediakan tim kurikulum terpisah per level dan dosentimkur lintas level', function () {
+    $adaTimkur = fn (string $username, AcademicUnit $unit): bool => AcademicUnitUser::query()
+        ->where('user_id', User::query()->where('username', $username)->firstOrFail()->id)
+        ->where('academic_unit_id', $unit->id)
+        ->where('status_tim_kurikulum', true)
+        ->exists();
+
+    expect($adaTimkur('timkur', $this->prodi))->toBeTrue()
+        ->and($adaTimkur('timkurfak', $this->fakultas))->toBeTrue()
+        ->and($adaTimkur('timkuruniv', $this->univ))->toBeTrue();
+
+    $dosenTimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+
+    expect($dosenTimkur->hasRole(['Dosen Pengampu', 'Tim Kurikulum']))->toBeTrue();
+
     foreach ([$this->prodi, $this->fakultas, $this->univ] as $unit) {
-        expect(
-            AcademicUnitUser::query()
-                ->where('user_id', $this->timkur->id)
-                ->where('academic_unit_id', $unit->id)
-                ->where('status_tim_kurikulum', true)
-                ->exists()
-        )->toBeTrue();
+        expect($adaTimkur('dosentimkur', $unit))->toBeTrue();
     }
 });
 

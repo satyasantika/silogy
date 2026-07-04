@@ -21,10 +21,10 @@ beforeEach(function () {
 
 function timkurSegar(): User
 {
-    return User::query()->where('username', 'timkur')->firstOrFail();
+    return User::query()->where('username', 'dosentimkur')->firstOrFail();
 }
 
-it('timkur dual role: tanpa role aktif semua kemampuan berlaku', function () {
+it('dosentimkur dual role: tanpa role aktif semua kemampuan berlaku', function () {
     $timkur = timkurSegar();
     $this->actingAs($timkur);
 

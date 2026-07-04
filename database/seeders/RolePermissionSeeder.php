@@ -198,10 +198,21 @@ class RolePermissionSeeder extends Seeder
                 'nidn' => '0000000013', 'role' => 'Admin Program Studi', 'unit' => $prodi,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Admin'],
 
-            // Tim Kurikulum (ditetapkan ke unit prodi sebagai default)
+            // Tim Kurikulum per level unit (terpisah)
             ['username' => 'timkur', 'full_name' => 'Tim Kurikulum Prodi',
                 'nidn' => '0000000020', 'role' => 'Tim Kurikulum', 'unit' => $prodi,
                 'pimpinan' => false, 'tim_kur' => true, 'jabatan' => 'Anggota Tim Kurikulum'],
+            ['username' => 'timkurfak', 'full_name' => 'Tim Kurikulum Fakultas',
+                'nidn' => '0000000021', 'role' => 'Tim Kurikulum', 'unit' => $fak,
+                'pimpinan' => false, 'tim_kur' => true, 'jabatan' => 'Anggota Tim Kurikulum'],
+            ['username' => 'timkuruniv', 'full_name' => 'Tim Kurikulum Universitas',
+                'nidn' => '0000000022', 'role' => 'Tim Kurikulum', 'unit' => $univ,
+                'pimpinan' => false, 'tim_kur' => true, 'jabatan' => 'Anggota Tim Kurikulum'],
+
+            // Dosen merangkap tim kurikulum di tiga level (demo role switcher)
+            ['username' => 'dosentimkur', 'full_name' => 'Dosen merangkap Tim Kurikulum',
+                'nidn' => '0000000023', 'role' => 'Dosen Pengampu', 'unit' => $prodi,
+                'pimpinan' => false, 'tim_kur' => true, 'jabatan' => 'Dosen & Tim Kurikulum'],
 
             // Koordinator Mata Kuliah
             ['username' => 'korma', 'full_name' => 'Koordinator Mata Kuliah',
@@ -269,26 +280,25 @@ class RolePermissionSeeder extends Seeder
             }
         }
 
-        // Akun timkur bertugas lintas level: prodi (di atas) + fakultas +
-        // universitas, agar dapat mengelola kurikulum penanda di tiap level
-        // (mis. OBE-UNSIL-2025 dan OBE-FKIP-2025).
-        $timkurUser = User::query()->where('username', 'timkur')->first();
+        // dosentimkur: dosen sekaligus tim kurikulum pada TIGA level
+        // (universitas, fakultas, prodi) — contoh pemakaian role switcher
+        // dan pengelolaan kurikulum penanda lintas level oleh satu akun.
+        $dosenTimkur = User::query()->where('username', 'dosentimkur')->first();
 
-        if ($timkurUser) {
-            // Dual-role sebagai contoh pemakaian role switcher di navigasi:
-            // timkur dapat berpindah peran Tim Kurikulum ↔ Dosen Pengampu.
-            $timkurUser->syncRoles(['Tim Kurikulum', 'Dosen Pengampu']);
+        if ($dosenTimkur) {
+            $dosenTimkur->syncRoles(['Dosen Pengampu', 'Tim Kurikulum']);
+
             foreach (array_filter([$fak, $univ]) as $unitTimkur) {
                 AcademicUnitUser::updateOrCreate(
                     [
                         'academic_unit_id' => $unitTimkur->id,
-                        'user_id' => $timkurUser->id,
+                        'user_id' => $dosenTimkur->id,
                     ],
                     [
                         'id' => (string) Str::uuid(),
                         'status_pimpinan' => false,
                         'status_tim_kurikulum' => true,
-                        'jabatan' => 'Anggota Tim Kurikulum',
+                        'jabatan' => 'Dosen & Tim Kurikulum',
                     ]
                 );
             }
