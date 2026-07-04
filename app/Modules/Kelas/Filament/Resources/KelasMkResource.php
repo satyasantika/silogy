@@ -12,6 +12,8 @@ use App\Modules\Kelas\Filament\Resources\KelasMkResource\RelationManagers\KelasM
 use App\Modules\Kelas\Filament\Support\Concerns\HasKelasMkUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
+use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Filament\Actions\Action;
@@ -29,6 +31,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,6 +40,7 @@ use Illuminate\Support\Facades\Auth;
 class KelasMkResource extends Resource
 {
     use HasKelasMkUnitScope;
+    use HasKurikulumTerpilihFilter;
 
     protected static ?string $model = KelasMk::class;
 
@@ -214,6 +218,13 @@ class KelasMkResource extends Resource
                     ->sortable(),
             ])
             ->filters([
+                static::kurikulumTerpilihFilter(
+                    fn (Builder $query, Kurikulum $kurikulum): Builder => $query->whereHas(
+                        'mkUnit',
+                        fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
+                            ->where('academic_unit_id', $kurikulum->academic_unit_id),
+                    ),
+                ),
                 SelectFilter::make('semester_id')
                     ->label('Semester')
                     ->relationship('semester', 'nama')
@@ -316,6 +327,7 @@ class KelasMkResource extends Resource
                             ->send();
                     }),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->recordActions([
                 EditAction::make(),
             ])

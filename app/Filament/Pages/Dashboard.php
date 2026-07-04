@@ -9,6 +9,7 @@ use App\Modules\Kalkulasi\Filament\Support\DashboardAcademicUnitOptions;
 use App\Modules\Kalkulasi\Filament\Widgets\CplPerMkUnitTable;
 use App\Modules\Kalkulasi\Filament\Widgets\CplUnitChartWidget;
 use App\Modules\Kalkulasi\Services\DashboardCplDataService;
+use App\Modules\Kurikulum\Filament\Widgets\KurikulumTerpilihWidget;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
@@ -54,7 +55,10 @@ class Dashboard extends BaseDashboard
         return $schema
             ->components([
                 Grid::make(1)
-                    ->schema(fn (): array => $this->getWidgetsSchemaComponents([AccountWidget::class])),
+                    ->schema(fn (): array => $this->getWidgetsSchemaComponents([
+                        AccountWidget::class,
+                        KurikulumTerpilihWidget::class,
+                    ])),
                 ...(static::canViewDashboardWidgets() ? [$this->getFiltersFormContentComponent()] : []),
                 $this->getWidgetsContentComponent(),
             ]);

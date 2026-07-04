@@ -4,7 +4,9 @@ namespace App\Modules\MK\Filament\Resources;
 
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\CreateMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\EditMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
@@ -22,6 +24,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
@@ -30,6 +33,7 @@ use Illuminate\Validation\Rules\Unique;
 
 class MkUnitResource extends Resource
 {
+    use HasKurikulumTerpilihFilter;
     use HasTimKurikulumUnitScope;
 
     protected static ?string $model = MkUnit::class;
@@ -38,7 +42,7 @@ class MkUnitResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $navigationLabel = 'Penawaran MK';
 
@@ -159,6 +163,13 @@ class MkUnitResource extends Resource
                 TextColumn::make('semester_ke')->label('Semester ke-'),
                 IconColumn::make('is_active')->label('Aktif')->boolean(),
             ])
+            ->filters([
+                static::kurikulumTerpilihFilter(
+                    fn (Builder $query, Kurikulum $kurikulum): Builder => $query
+                        ->where('academic_unit_id', $kurikulum->academic_unit_id),
+                ),
+            ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->recordActions([
                 EditAction::make(),
             ]);

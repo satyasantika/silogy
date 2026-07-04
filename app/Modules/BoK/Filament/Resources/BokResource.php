@@ -6,7 +6,9 @@ use App\Modules\BoK\Filament\Resources\BokResource\Pages\CreateBok;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\EditBok;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\BoK\Models\Bok;
+use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -19,12 +21,14 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class BokResource extends Resource
 {
+    use HasKurikulumTerpilihFilter;
     use HasTimKurikulumUnitScope;
 
     protected static ?string $model = Bok::class;
@@ -33,7 +37,7 @@ class BokResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $modelLabel = 'BoK';
 
@@ -104,6 +108,7 @@ class BokResource extends Resource
                 TextColumn::make('academicUnit.nama')->label('Unit')->sortable(),
             ])
             ->filters([
+                static::kurikulumTerpilihFilter(fn (Builder $query, Kurikulum $kurikulum): Builder => $query->where('academic_unit_id', $kurikulum->academic_unit_id)),
                 SelectFilter::make('academic_unit_id')
                     ->label('Unit')
                     ->relationship('academicUnit', 'nama', fn (Builder $query) => $query->whereIn(
@@ -111,6 +116,7 @@ class BokResource extends Resource
                         static::scopedTimKurikulumUnitIds(),
                     )),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->recordActions([
                 EditAction::make(),
             ])

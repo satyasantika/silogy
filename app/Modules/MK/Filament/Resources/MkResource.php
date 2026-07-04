@@ -5,7 +5,9 @@ namespace App\Modules\MK\Filament\Resources;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\CreateMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
@@ -27,12 +29,14 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class MkResource extends Resource
 {
+    use HasKurikulumTerpilihFilter;
     use HasTimKurikulumUnitScope;
 
     protected static ?string $model = Mk::class;
@@ -41,7 +45,7 @@ class MkResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $modelLabel = 'mata kuliah';
 
@@ -196,6 +200,7 @@ class MkResource extends Resource
                 IconColumn::make('is_active')->label('Aktif')->boolean(),
             ])
             ->filters([
+                static::kurikulumTerpilihFilter(fn (Builder $query, Kurikulum $kurikulum): Builder => $query->where('academic_unit_id', $kurikulum->academic_unit_id)),
                 SelectFilter::make('academic_unit_id')
                     ->label('Unit')
                     ->relationship('academicUnit', 'nama', fn (Builder $query) => $query->whereIn(
@@ -206,6 +211,7 @@ class MkResource extends Resource
                     ->label('Jenis')
                     ->options(static::jenisOptions()),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
             ->recordActions([
                 EditAction::make(),
             ])
