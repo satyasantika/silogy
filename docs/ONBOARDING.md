@@ -15,7 +15,7 @@ Centang sebelum mulai timer 30 menit:
 - [ ] **Make** — tersedia di Git Bash/WSL/macOS/Linux; Windows native: `choco install make` atau gunakan WSL2
 - [ ] **IDE** — VS Code / Cursor / PhpStorm dengan ekstensi PHP, Docker, EditorConfig
 - [ ] **Akses repo** — SSH key atau token GitHub ke organisasi `unsil`
-- [ ] **Port bebas** — `8080`, `3306`, `6379`, `8025` tidak dipakai aplikasi lain
+- [ ] **Port bebas** — `8008`, `3306`, `6379`, `8025` tidak dipakai aplikasi lain
 
 Opsional (tanpa Docker):
 
@@ -60,11 +60,11 @@ make fresh
 Verifikasi cepat:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/admin/login
+curl -s -o /dev/null -w "%{http_code}" http://localhost:8008/admin/login
 # Harapan: 200
 ```
 
-Buka browser: http://localhost:8080/admin/login → login `superadmin` / `Silogy2026!`
+Buka browser: http://localhost:8008/admin/login → login `superadmin` / `siliwangi`
 
 ### Menit 20–25: Orientasi codebase
 
@@ -127,17 +127,17 @@ Buka PR ke branch `dev` di GitHub, isi template PR, centang checklist DoD, minta
    ```
 4. Tunggu ±60 detik pada boot pertama SSD lambat.
 
-### Port 8080 sudah dipakai
+### Port 8008 sudah dipakai
 
-**Gejala:** `Bind for 0.0.0.0:8080 failed: port is already allocated`
+**Gejala:** `Bind for 0.0.0.0:8008 failed: port is already allocated`
 
 **Langkah:**
 
-1. Identifikasi proses: `netstat -ano | findstr :8080` (Windows) atau `lsof -i :8080` (macOS/Linux)
+1. Identifikasi proses: `netstat -ano | findstr :8008` (Windows) atau `lsof -i :8008` (macOS/Linux)
 2. Hentikan service yang bentrok (IIS, Apache, aplikasi lain), **atau** ubah port di `docker-compose.yml`:
    ```yaml
    ports:
-     - "8081:80"   # ganti 8080 → 8081
+     - "8081:80"   # ganti 8008 → 8081
    ```
    Lalu sesuaikan `APP_URL` di `.env` menjadi `http://localhost:8081` dan akses http://localhost:8081/admin
 
@@ -164,7 +164,7 @@ Pastikan container `silogy_redis` running: `docker compose ps`. Restart: `docker
 
 ### Login gagal setelah `make fresh`
 
-- Pastikan memakai **`Silogy2026!`** (huruf besar S, angka 2026, tanda seru)
+- Pastikan memakai **`siliwangi`** (huruf kecil semua)
 - Username persis: `superadmin` (tanpa spasi)
 - Clear cache: `docker compose exec app php artisan optimize:clear`
 

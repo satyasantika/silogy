@@ -53,12 +53,12 @@ Buka aplikasi:
 
 | URL | Keterangan |
 |---|---|
-| http://localhost:8080/ | Landing SILOGY (publik) |
-| http://localhost:8080/login | Masuk (Filament) |
-| http://localhost:8080/dashboard | Dashboard (setelah masuk; panel Filament kini di akar domain) |
-| http://localhost:8080/admin | Alihan permanen menuju `/dashboard` (kompatibilitas URL lama) |
+| http://localhost:8008/ | Landing SILOGY (publik) |
+| http://localhost:8008/login | Masuk (Filament) |
+| http://localhost:8008/dashboard | Dashboard (setelah masuk; panel Filament kini di akar domain) |
+| http://localhost:8008/admin | Alihan permanen menuju `/dashboard` (kompatibilitas URL lama) |
 
-Login awal: **`superadmin`** / **`Silogy2026!`**
+Login awal: **`superadmin`** / **`siliwangi`**
 
 Layanan tambahan setelah `make up`:
 
@@ -72,7 +72,7 @@ Layanan tambahan setelah `make up`:
 
 ## Akun Siap Pakai (setelah `make fresh`)
 
-Password default semua akun: **`Silogy2026!`**
+Password default semua akun: **`siliwangi`**
 
 | Username | Role |
 |---|---|
@@ -94,6 +94,22 @@ Password default semua akun: **`Silogy2026!`**
 | `auditor` | Auditor Mutu |
 
 Sumber lengkap: [PreVibeCoding §7.2](docs/SILOGY_PreVibeCoding_v6.md).
+
+### Seeder Simulasi Sistem
+
+`make fresh` menjalankan `SimulasiSistemSeeder` — seeder mandiri yang mengisi
+seluruh kebutuhan simulasi end-to-end pada **Prodi S1 Pendidikan Matematika
+dengan FKIP sebagai induk langsung** (jurusan bersifat opsional dalam hierarki):
+unit akademik, role + akun, semester, mahasiswa, kurikulum aktif, profil lulusan,
+CPL, BoK, MK (prodi + universitas + fakultas), CPMK, Sub-CPMK, kelas, komponen
+penilaian, nilai, hingga hasil kalkulasi CPL beserta agregasinya ke FKIP dan
+universitas. Untuk menjalankannya sendiri:
+
+```bash
+docker compose exec app php artisan db:seed --class=SimulasiSistemSeeder
+```
+
+Catatan: pengaturan pengguna (`/users`) kini eksklusif untuk `superadmin`.
 
 ---
 
@@ -144,7 +160,7 @@ Target DoD: **< 30 detik** untuk filter di atas.
 Endpoint publik (tanpa auth), envelope JSON §5.1 PreVibeCoding:
 
 ```bash
-curl -s http://localhost:8080/health | jq
+curl -s http://localhost:8008/health | jq
 ```
 
 Contoh respons sehat:

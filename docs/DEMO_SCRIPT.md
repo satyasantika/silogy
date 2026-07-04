@@ -1,8 +1,8 @@
 # Skrip Demo SILOGY (15 Menit)
 
 **Audiens:** Kaprodi, dekan, tim mutu, stakeholder akademik  
-**Prasyarat:** `make up` + `make fresh` selesai · URL: http://localhost:8080/admin  
-**Password semua akun demo:** `Silogy2026!`
+**Prasyarat:** `make up` + `make fresh` selesai · URL: http://localhost:8008/admin  
+**Password semua akun demo:** `siliwangi`
 
 ---
 
@@ -34,13 +34,13 @@
 
 ## Step 2 — Super Admin: institusi & pengguna (3 menit)
 
-**Login:** `superadmin` / `Silogy2026!`  
-**URL:** http://localhost:8080/admin/login
+**Login:** `superadmin` / `siliwangi`  
+**URL:** http://localhost:8008/admin/login
 
 ### 2.1 Tour Academic Units (1,5 menit)
 
 1. Menu **Institusi → Unit akademik** (`/admin/academic-units`)
-2. Tunjukkan hierarki tree: **Universitas Siliwangi → Fakultas Teknik → Jurusan Informatika → S1 Teknik Informatika**
+2. Tunjukkan hierarki tree: **Universitas Siliwangi → FKIP → S1 Pendidikan Matematika (prodi langsung di bawah fakultas; jurusan opsional)**
 3. Jelaskan: satu tabel `academic_units` dengan `type` (university / faculty / department / study_program) — tidak ada tabel fakultas/jurusan terpisah
 
 **Narasi:**
@@ -63,7 +63,7 @@
 
 ## Step 3 — Tim Kurikulum: bangun kurikulum (4 menit)
 
-**Login:** `timkur` / `Silogy2026!`
+**Login:** `timkur` / `siliwangi`
 
 ### 3.1 Buat / buka kurikulum (1 menit)
 
@@ -104,7 +104,7 @@ Sebutkan bahwa **Admin Prodi** membuat kelas (`/admin/kelas-mks`): pilih `mk_uni
 
 ## Step 4 — Dosen: input nilai (3 menit)
 
-**Login:** `dosen` / `Silogy2026!`
+**Login:** `dosen` / `siliwangi`
 
 1. Menu **Penilaian → Input Nilai** (`/admin/penilaian/input-nilai`)
 2. Pilih **Kelas MK** dari dropdown (hanya kelas yang Anda pengampu)
@@ -124,12 +124,12 @@ Opsional tunjukkan Mailpit http://localhost:8025 jika ada notifikasi email di ma
 
 ## Step 5 — Kaprodi: dashboard CPL & drill-down (3 menit)
 
-**Login:** `kaprodi` / `Silogy2026!`
+**Login:** `kaprodi` / `siliwangi`
 
 ### 5.1 Dashboard (2 menit)
 
 1. Buka **Dashboard** (`/admin`) — widget **Capaian CPL per Unit**
-2. Atur filter: **Unit akademik** = S1 Teknik Informatika, **Semester** = semester aktif
+2. Atur filter: **Unit akademik** = S1 Pendidikan Matematika, **Semester** = semester aktif
 3. Jelaskan chart: batang = rata-rata capaian per kode CPL, garis merah = target kurikulum
 
 **Narasi:**
@@ -172,6 +172,6 @@ Akun lengkap: [README § Akun Siap Pakai](../README.md) · [PreVibeCoding §7.2]
 | Chart kosong | Pastikan nilai sudah disimpan & queue jalan: `docker compose logs queue --tail=20` |
 | Login ditolak | `make fresh` ulang, tunggu MySQL healthy |
 | 500 error | `docker compose exec app php artisan optimize:clear` |
-| Port salah | Pastikan URL `http://localhost:8080/admin` |
+| Port salah | Pastikan URL `http://localhost:8008/admin` |
 
 Backup narasi: jalankan test E2E sebagai bukti alur — `docker compose exec app php artisan test --filter=MvpEndToEndTest`
