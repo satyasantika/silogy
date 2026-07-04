@@ -2,11 +2,11 @@
 
 namespace App\Modules\AI\Jobs;
 
+use App\Models\User;
 use App\Modules\AI\Builders\AnalisisCplBuilder;
 use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\AI\Notifications\AnalisisAiGagalNotification;
 use App\Modules\AI\Services\GeminiClientService;
-use App\Models\User;
 use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;

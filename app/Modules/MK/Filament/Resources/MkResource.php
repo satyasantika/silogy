@@ -2,6 +2,7 @@
 
 namespace App\Modules\MK\Filament\Resources;
 
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\CreateMk;
@@ -159,7 +160,7 @@ class MkResource extends Resource
     {
         $ids = AcademicUnitScope::descendantIdsIncludingSelf($mk->academic_unit_id);
 
-        return \App\Modules\Institusi\Models\AcademicUnit::query()
+        return AcademicUnit::query()
             ->whereIn('id', $ids)
             ->orderBy('nama')
             ->pluck('nama', 'id')

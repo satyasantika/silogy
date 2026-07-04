@@ -7,6 +7,7 @@ use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Unique;
@@ -61,8 +62,8 @@ trait HasTimKurikulumUnitScope
     }
 
     /**
-     * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
-     * @return Builder<\Illuminate\Database\Eloquent\Model>
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
      */
     public static function scopeEloquentByTimKurikulumUnits(Builder $query, string $column = 'academic_unit_id'): Builder
     {

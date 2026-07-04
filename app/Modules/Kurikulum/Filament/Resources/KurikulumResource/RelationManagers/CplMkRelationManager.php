@@ -3,7 +3,6 @@
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers;
 
 use App\Modules\CPL\Models\CplBok;
-use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use Filament\Actions\CreateAction;

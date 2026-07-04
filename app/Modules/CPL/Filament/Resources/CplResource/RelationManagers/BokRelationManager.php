@@ -2,7 +2,6 @@
 
 namespace App\Modules\CPL\Filament\Resources\CplResource\RelationManagers;
 
-use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;

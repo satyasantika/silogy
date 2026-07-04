@@ -3,7 +3,6 @@
 namespace App\Modules\CPL\Filament\Resources\CplResource\RelationManagers;
 
 use App\Modules\CPL\Models\Cpl;
-use App\Modules\Kurikulum\Models\ProfilLulusan;
 use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
@@ -11,6 +10,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ProfilLulusanRelationManager extends RelationManager
 {
@@ -20,7 +20,7 @@ class ProfilLulusanRelationManager extends RelationManager
 
     protected static ?string $modelLabel = 'profil lulusan';
 
-    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         /** @var Cpl $ownerRecord */
         $ownerRecord->loadMissing('academicUnit');

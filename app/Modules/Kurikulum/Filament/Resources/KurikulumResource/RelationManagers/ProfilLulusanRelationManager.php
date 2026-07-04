@@ -14,6 +14,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ProfilLulusanRelationManager extends RelationManager
 {
@@ -23,7 +24,7 @@ class ProfilLulusanRelationManager extends RelationManager
 
     protected static ?string $modelLabel = 'profil lulusan';
 
-    public static function canViewForRecord(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): bool
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         /** @var Kurikulum $ownerRecord */
         $ownerRecord->loadMissing('academicUnit');

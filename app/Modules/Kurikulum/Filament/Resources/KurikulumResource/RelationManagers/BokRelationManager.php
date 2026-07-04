@@ -2,6 +2,7 @@
 
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers;
 
+use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -78,7 +79,7 @@ class BokRelationManager extends RelationManager
 
                         return $data;
                     })
-                    ->after(function (\App\Modules\BoK\Models\Bok $record): void {
+                    ->after(function (Bok $record): void {
                         if (filled($this->pendingCplId)) {
                             CplBok::query()->firstOrCreate([
                                 'cpl_id' => $this->pendingCplId,

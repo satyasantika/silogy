@@ -23,7 +23,7 @@ class GeminiQuotaExceededException extends Exception
     public static function monthlyTokenBudget(int $budget, int $used): self
     {
         return new self(
-            "Kuota token Gemini bulan ini habis (terpakai ".number_format($used, 0, ',', '.').' / '
+            'Kuota token Gemini bulan ini habis (terpakai '.number_format($used, 0, ',', '.').' / '
             .number_format($budget, 0, ',', '.').' token). Hubungi administrator untuk penambahan kuota.',
         );
     }
