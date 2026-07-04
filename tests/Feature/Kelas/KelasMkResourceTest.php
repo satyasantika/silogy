@@ -48,7 +48,6 @@ it('admin prodi dapat membuat dua kelas dan menetapkan dosen', function () {
                 'semester_id' => $this->semester->id,
                 'kode_kelas' => $kodeKelas,
                 'dosen_pengampu_id' => $this->dosen->id,
-                'kapasitas' => 40,
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -81,4 +80,71 @@ it('admin prodi dapat mendaftarkan mahasiswa via attach pada relation manager', 
 
     Livewire::test(ListKelasMks::class)
         ->assertSuccessful();
+});
+
+it('filter kelas mk diterapkan otomatis saat memilih semester atau mata kuliah', function () {
+    $semesterLain = Semester::query()->where('status_aktif', false)->firstOrFail();
+
+    $kelasSemesterAktif = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $kelasSemesterLain = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $semesterLain->id,
+        'kode_kelas' => 'B',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $mkLain = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Filter Lain']);
+    $mkUnitLain = MkUnit::factory()->forMk($mkLain)->forAcademicUnit($this->prodi)->create(['kode' => 'IF999']);
+
+    $kelasMkLain = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitLain->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'C',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    Livewire::test(ListKelasMks::class)
+        ->loadTable()
+        ->assertCanSeeTableRecords([$kelasSemesterAktif, $kelasSemesterLain, $kelasMkLain])
+        ->filterTable('semester_id', $semesterLain->id)
+        ->assertCanNotSeeTableRecords([$kelasSemesterAktif, $kelasMkLain])
+        ->assertCanSeeTableRecords([$kelasSemesterLain])
+        ->filterTable('semester_id', $this->semester->id)
+        ->filterTable('mk_id', $mkLain->id)
+        ->assertCanNotSeeTableRecords([$kelasSemesterAktif, $kelasSemesterLain])
+        ->assertCanSeeTableRecords([$kelasMkLain]);
+});
+
+it('edit kelas mk tidak mengubah penawaran mk dan koordinator mk', function () {
+    $korma = User::where('username', 'korma')->firstOrFail();
+    $mkLain = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    $mkUnitLain = MkUnit::factory()->forMk($mkLain)->forAcademicUnit($this->prodi)->create(['kode' => 'IF888']);
+
+    $kelas = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+        'koordinator_mk_id' => $korma->id,
+    ]);
+
+    Livewire::test(EditKelasMk::class, ['record' => $kelas->getKey()])
+        ->fillForm([
+            'mk_unit_id' => $mkUnitLain->id,
+            'kode_kelas' => 'B',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $kelas->refresh();
+
+    expect($kelas->mk_unit_id)->toBe($this->mkUnit->id)
+        ->and($kelas->koordinator_mk_id)->toBe($korma->id)
+        ->and($kelas->kode_kelas)->toBe('B');
 });

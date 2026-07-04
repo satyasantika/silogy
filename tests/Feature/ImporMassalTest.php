@@ -216,7 +216,7 @@ it('impor kelas mk dengan koordinator default dari mk', function () {
 
     Livewire::test(ListKelasMks::class)
         ->callAction('bulkImport', [
-            'rows' => "IMP101|A|dosen||40\nIMP101|B|dosen||40",
+            'rows' => "IMP101|A|dosen\nIMP101|B|dosen",
             'mode_duplikat' => 'lewati',
             'import_semester_id' => $semester->id,
         ]);

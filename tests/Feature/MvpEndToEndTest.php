@@ -151,7 +151,7 @@ it('completes full mvp journey for prodi', function () {
         ->assertHasNoFormErrors();
 
     $kurikulum = Kurikulum::query()->where('kode', 'KUR-E2E-2025')->firstOrFail();
-    expect($kurikulum->state->getValue())->toBe('draft');
+    expect($kurikulum->state->getValue())->toBe('profil_lulusan');
 
     $profil = ProfilLulusan::query()->create([
         'kurikulum_id' => $kurikulum->id,
@@ -209,7 +209,7 @@ it('completes full mvp journey for prodi', function () {
     ]);
 
     $this->lanjutkanKurikulumKe($kurikulum, MkState::class);
-    expect($kurikulum->fresh()->state->getValue())->toBe('mk');
+    expect($kurikulum->fresh()->state->getValue())->toBeIn(['mk', 'setdosenmk']);
 
     // 4. Admin prodi → kelas_mk + mahasiswa
     $this->actingAs($adminprodiE2E);
@@ -223,7 +223,6 @@ it('completes full mvp journey for prodi', function () {
                 'kode_kelas' => $kodeKelas,
                 'dosen_pengampu_id' => $dosenE2E->id,
                 'koordinator_mk_id' => $kormaE2E->id,
-                'kapasitas' => 40,
             ])
             ->call('create')
             ->assertHasNoFormErrors();

@@ -16,14 +16,9 @@ use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
-use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -109,6 +104,9 @@ class KelasMkResource extends Resource
                             ->options(static::mkUnitOptions())
                             ->searchable()
                             ->required()
+                            ->disabledOn('edit')
+                            ->dehydrated()
+                            ->columnSpanFull()
                             ->live()
                             ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
                                 if (filled($get('koordinator_mk_id'))) {
@@ -137,11 +135,11 @@ class KelasMkResource extends Resource
                             ->searchable()
                             ->preload(),
 
-                        TextInput::make('kode_kelas')
+                        Select::make('kode_kelas')
                             ->label('Kode kelas')
-                            ->placeholder('A')
+                            ->options(static::kodeKelasOptions())
                             ->required()
-                            ->maxLength(10),
+                            ->searchable(),
 
                         Select::make('dosen_pengampu_id')
                             ->label('Dosen pengampu')
@@ -161,14 +159,9 @@ class KelasMkResource extends Resource
                                 static::academicUnitIdForMkUnit($get('mk_unit_id')),
                             ))
                             ->searchable()
-                            ->nullable(),
-
-                        TextInput::make('kapasitas')
-                            ->label('Kapasitas')
-                            ->numeric()
-                            ->minValue(1)
-                            ->maxValue(500)
-                            ->nullable(),
+                            ->nullable()
+                            ->disabledOn('edit')
+                            ->dehydrated(),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -178,9 +171,6 @@ class KelasMkResource extends Resource
     public static function table(Table $table): Table
     {
         $accessibleUnitIds = static::scopedAccessibleUnitIds();
-        $activeSemesterId = Semester::query()
-            ->where('status_aktif', true)
-            ->value('id');
 
         return $table
             ->columns([
@@ -211,11 +201,6 @@ class KelasMkResource extends Resource
                     ->label('Koordinator MK')
                     ->placeholder('—')
                     ->sortable(),
-
-                TextColumn::make('kapasitas')
-                    ->label('Kapasitas')
-                    ->placeholder('—')
-                    ->sortable(),
             ])
             ->filters([
                 static::kurikulumTerpilihFilter(
@@ -230,26 +215,6 @@ class KelasMkResource extends Resource
                     ->relationship('semester', 'nama')
                     ->searchable()
                     ->preload(),
-
-                SelectFilter::make('academic_unit_id')
-                    ->label('Program studi')
-                    ->options(fn (): array => AcademicUnit::query()
-                        ->whereIn('id', $accessibleUnitIds)
-                        ->where('type', 'study_program')
-                        ->orderBy('nama')
-                        ->pluck('nama', 'id')
-                        ->all())
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (blank($data['value'] ?? null)) {
-                            return $query;
-                        }
-
-                        return $query->whereHas(
-                            'mkUnit',
-                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('academic_unit_id', $data['value']),
-                        );
-                    })
-                    ->visible($accessibleUnitIds->count() > 1),
 
                 SelectFilter::make('mk_id')
                     ->label('Mata kuliah')
@@ -272,65 +237,33 @@ class KelasMkResource extends Resource
                         );
                     })
                     ->searchable(),
-            ])
-            ->headerActions([
-                Action::make('setDosenMassal')
-                    ->label('Set Dosen Massal')
-                    ->icon(Heroicon::OutlinedUserGroup)
-                    ->visible(fn (): bool => static::canAssignDosenPengampu())
-                    ->form([
-                        Select::make('semester_id')
-                            ->label('Semester')
-                            ->options(fn (): array => Semester::query()
-                                ->orderBy('kode')
-                                ->pluck('nama', 'id')
-                                ->all())
-                            ->default($activeSemesterId)
-                            ->required()
-                            ->searchable(),
 
-                        Select::make('default_dosen_id')
-                            ->label('Dosen pengampu default')
-                            ->options(fn (): array => static::usersByRoleOptions('Dosen Pengampu'))
-                            ->searchable()
-                            ->required(),
-
-                        Toggle::make('gunakan_koordinator')
-                            ->label('Utamakan koordinator MK sebagai dosen pengampu bila sudah ditetapkan')
-                            ->default(true),
-                    ])
-                    ->action(function (array $data): void {
-                        $unitIds = static::scopedAccessibleUnitIds();
-                        $updated = 0;
-
-                        $kelasQuery = KelasMk::query()
-                            ->where('semester_id', $data['semester_id'])
-                            ->whereNull('dosen_pengampu_id')
-                            ->whereHas(
-                                'mkUnit',
-                                fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->whereIn('academic_unit_id', $unitIds),
-                            );
-
-                        foreach ($kelasQuery->cursor() as $kelas) {
-                            $dosenId = ($data['gunakan_koordinator'] ?? false) && $kelas->koordinator_mk_id
-                                ? $kelas->koordinator_mk_id
-                                : $data['default_dosen_id'];
-
-                            $kelas->update(['dosen_pengampu_id' => $dosenId]);
-                            $updated++;
+                SelectFilter::make('academic_unit_id')
+                    ->label('Program studi')
+                    ->options(fn (): array => AcademicUnit::query()
+                        ->whereIn('id', $accessibleUnitIds)
+                        ->where('type', 'study_program')
+                        ->orderBy('nama')
+                        ->pluck('nama', 'id')
+                        ->all())
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (blank($data['value'] ?? null)) {
+                            return $query;
                         }
 
-                        Notification::make()
-                            ->title('Penetapan dosen massal selesai')
-                            ->body("{$updated} kelas MK diperbarui.")
-                            ->success()
-                            ->send();
-                    }),
+                        return $query->whereHas(
+                            'mkUnit',
+                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('academic_unit_id', $data['value']),
+                        );
+                    })
+                    ->visible($accessibleUnitIds->count() > 1)
+                    ->columnSpanFull(),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
-            ->recordActions([
-                EditAction::make(),
-            ])
+            ->filtersFormColumns(2)
+            ->deferFilters(false)
+            ->recordUrl(fn (KelasMk $record): string => static::getUrl('edit', ['record' => $record]))
+            ->recordActions([])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
@@ -367,5 +300,17 @@ class KelasMkResource extends Resource
         }
 
         return $user->can('setdosen_mk');
+    }
+
+    /**
+     * Pilihan kode kelas A–Z.
+     *
+     * @return array<string, string>
+     */
+    public static function kodeKelasOptions(): array
+    {
+        return collect(range('A', 'Z'))
+            ->mapWithKeys(fn (string $kode): array => [$kode => $kode])
+            ->all();
     }
 }

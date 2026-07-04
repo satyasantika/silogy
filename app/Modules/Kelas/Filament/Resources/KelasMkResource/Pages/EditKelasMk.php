@@ -29,6 +29,9 @@ class EditKelasMk extends BaseEditRecord
             $data['dosen_pengampu_id'] = $record->dosen_pengampu_id;
         }
 
+        $data['mk_unit_id'] = $record->mk_unit_id;
+        $data['koordinator_mk_id'] = $record->koordinator_mk_id;
+
         return $data;
     }
 }

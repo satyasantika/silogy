@@ -64,7 +64,6 @@ class ListKelasMks extends ListRecords
             ['key' => 'kode_kelas', 'label' => 'kode kelas', 'wajib' => true],
             ['key' => 'username_dosen', 'label' => 'username dosen pengampu', 'wajib' => false],
             ['key' => 'username_koordinator', 'label' => 'username koordinator', 'wajib' => false],
-            ['key' => 'kapasitas', 'label' => 'kapasitas', 'wajib' => false],
         ];
     }
 
@@ -90,10 +89,6 @@ class ListKelasMks extends ListRecords
             if ($data[$key] !== '' && ! User::query()->where('username', $data[$key])->exists()) {
                 return ['status' => 'invalid', 'keterangan' => "Pengguna '{$data[$key]}' tidak ditemukan."];
             }
-        }
-
-        if ($data['kapasitas'] !== '' && ! ctype_digit($data['kapasitas'])) {
-            return ['status' => 'invalid', 'keterangan' => 'Kapasitas harus berupa angka.'];
         }
 
         $dedup = mb_strtolower($data['kode_penawaran'].'/'.$data['kode_kelas']);
@@ -127,7 +122,6 @@ class ListKelasMks extends ListRecords
             'dosen_pengampu_id' => $this->userId($data['username_dosen']),
             'koordinator_mk_id' => $this->userId($data['username_koordinator'])
                 ?? $mkUnit?->mk?->koordinator_mk_id,
-            'kapasitas' => $data['kapasitas'] !== '' ? (int) $data['kapasitas'] : null,
         ]);
     }
 
@@ -142,7 +136,6 @@ class ListKelasMks extends ListRecords
         $kelas->update([
             'dosen_pengampu_id' => $this->userId($data['username_dosen']) ?? $kelas->dosen_pengampu_id,
             'koordinator_mk_id' => $this->userId($data['username_koordinator']) ?? $kelas->koordinator_mk_id,
-            'kapasitas' => $data['kapasitas'] !== '' ? (int) $data['kapasitas'] : $kelas->kapasitas,
         ]);
     }
 
