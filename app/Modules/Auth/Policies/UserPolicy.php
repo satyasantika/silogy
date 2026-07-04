@@ -52,6 +52,10 @@ class UserPolicy
             return false;
         }
 
+        if ($model->hasDependentRecords()) {
+            return false;
+        }
+
         return $this->update($user, $model);
     }
 

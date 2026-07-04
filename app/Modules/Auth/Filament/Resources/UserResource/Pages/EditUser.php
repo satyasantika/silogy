@@ -15,9 +15,13 @@ class EditUser extends EditRecord
     {
         return [
             Impersonate::make()
+                ->iconButton()
+                ->tooltip('Peniruan')
                 ->record($this->getRecord())
                 ->redirectTo('/dashboard'),
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->iconButton()
+                ->tooltip('Hapus'),
         ];
     }
 

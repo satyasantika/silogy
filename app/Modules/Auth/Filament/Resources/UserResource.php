@@ -7,10 +7,10 @@ use App\Models\User;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\EditUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Modules\Auth\Support\DomainPermissionLabels;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
-use App\Modules\Auth\Support\DomainPermissionLabels;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -107,7 +107,11 @@ class UserResource extends Resource
                             ->required(fn (string $operation): bool => $operation === 'create')
                             ->helperText(fn (string $operation): ?string => $operation === 'edit'
                                 ? 'Kosongkan jika tidak ingin mengubah kata sandi.'
-                                : null),
+                                : null)
+                            ->hintAction(
+                                static::makeResetPasswordAction()
+                                    ->visible(fn (string $operation, ?User $record): bool => $operation === 'edit' && $record !== null)
+                            ),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -250,43 +254,20 @@ class UserResource extends Resource
             ])
             ->recordActions([
                 Impersonate::make()
+                    ->iconButton()
+                    ->tooltip('Peniruan')
                     ->redirectTo('/dashboard'),
-                Action::make('resetPassword')
-                    ->label('Reset password')
-                    ->icon(Heroicon::OutlinedEnvelope)
-                    ->requiresConfirmation()
-                    ->modalHeading('Kirim email reset password?')
-                    ->modalDescription('Pengguna akan menerima tautan atur ulang kata sandi di email terdaftar.')
-                    ->action(function (User $record): void {
-                        $status = Password::broker(Filament::getAuthPasswordBroker())->sendResetLink(
-                            ['email' => $record->email],
-                            function (User $user, string $token): void {
-                                $notification = app(ResetPasswordNotification::class, ['token' => $token]);
-                                $notification->url = Filament::getResetPasswordUrl($token, $user);
-                                $user->notify($notification);
-                            },
-                        );
-
-                        if ($status !== Password::RESET_LINK_SENT) {
-                            Notification::make()
-                                ->title('Gagal mengirim email reset password')
-                                ->danger()
-                                ->send();
-
-                            return;
-                        }
-
-                        Notification::make()
-                            ->title('Email reset password berhasil dikirim')
-                            ->success()
-                            ->send();
-                    }),
+                static::makeResetPasswordAction()
+                    ->iconButton()
+                    ->tooltip('Reset password'),
                 Action::make('toggleStatus')
                     ->label(fn (User $record): string => $record->email_verified_at ? 'Nonaktifkan' : 'Aktifkan')
                     ->icon(fn (User $record) => $record->email_verified_at
                         ? Heroicon::OutlinedNoSymbol
                         : Heroicon::OutlinedCheckCircle)
                     ->color(fn (User $record): string => $record->email_verified_at ? 'danger' : 'success')
+                    ->iconButton()
+                    ->tooltip(fn (User $record): string => $record->email_verified_at ? 'Nonaktifkan' : 'Aktifkan')
                     ->requiresConfirmation()
                     ->action(function (User $record): void {
                         $aktifkan = $record->email_verified_at === null;
@@ -300,13 +281,53 @@ class UserResource extends Resource
                             ->success()
                             ->send();
                     }),
-                EditAction::make(),
+                EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Ubah'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->authorizeIndividualRecords('delete'),
                 ]),
             ]);
+    }
+
+    public static function makeResetPasswordAction(): Action
+    {
+        return Action::make('resetPassword')
+            ->label('Reset password')
+            ->icon(Heroicon::OutlinedEnvelope)
+            ->requiresConfirmation()
+            ->modalHeading('Kirim email reset password?')
+            ->modalDescription('Pengguna akan menerima tautan atur ulang kata sandi di email terdaftar.')
+            ->action(fn (User $record) => static::sendResetPasswordLink($record));
+    }
+
+    public static function sendResetPasswordLink(User $record): void
+    {
+        $status = Password::broker(Filament::getAuthPasswordBroker())->sendResetLink(
+            ['email' => $record->email],
+            function (User $user, string $token): void {
+                $notification = app(ResetPasswordNotification::class, ['token' => $token]);
+                $notification->url = Filament::getResetPasswordUrl($token, $user);
+                $user->notify($notification);
+            },
+        );
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            Notification::make()
+                ->title('Gagal mengirim email reset password')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Email reset password berhasil dikirim')
+            ->success()
+            ->send();
     }
 
     public static function getPages(): array

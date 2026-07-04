@@ -2,8 +2,12 @@
 
 namespace App\Models;
 
+use App\Modules\AI\Models\AnalisisAi;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Models\StateTransition;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -11,6 +15,7 @@ use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -90,6 +95,22 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         return $this->belongsToMany(AcademicUnit::class, 'academic_unit_users')
             ->withPivot(['status_pimpinan', 'status_tim_kurikulum', 'jabatan'])
             ->withTimestamps();
+    }
+
+    /**
+     * User dianggap terpakai jika direferensikan sebagai pembuat kurikulum,
+     * aktor transisi state, dosen/koordinator kelas MK, atau pembuat analisis AI.
+     */
+    public function hasDependentRecords(): bool
+    {
+        return Kurikulum::query()->where('dibuat_oleh', $this->id)->exists()
+            || StateTransition::query()->where('actor_id', $this->id)->exists()
+            || KelasMk::query()
+                ->where(fn (Builder $query) => $query
+                    ->where('dosen_pengampu_id', $this->id)
+                    ->orWhere('koordinator_mk_id', $this->id))
+                ->exists()
+            || AnalisisAi::query()->where('dibuat_oleh', $this->id)->exists();
     }
 
     /**
