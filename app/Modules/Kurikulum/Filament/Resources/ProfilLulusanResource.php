@@ -8,24 +8,25 @@ use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\CreateP
 use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\EditProfilLulusan;
 use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
+use App\Modules\Kurikulum\Filament\Support\ProfilIndikatorForm;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Models\ProfilIndikator;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 /**
  * Menu Profil Lulusan — tampil sebelum CPL bila kurikulum terpilih
@@ -91,7 +92,8 @@ class ProfilLulusanResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $user = auth()->user();
-        $query = parent::getEloquentQuery()->with('kurikulum.academicUnit');
+        $query = parent::getEloquentQuery()
+            ->with(['kurikulum.academicUnit', 'indikators']);
 
         if (! $user instanceof User) {
             return $query->whereRaw('1 = 0');
@@ -139,21 +141,12 @@ class ProfilLulusanResource extends Resource
                             ->minValue(1)
                             ->maxValue(255),
 
-                        Textarea::make('deskripsi')
+                        RichEditor::make('deskripsi')
                             ->label('Deskripsi')
                             ->required()
-                            ->rows(3)
                             ->columnSpanFull(),
 
-                        Repeater::make('indikators')
-                            ->label('Indikator')
-                            ->relationship()
-                            ->schema([
-                                Textarea::make('nama')->label('Nama indikator')->rows(2),
-                                Textarea::make('deskripsi')->label('Deskripsi')->rows(2),
-                            ])
-                            ->defaultItems(1)
-                            ->columnSpanFull(),
+                        ProfilIndikatorForm::repeater(),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -162,29 +155,65 @@ class ProfilLulusanResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('kode')->label('Kode')->sortable(),
-                TextColumn::make('nama')->label('Nama')->searchable(),
-                TextColumn::make('kurikulum.nama')->label('Kurikulum'),
-                TextColumn::make('indikators_count')->label('Indikator')->counts('indikators'),
-                TextColumn::make('urutan')->label('Urutan')->sortable(),
-            ])
-            ->filters([
-                static::kurikulumTerpilihFilter(
-                    fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                        ->where('kurikulum_id', $kurikulum->id),
-                ),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->recordActions([
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+        return static::applyKurikulumTerpilihCardTable(
+            $table
+                ->selectable(false)
+                ->recordActions([
+                    EditAction::make(),
                 ]),
-            ]);
+            [
+                Split::make([
+                    TextColumn::make('kode')
+                        ->label('Kode')
+                        ->sortable()
+                        ->weight(FontWeight::Bold),
+
+                    TextColumn::make('urutan')
+                        ->label('Urutan')
+                        ->sortable()
+                        ->size('sm'),
+                ]),
+
+                TextColumn::make('nama')
+                    ->label('Nama')
+                    ->searchable()
+                    ->placeholder('—'),
+
+                TextColumn::make('deskripsi')
+                    ->label('Deskripsi')
+                    ->formatStateUsing(fn (?string $state): string => filled($state)
+                        ? Str::limit(trim(strip_tags($state)), 80)
+                        : '—')
+                    ->size('sm')
+                    ->color('gray'),
+
+                TextColumn::make('indikators_preview')
+                    ->label('Indikator')
+                    ->getStateUsing(function (ProfilLulusan $record): array {
+                        return $record->indikators
+                            ->values()
+                            ->map(function (ProfilIndikator $indikator, int $index): ?string {
+                                $nama = trim(strip_tags((string) $indikator->nama));
+
+                                if ($nama === '') {
+                                    return null;
+                                }
+
+                                return ($index + 1).'. '.$nama;
+                            })
+                            ->filter()
+                            ->values()
+                            ->all();
+                    })
+                    ->listWithLineBreaks()
+                    ->placeholder('Belum ada indikator')
+                    ->size('sm')
+                    ->color('gray'),
+            ],
+            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
+                ->where('kurikulum_id', $kurikulum->id),
+            contentGrid: ['default' => 1],
+        );
     }
 
     public static function getPages(): array

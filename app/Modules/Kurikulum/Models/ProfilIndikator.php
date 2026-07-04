@@ -18,6 +18,13 @@ class ProfilIndikator extends Model
 
     protected $guarded = ['id'];
 
+    protected function casts(): array
+    {
+        return [
+            'urutan' => 'integer',
+        ];
+    }
+
     /**
      * @return BelongsTo<ProfilLulusan, $this>
      */

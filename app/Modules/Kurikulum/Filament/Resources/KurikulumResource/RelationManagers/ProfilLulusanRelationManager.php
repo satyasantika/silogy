@@ -2,6 +2,7 @@
 
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers;
 
+use App\Modules\Kurikulum\Filament\Support\ProfilIndikatorForm;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Support\Filament\Concerns\HasImporMassal;
@@ -9,7 +10,6 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -60,19 +60,7 @@ class ProfilLulusanRelationManager extends BaseKurikulumRelationManager
                     ->minValue(1)
                     ->maxValue(255),
 
-                Repeater::make('indikators')
-                    ->label('Indikator')
-                    ->relationship()
-                    ->schema([
-                        Textarea::make('nama')
-                            ->label('Nama indikator')
-                            ->rows(2),
-                        Textarea::make('deskripsi')
-                            ->label('Deskripsi')
-                            ->rows(2),
-                    ])
-                    ->defaultItems(1)
-                    ->columnSpanFull(),
+                ProfilIndikatorForm::repeater(),
             ]);
     }
 

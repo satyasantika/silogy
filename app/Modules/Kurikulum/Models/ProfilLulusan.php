@@ -40,6 +40,6 @@ class ProfilLulusan extends Model
      */
     public function indikators(): HasMany
     {
-        return $this->hasMany(ProfilIndikator::class, 'profil_id');
+        return $this->hasMany(ProfilIndikator::class, 'profil_id')->orderBy('urutan');
     }
 }
