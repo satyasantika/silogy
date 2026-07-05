@@ -31,7 +31,7 @@ class RolePermissionSeeder extends Seeder
 
             // ---- Kurikulum ----
             'kelola_kurikulum', 'kelola_profil_lulusan',
-            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit',
+            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit', // penawaran mk hanya level prodi
 
             // ---- CPMK / SubCPMK / Komponen ----
             'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
@@ -66,7 +66,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_unit',
             // Delegasi domain akademik (scope tetap dari penugasan unit):
             'kelola_kurikulum', 'kelola_profil_lulusan',
-            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit',
+            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit', // penawaran mk hanya level prodi
             'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
             'kelola_kelas',
             'setdosen_mk',
@@ -78,7 +78,7 @@ class RolePermissionSeeder extends Seeder
         $timKur->syncPermissions([
             'kelola_kurikulum',
             'kelola_profil_lulusan', // hanya berlaku ketika status_tim_kurikulum=1 pada unit study_program
-            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit',
+            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit', // penawaran mk hanya level prodi
             'kelola_kelas', // kelas MK prodi (penugasan prodi)
             'setdosen_mk',
             'lihat_laporan', 'lihat_dashboard',

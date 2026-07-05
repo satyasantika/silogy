@@ -33,6 +33,24 @@ it('login dengan username atau email akun demo berhasil', function () {
         ->and(auth()->user()?->username)->toBe('superadmin');
 });
 
+it('adminprodi melihat menu kelas mk setelah login', function () {
+    Livewire::test(Login::class)
+        ->fillForm([
+            'login' => 'adminprodi',
+            'password' => 'siliwangi',
+        ])
+        ->call('authenticate')
+        ->assertRedirect(route('filament.admin.pages.dashboard'))
+        ->assertHasNoFormErrors();
+
+    $this->get(route('filament.admin.pages.dashboard'))
+        ->assertSuccessful()
+        ->assertSee('Kelas MK', escape: false);
+
+    $this->get(route('filament.admin.resources.kelas-mks.index'))
+        ->assertSuccessful();
+});
+
 it('mengirim notifikasi reset password dalam Bahasa Indonesia', function () {
     Notification::fake();
 

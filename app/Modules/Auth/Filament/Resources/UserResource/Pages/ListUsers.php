@@ -46,6 +46,17 @@ class ListUsers extends ListRecords
         return 'Lebih dari satu role dipisahkan koma.';
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'Budi Santoso|budis|RahasiaKuat123|budi@silogy.test|Dosen Pengampu',
+            'Siti Aminah|sitiaminah|RahasiaKuat456|siti@silogy.test|Tim Kurikulum, Dosen Pengampu',
+        ];
+    }
+
     protected function resolveImportRow(array $data, array $context): array
     {
         if (! preg_match('/^[A-Za-z0-9_-]+$/', $data['username'])) {

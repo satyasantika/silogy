@@ -65,8 +65,58 @@ class ActiveRole
             ->all();
     }
 
-    protected static function userOwnsRole(User $user, string $role): bool
+    /**
+     * Cek role & permission milik user langsung dari pivot DB,
+     * tanpa terpengaruh filter role aktif di relasi roles().
+     */
+    public static function userOwnsRoleWithPermission(User $user, string $role, string $permission): bool
+    {
+        return DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->join('role_has_permissions', 'role_has_permissions.role_id', '=', 'roles.id')
+            ->join('permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+            ->where('model_has_roles.model_uuid', $user->getKey())
+            ->where('model_has_roles.model_type', $user->getMorphClass())
+            ->where('roles.name', $role)
+            ->where('permissions.name', $permission)
+            ->exists();
+    }
+
+    /**
+     * Permission milik user (langsung atau lewat role mana pun),
+     * tanpa terpengaruh filter role aktif switcher.
+     */
+    public static function userOwnsPermission(User $user, string $permission): bool
+    {
+        $morph = $user->getMorphClass();
+        $uuid = $user->getKey();
+
+        if (DB::table('model_has_permissions')
+            ->join('permissions', 'permissions.id', '=', 'model_has_permissions.permission_id')
+            ->where('model_has_permissions.model_uuid', $uuid)
+            ->where('model_has_permissions.model_type', $morph)
+            ->where('permissions.name', $permission)
+            ->exists()) {
+            return true;
+        }
+
+        return DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->join('role_has_permissions', 'role_has_permissions.role_id', '=', 'roles.id')
+            ->join('permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+            ->where('model_has_roles.model_uuid', $uuid)
+            ->where('model_has_roles.model_type', $morph)
+            ->where('permissions.name', $permission)
+            ->exists();
+    }
+
+    public static function userOwnsRoleName(User $user, string $role): bool
     {
         return in_array($role, self::ownedRoleNames($user), true);
+    }
+
+    protected static function userOwnsRole(User $user, string $role): bool
+    {
+        return self::userOwnsRoleName($user, $role);
     }
 }
