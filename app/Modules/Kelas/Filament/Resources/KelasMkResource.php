@@ -68,12 +68,7 @@ class KelasMkResource extends Resource
             return $query;
         }
 
-        if ($user->hasRole('Dosen Pengampu') && $user->can('kelola_kelas') && ! $user->hasAnyRole([
-            'Admin Program Studi',
-            'Admin Jurusan',
-            'Admin Fakultas',
-            'Admin Universitas',
-        ])) {
+        if ($user->hasRole('Dosen Pengampu') && $user->can('kelola_kelas') && ! $user->hasRole('Admin')) {
             return $query->where('dosen_pengampu_id', Auth::id());
         }
 

@@ -31,7 +31,7 @@ class AcademicUnitPolicy
         }
 
         return AcademicUnitScope::userHasAnyPivot($user)
-            && $this->hasAnyKelolaUnitPermission($user);
+            && $user->can('kelola_unit');
     }
 
     public function createUnit(User $user, string $type, ?string $parentId = null): bool
@@ -97,38 +97,29 @@ class AcademicUnitPolicy
         return $this->isSuperAdmin($user);
     }
 
+    /**
+     * Admin mengelola unit yang berada KETAT DI BAWAH penugasannya:
+     * pivot pada salah satu ancestor unit target (bukan unit itu sendiri).
+     * Universitas tidak berinduk, sehingga hanya Super Admin yang bisa —
+     * setara aturan lama yang tidak memberi kelola_universitas ke admin.
+     */
     protected function canManageUnit(User $user, AcademicUnit $unit): bool
     {
         if ($this->isSuperAdmin($user)) {
             return true;
         }
 
-        $permission = $this->permissionForType($unit->type);
-
-        if (! $permission || ! $user->can($permission)) {
+        if (! $user->can('kelola_unit')) {
             return false;
         }
 
-        return AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit);
-    }
+        $unit->loadMissing('parent');
 
-    protected function permissionForType(string $type): ?string
-    {
-        return match ($type) {
-            'university' => 'kelola_universitas',
-            'faculty' => 'kelola_fakultas',
-            'department' => 'kelola_jurusan',
-            'study_program' => 'kelola_prodi',
-            default => null,
-        };
-    }
+        if ($unit->parent === null) {
+            return false;
+        }
 
-    protected function hasAnyKelolaUnitPermission(User $user): bool
-    {
-        return $user->can('kelola_universitas')
-            || $user->can('kelola_fakultas')
-            || $user->can('kelola_jurusan')
-            || $user->can('kelola_prodi');
+        return AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit->parent);
     }
 
     protected function isSuperAdmin(User $user): bool

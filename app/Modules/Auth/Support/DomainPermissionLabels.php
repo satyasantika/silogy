@@ -11,10 +11,7 @@ class DomainPermissionLabels
     {
         return [
             // Institusi
-            'kelola_universitas' => 'Kelola universitas',
-            'kelola_fakultas' => 'Kelola fakultas',
-            'kelola_jurusan' => 'Kelola jurusan',
-            'kelola_prodi' => 'Kelola program studi',
+            'kelola_unit' => 'Kelola unit akademik (scope dari penugasan)',
             'kelola_semester' => 'Kelola semester',
             'kelola_evaluasi' => 'Kelola evaluasi',
 
@@ -27,10 +24,6 @@ class DomainPermissionLabels
             'impersonate_user' => 'Impersonate pengguna',
 
             // User-management per tipe unit
-            'kelola_user_universitas' => 'Kelola pengguna universitas',
-            'kelola_user_fakultas' => 'Kelola pengguna fakultas',
-            'kelola_user_jurusan' => 'Kelola pengguna jurusan',
-            'kelola_user_prodi' => 'Kelola pengguna prodi',
 
             // Kurikulum
             'kelola_kurikulum' => 'Kelola kurikulum',

@@ -159,7 +159,7 @@ Opsional tunjukkan Mailpit http://localhost:8025 jika ada notifikasi email di ma
 | 2 | `superadmin` | Super Admin |
 | 3 | `timkur` | Tim Kurikulum |
 | 4 | `dosen` | Dosen Pengampu |
-| 5 | `kaprodi` | Pimpinan Program Studi |
+| 5 | `kaprodi` | Pimpinan (penugasan prodi) |
 
 Akun lengkap: [README § Akun Siap Pakai](../README.md) · [PreVibeCoding §7.2](SILOGY_PreVibeCoding_v6.md).
 

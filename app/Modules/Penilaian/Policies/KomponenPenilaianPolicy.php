@@ -26,12 +26,7 @@ class KomponenPenilaianPolicy
         }
 
         return static::scopedKoordinatorKelasMkIds($user)->isNotEmpty()
-            || $user->hasAnyRole([
-                'Admin Program Studi',
-                'Admin Jurusan',
-                'Admin Fakultas',
-                'Admin Universitas',
-            ]);
+            || $user->hasRole('Admin');
     }
 
     public function view(User $user, KomponenPenilaian $komponenPenilaian): bool
@@ -117,11 +112,6 @@ class KomponenPenilaianPolicy
 
     protected function isAdminUnit(User $user): bool
     {
-        return $user->hasAnyRole([
-            'Admin Program Studi',
-            'Admin Jurusan',
-            'Admin Fakultas',
-            'Admin Universitas',
-        ]);
+        return $user->hasRole('Admin');
     }
 }

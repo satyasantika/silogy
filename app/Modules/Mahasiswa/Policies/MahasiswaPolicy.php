@@ -27,13 +27,8 @@ class MahasiswaPolicy
             return true;
         }
 
-        return $this->hasAnyKelolaUserPermission($user)
-            || ($user->hasAnyRole([
-                'Pimpinan Universitas',
-                'Pimpinan Fakultas',
-                'Pimpinan Jurusan',
-                'Pimpinan Program Studi',
-            ]) && AcademicUnitScope::userHasAnyPivot($user));
+        return $this->isAdminDenganPenugasan($user)
+            || ($user->hasRole('Pimpinan') && AcademicUnitScope::userHasAnyPivot($user));
     }
 
     public function update(User $user, Mahasiswa $mahasiswa): bool

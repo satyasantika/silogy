@@ -20,16 +20,14 @@ class RolePermissionSeeder extends Seeder
         // =========================================================
         $perms = [
             // ---- Institusi ----
-            'kelola_universitas', 'kelola_fakultas', 'kelola_jurusan', 'kelola_prodi',
+            // Cakupan unit ditentukan penugasan (pivot academic_unit_users),
+            // bukan permission per tipe unit.
+            'kelola_unit',
             'kelola_semester', 'kelola_evaluasi',
 
             // ---- Admin & Auth ----
             'kelola_user', 'kelola_role', 'kelola_permission', 'impersonate_user',
             'lihat_audit_log', 'konfigurasi_sistem',
-
-            // ---- User-management per tipe unit ----
-            'kelola_user_universitas', 'kelola_user_fakultas',
-            'kelola_user_jurusan', 'kelola_user_prodi',
 
             // ---- Kurikulum ----
             'kelola_kurikulum', 'kelola_profil_lulusan',
@@ -56,43 +54,16 @@ class RolePermissionSeeder extends Seeder
         // --- Super Admin: HANYA Institusi & Admin + kelola_evaluasi ---
         $super = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
         $super->syncPermissions([
-            'kelola_universitas', 'kelola_fakultas', 'kelola_jurusan', 'kelola_prodi',
+            'kelola_unit',
             'kelola_semester', 'kelola_evaluasi',
             'kelola_user', 'kelola_role', 'kelola_permission', 'impersonate_user',
             'lihat_audit_log', 'konfigurasi_sistem',
-            'kelola_user_universitas', 'kelola_user_fakultas',
-            'kelola_user_jurusan', 'kelola_user_prodi',
         ]);
 
-        // --- Admin per Tipe Unit (kelola sesuai type_unit) ---
-        $adminUniv = Role::firstOrCreate(['name' => 'Admin Universitas', 'guard_name' => 'web']);
-        $adminUniv->syncPermissions([
-            'kelola_user_universitas', 'kelola_user_fakultas',
-            'kelola_user_jurusan', 'kelola_user_prodi',
-            'kelola_fakultas', 'kelola_jurusan', 'kelola_prodi',
-            'setdosen_mk',
-            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
-        ]);
-
-        $adminFak = Role::firstOrCreate(['name' => 'Admin Fakultas', 'guard_name' => 'web']);
-        $adminFak->syncPermissions([
-            'kelola_user_fakultas', 'kelola_user_jurusan', 'kelola_user_prodi',
-            'kelola_jurusan', 'kelola_prodi',
-            'setdosen_mk',
-            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
-        ]);
-
-        $adminJur = Role::firstOrCreate(['name' => 'Admin Jurusan', 'guard_name' => 'web']);
-        $adminJur->syncPermissions([
-            'kelola_user_jurusan', 'kelola_user_prodi',
-            'kelola_prodi',
-            'setdosen_mk',
-            'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
-        ]);
-
-        $adminProdi = Role::firstOrCreate(['name' => 'Admin Program Studi', 'guard_name' => 'web']);
-        $adminProdi->syncPermissions([
-            'kelola_user_prodi',
+        // --- Admin (generik; level kerja mengikuti penugasan unit) ---
+        $admin = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
+        $admin->syncPermissions([
+            'kelola_unit',
             'kelola_kelas',
             'setdosen_mk',
             'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
@@ -122,16 +93,11 @@ class RolePermissionSeeder extends Seeder
             'lihat_laporan', 'lihat_dashboard',
         ]);
 
-        // --- Pimpinan * (per tipe unit; permission seperti Kaprodi) ---
-        $pimpinanPerms = [
+        // --- Pimpinan (generik; level & jabatan dari penugasan unit) ---
+        $pimpinan = Role::firstOrCreate(['name' => 'Pimpinan', 'guard_name' => 'web']);
+        $pimpinan->syncPermissions([
             'lihat_laporan', 'ekspor_data', 'minta_analisis_ai', 'lihat_dashboard',
-        ];
-        foreach ([
-            'Pimpinan Universitas', 'Pimpinan Fakultas',
-            'Pimpinan Jurusan', 'Pimpinan Program Studi',
-        ] as $rname) {
-            Role::firstOrCreate(['name' => $rname, 'guard_name' => 'web'])->syncPermissions($pimpinanPerms);
-        }
+        ]);
 
         // --- Auditor Mutu ---
         $auditor = Role::firstOrCreate(['name' => 'Auditor Mutu', 'guard_name' => 'web']);
@@ -157,45 +123,45 @@ class RolePermissionSeeder extends Seeder
 
             // Pimpinan Universitas
             ['username' => 'rektor', 'full_name' => 'Rektor',
-                'nidn' => '0000000001', 'role' => 'Pimpinan Universitas', 'unit' => $univ,
+                'nidn' => '0000000001', 'role' => 'Pimpinan', 'unit' => $univ,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Rektor'],
             ['username' => 'wakilrektor', 'full_name' => 'Wakil Rektor I',
-                'nidn' => '0000000002', 'role' => 'Pimpinan Universitas', 'unit' => $univ,
+                'nidn' => '0000000002', 'role' => 'Pimpinan', 'unit' => $univ,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Wakil Rektor I'],
 
             // Pimpinan Fakultas
             ['username' => 'dekan', 'full_name' => 'Dekan',
-                'nidn' => '0000000003', 'role' => 'Pimpinan Fakultas', 'unit' => $fak,
+                'nidn' => '0000000003', 'role' => 'Pimpinan', 'unit' => $fak,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Dekan'],
             ['username' => 'wakildekan', 'full_name' => 'Wakil Dekan I',
-                'nidn' => '0000000004', 'role' => 'Pimpinan Fakultas', 'unit' => $fak,
+                'nidn' => '0000000004', 'role' => 'Pimpinan', 'unit' => $fak,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Wakil Dekan I'],
 
             // Pimpinan Jurusan
             ['username' => 'kajur', 'full_name' => 'Ketua Jurusan',
-                'nidn' => '0000000005', 'role' => 'Pimpinan Jurusan', 'unit' => $jur,
+                'nidn' => '0000000005', 'role' => 'Pimpinan', 'unit' => $jur,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Ketua Jurusan'],
             ['username' => 'sekjur', 'full_name' => 'Sekretaris Jurusan',
-                'nidn' => '0000000006', 'role' => 'Pimpinan Jurusan', 'unit' => $jur,
+                'nidn' => '0000000006', 'role' => 'Pimpinan', 'unit' => $jur,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Sekretaris Jurusan'],
 
             // Pimpinan Prodi
             ['username' => 'kaprodi', 'full_name' => 'Ketua Program Studi',
-                'nidn' => '0000000007', 'role' => 'Pimpinan Program Studi', 'unit' => $prodi,
+                'nidn' => '0000000007', 'role' => 'Pimpinan', 'unit' => $prodi,
                 'pimpinan' => true, 'tim_kur' => false, 'jabatan' => 'Ketua Program Studi'],
 
             // Admin per unit
             ['username' => 'adminuniv', 'full_name' => 'Admin Universitas',
-                'nidn' => '0000000010', 'role' => 'Admin Universitas', 'unit' => $univ,
+                'nidn' => '0000000010', 'role' => 'Admin', 'unit' => $univ,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Admin'],
             ['username' => 'adminfak', 'full_name' => 'Admin Fakultas',
-                'nidn' => '0000000011', 'role' => 'Admin Fakultas', 'unit' => $fak,
+                'nidn' => '0000000011', 'role' => 'Admin', 'unit' => $fak,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Admin'],
             ['username' => 'adminjur', 'full_name' => 'Admin Jurusan',
-                'nidn' => '0000000012', 'role' => 'Admin Jurusan', 'unit' => $jur,
+                'nidn' => '0000000012', 'role' => 'Admin', 'unit' => $jur,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Admin'],
             ['username' => 'adminprodi', 'full_name' => 'Admin Program Studi',
-                'nidn' => '0000000013', 'role' => 'Admin Program Studi', 'unit' => $prodi,
+                'nidn' => '0000000013', 'role' => 'Admin', 'unit' => $prodi,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Admin'],
 
             // Tim Kurikulum per level unit (terpisah)
@@ -279,6 +245,48 @@ class RolePermissionSeeder extends Seeder
                 );
             }
         }
+
+        // =========================================================
+        // 4. MIGRASI ROLE LAMA -> ROLE GENERIK
+        // =========================================================
+        // Pemetaan role per level (Admin/Pimpinan Universitas..Prodi) ke role
+        // generik; level kerja kini murni dari penugasan unit. Aman dijalankan
+        // berulang pada database lama maupun baru.
+        $pemetaanRoleLama = [
+            'Admin Universitas' => 'Admin',
+            'Admin Fakultas' => 'Admin',
+            'Admin Jurusan' => 'Admin',
+            'Admin Program Studi' => 'Admin',
+            'Pimpinan Universitas' => 'Pimpinan',
+            'Pimpinan Fakultas' => 'Pimpinan',
+            'Pimpinan Jurusan' => 'Pimpinan',
+            'Pimpinan Program Studi' => 'Pimpinan',
+        ];
+
+        foreach ($pemetaanRoleLama as $lama => $baru) {
+            $roleLama = Role::where('name', $lama)->where('guard_name', 'web')->first();
+
+            if (! $roleLama) {
+                continue;
+            }
+
+            User::role($lama)->get()->each(function (User $user) use ($lama, $baru): void {
+                $user->removeRole($lama);
+                $user->assignRole($baru);
+            });
+
+            $roleLama->delete();
+        }
+
+        // Permission per tipe unit yang sudah digantikan kelola_unit.
+        Permission::query()
+            ->whereIn('name', [
+                'kelola_universitas', 'kelola_fakultas', 'kelola_jurusan', 'kelola_prodi',
+                'kelola_user_universitas', 'kelola_user_fakultas',
+                'kelola_user_jurusan', 'kelola_user_prodi',
+            ])
+            ->get()
+            ->each(fn (Permission $permission) => $permission->delete());
 
         // dosentimkur: dosen sekaligus tim kurikulum pada TIGA level
         // (universitas, fakultas, prodi) — contoh pemakaian role switcher

@@ -38,12 +38,7 @@ final class AnalisisAiUnitOptions
 
         $unitIds = $unitIds->merge($pimpinanIds);
 
-        if ($user->hasAnyRole([
-            'Admin Universitas',
-            'Admin Fakultas',
-            'Admin Jurusan',
-            'Admin Program Studi',
-        ])) {
+        if ($user->hasRole('Admin')) {
             $unitIds = $unitIds->merge(AcademicUnitScope::managedUnitIdsFor($user));
         }
 

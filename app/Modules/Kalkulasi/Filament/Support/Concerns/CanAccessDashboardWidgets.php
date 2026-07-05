@@ -13,14 +13,8 @@ trait CanAccessDashboardWidgets
     {
         return [
             'Super Admin',
-            'Pimpinan Universitas',
-            'Pimpinan Fakultas',
-            'Pimpinan Jurusan',
-            'Pimpinan Program Studi',
-            'Admin Universitas',
-            'Admin Fakultas',
-            'Admin Jurusan',
-            'Admin Program Studi',
+            'Pimpinan',
+            'Admin',
             'Tim Kurikulum',
             'Auditor Mutu',
         ];

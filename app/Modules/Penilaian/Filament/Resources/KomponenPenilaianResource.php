@@ -68,23 +68,13 @@ class KomponenPenilaianResource extends Resource
             return $query;
         }
 
-        if ($user->hasRole('Dosen Pengampu') && ! $user->hasAnyRole([
-            'Admin Program Studi',
-            'Admin Jurusan',
-            'Admin Fakultas',
-            'Admin Universitas',
-        ])) {
+        if ($user->hasRole('Dosen Pengampu') && ! $user->hasRole('Admin')) {
             return $query->whereRaw('1 = 0');
         }
 
         $kelasIds = static::scopedKoordinatorKelasMkIds($user);
 
-        if ($kelasIds->isEmpty() && ! $user->hasAnyRole([
-            'Admin Program Studi',
-            'Admin Jurusan',
-            'Admin Fakultas',
-            'Admin Universitas',
-        ])) {
+        if ($kelasIds->isEmpty() && ! $user->hasRole('Admin')) {
             return $query->whereRaw('1 = 0');
         }
 

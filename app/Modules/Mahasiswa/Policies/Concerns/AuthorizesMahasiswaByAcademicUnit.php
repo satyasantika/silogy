@@ -19,17 +19,23 @@ trait AuthorizesMahasiswaByAcademicUnit
         return $user->hasRole('Auditor Mutu');
     }
 
+    /**
+     * Admin dengan penugasan pada unit level universitas.
+     */
     protected function isAdminUniversitas(User $user): bool
     {
-        return $user->hasRole('Admin Universitas');
+        if (! $user->hasRole('Admin')) {
+            return false;
+        }
+
+        return $user->academicUnitUsers()
+            ->whereHas('academicUnit', fn ($query) => $query->where('type', 'university'))
+            ->exists();
     }
 
-    protected function hasAnyKelolaUserPermission(User $user): bool
+    protected function isAdminDenganPenugasan(User $user): bool
     {
-        return $user->can('kelola_user_universitas')
-            || $user->can('kelola_user_fakultas')
-            || $user->can('kelola_user_jurusan')
-            || $user->can('kelola_user_prodi');
+        return $user->hasRole('Admin') && AcademicUnitScope::userHasAnyPivot($user);
     }
 
     protected function canViewMahasiswaModule(User $user): bool
@@ -38,16 +44,11 @@ trait AuthorizesMahasiswaByAcademicUnit
             return true;
         }
 
-        if ($this->hasAnyKelolaUserPermission($user)) {
+        if ($this->isAdminDenganPenugasan($user)) {
             return true;
         }
 
-        return $user->hasAnyRole([
-            'Pimpinan Universitas',
-            'Pimpinan Fakultas',
-            'Pimpinan Jurusan',
-            'Pimpinan Program Studi',
-        ]) && AcademicUnitScope::userHasAnyPivot($user);
+        return $user->hasRole('Pimpinan') && AcademicUnitScope::userHasAnyPivot($user);
     }
 
     protected function canAccessMahasiswa(User $user, Mahasiswa $mahasiswa): bool

@@ -133,12 +133,7 @@ class KelasMkPolicy
 
     protected function isAdminUnit(User $user): bool
     {
-        return $user->hasAnyRole([
-            'Admin Program Studi',
-            'Admin Jurusan',
-            'Admin Fakultas',
-            'Admin Universitas',
-        ]);
+        return $user->hasRole('Admin');
     }
 
     protected function canManageByUnit(User $user, KelasMk $kelasMk): bool

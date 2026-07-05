@@ -77,17 +77,17 @@ Password default semua akun: **`siliwangi`**
 | Username | Role |
 |---|---|
 | `superadmin` | Super Admin |
-| `rektor` | Pimpinan Universitas |
-| `wakilrektor` | Pimpinan Universitas |
-| `dekan` | Pimpinan Fakultas |
-| `wakildekan` | Pimpinan Fakultas |
-| `kajur` | Pimpinan Jurusan |
-| `sekjur` | Pimpinan Jurusan |
-| `kaprodi` | Pimpinan Program Studi |
-| `adminuniv` | Admin Universitas |
-| `adminfak` | Admin Fakultas |
-| `adminjur` | Admin Jurusan |
-| `adminprodi` | Admin Program Studi |
+| `rektor` | Pimpinan (penugasan universitas) |
+| `wakilrektor` | Pimpinan (penugasan universitas) |
+| `dekan` | Pimpinan (penugasan fakultas) |
+| `wakildekan` | Pimpinan (penugasan fakultas) |
+| `kajur` | Pimpinan (penugasan jurusan) |
+| `sekjur` | Pimpinan (penugasan jurusan) |
+| `kaprodi` | Pimpinan (penugasan prodi) |
+| `adminuniv` | Admin (penugasan universitas) |
+| `adminfak` | Admin (penugasan fakultas) |
+| `adminjur` | Admin (penugasan jurusan) |
+| `adminprodi` | Admin (penugasan prodi) |
 | `timkur` | Tim Kurikulum (prodi) |
 | `timkurfak` | Tim Kurikulum (fakultas) |
 | `timkuruniv` | Tim Kurikulum (universitas) |

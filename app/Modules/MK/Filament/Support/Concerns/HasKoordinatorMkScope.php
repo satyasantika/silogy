@@ -134,12 +134,7 @@ trait HasKoordinatorMkScope
             return true;
         }
 
-        if (! $user->hasAnyRole([
-            'Admin Program Studi',
-            'Admin Jurusan',
-            'Admin Fakultas',
-            'Admin Universitas',
-        ])) {
+        if (! $user->hasRole('Admin')) {
             return false;
         }
 

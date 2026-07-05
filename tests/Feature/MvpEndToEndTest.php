@@ -96,8 +96,8 @@ it('completes full mvp journey for prodi', function () {
     $roleDosen = Role::query()->where('name', 'Dosen Pengampu')->value('id');
     $roleKorma = Role::query()->where('name', 'Koordinator Mata Kuliah')->value('id');
     $roleTimkur = Role::query()->where('name', 'Tim Kurikulum')->value('id');
-    $roleAdminProdi = Role::query()->where('name', 'Admin Program Studi')->value('id');
-    $roleKaprodi = Role::query()->where('name', 'Pimpinan Program Studi')->value('id');
+    $roleAdminProdi = Role::query()->where('name', 'Admin')->value('id');
+    $roleKaprodi = Role::query()->where('name', 'Pimpinan')->value('id');
 
     foreach ([
         ['username' => 'dosenE2E', 'full_name' => 'Dosen E2E', 'role' => $roleDosen, 'tim_kur' => false, 'pimpinan' => false, 'jabatan' => 'Dosen'],
