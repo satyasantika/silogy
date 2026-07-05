@@ -37,7 +37,11 @@ class CpmkPolicy
 
     public function delete(User $user, Cpmk $cpmk): bool
     {
-        return $this->manage($user, $cpmk);
+        if (! $this->manage($user, $cpmk)) {
+            return false;
+        }
+
+        return $cpmk->belumDiinteraksikan();
     }
 
     public function deleteAny(User $user): bool

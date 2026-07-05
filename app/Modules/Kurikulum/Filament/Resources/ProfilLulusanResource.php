@@ -61,8 +61,16 @@ class ProfilLulusanResource extends Resource
             return false;
         }
 
-        return $user->hasRole('Super Admin')
-            || AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->isNotEmpty();
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        // Profil lulusan milik Tim Kurikulum — Admin prodi fokus ke kelas MK.
+        if (! $user->hasRole('Tim Kurikulum')) {
+            return false;
+        }
+
+        return AcademicUnitScope::timKurikulumPivotUnitIdsFor($user)->isNotEmpty();
     }
 
     public static function canAccess(): bool
@@ -108,7 +116,11 @@ class ProfilLulusanResource extends Resource
             return $query;
         }
 
-        $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user);
+        $unitIds = AcademicUnitScope::timKurikulumPivotUnitIdsFor($user);
+
+        if ($unitIds->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
 
         return $query->whereHas(
             'kurikulum',

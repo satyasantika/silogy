@@ -15,8 +15,8 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Models\Kurikulum;
-use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -63,7 +63,22 @@ class KelasMkResource extends Resource
      */
     protected static function kurikulumTerpilihFilterUnitIds(): ?\Illuminate\Support\Collection
     {
+        $user = Auth::user();
+
+        if ($user instanceof User && PenawaranMkScope::filterBerdasarkanPenawaranAkun($user)) {
+            return PenawaranMkScope::unitIdsDariPenawaran($user);
+        }
+
         return static::scopedAccessibleUnitIds();
+    }
+
+    /**
+     * Admin prodi mengelola kelas sebelum kurikulum disusun — tampilkan
+     * kelas MK menurut scope unit tanpa mewajibkan kurikulum terpilih.
+     */
+    protected static function kurikulumTerpilihWajib(): bool
+    {
+        return false;
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -95,6 +110,10 @@ class KelasMkResource extends Resource
 
         if ($user->hasRole('Dosen Pengampu') && $user->can('kelola_kelas') && ! $user->hasRole('Admin')) {
             return $query->where('dosen_pengampu_id', Auth::id());
+        }
+
+        if (PenawaranMkScope::isKoordinatorMkOnly($user)) {
+            return $query->where('koordinator_mk_id', $user->id);
         }
 
         $unitIds = static::scopedAccessibleUnitIds();
@@ -194,7 +213,10 @@ class KelasMkResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $accessibleUnitIds = static::scopedAccessibleUnitIds();
+        $user = Auth::user();
+        $filterUnitIds = ($user instanceof User && PenawaranMkScope::filterBerdasarkanPenawaranAkun($user))
+            ? PenawaranMkScope::unitIdsDariPenawaran($user)
+            : static::scopedAccessibleUnitIds();
 
         return static::applyKurikulumTerpilihTableWithExtraFilters(
             $table
@@ -242,20 +264,19 @@ class KelasMkResource extends Resource
             [
                 SelectFilter::make('semester_id')
                     ->label('Semester')
-                    ->relationship('semester', 'nama')
-                    ->searchable()
-                    ->preload(),
+                    ->options(fn (): array => PenawaranMkScope::semesterFilterOptions())
+                    ->query(function (Builder $query, array $data): Builder {
+                        if (blank($data['value'] ?? null)) {
+                            return $query;
+                        }
+
+                        return $query->where('semester_id', $data['value']);
+                    })
+                    ->searchable(),
 
                 SelectFilter::make('mk_id')
                     ->label('Mata kuliah')
-                    ->options(fn (): array => Mk::query()
-                        ->whereHas(
-                            'mkUnits',
-                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->whereIn('academic_unit_id', $accessibleUnitIds),
-                        )
-                        ->orderBy('nama')
-                        ->pluck('nama', 'id')
-                        ->all())
+                    ->options(fn (): array => PenawaranMkScope::mkFilterOptions())
                     ->query(function (Builder $query, array $data): Builder {
                         if (blank($data['value'] ?? null)) {
                             return $query;
@@ -271,7 +292,7 @@ class KelasMkResource extends Resource
                 SelectFilter::make('academic_unit_id')
                     ->label('Program studi')
                     ->options(fn (): array => AcademicUnit::query()
-                        ->whereIn('id', $accessibleUnitIds)
+                        ->whereIn('id', $filterUnitIds)
                         ->where('type', 'study_program')
                         ->orderBy('nama')
                         ->pluck('nama', 'id')
@@ -286,7 +307,7 @@ class KelasMkResource extends Resource
                             fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('academic_unit_id', $data['value']),
                         );
                     })
-                    ->visible($accessibleUnitIds->count() > 1)
+                    ->visible($filterUnitIds->count() > 1)
                     ->columnSpanFull(),
             ],
         );
@@ -306,6 +327,14 @@ class KelasMkResource extends Resource
             'create' => CreateKelasMk::route('/create'),
             'edit' => EditKelasMk::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Koordinator MK tanpa peran Admin hanya melihat kelas yang ia koordinasikan.
+     */
+    public static function scopeHanyaKoordinatorPemilik(User $user): bool
+    {
+        return PenawaranMkScope::isKoordinatorMkOnly($user);
     }
 
     /** Field struktur kelas hanya diubah Admin (prodi) / Super Admin. */

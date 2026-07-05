@@ -77,3 +77,20 @@ it('menu penawaran mk hanya tampil untuk tim kurikulum prodi', function () {
     $this->actingAs(User::query()->where('username', 'timkuruniv')->firstOrFail());
     expect(MkUnitResource::shouldRegisterNavigation())->toBeFalse();
 });
+
+it('koordinator mk melihat menu penawaran mk namun tidak dapat mengedit', function () {
+    $korma = User::query()->where('username', 'korma')->firstOrFail();
+    $mk = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'koordinator_mk_id' => $korma->id,
+    ]);
+    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KOR901']);
+
+    expect($this->policy->viewAny($korma))->toBeTrue()
+        ->and($this->policy->view($korma, $mkUnit))->toBeTrue()
+        ->and($this->policy->update($korma, $mkUnit))->toBeFalse()
+        ->and($this->policy->create($korma))->toBeFalse();
+
+    $this->actingAs($korma);
+    expect(MkUnitResource::shouldRegisterNavigation())->toBeFalse();
+});

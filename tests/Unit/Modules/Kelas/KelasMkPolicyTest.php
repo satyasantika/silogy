@@ -70,3 +70,15 @@ it('dosen pengampu hanya dapat mengelola kelas yang ditugaskan kepadanya', funct
         ->and($this->policy->update($dosen, $kelasLain))->toBeFalse()
         ->and($this->policy->assignDosenPengampu($dosen, $kelas))->toBeFalse();
 });
+
+it('koordinator mk hanya dapat mengelola kelas yang dikoordinasikannya', function () {
+    $korma = User::where('username', 'korma')->firstOrFail();
+    $kelas = createKelasMkForProdi($this->prodi);
+    $kelasLain = createKelasMkForProdi($this->prodi);
+    $kelas->update(['koordinator_mk_id' => $korma->id]);
+
+    expect($this->policy->update($korma, $kelas))->toBeTrue()
+        ->and($this->policy->update($korma, $kelasLain))->toBeFalse()
+        ->and($this->policy->assignDosenPengampu($korma, $kelas))->toBeTrue()
+        ->and($this->policy->assignDosenPengampu($korma, $kelasLain))->toBeFalse();
+});

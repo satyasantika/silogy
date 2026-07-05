@@ -2,21 +2,22 @@
 
 namespace App\Modules\MK\Filament\Resources\SubcpmkResource\Pages;
 
-use App\Modules\Kalender\Models\Semester;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
+use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Services\SubcpmkKompetensiParser;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
 
 class ListSubcpmks extends ListRecords
 {
     use HasImporMassal;
+    use HasImporMkSemesterKonteks;
 
     protected static string $resource = SubcpmkResource::class;
 
@@ -39,7 +40,7 @@ class ListSubcpmks extends ListRecords
      */
     protected function importContextKeys(): array
     {
-        return ['import_mk_id', 'import_semester_id'];
+        return $this->importMkSemesterContextKeys();
     }
 
     /**
@@ -47,22 +48,9 @@ class ListSubcpmks extends ListRecords
      */
     protected function importContextComponents(): array
     {
-        $mkOptions = SubcpmkResource::scopedKoordinatorMkOptions();
-
-        return [
-            Select::make('import_mk_id')
-                ->label('Mata kuliah')
-                ->options($mkOptions)
-                ->searchable()
-                ->required()
-                ->default(count($mkOptions) === 1 ? array_key_first($mkOptions) : null),
-            Select::make('import_semester_id')
-                ->label('Semester')
-                ->options(fn (): array => Semester::query()->orderBy('kode')->pluck('nama', 'id')->all())
-                ->searchable()
-                ->required()
-                ->default(fn (): ?string => Semester::query()->where('status_aktif', true)->value('id')),
-        ];
+        return $this->importMkSemesterContextComponents(
+            SubcpmkResource::scopedKoordinatorMkOptions(),
+        );
     }
 
     protected function importColumns(): array
@@ -71,14 +59,18 @@ class ListSubcpmks extends ListRecords
             ['key' => 'kode_cpmk', 'label' => 'kode CPMK', 'wajib' => true],
             ['key' => 'kode', 'label' => 'kode sub-CPMK', 'wajib' => true],
             ['key' => 'deskripsi', 'label' => 'deskripsi', 'wajib' => true],
-            ['key' => 'bobot', 'label' => 'bobot (%)', 'wajib' => false],
+            ['key' => 'kompetensi', 'label' => 'kompetensi (C/A/P)', 'wajib' => false],
             ['key' => 'indikator', 'label' => 'indikator', 'wajib' => false],
+            ['key' => 'evaluasi', 'label' => 'evaluasi', 'wajib' => false],
+            ['key' => 'bobot', 'label' => 'bobot (%)', 'wajib' => false],
         ];
     }
 
     protected function importHelperNote(): string
     {
-        return 'Kode CPMK harus sudah ada pada mata kuliah yang dipilih di atas dan telah dipetakan ke CPL–MK.';
+        return 'Kode CPMK harus sudah ada pada mata kuliah yang dipilih di atas dan telah dipetakan ke CPL–MK. '
+            .'Semester (Koordinator MK) diambil dari master semester. '
+            .'Kompetensi opsional: taksonomi Bloom dipisah koma, contoh C3,A2,P2.';
     }
 
     /**
@@ -87,19 +79,31 @@ class ListSubcpmks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPMK-01|SUB-01|Menjelaskan definisi|50|Indikator A',
-            'CPMK-01|SUB-02|Menerapkan rumus|50|',
+            'CPMK-01|SUB-01|Menjelaskan definisi|C3,A2,P2|Indikator A|UTS dan kuis|50',
+            'CPMK-01|SUB-02|Menerapkan rumus|C4|||50',
         ];
     }
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        if (blank($context['import_mk_id'] ?? null) || blank($context['import_semester_id'] ?? null)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih mata kuliah dan semester terlebih dahulu.'];
+        $validasiKonteks = $this->validasiKonteksImporMkSemester($context);
+
+        if ($validasiKonteks !== null) {
+            return $validasiKonteks;
         }
+
+        $context = $this->normalizeImportContext($context);
 
         if ($data['bobot'] !== '' && ! is_numeric($data['bobot'])) {
             return ['status' => 'invalid', 'keterangan' => 'Bobot harus berupa angka.'];
+        }
+
+        if (filled($data['kompetensi'] ?? null)) {
+            $validasiKompetensi = SubcpmkKompetensiParser::validasi($data['kompetensi']);
+
+            if (! $validasiKompetensi['valid']) {
+                return ['status' => 'invalid', 'keterangan' => $validasiKompetensi['keterangan']];
+            }
         }
 
         $mkCpmk = $this->mkCpmkDariKode($data['kode_cpmk'], $context);
@@ -130,7 +134,11 @@ class ListSubcpmks extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
+        $context = $this->normalizeImportContext($context);
         $mkCpmk = $this->mkCpmkDariKode($data['kode_cpmk'], $context);
+        $bloom = filled($data['kompetensi'] ?? null)
+            ? SubcpmkKompetensiParser::parse($data['kompetensi'])
+            : [];
 
         Subcpmk::query()->create([
             'mk_cpmk_id' => $mkCpmk?->id,
@@ -139,6 +147,8 @@ class ListSubcpmks extends ListRecords
             'deskripsi' => $data['deskripsi'],
             'bobot' => $data['bobot'] !== '' ? (float) $data['bobot'] : null,
             'indikator' => $data['indikator'] ?: null,
+            'evaluasi' => $data['evaluasi'] ?: null,
+            ...$bloom,
         ]);
     }
 
@@ -149,12 +159,18 @@ class ListSubcpmks extends ListRecords
     protected function updateImportRow(string $existingId, array $data, array $context): void
     {
         $subcpmk = Subcpmk::query()->findOrFail($existingId);
-
-        $subcpmk->update([
+        $payload = [
             'deskripsi' => $data['deskripsi'],
             'bobot' => $data['bobot'] !== '' ? (float) $data['bobot'] : $subcpmk->bobot,
             'indikator' => $data['indikator'] ?: $subcpmk->indikator,
-        ]);
+            'evaluasi' => filled($data['evaluasi'] ?? null) ? $data['evaluasi'] : $subcpmk->evaluasi,
+        ];
+
+        if (filled($data['kompetensi'] ?? null)) {
+            $payload = [...$payload, ...SubcpmkKompetensiParser::parse($data['kompetensi'])];
+        }
+
+        $subcpmk->update($payload);
     }
 
     /**

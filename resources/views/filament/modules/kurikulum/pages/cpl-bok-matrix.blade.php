@@ -1,17 +1,18 @@
 <x-filament-panels::page>
+    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner')
+
     @if (! $kurikulum)
         <x-filament::section icon="heroicon-o-exclamation-triangle" heading="Belum ada kurikulum terpilih">
-            Pilih kurikulum lewat widget di dashboard atau filter pada halaman kurikulum.
+            Pilih kurikulum dari halaman Kurikulum terlebih dahulu.
         </x-filament::section>
     @elseif ($cpls->isEmpty() || $boks->isEmpty())
         <x-filament::section icon="heroicon-o-information-circle" heading="Data belum lengkap">
-            Matriks membutuhkan minimal satu CPL dan satu bahan kajian (BoK) pada kurikulum
-            <strong>{{ $kurikulum->nama }}</strong>.
+            Matriks membutuhkan minimal satu CPL dan satu bahan kajian (BoK) pada kurikulum terpilih.
         </x-filament::section>
     @else
         <x-filament::section
             icon="heroicon-o-arrows-right-left"
-            heading="CPL ↔ BoK — {{ $kurikulum->nama }}"
+            heading="Interaksi CPL ↔ BoK"
             description="Centang irisan untuk memetakan CPL (baris) ke bahan kajian (kolom)."
         >
             <div style="overflow-x:auto;">

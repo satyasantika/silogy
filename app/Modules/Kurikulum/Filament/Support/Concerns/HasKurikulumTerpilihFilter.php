@@ -13,6 +13,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * Filter "Kurikulum" yang selalu tampil di atas tabel (Profil, CPL, BoK,
@@ -22,19 +23,13 @@ use Illuminate\Support\Collection;
 trait HasKurikulumTerpilihFilter
 {
     /**
-     * Terapkan hanya filter Kurikulum dengan layout seragam di atas tabel.
+     * Terapkan banner kurikulum terpilih + scope query (tanpa filter dropdown).
      *
      * @param  callable(Builder<Model>, Kurikulum): Builder<Model>  $applyScope
      */
     protected static function applyKurikulumTerpilihTable(Table $table, callable $applyScope): Table
     {
-        return $table
-            ->filters([
-                static::kurikulumTerpilihFilter($applyScope),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->filtersFormColumns(1)
-            ->deferFilters(false);
+        return static::decorateKurikulumTerpilihTable($table, $applyScope);
     }
 
     /**
@@ -48,7 +43,7 @@ trait HasKurikulumTerpilihFilter
         callable $applyScope,
         array $extraFilters = [],
     ): Table {
-        return $table
+        return static::decorateKurikulumTerpilihTable($table, $applyScope)
             ->filters([
                 static::kurikulumTerpilihFilter($applyScope),
                 ...$extraFilters,
@@ -63,8 +58,6 @@ trait HasKurikulumTerpilihFilter
      *
      * @param  array<int, LayoutComponent|\Filament\Tables\Columns\Column>  $cardSchema
      * @param  callable(Builder<Model>, Kurikulum): Builder<Model>  $applyScope
-     */
-    /**
      * @param  array<string, int>  $contentGrid
      */
     protected static function applyKurikulumTerpilihCardTable(
@@ -72,17 +65,59 @@ trait HasKurikulumTerpilihFilter
         array $cardSchema,
         callable $applyScope,
         array $contentGrid = ['md' => 2, 'xl' => 3],
+        bool $withKurikulumFilter = false,
     ): Table {
-        return static::applyKurikulumTerpilihTable(
-            $table
-                ->columns([
-                    Stack::make($cardSchema)->space(1),
+        $table = $table
+            ->columns([
+                Stack::make($cardSchema)->space(1),
+            ])
+            ->contentGrid($contentGrid)
+            ->paginated([6, 12, 24])
+            ->defaultPaginationPageOption(12);
+
+        if ($withKurikulumFilter) {
+            return $table
+                ->filters([
+                    static::kurikulumTerpilihFilter($applyScope),
                 ])
-                ->contentGrid($contentGrid)
-                ->paginated([6, 12, 24])
-                ->defaultPaginationPageOption(12),
-            $applyScope,
-        );
+                ->filtersLayout(FiltersLayout::AboveContent)
+                ->filtersFormColumns(1)
+                ->deferFilters(false);
+        }
+
+        return static::applyKurikulumTerpilihTable($table, $applyScope);
+    }
+
+    /**
+     * @param  callable(Builder<Model>, Kurikulum): Builder<Model>  $applyScope
+     */
+    protected static function decorateKurikulumTerpilihTable(Table $table, callable $applyScope): Table
+    {
+        return $table
+            ->description(fn (): HtmlString => KurikulumTerpilih::bannerHtml())
+            ->modifyQueryUsing(function (Builder $query) use ($applyScope): Builder {
+                $kurikulum = KurikulumTerpilih::current();
+
+                if (! $kurikulum instanceof Kurikulum) {
+                    if (static::kurikulumTerpilihWajib()) {
+                        return $query->whereRaw('1 = 0');
+                    }
+
+                    return $query;
+                }
+
+                return $applyScope($query, $kurikulum);
+            });
+    }
+
+    /**
+     * Halaman yang wajib punya kurikulum terpilih sebelum menampilkan data.
+     * Kelas MK meng-override ke false agar Admin prodi tetap melihat kelas
+     * walau belum ada kurikulum pada unitnya.
+     */
+    protected static function kurikulumTerpilihWajib(): bool
+    {
+        return true;
     }
 
     /**
@@ -122,7 +157,6 @@ trait HasKurikulumTerpilihFilter
                     return $query;
                 }
 
-                // Sinkronkan pilihan ke session agar halaman lain mengikuti.
                 KurikulumTerpilih::set($id);
 
                 $kurikulum = Kurikulum::query()->with('academicUnit')->find($id);

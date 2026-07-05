@@ -4,10 +4,13 @@ namespace App\Modules\Kurikulum\Support;
 
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * Kurikulum yang sedang dikerjakan tim kurikulum — dipilih lewat filter
@@ -128,6 +131,66 @@ class KurikulumTerpilih
         $aktif = $kurikulum->is_active ? ' · aktif' : '';
 
         return "{$kurikulum->nama} ({$unit}{$aktif})";
+    }
+
+    /**
+     * Rantai unit dari level terendah ke induk: Prodi / Jurusan / Fakultas / Universitas.
+     */
+    public static function unitHierarchyLabel(?AcademicUnit $unit): string
+    {
+        if (! $unit instanceof AcademicUnit) {
+            return '—';
+        }
+
+        $names = [];
+        $current = $unit;
+
+        while ($current instanceof AcademicUnit) {
+            array_unshift($names, $current->nama);
+
+            if ($current->parent_id === null) {
+                break;
+            }
+
+            $current->loadMissing('parent');
+            $current = $current->parent;
+        }
+
+        return $names === [] ? '—' : implode(' / ', $names);
+    }
+
+    /**
+     * Banner konteks kurikulum terpilih untuk halaman Profil, CPL, BoK, MK, Penawaran MK, dan matriks interaksi.
+     */
+    public static function bannerHtml(): HtmlString
+    {
+        $gantiUrl = KurikulumResource::getUrl('index');
+        $kurikulum = static::current();
+
+        if (! $kurikulum instanceof Kurikulum) {
+            return new HtmlString(
+                '<div style="padding:12px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;line-height:1.55;">'
+                .'<div>Belum ada kurikulum terpilih.</div>'
+                .'<div style="margin-top:4px;">'
+                .'<a href="'.e($gantiUrl).'" style="font-weight:600;color:#b45309;text-decoration:underline;">Pilih dari halaman Kurikulum</a>'
+                .'</div>'
+                .'</div>'
+            );
+        }
+
+        $kurikulum->loadMissing('academicUnit');
+        $hierarchy = static::unitHierarchyLabel($kurikulum->academicUnit);
+
+        return new HtmlString(
+            '<div style="padding:12px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:13px;line-height:1.55;">'
+            .'<div>'
+            .'<span style="opacity:.88;">Kurikulum terpilih:</span> '
+            .'<strong>'.e($kurikulum->nama).'</strong> '
+            .'<a href="'.e($gantiUrl).'" style="margin-left:6px;font-weight:600;color:#1d4ed8;text-decoration:underline;">Ganti</a>'
+            .'</div>'
+            .'<div style="margin-top:6px;opacity:.92;">'.e($hierarchy).'</div>'
+            .'</div>'
+        );
     }
 
     /**

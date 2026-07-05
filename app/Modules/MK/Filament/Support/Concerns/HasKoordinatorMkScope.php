@@ -7,6 +7,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\Mk;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
@@ -66,7 +67,13 @@ trait HasKoordinatorMkScope
         }
 
         return KelasMk::query()
-            ->where('koordinator_mk_id', $user->id)
+            ->where(function (Builder $scoped) use ($user): void {
+                $scoped->where('koordinator_mk_id', $user->id)
+                    ->orWhereHas(
+                        'mkUnit.mk',
+                        fn (Builder $mkQuery): Builder => $mkQuery->where('koordinator_mk_id', $user->id),
+                    );
+            })
             ->pluck('id');
     }
 

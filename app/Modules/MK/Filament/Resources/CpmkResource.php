@@ -6,10 +6,12 @@ use App\Models\User;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\EditCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
-use App\Modules\MK\Filament\Resources\CpmkResource\RelationManagers\MkCpmkRelationManager;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
+use App\Modules\MK\Filament\Support\Concerns\HasMkTerpilihScope;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Policies\CpmkPolicy;
+use App\Modules\MK\Support\MkTerpilih;
+use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -20,16 +22,19 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class CpmkResource extends Resource
 {
     use HasKoordinatorMkScope;
+    use HasMkTerpilihScope;
 
     protected static ?string $model = Cpmk::class;
 
@@ -55,12 +60,15 @@ class CpmkResource extends Resource
 
         $user = Auth::user();
 
-        return $user instanceof User && app(CpmkPolicy::class)->viewAny($user);
+        return $user instanceof User && app(CpmkPolicy::class)->viewAny($user)
+            && (! PenawaranMkScope::isKoordinatorMkOnly($user) || MkTerpilih::current() !== null);
     }
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery()->with('mk');
+        $query = parent::getEloquentQuery()
+            ->with('mk')
+            ->withCount('mkCpmks');
 
         $user = Auth::user();
 
@@ -83,7 +91,12 @@ class CpmkResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $mkTerpilih = MkTerpilih::currentId();
         $mkOptions = static::scopedKoordinatorMkOptions();
+
+        if (filled($mkTerpilih) && array_key_exists($mkTerpilih, $mkOptions)) {
+            $mkOptions = array_intersect_key($mkOptions, [$mkTerpilih => true]);
+        }
 
         return $schema
             ->components([
@@ -94,8 +107,8 @@ class CpmkResource extends Resource
                             ->options($mkOptions)
                             ->searchable()
                             ->required()
-                            ->default(count($mkOptions) === 1 ? array_key_first($mkOptions) : null)
-                            ->disabled(count($mkOptions) === 1)
+                            ->default($mkTerpilih ?? (count($mkOptions) === 1 ? array_key_first($mkOptions) : null))
+                            ->disabled(filled($mkTerpilih) || count($mkOptions) === 1)
                             ->dehydrated(),
 
                         TextInput::make('kode')
@@ -116,43 +129,46 @@ class CpmkResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('mk.nama')
-                    ->label('Mata kuliah')
-                    ->sortable()
-                    ->searchable(),
+        return static::applyMkTerpilihCardTable(
+            $table
+                ->recordActions([
+                    EditAction::make(),
+                ])
+                ->toolbarActions([
+                    BulkActionGroup::make([
+                        DeleteBulkAction::make(),
+                    ]),
+                ]),
+            [
+                Split::make([
+                    TextColumn::make('kode')
+                        ->label('Kode')
+                        ->searchable()
+                        ->sortable()
+                        ->weight(FontWeight::Bold),
 
-                TextColumn::make('kode')
-                    ->label('Kode')
-                    ->sortable()
-                    ->searchable(),
+                    TextColumn::make('mkCpmks_count')
+                        ->label('CPL')
+                        ->badge()
+                        ->color(fn (int $state): string => $state > 0 ? 'success' : 'gray'),
+                ]),
 
                 TextColumn::make('deskripsi')
                     ->label('Deskripsi')
-                    ->limit(60),
-            ])
-            ->filters([
-                SelectFilter::make('mk_id')
-                    ->label('Mata kuliah')
-                    ->options(static::scopedKoordinatorMkOptions())
-                    ->searchable(),
-            ])
-            ->recordActions([
-                EditAction::make(),
-            ])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+                    ->searchable()
+                    ->formatStateUsing(fn (?string $state): string => filled($state)
+                        ? Str::limit(trim(strip_tags($state)), 120)
+                        : '—')
+                    ->size('sm')
+                    ->color('gray'),
+            ],
+            fn (Builder $query, string $mkId): Builder => $query->where('mk_id', $mkId),
+        );
     }
 
     public static function getRelations(): array
     {
-        return [
-            MkCpmkRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

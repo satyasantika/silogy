@@ -60,9 +60,11 @@ it('filter kurikulum aktif otomatis terpilih saat halaman dimuat', function () {
 
 it('koordinator mk melihat opsi kurikulum prodi pada filter kelas mk', function () {
     $korma = User::where('username', 'korma')->firstOrFail();
+    $this->mkA->update(['koordinator_mk_id' => $korma->id]);
+    $this->mkB->update(['koordinator_mk_id' => $korma->id]);
     $this->actingAs($korma);
 
-    $unitIds = \App\Modules\Kelas\Filament\Resources\KelasMkResource::scopedAccessibleUnitIds();
+    $unitIds = \App\Modules\MK\Support\PenawaranMkScope::unitIdsDariPenawaran($korma);
     expect(KurikulumTerpilih::optionsForUnits($unitIds))->toHaveKey($this->kurikulum->id);
 
     Livewire::test(ListKelasMks::class)

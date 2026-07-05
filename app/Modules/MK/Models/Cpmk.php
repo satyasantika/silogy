@@ -51,4 +51,12 @@ class Cpmk extends Model
     {
         return $this->hasManyThrough(Subcpmk::class, MkCpmk::class);
     }
+
+    /**
+     * CPMK belum dipetakan ke CPL (belum ada baris mk_cpmk).
+     */
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->mkCpmks()->exists();
+    }
 }

@@ -113,6 +113,10 @@ class AdminPanelProvider extends PanelProvider
                 in: app_path('Modules/Kurikulum/Filament/Pages'),
                 for: 'App\Modules\Kurikulum\Filament\Pages',
             )
+            ->discoverPages(
+                in: app_path('Modules/MK/Filament/Pages'),
+                for: 'App\Modules\MK\Filament\Pages',
+            )
             ->pages([
                 Dashboard::class,
             ])

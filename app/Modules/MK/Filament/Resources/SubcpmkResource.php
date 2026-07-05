@@ -8,9 +8,14 @@ use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\CreateSubcpmk;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\EditSubcpmk;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\ListSubcpmks;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
+use App\Modules\MK\Filament\Support\Concerns\HasMkTerpilihScope;
+use App\Modules\MK\Filament\Support\Concerns\HasSemesterTerpilihFilter;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Policies\SubcpmkPolicy;
+use App\Modules\MK\Support\MkTerpilih;
+use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -21,15 +26,22 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class SubcpmkResource extends Resource
 {
     use HasKoordinatorMkScope;
+    use HasMkTerpilihScope;
+    use HasSemesterTerpilihFilter;
 
     protected static ?string $model = Subcpmk::class;
 
@@ -104,6 +116,11 @@ class SubcpmkResource extends Resource
         }
 
         $mkIds = static::scopedKoordinatorMkIds($user);
+        $mkTerpilih = MkTerpilih::currentId();
+
+        if (filled($mkTerpilih)) {
+            $mkIds = collect([$mkTerpilih]);
+        }
 
         if ($mkIds->isEmpty()) {
             return [];
@@ -127,7 +144,8 @@ class SubcpmkResource extends Resource
 
         $user = Auth::user();
 
-        return $user instanceof User && app(SubcpmkPolicy::class)->viewAny($user);
+        return $user instanceof User && app(SubcpmkPolicy::class)->viewAny($user)
+            && (! PenawaranMkScope::isKoordinatorMkOnly($user) || MkTerpilih::current() !== null);
     }
 
     public static function getEloquentQuery(): Builder
@@ -231,29 +249,83 @@ class SubcpmkResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->description(fn (): \Illuminate\Support\HtmlString => MkTerpilih::bannerHtml())
             ->columns([
-                TextColumn::make('kode')
-                    ->label('Kode')
-                    ->sortable()
-                    ->searchable(),
+                Stack::make([
+                    Split::make([
+                        TextColumn::make('kode')
+                            ->label('Kode')
+                            ->searchable()
+                            ->sortable()
+                            ->weight(FontWeight::Bold),
 
-                TextColumn::make('deskripsi')
-                    ->label('Deskripsi')
-                    ->limit(50),
+                        TextColumn::make('bobot')
+                            ->label('Bobot')
+                            ->suffix('%')
+                            ->placeholder('—')
+                            ->size('sm'),
+                    ]),
 
-                TextColumn::make('cpmk.kode')
-                    ->label('CPMK')
-                    ->getStateUsing(fn (Subcpmk $record): string => $record->cpmk?->kode ?? '—'),
+                    TextColumn::make('cpmk.kode')
+                        ->label('CPMK')
+                        ->getStateUsing(fn (Subcpmk $record): string => $record->cpmk?->kode ?? '—')
+                        ->size('sm')
+                        ->color('gray'),
 
-                TextColumn::make('bobot')
-                    ->label('Bobot')
-                    ->suffix('%')
-                    ->placeholder('—'),
+                    TextColumn::make('deskripsi')
+                        ->label('Deskripsi')
+                        ->searchable()
+                        ->formatStateUsing(fn (?string $state): string => filled($state)
+                            ? Str::limit(trim(strip_tags($state)), 100)
+                            : '—')
+                        ->size('sm')
+                        ->color('gray'),
 
-                TextColumn::make('semester.kode')
-                    ->label('Semester')
-                    ->placeholder('—'),
+                    TextColumn::make('semester.kode')
+                        ->label('Semester')
+                        ->placeholder('—')
+                        ->size('sm')
+                        ->color('gray'),
+                ])->space(1),
             ])
+            ->contentGrid(['md' => 2, 'xl' => 3])
+            ->paginated([6, 12, 24])
+            ->defaultPaginationPageOption(12)
+            ->filters([
+                static::semesterTerpilihFilter(
+                    fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
+                ),
+            ])
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(1)
+            ->deferFilters(false)
+            ->modifyQueryUsing(function (Builder $query): Builder {
+                $mkId = MkTerpilih::currentId();
+
+                if (! SemesterTerpilih::berlakuUntukUser()) {
+                    if (blank($mkId)) {
+                        return $query;
+                    }
+
+                    return $query->whereHas(
+                        'mkCpmk.cpmk',
+                        fn (Builder $cpmkQuery): Builder => $cpmkQuery->where('mk_id', $mkId),
+                    );
+                }
+
+                $semesterId = SemesterTerpilih::currentId($mkId);
+
+                if (blank($mkId) || blank($semesterId)) {
+                    return $query->whereRaw('1 = 0');
+                }
+
+                return $query
+                    ->where('semester_id', $semesterId)
+                    ->whereHas(
+                        'mkCpmk.cpmk',
+                        fn (Builder $cpmkQuery): Builder => $cpmkQuery->where('mk_id', $mkId),
+                    );
+            })
             ->recordActions([
                 EditAction::make(),
             ])

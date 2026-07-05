@@ -14,6 +14,8 @@ use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\EditMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Policies\MkUnitPolicy;
+use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -42,6 +44,8 @@ class MkUnitResource extends Resource
 
     protected static ?string $model = MkUnit::class;
 
+    protected static ?string $policy = MkUnitPolicy::class;
+
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedLink;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
@@ -62,14 +66,18 @@ class MkUnitResource extends Resource
             return false;
         }
 
+        return static::canAccess();
+    }
+
+    public static function canAccess(): bool
+    {
         $user = Auth::user();
 
-        // Penawaran/adaptasi MK hanya relevan di level prodi.
-        if ($user instanceof User && static::scopedTimKurikulumUnitIds()->isEmpty()) {
+        if ($user instanceof User && PenawaranMkScope::isKoordinatorMkOnly($user)) {
             return false;
         }
 
-        return parent::shouldRegisterNavigation();
+        return $user instanceof User && app(MkUnitPolicy::class)->viewAny($user);
     }
 
     /**
@@ -88,9 +96,22 @@ class MkUnitResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return static::scopeEloquentByTimKurikulumUnits(
-            parent::getEloquentQuery()->with(['mk.academicUnit', 'academicUnit']),
-        );
+        $query = parent::getEloquentQuery()->with(['mk.academicUnit', 'academicUnit']);
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        if (PenawaranMkScope::isKoordinatorMkOnly($user)) {
+            return PenawaranMkScope::penawaranMkQuery($user);
+        }
+
+        return static::scopeEloquentByTimKurikulumUnits($query);
     }
 
     /**
@@ -211,7 +232,8 @@ class MkUnitResource extends Resource
                     IconColumn::make('is_active')->label('Aktif')->boolean(),
                 ])
                 ->recordActions([
-                    EditAction::make(),
+                    EditAction::make()
+                        ->visible(fn (MkUnit $record): bool => auth()->user()?->can('update', $record) ?? false),
                 ]),
             fn (Builder $query, Kurikulum $kurikulum): Builder => $query
                 ->where('academic_unit_id', $kurikulum->academic_unit_id),

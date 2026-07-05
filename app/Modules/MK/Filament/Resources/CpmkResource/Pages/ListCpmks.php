@@ -4,6 +4,9 @@ namespace App\Modules\MK\Filament\Resources\CpmkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Services\CpmkCplPemetaanService;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
@@ -44,7 +47,19 @@ class ListCpmks extends ListRecords
      */
     protected function importContextComponents(): array
     {
+        $mkTerpilih = MkTerpilih::currentId();
         $mkOptions = CpmkResource::scopedKoordinatorMkOptions();
+
+        if (filled($mkTerpilih) && array_key_exists($mkTerpilih, $mkOptions)) {
+            return [
+                Select::make('import_mk_id')
+                    ->label('Mata kuliah')
+                    ->options([$mkTerpilih => $mkOptions[$mkTerpilih]])
+                    ->default($mkTerpilih)
+                    ->disabled()
+                    ->dehydrated(),
+            ];
+        }
 
         return [
             Select::make('import_mk_id')
@@ -61,12 +76,14 @@ class ListCpmks extends ListRecords
         return [
             ['key' => 'kode', 'label' => 'kode', 'wajib' => true],
             ['key' => 'deskripsi', 'label' => 'deskripsi', 'wajib' => true],
+            ['key' => 'kode_cpl_terpetakan', 'label' => 'kode CPL terpetakan', 'wajib' => false],
         ];
     }
 
     protected function importHelperNote(): string
     {
-        return 'Seluruh baris diimpor sebagai CPMK dari mata kuliah yang dipilih di atas.';
+        return 'Seluruh baris diimpor sebagai CPMK dari mata kuliah yang dipilih di atas. '
+            .'Kolom kode CPL terpetakan (opsional) langsung memetakan CPMK ke CPL bila CPL–MK sudah ada.';
     }
 
     /**
@@ -75,8 +92,8 @@ class ListCpmks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPMK-01|Mahasiswa memahami konsep dasar',
-            'CPMK-02|Mahasiswa mampu menganalisis masalah',
+            'CPMK-01|Mahasiswa memahami konsep dasar|CPL-01',
+            'CPMK-02|Mahasiswa mampu menganalisis masalah|',
         ];
     }
 
@@ -84,6 +101,17 @@ class ListCpmks extends ListRecords
     {
         if (blank($context['import_mk_id'] ?? null)) {
             return ['status' => 'invalid', 'keterangan' => 'Pilih mata kuliah terlebih dahulu.'];
+        }
+
+        if (filled($data['kode_cpl_terpetakan'] ?? null)) {
+            $validasi = CpmkCplPemetaanService::validasiKodeCplUntukMk(
+                $data['kode_cpl_terpetakan'],
+                (string) $context['import_mk_id'],
+            );
+
+            if (! $validasi['valid']) {
+                return ['status' => 'invalid', 'keterangan' => $validasi['keterangan']];
+            }
         }
 
         $existing = Cpmk::query()
@@ -105,11 +133,15 @@ class ListCpmks extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
-        Cpmk::query()->create([
+        $cpmk = Cpmk::query()->create([
             'mk_id' => $context['import_mk_id'],
             'kode' => $data['kode'],
             'deskripsi' => $data['deskripsi'],
         ]);
+
+        if (filled($data['kode_cpl_terpetakan'] ?? null)) {
+            CpmkCplPemetaanService::petakanCpmkKeCpl($cpmk, $data['kode_cpl_terpetakan']);
+        }
     }
 
     /**
@@ -118,8 +150,14 @@ class ListCpmks extends ListRecords
      */
     protected function updateImportRow(string $existingId, array $data, array $context): void
     {
-        Cpmk::query()->findOrFail($existingId)->update([
+        $cpmk = Cpmk::query()->findOrFail($existingId);
+
+        $cpmk->update([
             'deskripsi' => $data['deskripsi'],
         ]);
+
+        if (filled($data['kode_cpl_terpetakan'] ?? null)) {
+            CpmkCplPemetaanService::petakanCpmkKeCpl($cpmk, $data['kode_cpl_terpetakan']);
+        }
     }
 }

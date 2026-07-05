@@ -48,11 +48,33 @@ class AcademicUnitScope
             ->pluck('academic_unit_id');
 
         // Cek kepemilikan role Admin langsung (bukan role aktif switcher).
-        if (ActiveRole::userOwnsRoleName($user, 'Admin')) {
+        if (
+            ActiveRole::userOwnsRoleName($user, 'Admin')
+            || ActiveRole::userOwnsRoleName($user, 'Admin Program Studi')
+        ) {
             $unitIds = $unitIds->merge(static::managedUnitIdsFor($user));
         }
 
         return $unitIds->unique()->values();
+    }
+
+    /**
+     * Unit tempat user berstatus tim kurikulum pada pivot (tanpa merge Admin).
+     *
+     * @return Collection<int, string>
+     */
+    public static function timKurikulumPivotUnitIdsFor(User $user): Collection
+    {
+        if ($user->hasRole('Super Admin')) {
+            return AcademicUnit::query()->pluck('id');
+        }
+
+        return AcademicUnitUser::query()
+            ->where('user_id', $user->id)
+            ->where('status_tim_kurikulum', true)
+            ->pluck('academic_unit_id')
+            ->unique()
+            ->values();
     }
 
     /**

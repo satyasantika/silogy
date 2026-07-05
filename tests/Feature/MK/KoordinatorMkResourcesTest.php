@@ -8,6 +8,8 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\CreateSubcpmk;
 use App\Modules\MK\Models\Cpmk;
@@ -15,6 +17,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
 use App\Modules\Penilaian\Models\Evaluasi;
@@ -65,10 +68,19 @@ beforeEach(function () {
         'mk_id' => $this->mk->id,
         'bobot' => 100,
     ]);
+
+    $this->kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Korma Resource',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    KurikulumTerpilih::set($this->kurikulum->id);
 });
 
 it('korma dapat membuat cpmk subcpmk dan komponen penilaian', function () {
     $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
 
     Livewire::test(CreateCpmk::class)
         ->fillForm([
@@ -121,8 +133,9 @@ it('dosen pengampu tidak melihat menu komponen penilaian', function () {
     expect(KomponenPenilaianResource::shouldRegisterNavigation())->toBeFalse();
 });
 
-it('korma melihat menu komponen penilaian', function () {
+it('korma melihat menu komponen penilaian setelah mk dipilih', function () {
     $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
 
     expect(KomponenPenilaianResource::shouldRegisterNavigation())->toBeTrue();
 });

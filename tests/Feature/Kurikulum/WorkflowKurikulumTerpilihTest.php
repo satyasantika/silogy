@@ -89,6 +89,14 @@ it('menu profil lulusan hanya tampil bila kurikulum terpilih milik prodi', funct
     expect(ProfilLulusanResource::shouldRegisterNavigation())->toBeFalse();
 });
 
+it('admin prodi tidak melihat menu profil lulusan', function () {
+    $this->actingAs(User::query()->where('username', 'adminprodi')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    expect(ProfilLulusanResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(ProfilLulusanResource::canAccess())->toBeFalse();
+});
+
 it('daftar kurikulum menampilkan record dan ketersediaan menu', function () {
     $this->actingAs(User::query()->where('username', 'superadmin')->firstOrFail());
 
@@ -99,7 +107,7 @@ it('daftar kurikulum menampilkan record dan ketersediaan menu', function () {
         ->assertSee('CPL ·');
 });
 
-it('filter kurikulum diterapkan otomatis saat dipilih tanpa tombol terapkan', function () {
+it('scope kurikulum terpilih diterapkan otomatis pada daftar cpl', function () {
     $this->actingAs(User::query()->where('username', 'dosentimkur')->firstOrFail());
 
     $cplProdi = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-AUTO-PRODI']);
@@ -110,12 +118,32 @@ it('filter kurikulum diterapkan otomatis saat dipilih tanpa tombol terapkan', fu
     Livewire::test(ListCpls::class)
         ->loadTable()
         ->assertCanSeeTableRecords([$cplProdi])
-        ->assertCanNotSeeTableRecords([$cplFak])
-        ->filterTable('kurikulum_terpilih', $this->kurikulumFak->id)
+        ->assertCanNotSeeTableRecords([$cplFak]);
+
+    KurikulumTerpilih::set($this->kurikulumFak->id);
+
+    Livewire::test(ListCpls::class)
+        ->loadTable()
         ->assertCanNotSeeTableRecords([$cplProdi])
         ->assertCanSeeTableRecords([$cplFak]);
 
     expect(KurikulumTerpilih::currentId())->toBe($this->kurikulumFak->id);
+});
+
+it('banner kurikulum terpilih menampilkan hierarki unit', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $this->prodi->loadMissing('parent.parent');
+    $hierarchy = KurikulumTerpilih::unitHierarchyLabel($this->prodi);
+
+    $html = KurikulumTerpilih::bannerHtml()->toHtml();
+
+    expect($html)
+        ->toContain('Kurikulum terpilih:')
+        ->toContain('Kurikulum Prodi 2026')
+        ->toContain('Ganti')
+        ->toContain($hierarchy);
 });
 
 it('ketersediaan menu kurikulum menampilkan status ada atau belum', function () {
