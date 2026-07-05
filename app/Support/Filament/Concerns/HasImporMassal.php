@@ -96,26 +96,195 @@ trait HasImporMassal
         return '';
     }
 
-    protected function importColumnsHelperText(): string
+    /**
+     * Poin petunjuk tambahan khusus entitas (contoh, catatan domain, dll.).
+     *
+     * @return list<string>
+     */
+    protected function importInstructionsExtra(): array
     {
-        $cols = collect($this->importColumns());
+        return [];
+    }
 
-        $teks = 'Satu baris per data, urutan kolom: '
-            .$cols->pluck('label')->join(' | ')
-            .'. Pemisah kolom: tab (hasil copy dari Excel) atau karakter |.'
-            .' Kolom wajib diisi: '.$cols->where('wajib', true)->pluck('label')->join(', ').'.';
+    /**
+     * Definisi kolom impor; override dengan konteks bila kolom bergantung pilihan form (mis. kurikulum).
+     *
+     * @param  array<string, mixed>  $context
+     * @return list<array{key: string, label: string, wajib: bool}>
+     */
+    protected function importColumnsForContext(array $context = []): array
+    {
+        return $this->importColumns();
+    }
 
-        $opsional = $cols->where('wajib', false)->pluck('label');
+    /**
+     * @param  array<string, mixed>  $context
+     * @return list<string>
+     */
+    protected function importInstructionsExtraForContext(array $context = []): array
+    {
+        return $this->importInstructionsExtra();
+    }
 
-        if ($opsional->isNotEmpty()) {
-            $teks .= ' Kolom opsional boleh dikosongkan: '.$opsional->join(', ').'.';
+    /**
+     * @param  array<string, mixed>  $context
+     * @return list<string>
+     */
+    protected function importExampleRowsForContext(array $context = []): array
+    {
+        return $this->importExampleRows();
+    }
+
+    /**
+     * Baris contoh siap tempel (pisah | atau tab sesuai petunjuk).
+     *
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    protected function renderImportExampleHtml(array $context = []): ?HtmlString
+    {
+        $rows = $this->importExampleRowsForContext($context);
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $content = collect($rows)
+            ->map(fn (string $row): string => e($row))
+            ->join("\n");
+
+        return new HtmlString(
+            '<div class="mt-3 border-t border-primary-600/20 pt-3 dark:border-primary-500/20">'
+            .'<p class="mb-1.5 text-xs font-semibold uppercase tracking-wide opacity-80">Contoh data (salin-tempel)</p>'
+            .'<pre class="overflow-x-auto rounded-md border border-gray-200 bg-white/80 p-3 font-mono text-xs leading-relaxed text-gray-800 dark:border-white/10 dark:bg-black/20 dark:text-gray-100">'
+            .$content
+            .'</pre>'
+            .'</div>'
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return list<string|HtmlString>
+     */
+    protected function importInstructionsList(array $context = []): array
+    {
+        $items = [
+            'Satu baris = satu record.',
+            'Pemisah kolom: tab (hasil copy dari Excel) atau karakter |.',
+            new HtmlString($this->renderImportUrutanKolomHtml($context)),
+            new HtmlString($this->renderImportKolomWajibHtml($context)),
+        ];
+
+        $opsional = $this->renderImportKolomOpsionalHtml($context);
+
+        if ($opsional !== null) {
+            $items[] = new HtmlString($opsional);
+        }
+
+        foreach ($this->importInstructionsExtraForContext($context) as $extra) {
+            $items[] = $extra;
         }
 
         if ($this->importHelperNote() !== '') {
-            $teks .= ' '.$this->importHelperNote();
+            $items[] = $this->importHelperNote();
         }
 
-        return $teks;
+        return $items;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    protected function renderImportUrutanKolomHtml(array $context = []): string
+    {
+        $urutan = collect($this->importColumnsForContext($context))
+            ->map(function (array $col): string {
+                $label = e($col['label']);
+
+                if ($col['wajib']) {
+                    return '<span style="color:#b45309;font-weight:600;">'.$label.'</span>';
+                }
+
+                return '<span style="color:#2563eb;">'.$label.'</span>';
+            })
+            ->join(' <span style="opacity:.45;">→</span> ');
+
+        return 'Urutan kolom: '.$urutan.'.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    protected function renderImportKolomWajibHtml(array $context = []): string
+    {
+        $wajib = collect($this->importColumnsForContext($context))
+            ->where('wajib', true)
+            ->pluck('label')
+            ->map(fn (string $label): string => '<span style="color:#b45309;font-weight:600;">'.e($label).'</span>')
+            ->join(', ');
+
+        return 'Kolom wajib: '.$wajib.'.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    protected function renderImportKolomOpsionalHtml(array $context = []): ?string
+    {
+        $opsional = collect($this->importColumnsForContext($context))
+            ->where('wajib', false)
+            ->pluck('label')
+            ->map(fn (string $label): string => '<span style="color:#2563eb;">'.e($label).'</span>')
+            ->join(', ');
+
+        if ($opsional === '') {
+            return null;
+        }
+
+        return 'Kolom opsional: '.$opsional.'.';
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    protected function renderImportGuideBox(array $context = []): HtmlString
+    {
+        $list = collect($this->importInstructionsList($context))
+            ->map(function (string|HtmlString $item): string {
+                $content = $item instanceof HtmlString ? $item->toHtml() : e($item);
+
+                return '<li>'.$content.'</li>';
+            })
+            ->join('');
+
+        return new HtmlString(
+            '<div class="rounded-lg border border-primary-600/30 bg-primary-50 p-4 text-sm text-gray-700 dark:border-primary-500/30 dark:bg-primary-950/40 dark:text-gray-200">'
+            .'<p class="mb-2 font-semibold">Petunjuk tempel data</p>'
+            .'<p class="mb-2 text-xs opacity-80">'
+            .'<span style="color:#b45309;font-weight:600;">Oranye</span> = kolom wajib · '
+            .'<span style="color:#2563eb;">Biru</span> = kolom opsional'
+            .'</p>'
+            .'<ul class="list-disc space-y-1 ps-5">'.$list.'</ul>'
+            .($this->renderImportExampleHtml($context)?->toHtml() ?? '')
+            .'</div>'
+        );
+    }
+
+    protected function importColumnsHelperText(): string
+    {
+        if ($this->importExampleRows() !== []) {
+            return 'Tempel baris data di bawah petunjuk (contoh siap salin ada di kotak petunjuk). Pratinjau tersedia pada langkah berikutnya.';
+        }
+
+        return 'Tempel baris data di bawah petunjuk. Pratinjau tersedia pada langkah berikutnya.';
     }
 
     /**
@@ -124,7 +293,7 @@ trait HasImporMassal
      */
     public function parseImportRaw(string $raw, array $context = []): array
     {
-        $columns = $this->importColumns();
+        $columns = $this->importColumnsForContext($context);
         $lines = preg_split('/\r\n|\r|\n/', trim($raw)) ?: [];
 
         $rows = [];
@@ -209,7 +378,7 @@ trait HasImporMassal
 
         $jumlah = ['baru' => 0, 'duplikat' => 0, 'invalid' => 0];
         $body = '';
-        $columns = $this->importColumns();
+        $columns = $this->importColumnsForContext($context);
 
         foreach ($rows as $row) {
             $jumlah[$row['status']]++;
@@ -291,6 +460,9 @@ trait HasImporMassal
                         ->icon(Heroicon::OutlinedClipboard)
                         ->schema([
                             ...$this->importContextComponents(),
+                            Placeholder::make('import_petunjuk')
+                                ->hiddenLabel()
+                                ->content(fn (Get $get): HtmlString => $this->renderImportGuideBox($contextFromGet($get))),
                             Textarea::make('rows')
                                 ->label('Data yang ditempel')
                                 ->required()
