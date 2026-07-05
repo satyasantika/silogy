@@ -4,6 +4,7 @@ namespace App\Modules\Kurikulum\Filament\Support\Concerns;
 
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\Layout\Component as LayoutComponent;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Enums\FiltersLayout;
@@ -11,6 +12,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * Filter "Kurikulum" yang selalu tampil di atas tabel (Profil, CPL, BoK,
@@ -29,6 +31,27 @@ trait HasKurikulumTerpilihFilter
         return $table
             ->filters([
                 static::kurikulumTerpilihFilter($applyScope),
+            ])
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(1)
+            ->deferFilters(false);
+    }
+
+    /**
+     * Filter kurikulum + filter tambahan (mis. semester/MK pada Kelas MK).
+     *
+     * @param  array<int, \Filament\Tables\Filters\BaseFilter>  $extraFilters
+     * @param  callable(Builder<Model>, Kurikulum): Builder<Model>  $applyScope
+     */
+    protected static function applyKurikulumTerpilihTableWithExtraFilters(
+        Table $table,
+        callable $applyScope,
+        array $extraFilters = [],
+    ): Table {
+        return $table
+            ->filters([
+                static::kurikulumTerpilihFilter($applyScope),
+                ...$extraFilters,
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormColumns(1)
@@ -69,13 +92,31 @@ trait HasKurikulumTerpilihFilter
     {
         return SelectFilter::make('kurikulum_terpilih')
             ->label('Kurikulum')
-            ->options(fn (): array => KurikulumTerpilih::options())
-            ->default(fn (): ?string => KurikulumTerpilih::currentId())
+            ->default(fn (): ?string => static::resolveKurikulumFilterState())
             ->selectablePlaceholder(false)
-            ->searchable()
             ->columnSpanFull()
+            ->schema([
+                Select::make('value')
+                    ->label('Kurikulum')
+                    ->options(fn (): array => static::resolveKurikulumFilterOptions())
+                    ->default(fn (): ?string => static::resolveKurikulumFilterState())
+                    ->selectablePlaceholder(false)
+                    ->native(true)
+                    ->searchable(false)
+                    ->live()
+                    ->afterStateHydrated(function (Select $component, $state): void {
+                        $resolved = static::resolveKurikulumFilterState($state);
+
+                        if (blank($resolved)) {
+                            return;
+                        }
+
+                        $component->state($resolved);
+                        KurikulumTerpilih::set($resolved);
+                    }),
+            ])
             ->query(function (Builder $query, array $data) use ($applyScope): Builder {
-                $id = $data['value'] ?? null;
+                $id = static::resolveKurikulumFilterId($data);
 
                 if (blank($id)) {
                     return $query;
@@ -93,7 +134,7 @@ trait HasKurikulumTerpilihFilter
                 return $applyScope($query, $kurikulum);
             })
             ->indicateUsing(function (array $data): ?string {
-                $id = $data['value'] ?? null;
+                $id = static::resolveKurikulumFilterId($data);
 
                 if (blank($id)) {
                     return null;
@@ -103,5 +144,60 @@ trait HasKurikulumTerpilihFilter
 
                 return $kurikulum ? 'Kurikulum: '.KurikulumTerpilih::label($kurikulum) : null;
             });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected static function resolveKurikulumFilterId(array $data): ?string
+    {
+        return static::resolveKurikulumFilterState($data['value'] ?? null);
+    }
+
+    /**
+     * Unit pemilik opsi kurikulum; null = ikuti scope default KurikulumTerpilih.
+     *
+     * @return Collection<int, string>|null
+     */
+    protected static function kurikulumTerpilihFilterUnitIds(): ?Collection
+    {
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function resolveKurikulumFilterOptions(): array
+    {
+        $unitIds = static::kurikulumTerpilihFilterUnitIds();
+
+        if ($unitIds instanceof Collection) {
+            return KurikulumTerpilih::optionsForUnits($unitIds);
+        }
+
+        return KurikulumTerpilih::options();
+    }
+
+    protected static function resolveKurikulumFilterState(mixed $state = null): ?string
+    {
+        $options = static::resolveKurikulumFilterOptions();
+
+        if ($options === []) {
+            return null;
+        }
+
+        $candidate = filled($state) ? (string) $state : KurikulumTerpilih::currentId();
+
+        if (filled($candidate) && array_key_exists($candidate, $options)) {
+            return $candidate;
+        }
+
+        $defaultId = KurikulumTerpilih::currentId();
+
+        if (filled($defaultId) && array_key_exists($defaultId, $options)) {
+            return $defaultId;
+        }
+
+        return (string) array_key_first($options);
     }
 }

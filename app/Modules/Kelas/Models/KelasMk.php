@@ -74,6 +74,28 @@ class KelasMk extends Model
     }
 
     /**
+     * Penugasan dianggap selesai ketika koordinator MK sudah menyusun
+     * komponen penilaian dengan total bobot 100% dan setiap komponen
+     * terpetakan ke minimal satu Sub-CPMK — prasyarat dosen menilai.
+     */
+    public function penugasanSelesai(): bool
+    {
+        $komponens = $this->komponenPenilaians()->withCount('subcpmkKomponens')->get();
+
+        if ($komponens->isEmpty()) {
+            return false;
+        }
+
+        if ((float) $komponens->sum('bobot') !== 100.0) {
+            return false;
+        }
+
+        return $komponens->every(
+            fn ($komponen): bool => $komponen->subcpmk_komponens_count > 0,
+        );
+    }
+
+    /**
      * @return HasMany<KomponenPenilaian, $this>
      */
     public function komponenPenilaians(): HasMany

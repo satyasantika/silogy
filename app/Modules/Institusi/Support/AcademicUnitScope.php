@@ -3,6 +3,7 @@
 namespace App\Modules\Institusi\Support;
 
 use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use Illuminate\Support\Collection;
@@ -46,7 +47,8 @@ class AcademicUnitScope
             ->where('status_tim_kurikulum', true)
             ->pluck('academic_unit_id');
 
-        if ($user->hasRole('Admin')) {
+        // Cek kepemilikan role Admin langsung (bukan role aktif switcher).
+        if (ActiveRole::userOwnsRoleName($user, 'Admin')) {
             $unitIds = $unitIds->merge(static::managedUnitIdsFor($user));
         }
 
@@ -123,6 +125,32 @@ class AcademicUnitScope
             ->where('academic_unit_id', $unit->id)
             ->where('status_tim_kurikulum', true)
             ->exists();
+    }
+
+    /**
+     * Unit prodi tempat user boleh mengelola penawaran MK (`mk_units`).
+     * Hanya penugasan langsung pada program studi — tim kurikulum
+     * fakultas/universitas tidak termasuk; Admin prodi tetap termasuk.
+     *
+     * @return Collection<int, string>
+     */
+    public static function scopedMkUnitProdiIdsFor(User $user): Collection
+    {
+        if ($user->hasRole('Super Admin')) {
+            return AcademicUnit::query()
+                ->where('type', 'study_program')
+                ->pluck('id');
+        }
+
+        $query = AcademicUnitUser::query()
+            ->where('user_id', $user->id)
+            ->whereHas('academicUnit', fn ($builder) => $builder->where('type', 'study_program'));
+
+        if (! $user->hasRole('Admin')) {
+            $query->where('status_tim_kurikulum', true);
+        }
+
+        return $query->pluck('academic_unit_id')->unique()->values();
     }
 
     /**

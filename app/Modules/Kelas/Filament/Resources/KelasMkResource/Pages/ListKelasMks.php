@@ -5,7 +5,9 @@ namespace App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages;
 use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource;
+use App\Modules\Kelas\Filament\Support\Concerns\HasSetBanyakKelasMk;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\MkUnit;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
@@ -17,12 +19,28 @@ use Filament\Schemas\Components\Component;
 class ListKelasMks extends ListRecords
 {
     use HasImporMassal;
+    use HasSetBanyakKelasMk;
 
     protected static string $resource = KelasMkResource::class;
+
+    protected function kurikulumIdUntukSetBanyakKelas(): ?string
+    {
+        $fromFilter = $this->tableFilters['kurikulum_terpilih']['value'] ?? null;
+
+        if (filled($fromFilter)) {
+            KurikulumTerpilih::set((string) $fromFilter);
+
+            return (string) $fromFilter;
+        }
+
+        return KurikulumTerpilih::currentId();
+    }
 
     protected function getHeaderActions(): array
     {
         return [
+            $this->makeSetBanyakKelasAction()
+                ->visible(fn (): bool => KelasMkResource::canCreate()),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => KelasMkResource::canCreate()),
             CreateAction::make(),
@@ -71,6 +89,17 @@ class ListKelasMks extends ListRecords
     {
         return 'Kode penawaran MK = kode pada menu Penawaran MK di unit Anda. '
             .'Koordinator kosong akan diisi otomatis dari koordinator MK.';
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'ADP101|A|dosen|',
+            'ADP101|B|dosen|',
+        ];
     }
 
     protected function resolveImportRow(array $data, array $context): array

@@ -28,7 +28,6 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,9 +44,11 @@ class KelasMkResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Kelas';
+    protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 7;
+
+    protected static ?string $navigationLabel = 'Kelas MK';
 
     protected static ?string $modelLabel = 'kelas MK';
 
@@ -55,25 +56,26 @@ class KelasMkResource extends Resource
 
     protected static ?string $slug = 'kelas-mks';
 
+    /**
+     * Kelas MK difilter menurut kurikulum unit yang dapat dikelola user.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    protected static function kurikulumTerpilihFilterUnitIds(): ?\Illuminate\Support\Collection
+    {
+        return static::scopedAccessibleUnitIds();
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
-        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
-            return false;
-        }
+        return static::canAccess() && ! DelegasiMenu::sembunyikanDariSuperAdmin();
+    }
 
+    public static function canAccess(): bool
+    {
         $user = Auth::user();
 
-        // Kelas MK dikelola paling jauh di level prodi: Admin/Tim Kurikulum
-        // tanpa penugasan langsung pada prodi tidak melihat menu ini
-        // (dosen tetap melihat kelas miliknya sendiri).
-        if ($user instanceof User
-            && $user->hasAnyRole(['Admin', 'Tim Kurikulum'])
-            && ! $user->hasRole('Dosen Pengampu')
-            && ! AcademicUnitScope::userHasPivotOnUnitType($user, 'study_program')) {
-            return false;
-        }
-
-        return parent::shouldRegisterNavigation();
+        return $user instanceof User && app(KelasMkPolicy::class)->viewAny($user);
     }
 
     public static function getEloquentQuery(): Builder
@@ -143,6 +145,8 @@ class KelasMkResource extends Resource
 
                         Select::make('semester_id')
                             ->label('Semester')
+                            ->disabled(fn (): bool => ! static::bolehKelolaStrukturKelas())
+                            ->dehydrated(fn (): bool => static::bolehKelolaStrukturKelas())
                             ->relationship(
                                 'semester',
                                 'nama',
@@ -155,6 +159,8 @@ class KelasMkResource extends Resource
 
                         Select::make('kode_kelas')
                             ->label('Kode kelas')
+                            ->disabled(fn (): bool => ! static::bolehKelolaStrukturKelas())
+                            ->dehydrated(fn (): bool => static::bolehKelolaStrukturKelas())
                             ->options(static::kodeKelasOptions())
                             ->required()
                             ->searchable(),
@@ -167,8 +173,8 @@ class KelasMkResource extends Resource
                             ))
                             ->searchable()
                             ->nullable()
-                            ->disabled(fn (): bool => ! static::canAssignDosenPengampu())
-                            ->dehydrated(fn (): bool => static::canAssignDosenPengampu()),
+                            ->disabled(fn (?KelasMk $record): bool => ! static::bolehSetDosen($record))
+                            ->dehydrated(fn (?KelasMk $record): bool => static::bolehSetDosen($record)),
 
                         Select::make('koordinator_mk_id')
                             ->label('Koordinator MK')
@@ -190,44 +196,50 @@ class KelasMkResource extends Resource
     {
         $accessibleUnitIds = static::scopedAccessibleUnitIds();
 
-        return $table
-            ->columns([
-                TextColumn::make('mkUnit.mk.nama')
-                    ->label('Mata kuliah')
-                    ->searchable(query: function (Builder $query, string $search): Builder {
-                        return $query->whereHas(
-                            'mkUnit.mk',
-                            fn (Builder $mkQuery): Builder => $mkQuery->where('nama', 'like', "%{$search}%"),
-                        );
-                    })
-                    ->sortable(),
+        return static::applyKurikulumTerpilihTableWithExtraFilters(
+            $table
+                ->columns([
+                    TextColumn::make('mkUnit.mk.nama')
+                        ->label('Mata kuliah')
+                        ->searchable(query: function (Builder $query, string $search): Builder {
+                            return $query->whereHas(
+                                'mkUnit.mk',
+                                fn (Builder $mkQuery): Builder => $mkQuery->where('nama', 'like', "%{$search}%"),
+                            );
+                        })
+                        ->sortable(),
 
-                TextColumn::make('kode_kelas')
-                    ->label('Kelas')
-                    ->sortable(),
+                    TextColumn::make('kode_kelas')
+                        ->label('Kelas')
+                        ->sortable(),
 
-                TextColumn::make('semester.kode')
-                    ->label('Semester')
-                    ->sortable(),
+                    TextColumn::make('semester.kode')
+                        ->label('Semester')
+                        ->sortable(),
 
-                TextColumn::make('dosenPengampu.full_name')
-                    ->label('Dosen pengampu')
-                    ->placeholder('—')
-                    ->sortable(),
+                    TextColumn::make('dosenPengampu.full_name')
+                        ->label('Dosen pengampu')
+                        ->placeholder('—')
+                        ->sortable(),
 
-                TextColumn::make('koordinatorMk.full_name')
-                    ->label('Koordinator MK')
-                    ->placeholder('—')
-                    ->sortable(),
-            ])
-            ->filters([
-                static::kurikulumTerpilihFilter(
-                    fn (Builder $query, Kurikulum $kurikulum): Builder => $query->whereHas(
-                        'mkUnit',
-                        fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
-                            ->where('academic_unit_id', $kurikulum->academic_unit_id),
-                    ),
-                ),
+                    TextColumn::make('koordinatorMk.full_name')
+                        ->label('Koordinator MK')
+                        ->placeholder('—')
+                        ->sortable(),
+                ])
+                ->recordUrl(fn (KelasMk $record): string => static::getUrl('edit', ['record' => $record]))
+                ->recordActions([])
+                ->toolbarActions([
+                    BulkActionGroup::make([
+                        DeleteBulkAction::make(),
+                    ]),
+                ]),
+            fn (Builder $query, Kurikulum $kurikulum): Builder => $query->whereHas(
+                'mkUnit',
+                fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
+                    ->where('academic_unit_id', $kurikulum->academic_unit_id),
+            ),
+            [
                 SelectFilter::make('semester_id')
                     ->label('Semester')
                     ->relationship('semester', 'nama')
@@ -276,17 +288,8 @@ class KelasMkResource extends Resource
                     })
                     ->visible($accessibleUnitIds->count() > 1)
                     ->columnSpanFull(),
-            ])
-            ->filtersLayout(FiltersLayout::AboveContent)
-            ->filtersFormColumns(2)
-            ->deferFilters(false)
-            ->recordUrl(fn (KelasMk $record): string => static::getUrl('edit', ['record' => $record]))
-            ->recordActions([])
-            ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
-            ]);
+            ],
+        );
     }
 
     public static function getRelations(): array
@@ -303,6 +306,31 @@ class KelasMkResource extends Resource
             'create' => CreateKelasMk::route('/create'),
             'edit' => EditKelasMk::route('/{record}/edit'),
         ];
+    }
+
+    /** Field struktur kelas hanya diubah Admin (prodi) / Super Admin. */
+    public static function bolehKelolaStrukturKelas(): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof User
+            && ($user->hasRole('Super Admin') || $user->hasRole('Admin'));
+    }
+
+    /** Penetapan dosen per kelas: Admin prodi atau Koordinator MK kelas tsb. */
+    public static function bolehSetDosen(?KelasMk $record): bool
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($record === null) {
+            return static::canAssignDosenPengampu();
+        }
+
+        return app(KelasMkPolicy::class)->assignDosenPengampu($user, $record);
     }
 
     protected static function canAssignDosenPengampu(): bool

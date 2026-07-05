@@ -47,9 +47,17 @@ it('admin prodi dapat membuat dan mengelola kelas di prodinya', function () {
     $adminProdi = User::where('username', 'adminprodi')->first();
     $kelas = createKelasMkForProdi($this->prodi);
 
-    expect($this->policy->create($adminProdi))->toBeTrue()
+    expect($this->policy->viewAny($adminProdi))->toBeTrue()
+        ->and($this->policy->create($adminProdi))->toBeTrue()
         ->and($this->policy->update($adminProdi, $kelas))->toBeTrue()
         ->and($this->policy->assignDosenPengampu($adminProdi, $kelas))->toBeTrue();
+});
+
+it('admin non-prodi tidak melihat daftar kelas mk', function () {
+    $adminFak = User::where('username', 'adminfak')->first();
+
+    expect($this->policy->viewAny($adminFak))->toBeFalse()
+        ->and($this->policy->create($adminFak))->toBeFalse();
 });
 
 it('dosen pengampu hanya dapat mengelola kelas yang ditugaskan kepadanya', function () {

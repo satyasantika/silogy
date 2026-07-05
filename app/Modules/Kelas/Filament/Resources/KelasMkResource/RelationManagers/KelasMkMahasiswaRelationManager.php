@@ -2,8 +2,10 @@
 
 namespace App\Modules\Kelas\Filament\Resources\KelasMkResource\RelationManagers;
 
+use App\Models\User;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\AttachAction;
@@ -13,6 +15,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class KelasMkMahasiswaRelationManager extends RelationManager
 {
@@ -23,6 +26,19 @@ class KelasMkMahasiswaRelationManager extends RelationManager
     protected static ?string $title = 'Mahasiswa Terdaftar';
 
     protected static ?string $modelLabel = 'mahasiswa';
+
+    /**
+     * Akses ditentukan policy kelas MK (termasuk dosen pengampu kelas ini),
+     * bukan policy modul Mahasiswa.
+     */
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User
+            && $ownerRecord instanceof KelasMk
+            && app(KelasMkPolicy::class)->view($user, $ownerRecord);
+    }
 
     public function table(Table $table): Table
     {
@@ -47,9 +63,10 @@ class KelasMkMahasiswaRelationManager extends RelationManager
             ->headerActions([
                 $this->makeImporMassalAction()
                     ->label('Impor NIM massal')
-                    ->visible(fn (): bool => $this->canAttach()),
+                    ->visible(fn (): bool => $this->bolehKelolaMahasiswa()),
                 AttachAction::make()
                     ->label('Daftarkan mahasiswa')
+                    ->visible(fn (): bool => $this->bolehKelolaMahasiswa())
                     ->multiple()
                     ->preloadRecordSelect()
                     ->recordSelectOptionsQuery(function (Builder $query): Builder {
@@ -70,12 +87,28 @@ class KelasMkMahasiswaRelationManager extends RelationManager
             ])
             ->recordActions([
                 DetachAction::make()
-                    ->label('Batalkan pendaftaran'),
+                    ->label('Batalkan pendaftaran')
+                    ->visible(fn (): bool => $this->bolehKelolaMahasiswa()),
             ])
             ->toolbarActions([
                 DetachBulkAction::make()
                     ->label('Batalkan pendaftaran terpilih'),
             ]);
+    }
+
+    /** Pendaftaran mahasiswa: Dosen Pengampu kelas ini atau Admin prodi. */
+    protected function bolehKelolaMahasiswa(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        /** @var KelasMk $kelas */
+        $kelas = $this->getOwnerRecord();
+
+        return app(KelasMkPolicy::class)->kelolaMahasiswa($user, $kelas);
     }
 
     protected function importModalHeading(): string
@@ -96,6 +129,17 @@ class KelasMkMahasiswaRelationManager extends RelationManager
             .'pada program studi pemilik penawaran kelas ini.';
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            '227000001',
+            '227000002',
+        ];
+    }
+
     protected function importSupportsOverwrite(): bool
     {
         return false;
@@ -103,6 +147,7 @@ class KelasMkMahasiswaRelationManager extends RelationManager
 
     protected function resolveImportRow(array $data, array $context): array
     {
+        /** @var KelasMk $kelas */
         $kelas = $this->getOwnerRecord();
         $kelas->loadMissing('mkUnit');
 
@@ -134,6 +179,7 @@ class KelasMkMahasiswaRelationManager extends RelationManager
 
     protected function createImportRow(array $data, array $context): void
     {
+        /** @var KelasMk $kelas */
         $kelas = $this->getOwnerRecord();
         $kelas->loadMissing('mkUnit');
 

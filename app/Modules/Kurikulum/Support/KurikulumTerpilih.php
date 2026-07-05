@@ -3,6 +3,7 @@
 namespace App\Modules\Kurikulum\Support;
 
 use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Eloquent\Builder;
@@ -95,8 +96,24 @@ class KurikulumTerpilih
             return [];
         }
 
-        return static::scopedQuery($user)
+        return static::optionsForUnits(static::scopedUnitIds($user));
+    }
+
+    /**
+     * Opsi kurikulum untuk unit tertentu (mis. scope Kelas MK).
+     *
+     * @param  Collection<int, string>  $unitIds
+     * @return array<string, string>
+     */
+    public static function optionsForUnits(Collection $unitIds): array
+    {
+        if ($unitIds->isEmpty()) {
+            return [];
+        }
+
+        return Kurikulum::query()
             ->with('academicUnit')
+            ->whereIn('academic_unit_id', $unitIds)
             ->orderBy('nama')
             ->get()
             ->mapWithKeys(fn (Kurikulum $kurikulum): array => [
@@ -138,8 +155,14 @@ class KurikulumTerpilih
      */
     protected static function scopedUnitIds(User $user): Collection
     {
-        // Hanya unit tempat user berstatus tim kurikulum — timkur fakultas
-        // mengerjakan kurikulum fakultasnya, bukan kurikulum prodi di bawahnya.
-        return AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->values();
+        // Tim kurikulum + Admin (unit penugasan) via scopedTimKurikulumUnitIdsFor.
+        $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user);
+
+        // Koordinator MK mengelola kelas per prodi — perlu melihat kurikulum unit penugasan.
+        if (ActiveRole::userOwnsRoleName($user, 'Koordinator Mata Kuliah')) {
+            $unitIds = $unitIds->merge(AcademicUnitScope::managedUnitIdsFor($user));
+        }
+
+        return $unitIds->unique()->values();
     }
 }
