@@ -13,7 +13,8 @@ class EditBok extends BaseSimpleEditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->visible(fn (): bool => $this->getRecord()->belumDiinteraksikan()),
         ];
     }
 }

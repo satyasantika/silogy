@@ -69,9 +69,29 @@ class ListBoks extends ListRecords
         ];
     }
 
+    protected function importInstructionsExtra(): array
+    {
+        return [
+            'Satu baris = satu bahan kajian (BoK) pada unit kurikulum yang dipilih di atas.',
+            'Kode CPL terpetakan boleh lebih dari satu; pisahkan dengan titik koma (;), mis. CPL-01;CPL-02.',
+            'Setiap kode CPL harus sudah ada pada unit yang sama sebelum impor.',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'BOK-01|Aljabar|Dasar aljabar linear|CPL-01;CPL-02',
+            'BOK-02|Statistik||',
+        ];
+    }
+
     protected function importHelperNote(): string
     {
-        return 'Bila kode CPL diisi, BoK langsung dipetakan ke CPL tersebut (CPL harus sudah ada di unit yang sama).';
+        return '';
     }
 
     protected function resolveImportRow(array $data, array $context): array
@@ -83,13 +103,10 @@ class ListBoks extends ListRecords
         }
 
         if ($data['kode_cpl'] !== '') {
-            $cplAda = Cpl::query()
-                ->where('academic_unit_id', $unitId)
-                ->where('kode', $data['kode_cpl'])
-                ->exists();
+            $pesanInvalid = $this->validasiKodeCpl($data['kode_cpl'], $unitId);
 
-            if (! $cplAda) {
-                return ['status' => 'invalid', 'keterangan' => "CPL '{$data['kode_cpl']}' tidak ditemukan pada unit ini."];
+            if ($pesanInvalid !== null) {
+                return ['status' => 'invalid', 'keterangan' => $pesanInvalid];
             }
         }
 
@@ -145,21 +162,64 @@ class ListBoks extends ListRecords
      */
     protected function petakanCpl(Bok $bok, array $data, array $context): void
     {
-        if ($data['kode_cpl'] === '') {
+        $unitId = $this->unitIdDariKonteks($context);
+
+        if (blank($unitId)) {
             return;
         }
 
-        $cpl = Cpl::query()
-            ->where('academic_unit_id', $this->unitIdDariKonteks($context))
-            ->where('kode', $data['kode_cpl'])
-            ->first();
+        foreach ($this->kodeCplDariBaris($data['kode_cpl']) as $kodeCpl) {
+            $cpl = Cpl::query()
+                ->where('academic_unit_id', $unitId)
+                ->where('kode', $kodeCpl)
+                ->first();
 
-        if ($cpl) {
-            CplBok::query()->firstOrCreate(
-                ['cpl_id' => $cpl->id, 'bok_id' => $bok->id],
-                ['id' => (string) Str::uuid()],
-            );
+            if ($cpl) {
+                CplBok::query()->firstOrCreate(
+                    ['cpl_id' => $cpl->id, 'bok_id' => $bok->id],
+                    ['id' => (string) Str::uuid()],
+                );
+            }
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function kodeCplDariBaris(string $raw): array
+    {
+        if (trim($raw) === '') {
+            return [];
+        }
+
+        return collect(explode(';', $raw))
+            ->map(fn (string $kode): string => trim($kode))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function validasiKodeCpl(string $raw, string $unitId): ?string
+    {
+        $kodes = $this->kodeCplDariBaris($raw);
+
+        if ($kodes === []) {
+            return null;
+        }
+
+        foreach ($kodes as $kode) {
+            $cplAda = Cpl::query()
+                ->where('academic_unit_id', $unitId)
+                ->where('kode', $kode)
+                ->exists();
+
+            if (! $cplAda) {
+                return "CPL '{$kode}' tidak ditemukan pada unit ini.";
+            }
+        }
+
+        return null;
     }
 
     /**

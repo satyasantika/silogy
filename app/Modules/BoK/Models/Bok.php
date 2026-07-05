@@ -59,4 +59,12 @@ class Bok extends Model
             'cpl_id',
         )->withPivot(['id', 'bobot'])->withTimestamps();
     }
+
+    /**
+     * BoK belum dipetakan ke CPL manapun.
+     */
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->cplBoks()->exists();
+    }
 }
