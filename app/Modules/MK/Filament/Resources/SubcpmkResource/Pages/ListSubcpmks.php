@@ -81,6 +81,17 @@ class ListSubcpmks extends ListRecords
         return 'Kode CPMK harus sudah ada pada mata kuliah yang dipilih di atas dan telah dipetakan ke CPL–MK.';
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'CPMK-01|SUB-01|Menjelaskan definisi|50|Indikator A',
+            'CPMK-01|SUB-02|Menerapkan rumus|50|',
+        ];
+    }
+
     protected function resolveImportRow(array $data, array $context): array
     {
         if (blank($context['import_mk_id'] ?? null) || blank($context['import_semester_id'] ?? null)) {

@@ -2,11 +2,13 @@
 
 namespace App\Modules\MK\Filament\Resources;
 
+use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\CreateMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\EditMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
@@ -27,6 +29,8 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Rules\Unique;
@@ -58,7 +62,28 @@ class MkUnitResource extends Resource
             return false;
         }
 
+        $user = Auth::user();
+
+        // Penawaran/adaptasi MK hanya relevan di level prodi.
+        if ($user instanceof User && static::scopedTimKurikulumUnitIds()->isEmpty()) {
+            return false;
+        }
+
         return parent::shouldRegisterNavigation();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public static function scopedTimKurikulumUnitIds(): Collection
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return collect();
+        }
+
+        return AcademicUnitScope::scopedMkUnitProdiIdsFor($user);
     }
 
     public static function getEloquentQuery(): Builder
@@ -66,6 +91,20 @@ class MkUnitResource extends Resource
         return static::scopeEloquentByTimKurikulumUnits(
             parent::getEloquentQuery()->with(['mk.academicUnit', 'academicUnit']),
         );
+    }
+
+    /**
+     * Kurikulum prodi untuk konteks penawaran / update massal.
+     *
+     * @return array<string, string>
+     */
+    public static function kurikulumProdiOptions(): array
+    {
+        return collect(KurikulumTerpilih::options())
+            ->filter(function (string $label, string $id): bool {
+                return Kurikulum::query()->with('academicUnit')->find($id)?->academicUnit?->isProdi() ?? false;
+            })
+            ->all();
     }
 
     /**

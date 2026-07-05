@@ -69,6 +69,17 @@ class ListCpmks extends ListRecords
         return 'Seluruh baris diimpor sebagai CPMK dari mata kuliah yang dipilih di atas.';
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'CPMK-01|Mahasiswa memahami konsep dasar',
+            'CPMK-02|Mahasiswa mampu menganalisis masalah',
+        ];
+    }
+
     protected function resolveImportRow(array $data, array $context): array
     {
         if (blank($context['import_mk_id'] ?? null)) {

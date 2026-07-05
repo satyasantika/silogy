@@ -7,9 +7,11 @@ use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\CreateKelasMk;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\CreateMkUnit;
+use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
@@ -101,6 +103,47 @@ it('koordinator mendapat scope mk sebelum kelas pertama dibuat', function () {
 
     expect(CpmkResource::scopedKoordinatorMkIds($this->korma)->contains($mk->id))->toBeTrue()
         ->and(CpmkResource::userCanManageMkAsKoordinator($this->korma, $mk->id))->toBeTrue();
+});
+
+it('adaptasi mk massal mengunduh mk dari universitas fakultas dan prodi sekaligus', function () {
+    $kurikulumUniv = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Adaptasi',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $kurikulumFak = Kurikulum::query()->create([
+        'academic_unit_id' => $this->fakultas->id,
+        'nama' => 'Kur Fak Adaptasi',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Adaptasi',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    Mk::factory()->create(['academic_unit_id' => $this->univ->id, 'nama' => 'MK Universitas']);
+    Mk::factory()->create(['academic_unit_id' => $this->fakultas->id, 'nama' => 'MK Fakultas']);
+    Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Prodi']);
+
+    $timkurProdi = buatTimkurProdi($this->prodi);
+    $this->actingAs($timkurProdi);
+
+    Livewire::test(ListMkUnits::class)
+        ->callAction('adaptasiMkMassal', [
+            'adaptasi_unit_id' => $this->prodi->id,
+            'kurikulum_univ_id' => $kurikulumUniv->id,
+            'kurikulum_fakultas_id' => $kurikulumFak->id,
+            'kurikulum_prodi_id' => $kurikulumProdi->id,
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    expect(MkUnit::query()->where('academic_unit_id', $this->prodi->id)->count())->toBe(3);
 });
 
 it('tim kurikulum prodi dapat mengadaptasi mk universitas dengan kode dan semester sendiri', function () {

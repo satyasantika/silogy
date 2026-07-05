@@ -16,7 +16,7 @@ class MkUnitPolicy
         }
 
         return $user->can('kelola_mk_unit')
-            && AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->isNotEmpty();
+            && AcademicUnitScope::scopedMkUnitProdiIdsFor($user)->isNotEmpty();
     }
 
     public function view(User $user, MkUnit $mkUnit): bool
@@ -88,10 +88,10 @@ class MkUnitPolicy
 
         $unit = $mkUnit->academicUnit;
 
-        if (! $unit instanceof AcademicUnit) {
+        if (! $unit instanceof AcademicUnit || ! $unit->isProdi()) {
             return false;
         }
 
-        return AcademicUnitScope::userIsTimKurikulumOnUnit($user, $unit);
+        return AcademicUnitScope::scopedMkUnitProdiIdsFor($user)->contains($unit->id);
     }
 }
