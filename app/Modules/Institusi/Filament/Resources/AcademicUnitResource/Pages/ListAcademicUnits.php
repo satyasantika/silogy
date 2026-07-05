@@ -47,6 +47,17 @@ class ListAcademicUnits extends ListRecords
             .'(prodi boleh berinduk ke jurusan atau langsung fakultas). Status: draft/aktif/nonaktif (default aktif).';
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'fakultas|FT|Fakultas Teknik|UNSIL|FT|aktif',
+            'prodi|PTI|Prodi Pendidikan Informatika|FT||aktif',
+        ];
+    }
+
     protected function resolveImportRow(array $data, array $context): array
     {
         $type = $this->normalizeType($data['jenis']);

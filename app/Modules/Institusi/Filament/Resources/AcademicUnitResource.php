@@ -46,22 +46,12 @@ class AcademicUnitResource extends Resource
     protected static ?string $slug = 'academic-units';
 
     /**
-     * Role Tim Kurikulum tidak membutuhkan menu Unit Akademik —
-     * alur kerjanya dimulai dari pemilihan kurikulum.
+     * Menu unit akademik hanya untuk Super Admin — role operasional
+     * bekerja lewat kurikulum terpilih dan penugasan unit.
      */
     public static function shouldRegisterNavigation(): bool
     {
-        $user = auth()->user();
-
-        if ($user === null) {
-            return false;
-        }
-
-        if ($user->hasRole('Tim Kurikulum') && ! $user->hasRole('Super Admin')) {
-            return false;
-        }
-
-        return parent::shouldRegisterNavigation();
+        return auth()->user()?->hasRole('Super Admin') ?? false;
     }
 
     /**

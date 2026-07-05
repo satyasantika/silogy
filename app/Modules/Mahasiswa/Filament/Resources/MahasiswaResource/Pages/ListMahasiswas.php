@@ -82,6 +82,17 @@ class ListMahasiswas extends ListRecords
         return 'Seluruh baris diimpor ke program studi yang dipilih di atas.';
     }
 
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            '227000001|Mahasiswa Satu|2022|L|mahasiswa1@silogy.test',
+            '227000002|Mahasiswa Dua|2022|P|',
+        ];
+    }
+
     protected function resolveImportRow(array $data, array $context): array
     {
         if (blank($context['import_unit_id'] ?? null)) {
