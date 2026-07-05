@@ -41,8 +41,15 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(condition: true, isForced: false)
             ->sidebarCollapsibleOnDesktop()
             ->navigationGroups([
+                NavigationGroup::make('Institusi'),
+                NavigationGroup::make('Autentikasi'),
+                NavigationGroup::make('Mahasiswa'),
                 NavigationGroup::make('Kurikulum'),
+                NavigationGroup::make('Mata Kuliah'),
+                NavigationGroup::make('Penilaian'),
                 NavigationGroup::make('Interaksi'),
+                NavigationGroup::make('AI Analisis'),
+                NavigationGroup::make('Audit'),
             ])
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_NAV_START,
