@@ -4,6 +4,7 @@ namespace App\Modules\Kelas\Filament\Resources;
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\CreateKelasMk;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\EditKelasMk;
@@ -16,6 +17,7 @@ use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\Select;
@@ -52,6 +54,27 @@ class KelasMkResource extends Resource
     protected static ?string $pluralModelLabel = 'kelas MK';
 
     protected static ?string $slug = 'kelas-mks';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        // Kelas MK dikelola paling jauh di level prodi: Admin/Tim Kurikulum
+        // tanpa penugasan langsung pada prodi tidak melihat menu ini
+        // (dosen tetap melihat kelas miliknya sendiri).
+        if ($user instanceof User
+            && $user->hasAnyRole(['Admin', 'Tim Kurikulum'])
+            && ! $user->hasRole('Dosen Pengampu')
+            && ! AcademicUnitScope::userHasPivotOnUnitType($user, 'study_program')) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 
     public static function getEloquentQuery(): Builder
     {

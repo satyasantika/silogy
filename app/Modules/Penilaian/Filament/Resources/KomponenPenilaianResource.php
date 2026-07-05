@@ -11,6 +11,7 @@ use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\RelationM
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -48,6 +49,10 @@ class KomponenPenilaianResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
         $user = Auth::user();
 
         return $user instanceof User && app(KomponenPenilaianPolicy::class)->viewAny($user);

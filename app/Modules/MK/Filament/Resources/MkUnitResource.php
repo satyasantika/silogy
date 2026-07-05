@@ -12,6 +12,7 @@ use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\EditMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -50,6 +51,15 @@ class MkUnitResource extends Resource
     protected static ?string $pluralModelLabel = 'penawaran MK';
 
     protected static ?string $slug = 'mk-units';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 
     public static function getEloquentQuery(): Builder
     {

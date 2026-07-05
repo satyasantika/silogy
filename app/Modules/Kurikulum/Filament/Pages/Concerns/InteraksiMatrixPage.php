@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Support\Filament\DelegasiMenu;
 
 /**
  * Dasar halaman matriks interaksi (grup menu Interaksi): semua matriks
@@ -35,6 +36,10 @@ trait InteraksiMatrixPage
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
         return static::canAccess() && KurikulumTerpilih::current() !== null;
     }
 

@@ -7,6 +7,7 @@ use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 
@@ -34,6 +35,10 @@ class ProfilCplMatrix extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
         return static::canAccess()
             && (KurikulumTerpilih::current()?->academicUnit?->isProdi() ?? false);
     }

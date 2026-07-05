@@ -27,9 +27,13 @@ class KurikulumTerpilihWidget extends Widget
     {
         $user = auth()->user();
 
-        return $user instanceof User
-            && ($user->hasRole('Super Admin')
-                || AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->isNotEmpty());
+        if (! $user instanceof User || $user->hasRole('Super Admin')) {
+            // Pengelolaan kurikulum didelegasikan — superadmin tidak
+            // membutuhkan jalan pintas ini.
+            return false;
+        }
+
+        return AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->isNotEmpty();
     }
 
     public function mount(): void

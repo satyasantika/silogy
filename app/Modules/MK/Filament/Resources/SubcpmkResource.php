@@ -11,6 +11,7 @@ use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Policies\SubcpmkPolicy;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -120,6 +121,10 @@ class SubcpmkResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
         $user = Auth::user();
 
         return $user instanceof User && app(SubcpmkPolicy::class)->viewAny($user);

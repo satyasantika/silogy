@@ -28,7 +28,10 @@ class AcademicUnitScope
     }
 
     /**
-     * Unit tempat user ditetapkan sebagai tim kurikulum.
+     * Unit kerja kurikulum user: unit tempat ia berstatus tim kurikulum,
+     * ditambah — untuk role Admin — seluruh unit dalam jangkauan
+     * penugasannya (unit pivot + descendant). Kategori Kurikulum,
+     * Mata Kuliah, Penilaian, dan Interaksi didelegasikan ke keduanya.
      *
      * @return Collection<int, string>
      */
@@ -38,10 +41,16 @@ class AcademicUnitScope
             return AcademicUnit::query()->pluck('id');
         }
 
-        return AcademicUnitUser::query()
+        $unitIds = AcademicUnitUser::query()
             ->where('user_id', $user->id)
             ->where('status_tim_kurikulum', true)
             ->pluck('academic_unit_id');
+
+        if ($user->hasRole('Admin')) {
+            $unitIds = $unitIds->merge(static::managedUnitIdsFor($user));
+        }
+
+        return $unitIds->unique()->values();
     }
 
     /**
@@ -104,10 +113,27 @@ class AcademicUnitScope
             return true;
         }
 
+        // Admin bekerja pada unit penugasannya beserta seluruh turunannya.
+        if ($user->hasRole('Admin') && static::userHasPivotToUnitOrAncestor($user, $unit)) {
+            return true;
+        }
+
         return AcademicUnitUser::query()
             ->where('user_id', $user->id)
             ->where('academic_unit_id', $unit->id)
             ->where('status_tim_kurikulum', true)
+            ->exists();
+    }
+
+    /**
+     * User punya penugasan langsung pada unit bertipe tertentu
+     * (mis. 'study_program' untuk aturan kelas MK khusus level prodi).
+     */
+    public static function userHasPivotOnUnitType(User $user, string $type): bool
+    {
+        return AcademicUnitUser::query()
+            ->where('user_id', $user->id)
+            ->whereHas('academicUnit', fn ($query) => $query->where('type', $type))
             ->exists();
     }
 

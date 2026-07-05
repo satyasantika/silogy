@@ -9,6 +9,7 @@ use App\Modules\BoK\Models\Bok;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -21,7 +22,6 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -47,6 +47,15 @@ class BokResource extends Resource
     protected static ?string $recordTitleAttribute = 'nama';
 
     protected static ?string $slug = 'boks';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 
     public static function getEloquentQuery(): Builder
     {

@@ -27,6 +27,11 @@ class KelasMkPolicy
         return $this->canAccessKelas($user, $kelasMk);
     }
 
+    /**
+     * Kelas MK dikelola paling jauh di level prodi: pembuatnya harus
+     * punya penugasan LANGSUNG pada unit program studi (Admin prodi
+     * atau Tim Kurikulum prodi).
+     */
     public function create(User $user): bool
     {
         if ($user->hasRole('Super Admin')) {
@@ -34,7 +39,7 @@ class KelasMkPolicy
         }
 
         return $user->can('kelola_kelas')
-            && AcademicUnitScope::scopedStudyProgramIdsFor($user)->isNotEmpty();
+            && AcademicUnitScope::userHasPivotOnUnitType($user, 'study_program');
     }
 
     public function update(User $user, KelasMk $kelasMk): bool

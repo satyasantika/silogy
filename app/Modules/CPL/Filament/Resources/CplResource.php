@@ -9,6 +9,7 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -47,6 +48,15 @@ class CplResource extends Resource
     protected static ?string $recordTitleAttribute = 'kode';
 
     protected static ?string $slug = 'cpls';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 
     /**
      * @return array<string, string>

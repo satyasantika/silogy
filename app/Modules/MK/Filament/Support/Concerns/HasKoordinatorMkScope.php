@@ -25,6 +25,13 @@ trait HasKoordinatorMkScope
             return Mk::query()->pluck('id');
         }
 
+        // Admin: seluruh MK pada unit dalam jangkauan penugasannya.
+        if ($user->hasRole('Admin')) {
+            return Mk::query()
+                ->whereIn('academic_unit_id', AcademicUnitScope::managedUnitIdsFor($user))
+                ->pluck('id');
+        }
+
         $viaMk = Mk::query()
             ->where('koordinator_mk_id', $user->id)
             ->pluck('id');
@@ -47,6 +54,15 @@ trait HasKoordinatorMkScope
     {
         if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
             return KelasMk::query()->pluck('id');
+        }
+
+        if ($user->hasRole('Admin')) {
+            return KelasMk::query()
+                ->whereHas('mkUnit', fn ($query) => $query->whereIn(
+                    'academic_unit_id',
+                    AcademicUnitScope::managedUnitIdsFor($user),
+                ))
+                ->pluck('id');
         }
 
         return KelasMk::query()

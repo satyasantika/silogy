@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
-use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
@@ -36,14 +35,11 @@ it('mengizinkan tim kurikulum mengelola kurikulum di unitnya', function () {
     expect($policy->manage($timkur, $kurikulum))->toBeTrue();
 });
 
-it('menolak user tanpa status tim kurikulum pada unit', function () {
+it('menolak user berpenugasan yang bukan tim kurikulum ataupun admin', function () {
     $prodi = AcademicUnit::query()->where('type', 'study_program')->first();
-    $admin = User::query()->where('username', 'adminprodi')->first();
-
-    AcademicUnitUser::query()
-        ->where('user_id', $admin->id)
-        ->where('academic_unit_id', $prodi->id)
-        ->update(['status_tim_kurikulum' => false]);
+    // Pimpinan punya pivot di prodi namun bukan tim kurikulum/Admin —
+    // kategori Kurikulum didelegasikan hanya ke keduanya.
+    $kaprodi = User::query()->where('username', 'kaprodi')->first();
 
     $kurikulum = Kurikulum::query()->create([
         'academic_unit_id' => $prodi->id,
@@ -55,7 +51,8 @@ it('menolak user tanpa status tim kurikulum pada unit', function () {
 
     $policy = new KurikulumPolicy;
 
-    expect($policy->manage($admin, $kurikulum))->toBeFalse();
+    expect($policy->manage($kaprodi, $kurikulum))->toBeFalse()
+        ->and($policy->manage(User::where('username', 'adminprodi')->first(), $kurikulum))->toBeTrue();
 });
 
 it('mengizinkan tim kurikulum menghapus kurikulum yang belum dipakai di tabel lain', function () {

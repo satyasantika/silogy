@@ -10,6 +10,7 @@ use App\Modules\MK\Filament\Resources\CpmkResource\RelationManagers\MkCpmkRelati
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Policies\CpmkPolicy;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -48,6 +49,10 @@ class CpmkResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
         $user = Auth::user();
 
         return $user instanceof User && app(CpmkPolicy::class)->viewAny($user);

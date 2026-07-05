@@ -22,6 +22,7 @@ use App\Modules\Kurikulum\States\MkState;
 use App\Modules\Kurikulum\States\ProfilLulusanState;
 use App\Modules\Kurikulum\States\SetdosenmkState;
 use App\Modules\MK\Models\Mk;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\RichEditor;
@@ -62,6 +63,15 @@ class KurikulumResource extends Resource
     protected static ?string $recordTitleAttribute = 'nama';
 
     protected static ?string $slug = 'kurikulums';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 
     /**
      * @var array<string, class-string<KurikulumState>>

@@ -64,6 +64,10 @@ class RolePermissionSeeder extends Seeder
         $admin = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
         $admin->syncPermissions([
             'kelola_unit',
+            // Delegasi domain akademik (scope tetap dari penugasan unit):
+            'kelola_kurikulum', 'kelola_profil_lulusan',
+            'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit',
+            'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
             'kelola_kelas',
             'setdosen_mk',
             'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
@@ -75,6 +79,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_kurikulum',
             'kelola_profil_lulusan', // hanya berlaku ketika status_tim_kurikulum=1 pada unit study_program
             'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit',
+            'kelola_kelas', // kelas MK prodi (penugasan prodi)
             'setdosen_mk',
             'lihat_laporan', 'lihat_dashboard',
         ]);

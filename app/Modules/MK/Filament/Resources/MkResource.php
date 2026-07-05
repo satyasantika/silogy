@@ -12,6 +12,7 @@ use App\Modules\MK\Filament\Resources\MkResource\Pages\CreateMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
 use App\Modules\MK\Models\Mk;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -50,6 +51,15 @@ class MkResource extends Resource
     protected static ?string $recordTitleAttribute = 'nama';
 
     protected static ?string $slug = 'mks';
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return parent::shouldRegisterNavigation();
+    }
 
     /**
      * @return array<string, string>

@@ -13,6 +13,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilIndikator;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -71,6 +72,10 @@ class ProfilLulusanResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
         return static::bisaKelola()
             && (KurikulumTerpilih::current()?->academicUnit?->isProdi() ?? false);
     }
