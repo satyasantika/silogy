@@ -2,9 +2,9 @@
 
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers;
 
+use App\Modules\Kurikulum\Filament\Concerns\HasImporProfilLulusanMassal;
 use App\Modules\Kurikulum\Filament\Support\ProfilIndikatorForm;
 use App\Modules\Kurikulum\Models\Kurikulum;
-use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -19,7 +19,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProfilLulusanRelationManager extends BaseKurikulumRelationManager
 {
-    use HasImporMassal;
+    use HasImporMassal, HasImporProfilLulusanMassal {
+        HasImporProfilLulusanMassal::importColumns insteadof HasImporMassal;
+        HasImporProfilLulusanMassal::importInstructionsExtra insteadof HasImporMassal;
+        HasImporProfilLulusanMassal::importExampleRows insteadof HasImporMassal;
+        HasImporProfilLulusanMassal::resolveImportRow insteadof HasImporMassal;
+        HasImporProfilLulusanMassal::createImportRow insteadof HasImporMassal;
+        HasImporProfilLulusanMassal::updateImportRow insteadof HasImporMassal;
+    }
 
     protected static string $relationship = 'profilLulusan';
 
@@ -68,7 +75,6 @@ class ProfilLulusanRelationManager extends BaseKurikulumRelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('kode')->label('Kode')->sortable(),
                 TextColumn::make('nama')->label('Nama')->searchable(),
                 TextColumn::make('indikators_count')
                     ->label('Indikator')
@@ -94,67 +100,13 @@ class ProfilLulusanRelationManager extends BaseKurikulumRelationManager
         return 'Impor profil lulusan massal';
     }
 
-    protected function importColumns(): array
-    {
-        return [
-            ['key' => 'kode', 'label' => 'kode', 'wajib' => true],
-            ['key' => 'nama', 'label' => 'nama', 'wajib' => false],
-            ['key' => 'deskripsi', 'label' => 'deskripsi', 'wajib' => true],
-            ['key' => 'urutan', 'label' => 'urutan', 'wajib' => false],
-        ];
-    }
-
     protected function importHelperNote(): string
     {
         return 'Profil diimpor ke kurikulum yang sedang dibuka.';
     }
 
-    protected function resolveImportRow(array $data, array $context): array
+    protected function kurikulumIdUntukImporProfil(array $context): ?string
     {
-        if ($data['urutan'] !== '' && ! ctype_digit($data['urutan'])) {
-            return ['status' => 'invalid', 'keterangan' => 'Urutan harus angka.'];
-        }
-
-        $existing = ProfilLulusan::query()
-            ->where('kurikulum_id', $this->getOwnerRecord()->getKey())
-            ->where('kode', $data['kode'])
-            ->first();
-
-        if ($existing) {
-            return [
-                'status' => 'duplikat',
-                'keterangan' => 'Kode profil sudah ada pada kurikulum ini.',
-                'existing_id' => $existing->id,
-                'dedup' => mb_strtolower($data['kode']),
-            ];
-        }
-
-        return ['status' => 'baru', 'keterangan' => '', 'dedup' => mb_strtolower($data['kode'])];
-    }
-
-    protected function createImportRow(array $data, array $context): void
-    {
-        ProfilLulusan::query()->create([
-            'kurikulum_id' => $this->getOwnerRecord()->getKey(),
-            'kode' => $data['kode'],
-            'nama' => $data['nama'] ?: null,
-            'deskripsi' => $data['deskripsi'],
-            'urutan' => $data['urutan'] !== '' ? (int) $data['urutan'] : null,
-        ]);
-    }
-
-    /**
-     * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
-     */
-    protected function updateImportRow(string $existingId, array $data, array $context): void
-    {
-        $profil = ProfilLulusan::query()->findOrFail($existingId);
-
-        $profil->update([
-            'nama' => $data['nama'] ?: $profil->nama,
-            'deskripsi' => $data['deskripsi'],
-            'urutan' => $data['urutan'] !== '' ? (int) $data['urutan'] : $profil->urutan,
-        ]);
+        return (string) $this->getOwnerRecord()->getKey();
     }
 }

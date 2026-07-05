@@ -24,13 +24,30 @@ trait HasImporIndikatorProfilLulusan
     {
         return [
             ['key' => 'nama', 'label' => 'nama indikator', 'wajib' => true],
-            ['key' => 'deskripsi', 'label' => 'deskripsi', 'wajib' => false],
+        ];
+    }
+
+    protected function importInstructionsExtra(): array
+    {
+        return [
+            'Satu baris = satu indikator; cukup isi kolom nama.',
         ];
     }
 
     protected function importHelperNote(): string
     {
         return 'Indikator ditambahkan ke profil lulusan yang sedang diedit. Satu baris = satu indikator.';
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function importExampleRows(): array
+    {
+        return [
+            'Mampu berpikir kritis',
+            'Mampu berkomunikasi',
+        ];
     }
 
     protected function profilLulusanUntukImpor(): ProfilLulusan
@@ -73,7 +90,7 @@ trait HasImporIndikatorProfilLulusan
         ProfilIndikator::query()->create([
             'profil_id' => $profil->id,
             'nama' => $data['nama'],
-            'deskripsi' => $data['deskripsi'] ?: null,
+            'deskripsi' => null,
             'urutan' => $urutan + 1,
         ]);
     }
@@ -88,7 +105,6 @@ trait HasImporIndikatorProfilLulusan
 
         $indikator->update([
             'nama' => $data['nama'],
-            'deskripsi' => $data['deskripsi'] ?: $indikator->deskripsi,
         ]);
     }
 

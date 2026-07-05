@@ -168,21 +168,17 @@ class ProfilLulusanResource extends Resource
                 ]),
             [
                 Split::make([
-                    TextColumn::make('kode')
-                        ->label('Kode')
-                        ->sortable()
-                        ->weight(FontWeight::Bold),
+                    TextColumn::make('nama')
+                        ->label('Nama')
+                        ->searchable()
+                        ->weight(FontWeight::Bold)
+                        ->placeholder('—'),
 
                     TextColumn::make('urutan')
                         ->label('Urutan')
                         ->sortable()
                         ->size('sm'),
                 ]),
-
-                TextColumn::make('nama')
-                    ->label('Nama')
-                    ->searchable()
-                    ->placeholder('—'),
 
                 TextColumn::make('deskripsi')
                     ->label('Deskripsi')

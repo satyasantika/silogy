@@ -69,9 +69,11 @@ it('timkur fakultas mendapat default kurikulum fakultasnya dan tidak bisa memili
     expect(KurikulumTerpilih::current()?->id)->toBe($this->kurikulumFak->id);
 });
 
-it('menu unit akademik tersembunyi untuk role tim kurikulum', function () {
-    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
-    expect(AcademicUnitResource::shouldRegisterNavigation())->toBeFalse();
+it('menu unit akademik hanya tampil untuk super admin', function () {
+    foreach (['timkur', 'adminprodi', 'dosentimkur'] as $username) {
+        $this->actingAs(User::query()->where('username', $username)->firstOrFail());
+        expect(AcademicUnitResource::shouldRegisterNavigation())->toBeFalse();
+    }
 
     $this->actingAs(User::query()->where('username', 'superadmin')->firstOrFail());
     expect(AcademicUnitResource::shouldRegisterNavigation())->toBeTrue();

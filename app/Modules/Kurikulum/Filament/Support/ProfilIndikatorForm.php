@@ -3,7 +3,6 @@
 namespace App\Modules\Kurikulum\Filament\Support;
 
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Textarea;
 use Illuminate\Support\Str;
 
@@ -24,9 +23,6 @@ class ProfilIndikatorForm
                     ->required()
                     ->rows(1)
                     ->autosize()
-                    ->columnSpanFull(),
-                RichEditor::make('deskripsi')
-                    ->label('Deskripsi')
                     ->columnSpanFull(),
             ])
             ->defaultItems(1)

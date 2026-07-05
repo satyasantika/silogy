@@ -45,7 +45,7 @@ beforeEach(function () {
 it('impor indikator massal dari halaman edit profil lulusan', function () {
     Livewire::test(EditProfilLulusan::class, ['record' => $this->profil->id])
         ->callAction('bulkImport', [
-            'rows' => "Mampu berpikir kritis|Deskripsi indikator A\nMampu berkomunikasi",
+            'rows' => "Mampu berpikir kritis\nMampu berkomunikasi",
             'mode_duplikat' => 'lewati',
         ]);
 
@@ -56,7 +56,7 @@ it('impor indikator massal dari halaman edit profil lulusan', function () {
 
     expect($indikators)->toHaveCount(2)
         ->and($indikators[0]->nama)->toBe('Mampu berpikir kritis')
-        ->and($indikators[0]->deskripsi)->toBe('Deskripsi indikator A')
+        ->and($indikators[0]->deskripsi)->toBeNull()
         ->and($indikators[0]->urutan)->toBe(1)
         ->and($indikators[1]->nama)->toBe('Mampu berkomunikasi')
         ->and($indikators[1]->urutan)->toBe(2);
@@ -66,18 +66,16 @@ it('impor indikator menolak duplikat nama pada profil yang sama', function () {
     ProfilIndikator::query()->create([
         'profil_id' => $this->profil->id,
         'nama' => 'Indikator sudah ada',
-        'deskripsi' => 'Deskripsi lama',
         'urutan' => 1,
     ]);
 
     Livewire::test(EditProfilLulusan::class, ['record' => $this->profil->id])
         ->callAction('bulkImport', [
-            'rows' => 'Indikator sudah ada|Deskripsi baru',
+            'rows' => 'Indikator sudah ada',
             'mode_duplikat' => 'lewati',
         ]);
 
-    expect(ProfilIndikator::query()->where('profil_id', $this->profil->id)->count())->toBe(1)
-        ->and(ProfilIndikator::query()->first()->deskripsi)->toBe('Deskripsi lama');
+    expect(ProfilIndikator::query()->where('profil_id', $this->profil->id)->count())->toBe(1);
 });
 
 it('form edit profil lulusan menyimpan urutan indikator setelah diubah', function () {
@@ -97,11 +95,9 @@ it('form edit profil lulusan menyimpan urutan indikator setelah diubah', functio
         ->set('data.indikators', [
             "record-{$indikatorB->id}" => [
                 'nama' => 'Indikator B',
-                'deskripsi' => null,
             ],
             "record-{$indikatorA->id}" => [
                 'nama' => 'Indikator A',
-                'deskripsi' => null,
             ],
         ])
         ->call('save')
@@ -126,7 +122,7 @@ it('daftar profil lulusan menampilkan indikator pada setiap card', function () {
 
     Livewire::test(ListProfilLulusans::class)
         ->loadTable()
-        ->assertSee('PL-IND')
+        ->assertSee('Profil uji indikator')
         ->assertSee('1. Indikator pertama')
         ->assertSee('2. Indikator kedua');
 });
