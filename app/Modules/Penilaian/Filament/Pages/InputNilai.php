@@ -51,6 +51,8 @@ class InputNilai extends Page
 
     public bool $showKalkulasiBadge = false;
 
+    public bool $penugasanBelumSelesai = false;
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -114,6 +116,13 @@ class InputNilai extends Page
         $kelasMk = KelasMk::query()->find($this->kelasMkId);
 
         if (! $kelasMk instanceof KelasMk) {
+            return;
+        }
+
+        // Dosen menilai hanya setelah koordinator MK menyelesaikan penugasan.
+        $this->penugasanBelumSelesai = ! $kelasMk->penugasanSelesai();
+
+        if ($this->penugasanBelumSelesai) {
             return;
         }
 

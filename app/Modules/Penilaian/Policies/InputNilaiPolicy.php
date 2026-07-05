@@ -19,6 +19,12 @@ class InputNilaiPolicy
             return false;
         }
 
-        return $kelasMk->dosen_pengampu_id === $user->id;
+        if ($kelasMk->dosen_pengampu_id !== $user->id) {
+            return false;
+        }
+
+        // Dosen baru boleh menilai setelah koordinator MK menyelesaikan
+        // penugasan (komponen 100% dan terpetakan ke Sub-CPMK).
+        return $kelasMk->penugasanSelesai();
     }
 }

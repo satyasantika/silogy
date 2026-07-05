@@ -25,7 +25,13 @@
         </x-filament::section>
 
         @if ($kelasMkId)
-            @if (count($columns) === 0 || count($rows) === 0)
+            @if ($penugasanBelumSelesai)
+                <x-filament::section icon="heroicon-o-clock" heading="Penugasan belum selesai">
+                    Koordinator MK belum menyelesaikan penugasan kelas ini
+                    (komponen penilaian harus berbobot total 100% dan seluruhnya
+                    terpetakan ke Sub-CPMK). Penilaian akan terbuka setelahnya.
+                </x-filament::section>
+            @elseif (count($columns) === 0 || count($rows) === 0)
                 <x-filament::section>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         Belum ada mahasiswa terdaftar atau komponen penilaian pada kelas ini.
