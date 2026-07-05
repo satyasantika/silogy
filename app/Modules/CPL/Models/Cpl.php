@@ -81,4 +81,13 @@ class Cpl extends Model
             'bok_id',
         )->withPivot(['id', 'bobot'])->withTimestamps();
     }
+
+    /**
+     * CPL belum dipetakan ke profil lulusan maupun bahan kajian (BoK).
+     */
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->cplProfilLulusan()->exists()
+            && ! $this->cplBoks()->exists();
+    }
 }
