@@ -1,3 +1,3 @@
 <div style="margin-bottom:1rem;">
-    {!! \App\Modules\MK\Support\MkTerpilih::bannerHtml() !!}
+    @include('filament.modules.mk.partials.mk-terpilih-banner-inner')
 </div>

@@ -97,37 +97,11 @@ class MkTerpilih
      */
     public static function bannerHtml(): HtmlString
     {
-        $gantiUrl = MataKuliahKoordinatorResource::getUrl('index');
-        $mk = static::current();
-        $kurikulum = KurikulumTerpilih::current();
-
-        if (! $mk instanceof Mk) {
-            return new HtmlString(
-                '<div style="padding:12px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;line-height:1.55;">'
-                .'<div>Belum ada mata kuliah terpilih.</div>'
-                .'<div style="margin-top:4px;">'
-                .'<a href="'.e($gantiUrl).'" style="font-weight:600;color:#b45309;text-decoration:underline;">Pilih dari halaman Mata Kuliah</a>'
-                .'</div>'
-                .'</div>'
-            );
-        }
-
-        $kurikulum?->loadMissing('academicUnit');
-        $label = static::label($mk, $kurikulum);
-        $kurikulumLabel = $kurikulum instanceof Kurikulum ? $kurikulum->nama : '—';
-        $prodiLabel = $kurikulum?->academicUnit?->nama ?? '—';
-
-        return new HtmlString(
-            '<div style="padding:12px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:13px;line-height:1.55;">'
-            .'<div>'
-            .'<span style="opacity:.88;">Mata kuliah terpilih:</span> '
-            .'<strong>'.e($label).'</strong> '
-            .'<a href="'.e($gantiUrl).'" style="margin-left:6px;font-weight:600;color:#1d4ed8;text-decoration:underline;">Ganti</a>'
-            .'</div>'
-            .'<div style="margin-top:6px;opacity:.92;">Kurikulum: <strong>'.e($kurikulumLabel).'</strong></div>'
-            .'<div style="margin-top:2px;opacity:.92;">Program studi: <strong>'.e($prodiLabel).'</strong></div>'
-            .'</div>'
-        );
+        return new HtmlString(view('filament.modules.mk.partials.mk-terpilih-banner-inner', [
+            'gantiUrl' => MataKuliahKoordinatorResource::getUrl('index'),
+            'mk' => static::current(),
+            'kurikulum' => KurikulumTerpilih::current(),
+        ])->render());
     }
 
     public static function mkDitawarkanPadaKurikulum(Mk $mk, Kurikulum $kurikulum): bool

@@ -1,6 +1,5 @@
 <?php
 
-use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
 use Database\Seeders\EvaluasiSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -116,6 +116,7 @@ it('korma dapat membuat cpmk subcpmk dan komponen penilaian', function () {
         ->fillForm([
             'kelas_mk_id' => $this->kelas->id,
             'evaluasi_id' => $evaluasi->id,
+            'kode' => 'UTS',
             'nama' => 'UTS Teori',
             'bobot' => 100,
         ])

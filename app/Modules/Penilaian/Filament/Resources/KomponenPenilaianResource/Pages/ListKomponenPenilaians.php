@@ -4,18 +4,25 @@ namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pag
 
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\Evaluasi;
+use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Services\AsesmenImporService;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
+use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\RenderHook;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Support\HtmlString;
 
 class ListKomponenPenilaians extends ListRecords
@@ -32,6 +39,38 @@ class ListKomponenPenilaians extends ListRecords
                 ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
             CreateAction::make(),
         ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getTabsContentComponent(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+                EmbeddedTable::make(),
+                View::make('filament.modules.penilaian.partials.rencana-evaluasi-table')
+                    ->viewData(fn (): array => [
+                        'rencana' => $this->getRencanaEvaluasi(),
+                    ])
+                    ->visible(fn (): bool => $this->getRencanaEvaluasi() !== null),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+            ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function getRencanaEvaluasi(): ?array
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return null;
+        }
+
+        $service = app(RencanaEvaluasiService::class);
+
+        return $service->build($mkId, $service->resolveSemesterId($mkId));
     }
 
     protected function importModalHeading(): string
@@ -60,11 +99,11 @@ class ListKomponenPenilaians extends ListRecords
     protected function importColumns(): array
     {
         return [
-            ['key' => 'kode_asesmen', 'label' => 'kode asesmen', 'wajib' => true],
-            ['key' => 'nama_tugas', 'label' => 'nama tugas', 'wajib' => true],
-            ['key' => 'bobot_tugas', 'label' => 'bobot tugas (%)', 'wajib' => true],
-            ['key' => 'komponen_penilaian', 'label' => 'komponen penilaian', 'wajib' => true],
-            ['key' => 'kode_subcpmk', 'label' => 'kode Sub-CPMK terpetakan', 'wajib' => false],
+            ['key' => 'kode_asesmen', 'label' => 'kode', 'wajib' => true],
+            ['key' => 'nama_tugas', 'label' => 'nama penugasan', 'wajib' => true],
+            ['key' => 'bobot_tugas', 'label' => 'bobot (%)', 'wajib' => true],
+            ['key' => 'komponen_penilaian', 'label' => 'komponen', 'wajib' => true],
+            ['key' => 'kode_subcpmk', 'label' => 'SubCPMK', 'wajib' => false],
         ];
     }
 
@@ -102,7 +141,7 @@ class ListKomponenPenilaians extends ListRecords
             ->join('');
 
         return '<div>'
-            .'<p class="mb-1.5">Kolom <strong>komponen penilaian</strong>: isi <strong>kode</strong> atau <strong>nama</strong> '
+            .'<p class="mb-1.5">Kolom <strong>komponen</strong>: isi <strong>kode</strong> atau <strong>nama</strong> '
             .'dari master evaluasi berikut (pencocokan tidak peka huruf besar/kecil).</p>'
             .'<div style="overflow-x:auto;margin-top:8px;">'
             .'<table style="width:100%;max-width:480px;font-size:12px;border-collapse:collapse;">'
@@ -139,21 +178,21 @@ class ListKomponenPenilaians extends ListRecords
         $context = $this->normalizeImportContext($context);
 
         if (blank(trim($data['kode_asesmen'] ?? ''))) {
-            return ['status' => 'invalid', 'keterangan' => 'Kode asesmen wajib diisi.'];
+            return ['status' => 'invalid', 'keterangan' => 'Kode wajib diisi.'];
         }
 
         if (blank(trim($data['nama_tugas'] ?? ''))) {
-            return ['status' => 'invalid', 'keterangan' => 'Nama tugas wajib diisi.'];
+            return ['status' => 'invalid', 'keterangan' => 'Nama penugasan wajib diisi.'];
         }
 
         if ($data['bobot_tugas'] === '' || ! is_numeric($data['bobot_tugas'])) {
-            return ['status' => 'invalid', 'keterangan' => 'Bobot tugas harus berupa angka.'];
+            return ['status' => 'invalid', 'keterangan' => 'Bobot harus berupa angka.'];
         }
 
         $bobot = (float) $data['bobot_tugas'];
 
         if ($bobot < 0 || $bobot > 100) {
-            return ['status' => 'invalid', 'keterangan' => 'Bobot tugas harus antara 0 dan 100.'];
+            return ['status' => 'invalid', 'keterangan' => 'Bobot harus antara 0 dan 100.'];
         }
 
         $validasiEvaluasi = EvaluasiResolverService::validasi($data['komponen_penilaian'] ?? '');

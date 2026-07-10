@@ -2,18 +2,26 @@
 
 namespace App\Modules\Penilaian\Filament\Pages;
 
-use App\Modules\Kalender\Models\Semester;
+use App\Models\User;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\MK\Models\Mk;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
+use App\Modules\Penilaian\Services\InputNilaiMatrixClipboardService;
+use App\Modules\Penilaian\Services\PenilaianDosenService;
+use App\Modules\Penilaian\Support\PenilaianMkTerpilih;
+use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class InputNilai extends Page
@@ -32,6 +40,8 @@ class InputNilai extends Page
 
     protected string $view = 'filament.modules.penilaian.pages.input-nilai';
 
+    public ?string $mkId = null;
+
     public ?string $kelasMkId = null;
 
     /**
@@ -45,7 +55,7 @@ class InputNilai extends Page
     public array $rows = [];
 
     /**
-     * @var list<array{id: string, label: string}>
+     * @var list<array{id: string, label: string, asesmen: string, subcpmk: string, evaluasi: string|null}>
      */
     public array $columns = [];
 
@@ -62,11 +72,35 @@ class InputNilai extends Page
 
     public function mount(): void
     {
-        $semesterAktifId = Semester::query()
-            ->where('status_aktif', true)
-            ->value('id');
+        $kelasMkIdParam = request()->query('kelas_mk_id');
+        $mkIdParam = request()->query('mk_id');
 
-        $kelas = $this->kelasMkQuery($semesterAktifId)->first();
+        $kelas = is_string($kelasMkIdParam)
+            ? $this->kelasMkQuery(null)->whereKey($kelasMkIdParam)->first()
+            : null;
+
+        if ($kelas !== null) {
+            $this->mkId = $kelas->mkUnit?->mk_id;
+            PenilaianSemesterTerpilih::set($kelas->semester_id);
+        } elseif (is_string($mkIdParam)) {
+            $this->mkId = $mkIdParam;
+        } else {
+            $this->mkId = PenilaianMkTerpilih::currentId();
+        }
+
+        if ($kelas === null && $this->mkId !== null) {
+            $kelas = $this->kelasMkQueryUntukMk($this->mkId, PenilaianSemesterTerpilih::currentId())->first();
+        }
+
+        if ($kelas === null) {
+            $kelas = $this->kelasMkQuery(PenilaianSemesterTerpilih::currentId())->first();
+
+            if ($kelas !== null) {
+                $this->mkId = $kelas->mkUnit?->mk_id;
+            }
+        }
+
+        PenilaianMkTerpilih::set($this->mkId);
 
         if ($kelas !== null) {
             $this->kelasMkId = $kelas->id;
@@ -80,27 +114,76 @@ class InputNilai extends Page
         $this->loadMatrix();
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function getKelasMkOptionsProperty(): array
+    public function pilihKelas(string $kelasMkId): void
     {
-        $semesterAktifId = Semester::query()
-            ->where('status_aktif', true)
-            ->value('id');
+        $kelas = $this->kelasMkQuery(null)->whereKey($kelasMkId)->first();
 
-        return $this->kelasMkQuery($semesterAktifId)
-            ->with(['mkUnit.mk', 'semester'])
-            ->get()
-            ->mapWithKeys(fn (KelasMk $kelas): array => [
-                $kelas->id => sprintf(
-                    '%s – Kelas %s (%s)',
-                    $kelas->mkUnit?->mk?->nama ?? '—',
-                    $kelas->kode_kelas,
-                    $kelas->semester?->kode ?? '—',
-                ),
-            ])
+        if ($kelas === null) {
+            return;
+        }
+
+        $this->kelasMkId = $kelas->id;
+        $this->showKalkulasiBadge = false;
+        $this->loadMatrix();
+    }
+
+    public function getMkTerpilihProperty(): ?Mk
+    {
+        if ($this->mkId === null) {
+            return null;
+        }
+
+        return Mk::query()->find($this->mkId);
+    }
+
+    public function getSemesterTerpilihProperty(): string
+    {
+        return PenilaianSemesterTerpilih::label();
+    }
+
+    /**
+     * @return list<array{id: string, kode_kelas: string, jumlah_mahasiswa: int, rata_rata: float|null, sudah_dinilai: bool}>
+     */
+    public function getKelasCardsProperty(): array
+    {
+        $mk = $this->getMkTerpilihProperty();
+        $user = auth()->user();
+
+        if ($mk === null || ! $user instanceof User) {
+            return [];
+        }
+
+        return PenilaianDosenService::kelasUntukMk($mk, $user, PenilaianSemesterTerpilih::currentId())
+            ->map(fn (KelasMk $kelas): array => array_merge(
+                ['id' => $kelas->id],
+                PenilaianDosenService::ringkasanKelas($kelas),
+            ))
+            ->values()
             ->all();
+    }
+
+    /**
+     * @return array{jumlah_mahasiswa: int, rata_rata: float|null, sudah_dinilai: bool}
+     */
+    public function getRingkasanSeluruhKelasProperty(): array
+    {
+        $mk = $this->getMkTerpilihProperty();
+        $user = auth()->user();
+
+        if ($mk === null || ! $user instanceof User) {
+            return ['jumlah_mahasiswa' => 0, 'rata_rata' => null, 'sudah_dinilai' => false];
+        }
+
+        return PenilaianDosenService::ringkasanSeluruhKelas($mk, $user, PenilaianSemesterTerpilih::currentId());
+    }
+
+    /**
+     * @return Builder<KelasMk>
+     */
+    protected function kelasMkQueryUntukMk(string $mkId, ?string $semesterId): Builder
+    {
+        return $this->kelasMkQuery($semesterId)
+            ->whereHas('mkUnit', fn (Builder $query): Builder => $query->where('mk_id', $mkId));
     }
 
     public function loadMatrix(): void
@@ -133,10 +216,19 @@ class InputNilai extends Page
                 'komponenPenilaian',
                 fn ($query) => $query->where('kelas_mk_id', $kelasMk->id),
             )
-            ->with(['komponenPenilaian', 'subcpmk'])
+            ->with(['komponenPenilaian.evaluasi', 'subcpmk'])
             ->get()
+            ->sortBy([
+                fn (SubcpmkKomponenPenilaian $skp): string => $skp->komponenPenilaian?->kode ?? '',
+                fn (SubcpmkKomponenPenilaian $skp): string => $skp->subcpmk?->kode ?? '',
+            ])
             ->map(fn (SubcpmkKomponenPenilaian $skp): array => [
                 'id' => $skp->id,
+                'asesmen' => $skp->komponenPenilaian?->nama
+                    ?? $skp->komponenPenilaian?->kode
+                    ?? '—',
+                'subcpmk' => $skp->subcpmk?->kode ?? '—',
+                'evaluasi' => $skp->komponenPenilaian?->evaluasi?->nama,
                 'label' => sprintf(
                     '%s / %s',
                     $skp->komponenPenilaian?->kode ?? $skp->komponenPenilaian?->nama ?? '—',
@@ -261,15 +353,158 @@ class InputNilai extends Page
         $this->loadMatrix();
     }
 
+    public function applyTempel(string $raw): void
+    {
+        if (! $this->matrixSiapClipboard()) {
+            throw ValidationException::withMessages([
+                'paste_data' => 'Matriks nilai belum siap untuk ditempel.',
+            ]);
+        }
+
+        $kelasMk = KelasMk::query()->findOrFail($this->kelasMkId);
+        Gate::authorize('inputNilai', $kelasMk);
+
+        $result = app(InputNilaiMatrixClipboardService::class)->applyPaste(
+            $raw,
+            $this->rows,
+            $this->columns,
+            $this->nilai,
+        );
+
+        $this->nilai = $result['nilai'];
+
+        $body = sprintf(
+            '%d sel diperbarui pada %d mahasiswa. Klik Simpan untuk menyimpan ke database.',
+            $result['applied_cells'],
+            $result['matched_rows'],
+        );
+
+        if ($result['errors'] !== []) {
+            $body .= ' Peringatan: '.implode(' ', array_slice($result['errors'], 0, 3));
+
+            if (count($result['errors']) > 3) {
+                $body .= ' …';
+            }
+        }
+
+        Notification::make()
+            ->title('Matriks diperbarui')
+            ->body($body)
+            ->success()
+            ->send();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('importCsv')
-                ->label('Import CSV')
-                ->icon(Heroicon::OutlinedArrowUpTray)
-                ->disabled()
-                ->tooltip('Coming soon MVP'),
+            $this->makeSalinNilaiAction(),
+            $this->makeTempelNilaiAction(),
         ];
+    }
+
+    protected function makeSalinNilaiAction(): Action
+    {
+        return Action::make('salinNilai')
+            ->label('Salin matriks')
+            ->icon(Heroicon::OutlinedClipboard)
+            ->color('gray')
+            ->visible(fn (): bool => $this->matrixSiapClipboard())
+            ->modalHeading('Salin matriks nilai')
+            ->modalDescription('Salin ke Excel, edit nilai, lalu tempel kembali lewat tombol Tempel dari Excel.')
+            ->modalSubmitActionLabel('Salin ke clipboard')
+            ->modalCancelActionLabel('Tutup')
+            ->schema([
+                Placeholder::make('salin_petunjuk')
+                    ->hiddenLabel()
+                    ->content(fn (): HtmlString => new HtmlString(
+                        '<p style="font-size:13px;opacity:.85;">'
+                        .'Kolom: <strong>NIM</strong>, <strong>Nama</strong>, lalu tiap kolom asesmen/Sub-CPMK '
+                        .'(pemisah tab, siap tempel ke Excel).</p>'
+                    )),
+                Textarea::make('export_text')
+                    ->label('Matriks nilai')
+                    ->default(fn (): string => $this->teksSalinMatriks())
+                    ->readOnly()
+                    ->rows(12)
+                    ->extraAttributes(['class' => 'font-mono text-xs']),
+            ])
+            ->action(function (): void {
+                $teks = $this->teksSalinMatriks();
+
+                if ($teks === '') {
+                    Notification::make()
+                        ->title('Tidak ada data')
+                        ->body('Pilih kelas MK yang memiliki mahasiswa dan komponen penilaian.')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $this->js('navigator.clipboard.writeText('.json_encode($teks).')');
+
+                Notification::make()
+                    ->title('Disalin ke clipboard')
+                    ->body('Tempel ke Excel, sesuaikan nilai, lalu impor lewat Tempel dari Excel.')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    protected function makeTempelNilaiAction(): Action
+    {
+        return Action::make('tempelNilai')
+            ->label('Tempel dari Excel')
+            ->icon(Heroicon::OutlinedClipboardDocument)
+            ->color('gray')
+            ->visible(fn (): bool => $this->matrixSiapClipboard())
+            ->modalHeading('Tempel matriks nilai')
+            ->modalDescription('Tempel blok sel dari Excel (termasuk baris header NIM/Nama).')
+            ->modalSubmitActionLabel('Terapkan ke matriks')
+            ->modalCancelActionLabel('Batal')
+            ->schema([
+                Placeholder::make('tempel_petunjuk')
+                    ->hiddenLabel()
+                    ->content(fn (): HtmlString => new HtmlString(
+                        '<div style="font-size:13px;opacity:.85;">'
+                        .'<p style="margin-bottom:8px;"><strong>Petunjuk:</strong></p>'
+                        .'<ul style="margin:0;padding-left:18px;">'
+                        .'<li>Gunakan format yang sama dengan hasil salin matriks (NIM, Nama, kolom nilai).</li>'
+                        .'<li>Pemisah tab dari Excel didukung; pipe (<code>|</code>) juga diterima.</li>'
+                        .'<li>Baris dicocokkan berdasarkan NIM; nilai kosong akan dikosongkan.</li>'
+                        .'<li>Setelah diterapkan, klik <strong>Simpan</strong> pada halaman.</li>'
+                        .'</ul></div>'
+                    )),
+                Textarea::make('paste_data')
+                    ->label('Data yang ditempel')
+                    ->rows(12)
+                    ->required()
+                    ->extraAttributes(['class' => 'font-mono text-xs']),
+            ])
+            ->action(function (array $data): void {
+                $this->applyTempel((string) ($data['paste_data'] ?? ''));
+            });
+    }
+
+    protected function teksSalinMatriks(): string
+    {
+        if (! $this->matrixSiapClipboard()) {
+            return '';
+        }
+
+        return app(InputNilaiMatrixClipboardService::class)->exportTsv(
+            $this->rows,
+            $this->columns,
+            $this->nilai,
+        );
+    }
+
+    protected function matrixSiapClipboard(): bool
+    {
+        return $this->kelasMkId !== null
+            && ! $this->penugasanBelumSelesai
+            && $this->rows !== []
+            && $this->columns !== [];
     }
 
     /**

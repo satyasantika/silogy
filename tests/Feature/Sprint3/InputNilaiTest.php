@@ -170,3 +170,21 @@ it('blocks role without input nilai permission', function () {
 
     expect(InputNilai::canAccess())->toBeFalse();
 });
+
+it('applies pasted matrix via applyTempel', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = setupInputNilaiFixtures($this->dosen);
+    $fixtures['kmm']->load('mahasiswa');
+
+    $paste = sprintf(
+        "NIM\tNama\tUTS / SUB-01\n%s\t%s\t91",
+        $fixtures['kmm']->mahasiswa->nim,
+        $fixtures['kmm']->mahasiswa->nama,
+    );
+
+    Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->call('applyTempel', $paste)
+        ->assertNotified()
+        ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['skp']->id, '91');
+});

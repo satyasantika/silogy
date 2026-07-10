@@ -8,8 +8,10 @@ use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\Concerns\ValidatesBobotKomponenSama100;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
+use App\Modules\Penilaian\Services\KomponenPenilaianMassalService;
 use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateKomponenPenilaian extends BaseCreateRecord
 {
@@ -22,23 +24,45 @@ class CreateKomponenPenilaian extends BaseCreateRecord
     {
         $data = $this->form->getState();
         $user = auth()->user();
-        $kelasMk = KelasMk::query()->find($data['kelas_mk_id'] ?? null);
 
         if (! $user || ! app(KomponenPenilaianPolicy::class)->create($user)) {
             throw new AuthorizationException;
         }
 
-        if (! $kelasMk instanceof KelasMk) {
-            throw new AuthorizationException;
-        }
+        if (KomponenPenilaianMassalService::resolveUntukPembuatan() === null) {
+            $kelasMk = KelasMk::query()->find($data['kelas_mk_id'] ?? null);
 
-        $komponen = new KomponenPenilaian(['kelas_mk_id' => $kelasMk->id]);
-        $komponen->setRelation('kelasMk', $kelasMk);
+            if (! $kelasMk instanceof KelasMk) {
+                throw new AuthorizationException;
+            }
 
-        if (! app(KomponenPenilaianPolicy::class)->update($user, $komponen)) {
-            throw new AuthorizationException;
+            $komponen = new KomponenPenilaian(['kelas_mk_id' => $kelasMk->id]);
+            $komponen->setRelation('kelasMk', $kelasMk);
+
+            if (! app(KomponenPenilaianPolicy::class)->update($user, $komponen)) {
+                throw new AuthorizationException;
+            }
         }
 
         $this->validateBobotKomponenSama100($data);
+    }
+
+    /**
+     * Asesmen berlaku untuk semua kelas pada mata kuliah + semester
+     * terpilih; buat/perbarui (berdasar kode) komponen di setiap kelasnya.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function handleRecordCreation(array $data): Model
+    {
+        $massal = KomponenPenilaianMassalService::resolveUntukPembuatan();
+
+        if ($massal === null) {
+            return static::getModel()::create($data);
+        }
+
+        $payload = collect($data)->only(['kode', 'evaluasi_id', 'nama', 'bobot'])->all();
+
+        return KomponenPenilaianMassalService::buatUntukSemuaKelas($payload, $massal);
     }
 }

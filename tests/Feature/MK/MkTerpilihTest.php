@@ -103,9 +103,10 @@ it('banner mk terpilih menampilkan kurikulum dan program studi pada baris terpis
     expect($html)
         ->toContain('Aplikasi Komputer Matematika (KP21514004)')
         ->toContain('Ganti')
-        ->toContain('Kurikulum:')
+        ->toContain('Mata Kuliah')
+        ->toContain('Kurikulum')
         ->toContain($this->kurikulum->nama)
-        ->toContain('Program studi:')
+        ->toContain('Program Studi')
         ->toContain($this->prodi->nama);
 });
 
