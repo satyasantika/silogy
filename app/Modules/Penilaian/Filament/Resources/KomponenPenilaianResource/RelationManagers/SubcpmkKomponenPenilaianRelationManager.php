@@ -4,11 +4,14 @@ namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Rel
 
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -89,6 +92,52 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->label('Tambah Sub-CPMK'),
+                Action::make('normalisasiBobotSubcpmk')
+                    ->label('Normalisasi Bobot')
+                    ->icon('heroicon-o-scale')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Normalisasi bobot Sub-CPMK')
+                    ->modalDescription(
+                        'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
+                        .'secara proporsional lalu dibulatkan ke bilangan bulat terdekat, sehingga '
+                        .'totalnya tepat 100%.',
+                    )
+                    ->modalSubmitActionLabel('Normalisasi')
+                    ->visible(function (): bool {
+                        /** @var KomponenPenilaian $komponen */
+                        $komponen = $this->getOwnerRecord();
+                        $total = (float) $komponen->subcpmkKomponens()->sum('bobot');
+
+                        return $total > 0 && abs($total - 100) > 0.01;
+                    })
+                    ->action(function (): void {
+                        /** @var KomponenPenilaian $komponen */
+                        $komponen = $this->getOwnerRecord();
+
+                        $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen);
+
+                        match ($hasil['status']) {
+                            'dinormalisasi' => Notification::make()
+                                ->title('Bobot Sub-CPMK berhasil dinormalisasi')
+                                ->body(sprintf(
+                                    'Total sebelumnya %.2f%% untuk %d Sub-CPMK, kini totalnya tepat 100%%.',
+                                    $hasil['total_sebelum'],
+                                    $hasil['jumlah'],
+                                ))
+                                ->success()
+                                ->send(),
+                            'sudah_pas' => Notification::make()
+                                ->title('Total bobot sudah 100%')
+                                ->body('Tidak ada perubahan yang diperlukan.')
+                                ->info()
+                                ->send(),
+                            default => Notification::make()
+                                ->title('Belum ada Sub-CPMK untuk dinormalisasi')
+                                ->warning()
+                                ->send(),
+                        };
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),

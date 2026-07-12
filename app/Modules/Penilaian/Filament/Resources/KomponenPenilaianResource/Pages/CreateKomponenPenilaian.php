@@ -5,7 +5,6 @@ namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pag
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
-use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\Concerns\ValidatesBobotKomponenSama100;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Penilaian\Services\KomponenPenilaianMassalService;
@@ -16,7 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 class CreateKomponenPenilaian extends BaseCreateRecord
 {
     use HasKoordinatorMkScope;
-    use ValidatesBobotKomponenSama100;
 
     protected static string $resource = KomponenPenilaianResource::class;
 
@@ -43,8 +41,6 @@ class CreateKomponenPenilaian extends BaseCreateRecord
                 throw new AuthorizationException;
             }
         }
-
-        $this->validateBobotKomponenSama100($data);
     }
 
     /**

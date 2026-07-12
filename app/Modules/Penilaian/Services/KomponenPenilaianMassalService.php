@@ -99,9 +99,11 @@ class KomponenPenilaianMassalService
 
     /**
      * Terapkan perubahan record yang baru disimpan ke komponen kelas lain
-     * dengan kode lama yang sama, dalam konteks massal yang sama.
+     * dengan kode lama yang sama, dalam konteks massal yang sama. Payload
+     * boleh berupa subset atribut (mis. hanya `bobot`, dari kolom bobot
+     * yang bisa diedit langsung di tabel).
      *
-     * @param  array{kode: string, evaluasi_id: string|null, nama: string, bobot: float}  $payload
+     * @param  array<string, mixed>  $payload
      * @param  array{mk: Mk, semester_id: string, kelas: Collection<int, KelasMk>}  $massal
      */
     public static function perbaruiSemuaKelas(

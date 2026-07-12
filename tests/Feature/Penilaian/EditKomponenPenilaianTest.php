@@ -74,7 +74,7 @@ it('korma dapat menyimpan perubahan komponen penilaian yang valid', function () 
     expect($komponen->fresh()->nama)->toBe('UTS Direvisi');
 });
 
-it('menampilkan galat pada kolom bobot saat total komponen tidak 100 dan tidak menyimpan perubahan', function () {
+it('tetap menyimpan perubahan bobot walau total komponen bukan 100', function () {
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
@@ -96,9 +96,9 @@ it('menampilkan galat pada kolom bobot saat total komponen tidak 100 dan tidak m
     Livewire::test(EditKomponenPenilaian::class, ['record' => $uts->getRouteKey()])
         ->fillForm(['bobot' => 70])
         ->call('save')
-        ->assertHasFormErrors(['bobot']);
+        ->assertHasNoFormErrors();
 
-    expect((float) $uts->fresh()->bobot)->toBe(50.0);
+    expect((float) $uts->fresh()->bobot)->toBe(70.0);
 });
 
 it('menampilkan total bobot secara realtime saat bobot sedang diisi', function () {

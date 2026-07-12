@@ -11,17 +11,22 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Services\AsesmenImporService;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
+use App\Modules\Penilaian\Services\NormalisasiBobotKomponenService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Support\Filament\Concerns\HasImporMassal;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\Alignment;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\HtmlString;
 
@@ -47,7 +52,15 @@ class ListKomponenPenilaians extends ListRecords
             ->components([
                 $this->getTabsContentComponent(),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+                View::make('filament.modules.penilaian.partials.total-bobot-banner')
+                    ->viewData(fn (): array => [
+                        'ringkasan' => $this->getTotalBobotRingkasan(),
+                    ])
+                    ->visible(fn (): bool => $this->getTotalBobotRingkasan() !== null),
                 EmbeddedTable::make(),
+                Actions::make([$this->normalisasiBobotAction()])
+                    ->alignment(Alignment::Start)
+                    ->key('normalisasi-bobot-actions'),
                 View::make('filament.modules.penilaian.partials.rencana-evaluasi-table')
                     ->viewData(fn (): array => [
                         'rencana' => $this->getRencanaEvaluasi(),
@@ -55,6 +68,63 @@ class ListKomponenPenilaians extends ListRecords
                     ->visible(fn (): bool => $this->getRencanaEvaluasi() !== null),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
             ]);
+    }
+
+    protected function normalisasiBobotAction(): Action
+    {
+        return Action::make('normalisasiBobot')
+            ->label('Normalisasi Bobot')
+            ->icon('heroicon-o-scale')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('Normalisasi bobot komponen')
+            ->modalDescription(
+                'Bobot tiap asesmen pada mata kuliah dan semester ini akan disesuaikan secara '
+                .'proporsional lalu dibulatkan ke bilangan bulat terdekat, sehingga totalnya '
+                .'tepat 100%. Tindakan ini mengubah nilai bobot yang sudah tersimpan.',
+            )
+            ->modalSubmitActionLabel('Normalisasi')
+            ->visible(fn (): bool => KomponenPenilaianResource::canCreate()
+                && ($ringkasan = $this->getTotalBobotRingkasan()) !== null
+                && ! $ringkasan['sudah_pas'])
+            ->action(function (): void {
+                $mkId = MkTerpilih::currentId();
+                $service = app(RencanaEvaluasiService::class);
+                $semesterId = filled($mkId) ? $service->resolveSemesterId($mkId) : null;
+
+                if (blank($mkId) || blank($semesterId)) {
+                    Notification::make()
+                        ->title('Pilih mata kuliah terlebih dahulu')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $hasil = app(NormalisasiBobotKomponenService::class)
+                    ->normalisasi((string) $mkId, (string) $semesterId);
+
+                match ($hasil['status']) {
+                    'dinormalisasi' => Notification::make()
+                        ->title('Bobot berhasil dinormalisasi')
+                        ->body(sprintf(
+                            'Total sebelumnya %s untuk %d asesmen, kini totalnya tepat 100%%.',
+                            $service->formatBobot($hasil['total_sebelum']),
+                            $hasil['jumlah_asesmen'],
+                        ))
+                        ->success()
+                        ->send(),
+                    'sudah_pas' => Notification::make()
+                        ->title('Total bobot sudah 100%')
+                        ->body('Tidak ada perubahan yang diperlukan.')
+                        ->info()
+                        ->send(),
+                    default => Notification::make()
+                        ->title('Belum ada asesmen untuk dinormalisasi')
+                        ->warning()
+                        ->send(),
+                };
+            });
     }
 
     /**
@@ -71,6 +141,20 @@ class ListKomponenPenilaians extends ListRecords
         $service = app(RencanaEvaluasiService::class);
 
         return $service->build($mkId, $service->resolveSemesterId($mkId));
+    }
+
+    /**
+     * @return array{total: float, selisih: float, sudah_pas: bool, status: 'success'|'warning'|'danger', keterangan: string}|null
+     */
+    protected function getTotalBobotRingkasan(): ?array
+    {
+        $rencana = $this->getRencanaEvaluasi();
+
+        if ($rencana === null) {
+            return null;
+        }
+
+        return app(RencanaEvaluasiService::class)->ringkasanTotalBobot($rencana['total_bobot']);
     }
 
     protected function importModalHeading(): string

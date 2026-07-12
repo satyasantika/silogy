@@ -222,4 +222,38 @@ class RencanaEvaluasiService
 
         return $formatted.'%';
     }
+
+    /**
+     * Ringkasan kekurangan/kelebihan total bobot terhadap 100%, dipakai
+     * untuk keterangan pada halaman daftar asesmen maupun tabel Rencana
+     * Evaluasi, karena validasi total 100% tidak lagi menahan proses simpan.
+     *
+     * Status: 'success' bila tepat 100%, 'warning' bila kurang, 'danger'
+     * bila lebih — dipetakan ke warna banner oleh view pemanggil.
+     *
+     * @return array{total: float, selisih: float, sudah_pas: bool, status: 'success'|'warning'|'danger', keterangan: string}
+     */
+    public function ringkasanTotalBobot(float $totalBobot): array
+    {
+        $selisih = round(100 - $totalBobot, 2);
+        $sudahPas = abs($selisih) < 0.01;
+        $status = $sudahPas ? 'success' : ($selisih > 0 ? 'warning' : 'danger');
+
+        $keterangan = $sudahPas
+            ? sprintf('Total bobot komponen pada mata kuliah dan semester ini: %s — sudah pas 100%%.', $this->formatBobot($totalBobot))
+            : sprintf(
+                'Total bobot komponen pada mata kuliah dan semester ini: %s dari 100%% (%s %s).',
+                $this->formatBobot($totalBobot),
+                $selisih > 0 ? 'kurang' : 'lebih',
+                $this->formatBobot(abs($selisih)),
+            );
+
+        return [
+            'total' => $totalBobot,
+            'selisih' => $selisih,
+            'sudah_pas' => $sudahPas,
+            'status' => $status,
+            'keterangan' => $keterangan,
+        ];
+    }
 }

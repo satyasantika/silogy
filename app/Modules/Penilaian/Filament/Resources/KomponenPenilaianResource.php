@@ -20,7 +20,9 @@ use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Penilaian\Rules\BobotKomponenSama100Rule;
 use App\Modules\Penilaian\Services\KomponenPenilaianMassalService;
+use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Support\Filament\DelegasiMenu;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -31,7 +33,10 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\IconPosition;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Split;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
@@ -179,50 +184,61 @@ class KomponenPenilaianResource extends Resource
         return $table
             ->description(fn (): HtmlString => MkTerpilih::bannerHtml())
             ->columns([
-                TextColumn::make('kode')
-                    ->label('Kode')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                Stack::make([
+                    Split::make([
+                        TextColumn::make('kode')
+                            ->label('Kode')
+                            ->searchable()
+                            ->sortable()
+                            ->placeholder('—')
+                            ->weight(FontWeight::Bold),
 
-                TextColumn::make('nama')
-                    ->label('Nama penugasan')
-                    ->searchable()
-                    ->sortable()
-                    ->wrap()
-                    ->extraCellAttributes(['style' => 'max-width:16rem;white-space:normal;word-break:break-word;'])
-                    ->weight(FontWeight::Bold),
+                        TextColumn::make('bobot')
+                            ->label('Bobot (%)')
+                            ->suffix('%')
+                            ->sortable()
+                            ->icon('heroicon-o-pencil-square')
+                            ->iconPosition(IconPosition::After)
+                            ->disabledClick(fn (KomponenPenilaian $record): bool => ! Auth::user()?->can('update', $record))
+                            ->action(static::editBobotAction()),
+                    ]),
 
-                TextColumn::make('bobot')
-                    ->label('Bobot (%)')
-                    ->suffix('%')
-                    ->sortable(),
+                    TextColumn::make('nama')
+                        ->label('Nama penugasan')
+                        ->searchable()
+                        ->sortable()
+                        ->wrap()
+                        ->weight(FontWeight::Bold),
 
-                TextColumn::make('evaluasi.nama')
-                    ->label('Komponen')
-                    ->sortable(),
+                    TextColumn::make('evaluasi.nama')
+                        ->label('Komponen')
+                        ->sortable()
+                        ->size('sm')
+                        ->color('gray'),
 
-                TextColumn::make('subcpmk_terpetakan')
-                    ->label('SubCPMK')
-                    ->getStateUsing(function (KomponenPenilaian $record): string {
-                        $kodes = $record->subcpmkKomponens
-                            ->map(fn ($pivot) => $pivot->subcpmk?->kode)
-                            ->filter()
-                            ->values();
+                    TextColumn::make('subcpmk_terpetakan')
+                        ->label('SubCPMK')
+                        ->html()
+                        ->size('sm')
+                        ->getStateUsing(function (KomponenPenilaian $record): string {
+                            $service = app(RencanaEvaluasiService::class);
 
-                        return $kodes->isNotEmpty() ? $kodes->join(', ') : '—';
-                    }),
+                            $items = $record->subcpmkKomponens
+                                ->filter(fn ($pivot) => $pivot->subcpmk !== null)
+                                ->sortBy(fn ($pivot) => $pivot->subcpmk->kode)
+                                ->map(fn ($pivot) => sprintf(
+                                    '<div>%s <span style="color:#2563eb;font-weight:600;">(%s)</span></div>',
+                                    e($pivot->subcpmk->kode),
+                                    e($service->formatBobot((float) $pivot->bobot)),
+                                ))
+                                ->values();
 
-                TextColumn::make('kelasMk.kode_kelas')
-                    ->label('Kelas')
-                    ->formatStateUsing(fn (KomponenPenilaian $record): string => $record->kelasMk?->kode_kelas ?? '—')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('kelasMk.semester.kode')
-                    ->label('Semester')
-                    ->placeholder('—')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                            return $items->isNotEmpty() ? $items->join('') : '—';
+                        }),
+                ])->space(2),
             ])
+            ->contentGrid(['md' => 2, 'xl' => 3])
+            ->paginated(false)
             ->filters([
                 static::semesterTerpilihFilter(
                     fn (Builder $query, string $semesterId): Builder => $query->whereHas(
@@ -275,6 +291,41 @@ class KomponenPenilaianResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function editBobotAction(): Action
+    {
+        return Action::make('editBobot')
+            ->label('Edit Bobot')
+            ->modalHeading('Edit Bobot (%)')
+            ->modalSubmitActionLabel('Simpan')
+            ->authorize('update')
+            ->schema([
+                TextInput::make('bobot')
+                    ->label('Bobot (%)')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->step(0.01)
+                    ->required(),
+            ])
+            ->fillForm(fn (KomponenPenilaian $record): array => ['bobot' => $record->bobot])
+            ->action(function (array $data, KomponenPenilaian $record): void {
+                $bobot = min(max((float) $data['bobot'], 0), 100);
+
+                $record->update(['bobot' => $bobot]);
+
+                $massal = KomponenPenilaianMassalService::resolveUntukRecord($record);
+
+                if ($massal !== null) {
+                    KomponenPenilaianMassalService::perbaruiSemuaKelas(
+                        $record,
+                        (string) $record->kode,
+                        ['bobot' => $bobot],
+                        $massal,
+                    );
+                }
+            });
     }
 
     /**
