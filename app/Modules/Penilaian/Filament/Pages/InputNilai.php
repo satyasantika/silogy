@@ -2,18 +2,13 @@
 
 namespace App\Modules\Penilaian\Filament\Pages;
 
-use App\Models\User;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
-use App\Modules\MK\Models\Mk;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Filament\Pages\Concerns\HasKelasMkDosenPicker;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
-use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Services\InputNilaiMatrixClipboardService;
-use App\Modules\Penilaian\Services\PenilaianDosenService;
-use App\Modules\Penilaian\Support\PenilaianMkTerpilih;
-use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
+use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
@@ -21,14 +16,14 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class InputNilai extends Page
 {
+    use HasKelasMkDosenPicker;
+
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 
     protected static ?string $navigationLabel = 'Input Nilai';
@@ -43,10 +38,6 @@ class InputNilai extends Page
 
     protected string $view = 'filament.modules.penilaian.pages.input-nilai';
 
-    public ?string $mkId = null;
-
-    public ?string $kelasMkId = null;
-
     /**
      * @var array<string, array<string, string|null>>
      */
@@ -56,6 +47,14 @@ class InputNilai extends Page
      * @var list<array{id: string, nim: string, nama: string, nilai_angka: float|null, nilai_huruf: string|null}>
      */
     public array $rows = [];
+
+    /**
+     * Baris mahasiswa yang sama dengan $rows, tapi diurutkan berdasarkan NIM
+     * — dipakai tab Laporan > Portofolio (baca-saja).
+     *
+     * @var list<array{id: string, nim: string, nama: string, nilai_angka: float|null, nilai_huruf: string|null}>
+     */
+    public array $portofolioRows = [];
 
     /**
      * @var list<array{id: string, label: string, asesmen: string, subcpmk: string, evaluasi_kode: string|null, cpl: string|null, bobot: float}>
@@ -82,111 +81,9 @@ class InputNilai extends Page
         return $user !== null && app(InputNilaiPolicy::class)->access($user);
     }
 
-    public function mount(): void
-    {
-        $kelasMkIdParam = request()->query('kelas_mk_id');
-        $mkIdParam = request()->query('mk_id');
-
-        $kelas = is_string($kelasMkIdParam)
-            ? $this->kelasMkQuery(null)->whereKey($kelasMkIdParam)->first()
-            : null;
-
-        if ($kelas !== null) {
-            $this->mkId = $kelas->mkUnit?->mk_id;
-            PenilaianSemesterTerpilih::set($kelas->semester_id);
-        } elseif (is_string($mkIdParam)) {
-            $this->mkId = $mkIdParam;
-        } else {
-            $this->mkId = PenilaianMkTerpilih::currentId();
-        }
-
-        if ($kelas === null && $this->mkId !== null) {
-            $kelas = $this->kelasMkQueryUntukMk($this->mkId, PenilaianSemesterTerpilih::currentId())->first();
-        }
-
-        if ($kelas === null) {
-            $kelas = $this->kelasMkQuery(PenilaianSemesterTerpilih::currentId())->first();
-
-            if ($kelas !== null) {
-                $this->mkId = $kelas->mkUnit?->mk_id;
-            }
-        }
-
-        PenilaianMkTerpilih::set($this->mkId);
-
-        if ($kelas !== null) {
-            $this->kelasMkId = $kelas->id;
-            $this->loadMatrix();
-        }
-    }
-
-    public function updatedKelasMkId(): void
+    protected function afterKelasBerubah(): void
     {
         $this->showKalkulasiBadge = false;
-        $this->loadMatrix();
-    }
-
-    public function pilihKelas(string $kelasMkId): void
-    {
-        $kelas = $this->kelasMkQuery(null)->whereKey($kelasMkId)->first();
-
-        if ($kelas === null) {
-            return;
-        }
-
-        $this->kelasMkId = $kelas->id;
-        $this->showKalkulasiBadge = false;
-        $this->loadMatrix();
-    }
-
-    public function getMkTerpilihProperty(): ?Mk
-    {
-        if ($this->mkId === null) {
-            return null;
-        }
-
-        return Mk::query()->find($this->mkId);
-    }
-
-    public function getSemesterTerpilihProperty(): string
-    {
-        return PenilaianSemesterTerpilih::label();
-    }
-
-    /**
-     * @return list<array{id: string, kode_kelas: string, jumlah_mahasiswa: int, rata_rata: float|null, sudah_dinilai: bool}>
-     */
-    public function getKelasCardsProperty(): array
-    {
-        $mk = $this->getMkTerpilihProperty();
-        $user = auth()->user();
-
-        if ($mk === null || ! $user instanceof User) {
-            return [];
-        }
-
-        return PenilaianDosenService::kelasUntukMk($mk, $user, PenilaianSemesterTerpilih::currentId())
-            ->map(fn (KelasMk $kelas): array => array_merge(
-                ['id' => $kelas->id],
-                PenilaianDosenService::ringkasanKelas($kelas),
-            ))
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return array{jumlah_mahasiswa: int, rata_rata: float|null, sudah_dinilai: bool}
-     */
-    public function getRingkasanSeluruhKelasProperty(): array
-    {
-        $mk = $this->getMkTerpilihProperty();
-        $user = auth()->user();
-
-        if ($mk === null || ! $user instanceof User) {
-            return ['jumlah_mahasiswa' => 0, 'rata_rata' => null, 'sudah_dinilai' => false];
-        }
-
-        return PenilaianDosenService::ringkasanSeluruhKelas($mk, $user, PenilaianSemesterTerpilih::currentId());
     }
 
     /**
@@ -216,25 +113,7 @@ class InputNilai extends Page
      */
     public function getRataRataKelasProperty(): array
     {
-        $rataRata = [];
-
-        foreach ($this->columns as $column) {
-            $nilaiTerisi = [];
-
-            foreach ($this->rows as $row) {
-                $value = $this->nilai[$row['id']][$column['id']] ?? null;
-
-                if ($value !== null && $value !== '') {
-                    $nilaiTerisi[] = (float) $value;
-                }
-            }
-
-            $rataRata[$column['id']] = $nilaiTerisi !== []
-                ? round(array_sum($nilaiTerisi) / count($nilaiTerisi), 2)
-                : null;
-        }
-
-        return $rataRata;
+        return app(PenilaianMatrixService::class)->rataRataKelas($this->columns, $this->rows, $this->nilai);
     }
 
     /**
@@ -245,28 +124,14 @@ class InputNilai extends Page
      */
     public function warnaNilaiHuruf(?string $huruf): array
     {
-        return match (true) {
-            $huruf === null || $huruf === '' => ['bg' => 'rgba(128,128,128,.15)', 'fg' => '#6b7280'],
-            str_starts_with($huruf, 'A') => ['bg' => '#dcfce7', 'fg' => '#166534'],
-            str_starts_with($huruf, 'B') => ['bg' => '#dbeafe', 'fg' => '#1d4ed8'],
-            str_starts_with($huruf, 'C') => ['bg' => '#fef3c7', 'fg' => '#92400e'],
-            default => ['bg' => '#fee2e2', 'fg' => '#b91c1c'],
-        };
-    }
-
-    /**
-     * @return Builder<KelasMk>
-     */
-    protected function kelasMkQueryUntukMk(string $mkId, ?string $semesterId): Builder
-    {
-        return $this->kelasMkQuery($semesterId)
-            ->whereHas('mkUnit', fn (Builder $query): Builder => $query->where('mk_id', $mkId));
+        return app(PenilaianMatrixService::class)->warnaNilaiHuruf($huruf);
     }
 
     public function loadMatrix(): void
     {
         $this->nilai = [];
         $this->rows = [];
+        $this->portofolioRows = [];
         $this->columns = [];
 
         if ($this->kelasMkId === null) {
@@ -288,19 +153,10 @@ class InputNilai extends Page
 
         Gate::authorize('inputNilai', $kelasMk);
 
-        $mkId = $kelasMk->mkUnit?->mk_id;
+        $matrix = app(PenilaianMatrixService::class);
+        $komponens = $matrix->komponenUntukKelas($kelasMk);
 
-        $komponens = KomponenPenilaian::query()
-            ->where('mk_id', $mkId)
-            ->where('semester_id', $kelasMk->semester_id)
-            ->with(['evaluasi', 'subcpmkKomponens.subcpmk.mkCpmk.cplMk.cplBok.cpl'])
-            ->orderBy('kode')
-            ->get();
-
-        $this->columns = $komponens
-            ->map(fn (KomponenPenilaian $komponen): array => $this->kolomDariKomponen($komponen))
-            ->values()
-            ->all();
+        $this->columns = $matrix->kolomDariKomponens($komponens);
 
         $idKolom = collect($this->columns)->pluck('id')->all();
 
@@ -312,105 +168,9 @@ class InputNilai extends Page
             $this->kolomTerpilih = $idKolom;
         }
 
-        $kelasMkMahasiswas = KelasMkMahasiswa::query()
-            ->where('kelas_mk_id', $kelasMk->id)
-            ->with('mahasiswa')
-            ->join('mahasiswas', 'mahasiswas.id', '=', 'kelas_mk_mahasiswa.mahasiswa_id')
-            ->orderBy('mahasiswas.nama')
-            ->select('kelas_mk_mahasiswa.*')
-            ->get();
-
-        $this->rows = $kelasMkMahasiswas
-            ->map(fn (KelasMkMahasiswa $kmm): array => [
-                'id' => $kmm->id,
-                'nim' => $kmm->mahasiswa?->nim ?? '—',
-                'nama' => $kmm->mahasiswa?->nama ?? '—',
-                'nilai_angka' => $kmm->nilai_angka !== null ? (float) $kmm->nilai_angka : null,
-                'nilai_huruf' => $kmm->nilai_huruf,
-            ])
-            ->values()
-            ->all();
-
-        $pivotIdsByKomponen = $this->pivotIdsByKomponen($komponens);
-        $allPivotIds = collect($pivotIdsByKomponen)->flatten()->values();
-        $kmmIds = collect($this->rows)->pluck('id');
-
-        if ($allPivotIds->isEmpty() || $kmmIds->isEmpty()) {
-            return;
-        }
-
-        $existing = NilaiMahasiswa::query()
-            ->whereIn('kelas_mk_mahasiswa_id', $kmmIds)
-            ->whereIn('subcpmk_komponenpenilaian_id', $allPivotIds)
-            ->get()
-            ->groupBy('kelas_mk_mahasiswa_id');
-
-        foreach ($this->rows as $row) {
-            $this->nilai[$row['id']] = [];
-
-            foreach ($this->columns as $column) {
-                $pivotIds = $pivotIdsByKomponen[$column['id']] ?? [];
-
-                $nilai = $existing
-                    ->get($row['id'])
-                    ?->first(fn (NilaiMahasiswa $n): bool => in_array(
-                        $n->subcpmk_komponenpenilaian_id,
-                        $pivotIds,
-                        true,
-                    ));
-
-                $this->nilai[$row['id']][$column['id']] = $nilai?->nilai !== null
-                    ? (string) $nilai->nilai
-                    : null;
-            }
-        }
-    }
-
-    /**
-     * @return array{id: string, label: string, asesmen: string, subcpmk: string, evaluasi_kode: string|null, cpl: string|null, bobot: float}
-     */
-    protected function kolomDariKomponen(KomponenPenilaian $komponen): array
-    {
-        $subcpmkKodes = $komponen->subcpmkKomponens
-            ->pluck('subcpmk.kode')
-            ->filter()
-            ->unique()
-            ->values();
-
-        $cplKodes = $komponen->subcpmkKomponens
-            ->map(fn (SubcpmkKomponenPenilaian $skp): ?string => $skp->subcpmk?->mkCpmk?->cplMk?->cplBok?->cpl?->kode)
-            ->filter()
-            ->unique()
-            ->values();
-
-        return [
-            'id' => $komponen->id,
-            'label' => $komponen->kode,
-            'asesmen' => $komponen->kode,
-            'subcpmk' => $subcpmkKodes->isNotEmpty() ? $subcpmkKodes->implode(', ') : '—',
-            'evaluasi_kode' => $komponen->evaluasi?->kode,
-            'cpl' => $cplKodes->isNotEmpty() ? $cplKodes->implode(', ') : null,
-            'bobot' => round((float) $komponen->bobot, 2),
-        ];
-    }
-
-    /**
-     * Kolom matriks mengikuti banyaknya asesmen (KomponenPenilaian) pada MK,
-     * bukan banyaknya interaksi Sub-CPMK × asesmen — satu asesmen bisa
-     * dipetakan ke beberapa Sub-CPMK sekaligus, jadi nilai yang diisi dosen
-     * untuk satu kolom asesmen disebar (fan-out) ke seluruh pivot Sub-CPMK
-     * di baliknya.
-     *
-     * @param  Collection<int, KomponenPenilaian>  $komponens
-     * @return array<string, list<string>>
-     */
-    protected function pivotIdsByKomponen(Collection $komponens): array
-    {
-        return $komponens
-            ->mapWithKeys(fn (KomponenPenilaian $komponen): array => [
-                $komponen->id => $komponen->subcpmkKomponens->pluck('id')->all(),
-            ])
-            ->all();
+        $this->rows = $matrix->barisUntukKelas($kelasMk);
+        $this->portofolioRows = $matrix->barisUntukKelas($kelasMk, 'mahasiswas.nim');
+        $this->nilai = $matrix->nilaiUntukMatrix($this->rows, $matrix->pivotIdsByKomponen($komponens));
     }
 
     public function save(): void
@@ -428,15 +188,8 @@ class InputNilai extends Page
             ->pluck('id')
             ->all();
 
-        $mkId = $kelasMk->mkUnit?->mk_id;
-
-        $komponens = KomponenPenilaian::query()
-            ->where('mk_id', $mkId)
-            ->where('semester_id', $kelasMk->semester_id)
-            ->with('subcpmkKomponens')
-            ->get();
-
-        $pivotIdsByKomponen = $this->pivotIdsByKomponen($komponens);
+        $matrix = app(PenilaianMatrixService::class);
+        $pivotIdsByKomponen = $matrix->pivotIdsByKomponen($matrix->komponenUntukKelas($kelasMk));
 
         foreach ($this->nilai as $kmmId => $cells) {
             if (! in_array($kmmId, $allowedKmmIds, true)) {
@@ -749,20 +502,5 @@ class InputNilai extends Page
             && ! $this->penugasanBelumSelesai
             && $this->rows !== []
             && $this->columns !== [];
-    }
-
-    /**
-     * @return Builder<KelasMk>
-     */
-    protected function kelasMkQuery(?string $semesterAktifId): Builder
-    {
-        $query = KelasMk::query()
-            ->where('dosen_pengampu_id', auth()->id());
-
-        if ($semesterAktifId !== null) {
-            $query->where('semester_id', $semesterAktifId);
-        }
-
-        return $query->orderBy('kode_kelas');
     }
 }
