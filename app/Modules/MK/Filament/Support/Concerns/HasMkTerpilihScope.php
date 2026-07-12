@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Support\Concerns;
 
 use App\Modules\MK\Support\MkTerpilih;
+use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\Layout\Component as LayoutComponent;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Table;
@@ -17,7 +18,7 @@ use Illuminate\Support\HtmlString;
 trait HasMkTerpilihScope
 {
     /**
-     * @param  array<int, LayoutComponent|\Filament\Tables\Columns\Column>  $cardSchema
+     * @param  array<int, LayoutComponent|Column>  $cardSchema
      * @param  callable(Builder<Model>, string): Builder<Model>  $applyMkScope
      */
     protected static function applyMkTerpilihCardTable(
@@ -32,8 +33,7 @@ trait HasMkTerpilihScope
                 Stack::make($cardSchema)->space(1),
             ])
             ->contentGrid($contentGrid)
-            ->paginated([6, 12, 24])
-            ->defaultPaginationPageOption(12)
+            ->paginated(false)
             ->modifyQueryUsing(function (Builder $query) use ($applyMkScope): Builder {
                 $mkId = MkTerpilih::currentId();
 

@@ -39,7 +39,8 @@ uses(RefreshDatabase::class);
  * @return array{
  *     kelas: KelasMk,
  *     kmm: KelasMkMahasiswa,
- *     skp: SubcpmkKomponenPenilaian
+ *     skp: SubcpmkKomponenPenilaian,
+ *     komponen: KomponenPenilaian
  * }
  */
 function setupInputNilaiFixtures(User $dosen, string $kodeMkUnit = 'IF101', string $kodeKelas = 'A'): array
@@ -93,7 +94,7 @@ function setupInputNilaiFixtures(User $dosen, string $kodeMkUnit = 'IF101', stri
         'bobot' => 100,
     ]);
 
-    return compact('kelas', 'kmm', 'skp');
+    return compact('kelas', 'kmm', 'skp', 'komponen');
 }
 
 beforeEach(function () {
@@ -123,7 +124,7 @@ it('lets dosen save nilai in matrix', function () {
         ->set('kelasMkId', $fixtures['kelas']->id)
         ->set('nilai', [
             $fixtures['kmm']->id => [
-                $fixtures['skp']->id => '85.5',
+                $fixtures['komponen']->id => '85.5',
             ],
         ])
         ->call('save')
@@ -139,7 +140,7 @@ it('lets dosen save nilai in matrix', function () {
 
     Livewire::test(InputNilai::class)
         ->set('kelasMkId', $fixtures['kelas']->id)
-        ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['skp']->id, '85.50');
+        ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['komponen']->id, '85.50');
 });
 
 it('blocks dosen from inputting other dosen class', function () {
@@ -178,7 +179,7 @@ it('applies pasted matrix via applyTempel', function () {
     $fixtures['kmm']->load('mahasiswa');
 
     $paste = sprintf(
-        "NIM\tNama\tUTS / SUB-01\n%s\t%s\t91",
+        "NIM\tNama\tUTS\n%s\t%s\t91",
         $fixtures['kmm']->mahasiswa->nim,
         $fixtures['kmm']->mahasiswa->nama,
     );
@@ -187,5 +188,5 @@ it('applies pasted matrix via applyTempel', function () {
         ->set('kelasMkId', $fixtures['kelas']->id)
         ->call('applyTempel', $paste)
         ->assertNotified()
-        ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['skp']->id, '91');
+        ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['komponen']->id, '91');
 });

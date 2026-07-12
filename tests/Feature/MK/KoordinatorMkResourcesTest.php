@@ -11,6 +11,7 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
+use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\CreateSubcpmk;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -138,4 +139,13 @@ it('korma melihat menu komponen penilaian setelah mk dipilih', function () {
     MkTerpilih::set($this->mk->id);
 
     expect(KomponenPenilaianResource::shouldRegisterNavigation())->toBeTrue();
+});
+
+it('tidak lagi menggunakan pagination pada tabel cpmk', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    $test = Livewire::test(ListCpmks::class)->loadTable();
+
+    expect($test->instance()->getTable()->isPaginated())->toBeFalse();
 });

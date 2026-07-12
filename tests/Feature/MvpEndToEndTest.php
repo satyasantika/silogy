@@ -262,6 +262,7 @@ it('completes full mvp journey for prodi', function () {
 
     $subcpmkPerKelas = [];
     $skpPerKelas = [];
+    $komponenPerKelas = [];
 
     foreach ($kelasCollection as $index => $kelas) {
         $mk = $index === 0 ? $mk1 : $mk2;
@@ -316,6 +317,7 @@ it('completes full mvp journey for prodi', function () {
         }
 
         $skpPerKelas[$kelas->id] = $skpIds;
+        $komponenPerKelas[$kelas->id] = [$komponenUts->id, $komponenUas->id];
     }
 
     // 6. Transisi kurikulum setdosenmk → aktif
@@ -331,8 +333,8 @@ it('completes full mvp journey for prodi', function () {
     foreach ($kelasCollection as $kelas) {
         $matrix = [];
         foreach ($kmmPerKelas[$kelas->id] as $kmm) {
-            foreach ($skpPerKelas[$kelas->id] as $skpId) {
-                $matrix[$kmm->id][$skpId] = (string) $nilaiInput;
+            foreach ($komponenPerKelas[$kelas->id] as $komponenId) {
+                $matrix[$kmm->id][$komponenId] = (string) $nilaiInput;
             }
         }
 

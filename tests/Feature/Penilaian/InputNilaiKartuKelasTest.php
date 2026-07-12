@@ -136,7 +136,6 @@ it('menampilkan mk terpilih, kartu kelas, dan ringkasan seluruh kelas', function
         ->assertSee('Seluruh kelas pada MK ini', escape: false)
         ->assertSee('3 mahasiswa', escape: false)
         ->assertSee('UTS', escape: false)
-        ->assertSee('SUB-A', escape: false)
         ->assertSee($this->semesterAktif->nama, escape: false)
         ->assertSee('Pilih mata kuliah lain', escape: false)
         ->assertSee(PenilaianDosenResource::getUrl('index'), escape: false);

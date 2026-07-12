@@ -11,6 +11,7 @@ use App\Modules\Kalkulasi\Filament\Widgets\CplUnitChartWidget;
 use App\Modules\Kalkulasi\Services\DashboardCplDataService;
 use App\Modules\Kurikulum\Filament\Widgets\KurikulumTerpilihWidget;
 use App\Modules\MK\Filament\Widgets\KoordinatorMkAksesWidget;
+use App\Modules\Penilaian\Filament\Widgets\RekapMkDosenWidget;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
@@ -60,6 +61,7 @@ class Dashboard extends BaseDashboard
                         AccountWidget::class,
                         KurikulumTerpilihWidget::class,
                         KoordinatorMkAksesWidget::class,
+                        RekapMkDosenWidget::class,
                     ])),
                 ...(static::canViewDashboardWidgets() ? [$this->getFiltersFormContentComponent()] : []),
                 $this->getWidgetsContentComponent(),

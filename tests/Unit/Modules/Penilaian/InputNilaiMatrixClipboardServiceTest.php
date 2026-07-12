@@ -64,6 +64,31 @@ it('rejects paste without data rows', function () {
     ))->toThrow(ValidationException::class);
 });
 
+it('mencocokkan kolom berlabel sama (asesmen yang sama, sub-cpmk berbeda) secara berurutan', function () {
+    $rows = [
+        ['id' => 'kmm-1', 'nim' => '12345', 'nama' => 'Budi'],
+    ];
+    $columns = [
+        ['id' => 'skp-1', 'label' => 'Asesmen01'],
+        ['id' => 'skp-2', 'label' => 'Asesmen01'],
+    ];
+    $currentNilai = [
+        'kmm-1' => ['skp-1' => null, 'skp-2' => null],
+    ];
+
+    $paste = "NIM\tNama\tAsesmen01\tAsesmen01\n12345\tBudi\t80\t90";
+
+    $result = app(InputNilaiMatrixClipboardService::class)->applyPaste(
+        $paste,
+        $rows,
+        $columns,
+        $currentNilai,
+    );
+
+    expect($result['nilai']['kmm-1']['skp-1'])->toBe('80')
+        ->and($result['nilai']['kmm-1']['skp-2'])->toBe('90');
+});
+
 it('reports invalid numeric values without applying cell', function () {
     $rows = [
         ['id' => 'kmm-1', 'nim' => '12345', 'nama' => 'Budi'],

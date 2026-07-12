@@ -204,19 +204,24 @@ class InputNilaiMatrixClipboardService
             return $indexes;
         }
 
-        $labelsById = collect($columns)->keyBy('id');
-        $normalizedHeaders = collect($headerCells)
-            ->map(fn (string $header): string => $this->normalizeHeader($header));
+        // Kolom kini dilabeli hanya berdasarkan kode asesmen, jadi beberapa
+        // kolom (Sub-CPMK berbeda pada asesmen yang sama) bisa berbagi label
+        // yang sama — dicocokkan berurutan per grup label, bukan selalu ke
+        // kemunculan pertama, agar tiap kolom tetap dapat indeks tempel unik.
+        $headerIndexesByLabel = [];
+
+        foreach ($headerCells as $index => $header) {
+            $headerIndexesByLabel[$this->normalizeHeader($header)][] = $index;
+        }
 
         foreach ($columns as $column) {
             $label = $this->normalizeHeader($column['label']);
-            $index = $normalizedHeaders->search($label);
 
-            if ($index === false) {
+            if (empty($headerIndexesByLabel[$label])) {
                 continue;
             }
 
-            $indexes[$column['id']] = $index;
+            $indexes[$column['id']] = array_shift($headerIndexesByLabel[$label]);
         }
 
         if ($indexes !== []) {

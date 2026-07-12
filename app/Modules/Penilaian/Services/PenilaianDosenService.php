@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Services;
 
 use App\Models\User;
+use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
@@ -12,6 +13,39 @@ use Illuminate\Support\HtmlString;
 
 class PenilaianDosenService
 {
+    /**
+     * Rekap jumlah mata kuliah (distinct) yang diampu dosen ini per semester,
+     * hanya semester yang benar-benar punya kelas — dipakai widget dashboard.
+     *
+     * @return Collection<int, array{semester: Semester, jumlah_mk: int<0, max>}>
+     */
+    public static function rekapMkPerSemester(User $dosen): Collection
+    {
+        $kelasPerSemester = KelasMk::query()
+            ->where('dosen_pengampu_id', $dosen->id)
+            ->with('mkUnit')
+            ->get()
+            ->groupBy('semester_id');
+
+        if ($kelasPerSemester->isEmpty()) {
+            return collect();
+        }
+
+        return Semester::query()
+            ->whereIn('id', $kelasPerSemester->keys())
+            ->orderByDesc('kode')
+            ->get()
+            ->map(fn (Semester $semester): array => [
+                'semester' => $semester,
+                'jumlah_mk' => $kelasPerSemester->get($semester->id, collect())
+                    ->pluck('mkUnit.mk_id')
+                    ->filter()
+                    ->unique()
+                    ->count(),
+            ])
+            ->values();
+    }
+
     /**
      * Kelas MK milik dosen untuk sebuah MK, pada semester tertentu (bila diisi).
      *
