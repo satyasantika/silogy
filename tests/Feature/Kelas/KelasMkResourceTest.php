@@ -233,9 +233,73 @@ it('filter kelas mk koordinator hanya menampilkan kurikulum semester dan mk terk
 
     Livewire::test(ListKelasMks::class)
         ->loadTable()
-        ->assertSet('tableFilters.kurikulum_terpilih.value', $kurikulum->id)
         ->filterTable('semester_id', $this->semester->id)
         ->assertCanSeeTableRecords([$kelasKorma])
         ->filterTable('mk_id', $mkKorma->id)
         ->assertCanSeeTableRecords([$kelasKorma]);
+});
+
+it('filter semester pada kelas mk memuat seluruh semester dari master, bukan hanya yang sudah punya kelas', function () {
+    $semesterTanpaKelas = Semester::query()->where('kode', '20272')->firstOrFail();
+
+    $this->actingAs($this->adminProdi);
+
+    $test = Livewire::test(ListKelasMks::class)->loadTable();
+    $options = $test->instance()->getTable()->getFilter('semester_id')->getOptions();
+
+    expect($options)->toHaveKey($semesterTanpaKelas->id);
+});
+
+it('tidak lagi menampilkan filter dropdown kurikulum pada kelas mk', function () {
+    $this->actingAs($this->adminProdi);
+
+    $test = Livewire::test(ListKelasMks::class)->loadTable();
+
+    expect($test->instance()->getTable()->getFilter('kurikulum_terpilih'))->toBeNull();
+});
+
+it('kolom mahasiswa pada tabel kelas mk menampilkan total mahasiswa terdaftar', function () {
+    $kelas = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $mahasiswaIds = Mahasiswa::query()
+        ->where('academic_unit_id', $this->prodi->id)
+        ->limit(3)
+        ->pluck('id')
+        ->all();
+
+    $kelas->mahasiswas()->attach($mahasiswaIds);
+
+    Livewire::test(ListKelasMks::class)
+        ->loadTable()
+        ->assertTableColumnStateSet('mahasiswas_count', 3, $kelas);
+});
+
+it('kolom dosen pengampu menandai koordinator mk saat dosen yang sama juga koordinator', function () {
+    $korma = User::where('username', 'korma')->firstOrFail();
+
+    $kelasKoordinatorMerangkap = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $korma->id,
+        'koordinator_mk_id' => $korma->id,
+    ]);
+
+    $kelasBiasa = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'B',
+        'dosen_pengampu_id' => $this->dosen->id,
+        'koordinator_mk_id' => $korma->id,
+    ]);
+
+    Livewire::test(ListKelasMks::class)
+        ->loadTable()
+        ->assertTableColumnFormattedStateSet('dosenPengampu.full_name', $korma->full_name.' <span style="color:#166534;font-weight:600;">(koordinator)</span>', $kelasKoordinatorMerangkap)
+        ->assertTableColumnFormattedStateSet('dosenPengampu.full_name', $this->dosen->full_name, $kelasBiasa);
 });

@@ -2,11 +2,11 @@
 
 namespace App\Modules\Kurikulum\Support;
 
+use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
-use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -164,7 +164,7 @@ class KurikulumTerpilih
      */
     public static function bannerHtml(): HtmlString
     {
-        $gantiUrl = KurikulumResource::getUrl('index');
+        $gantiUrl = Dashboard::getUrl();
         $kurikulum = static::current();
 
         if (! $kurikulum instanceof Kurikulum) {
@@ -172,7 +172,7 @@ class KurikulumTerpilih
                 '<div style="padding:12px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;line-height:1.55;">'
                 .'<div>Belum ada kurikulum terpilih.</div>'
                 .'<div style="margin-top:4px;">'
-                .'<a href="'.e($gantiUrl).'" style="font-weight:600;color:#b45309;text-decoration:underline;">Pilih dari halaman Kurikulum</a>'
+                .'<a href="'.e($gantiUrl).'" style="font-weight:600;color:#b45309;text-decoration:underline;">Pilih dari dashboard</a>'
                 .'</div>'
                 .'</div>'
             );

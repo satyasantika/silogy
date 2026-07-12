@@ -12,6 +12,7 @@ use Filament\Actions\AttachAction;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -69,6 +70,8 @@ class KelasMkMahasiswaRelationManager extends RelationManager
                     ->visible(fn (): bool => $this->bolehKelolaMahasiswa())
                     ->multiple()
                     ->preloadRecordSelect()
+                    ->recordTitle(fn (Mahasiswa $record): string => trim("{$record->nama} ({$record->nim})"))
+                    ->recordSelectSearchColumns(['nama', 'nim'])
                     ->recordSelectOptionsQuery(function (Builder $query): Builder {
                         /** @var KelasMk $kelasMk */
                         $kelasMk = $this->getOwnerRecord();
@@ -88,7 +91,10 @@ class KelasMkMahasiswaRelationManager extends RelationManager
             ->recordActions([
                 DetachAction::make()
                     ->label('Batalkan pendaftaran')
-                    ->visible(fn (): bool => $this->bolehKelolaMahasiswa()),
+                    ->icon(Heroicon::OutlinedUserMinus)
+                    ->iconButton()
+                    ->tooltip('Batalkan pendaftaran')
+                    ->visible(fn (Mahasiswa $record): bool => $this->bolehKelolaMahasiswa() && ! $this->sudahDinilai($record)),
             ])
             ->toolbarActions([
                 DetachBulkAction::make()
@@ -109,6 +115,18 @@ class KelasMkMahasiswaRelationManager extends RelationManager
         $kelas = $this->getOwnerRecord();
 
         return app(KelasMkPolicy::class)->kelolaMahasiswa($user, $kelas);
+    }
+
+    /** Mahasiswa yang sudah punya nilai tidak boleh dibatalkan pendaftarannya. */
+    protected function sudahDinilai(Mahasiswa $record): bool
+    {
+        $pivot = $record->pivot;
+
+        if (! $pivot instanceof KelasMkMahasiswa) {
+            return false;
+        }
+
+        return filled($pivot->nilai_angka) || filled($pivot->nilai_huruf);
     }
 
     protected function importModalHeading(): string

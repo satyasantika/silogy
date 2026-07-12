@@ -4,7 +4,6 @@ namespace App\Modules\Kelas\Filament\Resources;
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
-use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\CreateKelasMk;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\EditKelasMk;
@@ -28,9 +27,11 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class KelasMkResource extends Resource
@@ -59,9 +60,9 @@ class KelasMkResource extends Resource
     /**
      * Kelas MK difilter menurut kurikulum unit yang dapat dikelola user.
      *
-     * @return \Illuminate\Support\Collection<int, string>
+     * @return Collection<int, string>
      */
-    protected static function kurikulumTerpilihFilterUnitIds(): ?\Illuminate\Support\Collection
+    protected static function kurikulumTerpilihFilterUnitIds(): ?Collection
     {
         $user = Auth::user();
 
@@ -218,7 +219,7 @@ class KelasMkResource extends Resource
             ? PenawaranMkScope::unitIdsDariPenawaran($user)
             : static::scopedAccessibleUnitIds();
 
-        return static::applyKurikulumTerpilihTableWithExtraFilters(
+        return static::applyKurikulumTerpilihTable(
             $table
                 ->columns([
                     TextColumn::make('mkUnit.mk.nama')
@@ -235,18 +236,26 @@ class KelasMkResource extends Resource
                         ->label('Kelas')
                         ->sortable(),
 
-                    TextColumn::make('semester.kode')
-                        ->label('Semester')
+                    TextColumn::make('mahasiswas_count')
+                        ->label('Mahasiswa')
+                        ->counts('mahasiswas')
                         ->sortable(),
 
                     TextColumn::make('dosenPengampu.full_name')
                         ->label('Dosen pengampu')
                         ->placeholder('—')
-                        ->sortable(),
+                        ->formatStateUsing(function (KelasMk $record, ?string $state): string {
+                            if (blank($state)) {
+                                return '—';
+                            }
 
-                    TextColumn::make('koordinatorMk.full_name')
-                        ->label('Koordinator MK')
-                        ->placeholder('—')
+                            if (filled($record->koordinator_mk_id) && $record->koordinator_mk_id === $record->dosen_pengampu_id) {
+                                return e($state).' <span style="color:#166534;font-weight:600;">(koordinator)</span>';
+                            }
+
+                            return e($state);
+                        })
+                        ->html()
                         ->sortable(),
                 ])
                 ->recordUrl(fn (KelasMk $record): string => static::getUrl('edit', ['record' => $record]))
@@ -255,61 +264,64 @@ class KelasMkResource extends Resource
                     BulkActionGroup::make([
                         DeleteBulkAction::make(),
                     ]),
-                ]),
+                ])
+                ->filters([
+                    SelectFilter::make('semester_id')
+                        ->label('Semester')
+                        ->options(fn (): array => Semester::query()->orderByDesc('kode')->pluck('nama', 'id')->all())
+                        ->query(function (Builder $query, array $data): Builder {
+                            if (blank($data['value'] ?? null)) {
+                                return $query;
+                            }
+
+                            return $query->where('semester_id', $data['value']);
+                        })
+                        ->searchable(),
+
+                    SelectFilter::make('mk_id')
+                        ->label('Mata kuliah')
+                        ->options(fn (): array => PenawaranMkScope::mkFilterOptions())
+                        ->query(function (Builder $query, array $data): Builder {
+                            if (blank($data['value'] ?? null)) {
+                                return $query;
+                            }
+
+                            return $query->whereHas(
+                                'mkUnit',
+                                fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('mk_id', $data['value']),
+                            );
+                        })
+                        ->searchable(),
+
+                    SelectFilter::make('academic_unit_id')
+                        ->label('Program studi')
+                        ->options(fn (): array => AcademicUnit::query()
+                            ->whereIn('id', $filterUnitIds)
+                            ->where('type', 'study_program')
+                            ->orderBy('nama')
+                            ->pluck('nama', 'id')
+                            ->all())
+                        ->query(function (Builder $query, array $data): Builder {
+                            if (blank($data['value'] ?? null)) {
+                                return $query;
+                            }
+
+                            return $query->whereHas(
+                                'mkUnit',
+                                fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('academic_unit_id', $data['value']),
+                            );
+                        })
+                        ->visible($filterUnitIds->count() > 1)
+                        ->columnSpanFull(),
+                ])
+                ->filtersLayout(FiltersLayout::AboveContent)
+                ->filtersFormColumns(1)
+                ->deferFilters(false),
             fn (Builder $query, Kurikulum $kurikulum): Builder => $query->whereHas(
                 'mkUnit',
                 fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
                     ->where('academic_unit_id', $kurikulum->academic_unit_id),
             ),
-            [
-                SelectFilter::make('semester_id')
-                    ->label('Semester')
-                    ->options(fn (): array => PenawaranMkScope::semesterFilterOptions())
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (blank($data['value'] ?? null)) {
-                            return $query;
-                        }
-
-                        return $query->where('semester_id', $data['value']);
-                    })
-                    ->searchable(),
-
-                SelectFilter::make('mk_id')
-                    ->label('Mata kuliah')
-                    ->options(fn (): array => PenawaranMkScope::mkFilterOptions())
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (blank($data['value'] ?? null)) {
-                            return $query;
-                        }
-
-                        return $query->whereHas(
-                            'mkUnit',
-                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('mk_id', $data['value']),
-                        );
-                    })
-                    ->searchable(),
-
-                SelectFilter::make('academic_unit_id')
-                    ->label('Program studi')
-                    ->options(fn (): array => AcademicUnit::query()
-                        ->whereIn('id', $filterUnitIds)
-                        ->where('type', 'study_program')
-                        ->orderBy('nama')
-                        ->pluck('nama', 'id')
-                        ->all())
-                    ->query(function (Builder $query, array $data): Builder {
-                        if (blank($data['value'] ?? null)) {
-                            return $query;
-                        }
-
-                        return $query->whereHas(
-                            'mkUnit',
-                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('academic_unit_id', $data['value']),
-                        );
-                    })
-                    ->visible($filterUnitIds->count() > 1)
-                    ->columnSpanFull(),
-            ],
         );
     }
 

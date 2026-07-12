@@ -35,6 +35,11 @@ return [
         ],
     ],
 
+    'sintesys' => [
+        'endpoint' => env('SINTESYS_API_ENDPOINT', 'https://api-sintesys.unsil.io/api/akademik/detail_nilai'),
+        'token' => env('SINTESYS_API_TOKEN'),
+    ],
+
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         'model_default' => env('GEMINI_MODEL_DEFAULT', 'gemini-2.5-pro'),

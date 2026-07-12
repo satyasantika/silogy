@@ -10,6 +10,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Support\PenawaranMkScope;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
@@ -51,10 +52,9 @@ beforeEach(function () {
     $this->actingAs($this->adminProdi);
 });
 
-it('filter kurikulum aktif otomatis terpilih saat halaman dimuat', function () {
+it('kurikulum aktif otomatis terpakai (tanpa filter dropdown) saat halaman dimuat', function () {
     Livewire::test(ListKelasMks::class)
         ->loadTable()
-        ->assertSet('tableFilters.kurikulum_terpilih.value', $this->kurikulum->id)
         ->assertSee('Kurikulum Set Kelas', escape: false);
 });
 
@@ -64,7 +64,7 @@ it('koordinator mk melihat opsi kurikulum prodi pada filter kelas mk', function 
     $this->mkB->update(['koordinator_mk_id' => $korma->id]);
     $this->actingAs($korma);
 
-    $unitIds = \App\Modules\MK\Support\PenawaranMkScope::unitIdsDariPenawaran($korma);
+    $unitIds = PenawaranMkScope::unitIdsDariPenawaran($korma);
     expect(KurikulumTerpilih::optionsForUnits($unitIds))->toHaveKey($this->kurikulum->id);
 
     Livewire::test(ListKelasMks::class)
