@@ -79,13 +79,10 @@ function buatKelasUntukMkInputNilai(
     $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SUB-'.$kodeKelas]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $kelas->id,
-        'evaluasi_id' => $evaluasi->id,
-        'kode' => 'UTS',
-        'nama' => 'UTS',
-        'bobot' => 100,
-    ]);
+    $komponen = KomponenPenilaian::query()->updateOrCreate(
+        ['mk_id' => $mk->id, 'semester_id' => $semesterId, 'kode' => 'UTS'],
+        ['evaluasi_id' => $evaluasi->id, 'nama' => 'UTS', 'bobot' => 100],
+    );
     $skp = SubcpmkKomponenPenilaian::query()->create([
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,

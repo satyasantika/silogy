@@ -80,7 +80,8 @@ function setupInputNilaiFixtures(User $dosen, string $kodeMkUnit = 'IF101', stri
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
     $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $kelas->id,
+        'mk_id' => $mk->id,
+        'semester_id' => $semester->id,
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',

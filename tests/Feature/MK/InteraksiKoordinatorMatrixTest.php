@@ -172,7 +172,8 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
     $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $kelas->id,
+        'mk_id' => $mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $evaluasi->id,
         'nama' => 'UTS Interaksi',
         'bobot' => 100,
@@ -188,6 +189,18 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
 
     expect($pivot?->bobot)->toBe(40.0)
         ->and($pivot?->semester_id)->toBe($this->semester->id);
+
+    // Bobot Sub-CPMK dihitung ulang otomatis: komponen 100% x pivot 40% = 40.
+    expect((float) $subcpmk->fresh()->bobot)->toBe(40.0);
+
+    Livewire::test(SubcpmkAsesmenMatrix::class)
+        ->call('updateBobot', $komponen->id, $subcpmk->id, null);
+
+    expect(SubcpmkKomponenPenilaian::query()
+        ->where('komponen_penilaian_id', $komponen->id)
+        ->where('subcpmk_id', $subcpmk->id)
+        ->exists())->toBeFalse()
+        ->and((float) $subcpmk->fresh()->bobot)->toBe(0.0);
 });
 
 it('cpmk belum diinteraksikan bila belum ada mk cpmk', function () {

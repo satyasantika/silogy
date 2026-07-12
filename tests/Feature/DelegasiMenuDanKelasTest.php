@@ -189,7 +189,7 @@ it('dosen baru dapat menilai setelah penugasan koordinator selesai', function ()
     ]);
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
     $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $kelas->id, 'evaluasi_id' => $evaluasi->id,
+        'mk_id' => $mk->id, 'semester_id' => $kelas->semester_id, 'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
     ]);
 

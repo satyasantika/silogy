@@ -446,8 +446,11 @@ function hitungPersentaseTercapaiDariHasilCplMk(
 
 function buatKomponenPenilaian(KelasMk $kelas, Evaluasi $evaluasi, string $nama, float $bobot): KomponenPenilaian
 {
+    $kelas->loadMissing('mkUnit');
+
     return KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $kelas->id,
+        'mk_id' => $kelas->mkUnit?->mk_id,
+        'semester_id' => $kelas->semester_id,
         'evaluasi_id' => $evaluasi->id,
         'kode' => $nama,
         'nama' => $nama,

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages;
 
-use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
@@ -285,20 +284,17 @@ class ListKomponenPenilaians extends ListRecords
             return ['status' => 'invalid', 'keterangan' => $validasiEvaluasi['keterangan']];
         }
 
-        $kelasMks = PenawaranMkScope::kelasMkUntukMkSemester(
+        if (PenawaranMkScope::kelasMkUntukMkSemester(
             (string) $context['import_mk_id'],
             (string) $context['import_semester_id'],
-        );
-
-        $kelasMk = $kelasMks->first();
-
-        if (! $kelasMk instanceof KelasMk) {
+        )->isEmpty()) {
             return ['status' => 'invalid', 'keterangan' => 'Belum ada kelas MK untuk mata kuliah dan semester ini.'];
         }
 
         $validasiSubcpmk = SubcpmkAsesmenPemetaanService::validasiKodeSubcpmk(
             $data['kode_subcpmk'] ?? '',
-            $kelasMk,
+            (string) $context['import_mk_id'],
+            (string) $context['import_semester_id'],
         );
 
         if (! $validasiSubcpmk['valid']) {
@@ -315,19 +311,12 @@ class ListKomponenPenilaians extends ListRecords
     protected function createImportRow(array $data, array $context): void
     {
         $context = $this->normalizeImportContext($context);
-        $kelasMks = PenawaranMkScope::kelasMkUntukMkSemester(
-            (string) $context['import_mk_id'],
-            (string) $context['import_semester_id'],
-        );
-        $kelasMk = $kelasMks->firstOrFail();
+        $mkId = (string) $context['import_mk_id'];
+        $semesterId = (string) $context['import_semester_id'];
 
-        $komponens = AsesmenImporService::buatAtauPerbaruiSemuaKelas(
-            $data,
-            (string) $context['import_mk_id'],
-            (string) $context['import_semester_id'],
-        );
+        $komponen = AsesmenImporService::buatAtauPerbaruiKomponen($data, $mkId, $semesterId);
 
-        AsesmenImporService::terapkanPemetaanSubcpmkSemuaKelas($komponens, $data, $kelasMk);
+        AsesmenImporService::terapkanPemetaanSubcpmk($komponen, $data, $mkId, $semesterId);
     }
 
     /**
@@ -343,7 +332,7 @@ class ListKomponenPenilaians extends ListRecords
             return;
         }
 
-        AsesmenImporService::perbaruiSemuaKelas(
+        AsesmenImporService::perbarui(
             (string) $kodeAsesmen,
             $data,
             (string) $context['import_mk_id'],

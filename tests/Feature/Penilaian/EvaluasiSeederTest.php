@@ -45,7 +45,7 @@ it('komponen_penilaian memiliki default bobot 100.00', function () {
         'jenis' => 'ganjil',
         'status_aktif' => true,
     ]);
-    $kelas = KelasMk::query()->create([
+    KelasMk::query()->create([
         'mk_unit_id' => $mkUnit->id,
         'semester_id' => $semester->id,
         'kode_kelas' => 'A',
@@ -53,7 +53,8 @@ it('komponen_penilaian memiliki default bobot 100.00', function () {
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
     $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $kelas->id,
+        'mk_id' => $mk->id,
+        'semester_id' => $semester->id,
         'evaluasi_id' => $evaluasi->id,
         'nama' => 'UTS Teori',
     ]);

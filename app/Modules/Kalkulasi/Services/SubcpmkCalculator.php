@@ -3,6 +3,7 @@
 namespace App\Modules\Kalkulasi\Services;
 
 use App\Modules\Kalkulasi\Models\HasilSubcpmk;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Illuminate\Support\Collection;
@@ -12,6 +13,18 @@ class SubcpmkCalculator
 {
     public function calculate(string $kelasMkId): void
     {
+        $kelasMk = KelasMk::query()->with('mkUnit')->find($kelasMkId);
+
+        if (! $kelasMk instanceof KelasMk) {
+            return;
+        }
+
+        $mkId = $kelasMk->mkUnit?->mk_id;
+
+        if ($mkId === null) {
+            return;
+        }
+
         $kmmIds = KelasMkMahasiswa::query()
             ->where('kelas_mk_id', $kelasMkId)
             ->pluck('id');
@@ -23,7 +36,7 @@ class SubcpmkCalculator
         $komponenPerSubcpmk = SubcpmkKomponenPenilaian::query()
             ->whereHas(
                 'komponenPenilaian',
-                fn ($query) => $query->where('kelas_mk_id', $kelasMkId),
+                fn ($query) => $query->where('mk_id', $mkId)->where('semester_id', $kelasMk->semester_id),
             )
             ->with([
                 'komponenPenilaian',

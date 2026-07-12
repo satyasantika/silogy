@@ -3,7 +3,6 @@
 namespace App\Modules\Penilaian\Policies;
 
 use App\Models\User;
-use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 
@@ -25,7 +24,7 @@ class KomponenPenilaianPolicy
             return false;
         }
 
-        return static::scopedKoordinatorKelasMkIds($user)->isNotEmpty()
+        return static::scopedKoordinatorMkIds($user)->isNotEmpty()
             || $user->hasRole('Admin');
     }
 
@@ -98,16 +97,14 @@ class KomponenPenilaianPolicy
             return false;
         }
 
-        $komponenPenilaian->loadMissing('kelasMk');
+        $mkId = $komponenPenilaian->mk_id;
 
-        $kelasMk = $komponenPenilaian->kelasMk;
-
-        if (! $kelasMk instanceof KelasMk) {
+        if (blank($mkId)) {
             return false;
         }
 
-        return static::userCanManageKelasAsKoordinator($user, $kelasMk)
-            || static::userCanManageKelasByAdminUnit($user, $kelasMk);
+        return static::userCanManageMkAsKoordinator($user, $mkId)
+            || static::userCanManageMkByAdminUnit($user, $mkId);
     }
 
     protected function isAdminUnit(User $user): bool

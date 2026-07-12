@@ -8,9 +8,9 @@ use App\Modules\Penilaian\Support\BobotNormalizer;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Menormalisasi bobot asesmen (dikelompokkan per kode, berlaku ke semua
- * kelas dalam mata kuliah + semester yang sama) secara proporsional dan
- * dibulatkan ke bilangan bulat terdekat, agar totalnya tepat 100%.
+ * Menormalisasi bobot asesmen pada satu mata kuliah + semester secara
+ * proporsional dan dibulatkan ke bilangan bulat terdekat, agar totalnya
+ * tepat 100%.
  */
 class NormalisasiBobotKomponenService
 {
@@ -19,18 +19,17 @@ class NormalisasiBobotKomponenService
      */
     public function normalisasi(string $mkId, string $semesterId): array
     {
-        $kelasMkIds = PenawaranMkScope::kelasMkUntukMkSemester($mkId, $semesterId)->pluck('id');
-
-        if ($kelasMkIds->isEmpty()) {
+        if (PenawaranMkScope::kelasMkUntukMkSemester($mkId, $semesterId)->isEmpty()) {
             return ['status' => 'kosong', 'jumlah_asesmen' => 0, 'total_sebelum' => 0.0];
         }
 
         $perKode = KomponenPenilaian::query()
-            ->whereIn('kelas_mk_id', $kelasMkIds)
+            ->where('mk_id', $mkId)
+            ->where('semester_id', $semesterId)
             ->whereNotNull('kode')
             ->get()
-            ->groupBy('kode')
-            ->map(fn ($rows) => (float) $rows->max('bobot'));
+            ->keyBy('kode')
+            ->map(fn (KomponenPenilaian $komponen): float => (float) $komponen->bobot);
 
         $total = (float) $perKode->sum();
 
@@ -44,10 +43,11 @@ class NormalisasiBobotKomponenService
 
         $dibulatkan = BobotNormalizer::keSeratus($perKode);
 
-        DB::transaction(function () use ($kelasMkIds, $dibulatkan): void {
+        DB::transaction(function () use ($mkId, $semesterId, $dibulatkan): void {
             foreach ($dibulatkan as $kode => $bobotBaru) {
                 KomponenPenilaian::query()
-                    ->whereIn('kelas_mk_id', $kelasMkIds)
+                    ->where('mk_id', $mkId)
+                    ->where('semester_id', $semesterId)
                     ->where('kode', $kode)
                     ->update(['bobot' => $bobotBaru]);
             }

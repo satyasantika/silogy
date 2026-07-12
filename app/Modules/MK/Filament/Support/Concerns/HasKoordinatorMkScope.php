@@ -167,4 +167,21 @@ trait HasKoordinatorMkScope
         return $unit instanceof AcademicUnit
             && AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit);
     }
+
+    public static function userCanManageMkByAdminUnit(User $user, string $mkId): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        if (! $user->hasRole('Admin')) {
+            return false;
+        }
+
+        $mk = Mk::query()->with('academicUnit')->find($mkId);
+        $unit = $mk?->academicUnit;
+
+        return $unit instanceof AcademicUnit
+            && AcademicUnitScope::userHasPivotToUnitOrAncestor($user, $unit);
+    }
 }

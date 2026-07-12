@@ -83,7 +83,8 @@ it('menyusun rencana evaluasi per grup kategori evaluasi', function () {
     $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SUB-01']);
 
     $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $evaluasiQuiz->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis Konseptual dan Ringkasan Tertulis Terstruktur',

@@ -59,7 +59,8 @@ it('korma dapat menyimpan perubahan komponen penilaian yang valid', function () 
     MkTerpilih::set($this->mk->id);
 
     $komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS Awal',
@@ -79,14 +80,16 @@ it('tetap menyimpan perubahan bobot walau total komponen bukan 100', function ()
     MkTerpilih::set($this->mk->id);
 
     $uts = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 50,
     ]);
     KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UAS',
         'nama' => 'UAS',
@@ -106,14 +109,16 @@ it('menampilkan total bobot secara realtime saat bobot sedang diisi', function (
     MkTerpilih::set($this->mk->id);
 
     $uts = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 50,
     ]);
     KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UAS',
         'nama' => 'UAS',
@@ -129,11 +134,12 @@ it('menampilkan total bobot secara realtime saat bobot sedang diisi', function (
         ->assertSee('sudah pas 100%', escape: false);
 });
 
-it('field kelas mk pada edit tetap terisi sesuai komponen walau mk terpilih berbeda', function () {
+it('field mata kuliah pada edit tetap terisi sesuai komponen walau mk terpilih berbeda', function () {
     $mkLain = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
 
     $uts = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -144,11 +150,11 @@ it('field kelas mk pada edit tetap terisi sesuai komponen walau mk terpilih berb
     MkTerpilih::set($mkLain->id);
 
     Livewire::test(EditKomponenPenilaian::class, ['record' => $uts->getRouteKey()])
-        ->assertFormSet(['kelas_mk_id' => $this->kelas->id])
+        ->assertFormSet(['mk_id' => $this->mk->id])
         ->fillForm(['nama' => 'UTS Direvisi'])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($uts->fresh()->kelas_mk_id)->toBe($this->kelas->id)
+    expect($uts->fresh()->mk_id)->toBe($this->mk->id)
         ->and($uts->fresh()->nama)->toBe('UTS Direvisi');
 });

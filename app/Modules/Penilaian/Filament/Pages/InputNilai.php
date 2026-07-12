@@ -196,7 +196,7 @@ class InputNilai extends Page
             return;
         }
 
-        $kelasMk = KelasMk::query()->find($this->kelasMkId);
+        $kelasMk = KelasMk::query()->with('mkUnit')->find($this->kelasMkId);
 
         if (! $kelasMk instanceof KelasMk) {
             return;
@@ -211,10 +211,12 @@ class InputNilai extends Page
 
         Gate::authorize('inputNilai', $kelasMk);
 
+        $mkId = $kelasMk->mkUnit?->mk_id;
+
         $this->columns = SubcpmkKomponenPenilaian::query()
             ->whereHas(
                 'komponenPenilaian',
-                fn ($query) => $query->where('kelas_mk_id', $kelasMk->id),
+                fn ($query) => $query->where('mk_id', $mkId)->where('semester_id', $kelasMk->semester_id),
             )
             ->with(['komponenPenilaian.evaluasi', 'subcpmk'])
             ->get()
@@ -289,7 +291,7 @@ class InputNilai extends Page
             return;
         }
 
-        $kelasMk = KelasMk::query()->findOrFail($this->kelasMkId);
+        $kelasMk = KelasMk::query()->with('mkUnit')->findOrFail($this->kelasMkId);
 
         Gate::authorize('inputNilai', $kelasMk);
 
@@ -298,10 +300,12 @@ class InputNilai extends Page
             ->pluck('id')
             ->all();
 
+        $mkId = $kelasMk->mkUnit?->mk_id;
+
         $allowedSkpIds = SubcpmkKomponenPenilaian::query()
             ->whereHas(
                 'komponenPenilaian',
-                fn ($query) => $query->where('kelas_mk_id', $kelasMk->id),
+                fn ($query) => $query->where('mk_id', $mkId)->where('semester_id', $kelasMk->semester_id),
             )
             ->pluck('id')
             ->all();

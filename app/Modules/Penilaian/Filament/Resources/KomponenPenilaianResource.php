@@ -3,12 +3,9 @@
 namespace App\Modules\Penilaian\Filament\Resources;
 
 use App\Models\User;
-use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalender\Support\SemesterTerpilih;
-use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Filament\Support\Concerns\HasSemesterTerpilihFilter;
-use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
@@ -19,7 +16,6 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Penilaian\Rules\BobotKomponenSama100Rule;
-use App\Modules\Penilaian\Services\KomponenPenilaianMassalService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\Action;
@@ -41,7 +37,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\HtmlString;
 
@@ -83,7 +78,7 @@ class KomponenPenilaianResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['kelasMk.mkUnit.mk', 'evaluasi', 'subcpmkKomponens.subcpmk']);
+            ->with(['mk', 'semester', 'evaluasi', 'subcpmkKomponens.subcpmk']);
 
         $user = Auth::user();
 
@@ -99,14 +94,14 @@ class KomponenPenilaianResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        $kelasIds = static::scopedKoordinatorKelasMkIds($user);
+        $mkIds = static::scopedKoordinatorMkIds($user);
 
-        if ($kelasIds->isEmpty() && ! $user->hasRole('Admin')) {
+        if ($mkIds->isEmpty() && ! $user->hasRole('Admin')) {
             return $query->whereRaw('1 = 0');
         }
 
-        if ($kelasIds->isNotEmpty()) {
-            return $query->whereIn('kelas_mk_id', $kelasIds);
+        if ($mkIds->isNotEmpty()) {
+            return $query->whereIn('mk_id', $mkIds);
         }
 
         return $query;
@@ -114,35 +109,41 @@ class KomponenPenilaianResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $mkOptions = static::scopedKoordinatorMkOptions();
         $mkTerpilih = MkTerpilih::currentId();
-        $kelasOptions = static::scopedKoordinatorKelasMkOptionsForMk($mkTerpilih);
+        $semesterTerpilih = SemesterTerpilih::currentId($mkTerpilih);
 
         return $schema
             ->components([
                 Section::make('Komponen Penilaian')
                     ->schema([
-                        Select::make('kelas_mk_id')
-                            ->label(fn (?KomponenPenilaian $record): string => static::resolveModeMassal($record) !== null
-                                ? 'Mata Kuliah'
-                                : 'Kelas MK')
-                            ->options(fn (?KomponenPenilaian $record): array => static::kelasFieldOptions(
-                                $kelasOptions,
+                        Select::make('mk_id')
+                            ->label('Mata Kuliah')
+                            ->options(fn (?KomponenPenilaian $record): array => static::mkOptionsUntukForm(
+                                $mkOptions,
                                 $record,
                             ))
                             ->searchable()
                             ->required()
-                            ->default(fn (?KomponenPenilaian $record): ?string => static::kelasFieldDefault(
-                                $kelasOptions,
-                                $record,
-                            ))
+                            ->default(fn (?KomponenPenilaian $record): ?string => $record?->mk_id
+                                ?? $mkTerpilih
+                                ?? (count($mkOptions) === 1 ? array_key_first($mkOptions) : null))
                             ->disabled(fn (?KomponenPenilaian $record): bool => $record !== null
-                                || static::resolveModeMassal($record) !== null
-                                || (filled($mkTerpilih) && count($kelasOptions) === 1))
-                            ->helperText(fn (?KomponenPenilaian $record): ?string => static::resolveModeMassal($record) !== null
-                                ? 'Asesmen ini berlaku untuk semua kelas pada mata kuliah dan semester ini.'
-                                : null)
+                                || (filled($mkTerpilih) && array_key_exists($mkTerpilih, $mkOptions)))
                             ->live()
                             ->dehydrated(),
+
+                        Select::make('semester_id')
+                            ->label('Semester')
+                            ->options(SemesterTerpilih::optionsSemua())
+                            ->searchable()
+                            ->required()
+                            ->default(fn (?KomponenPenilaian $record): ?string => $record?->semester_id
+                                ?? $semesterTerpilih
+                                ?? SemesterTerpilih::defaultId())
+                            ->disabled(fn (?KomponenPenilaian $record): bool => $record !== null || filled($semesterTerpilih))
+                            ->dehydrated()
+                            ->helperText('Asesmen ini berlaku untuk semua kelas pada mata kuliah dan semester ini.'),
 
                         Select::make('evaluasi_id')
                             ->label('Jenis evaluasi')
@@ -241,10 +242,7 @@ class KomponenPenilaianResource extends Resource
             ->paginated(false)
             ->filters([
                 static::semesterTerpilihFilter(
-                    fn (Builder $query, string $semesterId): Builder => $query->whereHas(
-                        'kelasMk',
-                        fn (Builder $kelasQuery): Builder => $kelasQuery->where('semester_id', $semesterId),
-                    ),
+                    fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
                 ),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
@@ -258,13 +256,7 @@ class KomponenPenilaianResource extends Resource
                         return $query;
                     }
 
-                    return $query->whereHas(
-                        'kelasMk',
-                        fn (Builder $kelasQuery): Builder => $kelasQuery->whereHas(
-                            'mkUnit',
-                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('mk_id', $mkId),
-                        ),
-                    );
+                    return $query->where('mk_id', $mkId);
                 }
 
                 $semesterId = SemesterTerpilih::currentId($mkId);
@@ -273,15 +265,7 @@ class KomponenPenilaianResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                return $query->whereHas(
-                    'kelasMk',
-                    fn (Builder $kelasQuery): Builder => $kelasQuery
-                        ->where('semester_id', $semesterId)
-                        ->whereHas(
-                            'mkUnit',
-                            fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('mk_id', $mkId),
-                        ),
-                );
+                return $query->where('mk_id', $mkId)->where('semester_id', $semesterId);
             })
             ->recordActions([
                 EditAction::make(),
@@ -314,152 +298,44 @@ class KomponenPenilaianResource extends Resource
                 $bobot = min(max((float) $data['bobot'], 0), 100);
 
                 $record->update(['bobot' => $bobot]);
-
-                $massal = KomponenPenilaianMassalService::resolveUntukRecord($record);
-
-                if ($massal !== null) {
-                    KomponenPenilaianMassalService::perbaruiSemuaKelas(
-                        $record,
-                        (string) $record->kode,
-                        ['bobot' => $bobot],
-                        $massal,
-                    );
-                }
             });
     }
 
     /**
-     * @return array<string, string>
-     */
-    public static function scopedKoordinatorKelasMkOptionsForMk(?string $mkId = null): array
-    {
-        $user = Auth::user();
-
-        if (! $user instanceof User) {
-            return [];
-        }
-
-        $query = KelasMk::query()
-            ->with(['mkUnit.mk', 'semester'])
-            ->orderBy('kode_kelas');
-
-        if (! $user->hasRole(['Super Admin', 'Auditor Mutu'])) {
-            $query->where('koordinator_mk_id', $user->id);
-        }
-
-        if (filled($mkId)) {
-            $query->whereHas(
-                'mkUnit',
-                fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('mk_id', $mkId),
-            );
-        }
-
-        return $query
-            ->get()
-            ->mapWithKeys(fn (KelasMk $kelas): array => [
-                $kelas->id => sprintf(
-                    '%s – Kelas %s (%s)',
-                    $kelas->mkUnit?->mk?->nama ?? '—',
-                    $kelas->kode_kelas,
-                    $kelas->semester?->kode ?? '—',
-                ),
-            ])
-            ->all();
-    }
-
-    /**
-     * Opsi Kelas MK untuk form; pastikan kelas milik record yang sedang
-     * diedit selalu tersedia walau berada di luar MK terpilih saat ini.
+     * Opsi Mata Kuliah untuk form; pastikan MK milik record yang sedang
+     * diedit selalu tersedia walau berada di luar cakupan terkini.
      *
-     * @param  array<string, string>  $kelasOptions
+     * @param  array<string, string>  $mkOptions
      * @return array<string, string>
      */
-    protected static function kelasOptionsUntukForm(array $kelasOptions, ?KomponenPenilaian $record): array
+    protected static function mkOptionsUntukForm(array $mkOptions, ?KomponenPenilaian $record): array
     {
-        if ($record === null || blank($record->kelas_mk_id) || array_key_exists($record->kelas_mk_id, $kelasOptions)) {
-            return $kelasOptions;
+        if ($record === null || blank($record->mk_id) || array_key_exists($record->mk_id, $mkOptions)) {
+            return $mkOptions;
         }
 
-        $record->loadMissing('kelasMk.mkUnit.mk', 'kelasMk.semester');
-        $kelas = $record->kelasMk;
+        $record->loadMissing('mk');
 
-        if (! $kelas instanceof KelasMk) {
-            return $kelasOptions;
+        if ($record->mk === null) {
+            return $mkOptions;
         }
 
-        return [
-            $kelas->id => sprintf(
-                '%s – Kelas %s (%s)',
-                $kelas->mkUnit?->mk?->nama ?? '—',
-                $kelas->kode_kelas,
-                $kelas->semester?->kode ?? '—',
-            ),
-        ] + $kelasOptions;
-    }
-
-    /**
-     * Konteks "mode massal" (satu asesmen berlaku ke semua kelas pada MK +
-     * semester) bila tersedia; null berarti tetap pakai mode lama (pilih
-     * satu Kelas MK). Untuk record yang sedang diedit, konteks diturunkan
-     * dari kelas MK milik record itu sendiri (bukan dari sesi terpilih).
-     *
-     * @return array{mk: Mk, semester_id: string, kelas: Collection<int, KelasMk>}|null
-     */
-    protected static function resolveModeMassal(?KomponenPenilaian $record): ?array
-    {
-        return $record instanceof KomponenPenilaian
-            ? KomponenPenilaianMassalService::resolveUntukRecord($record)
-            : KomponenPenilaianMassalService::resolveUntukPembuatan();
-    }
-
-    /**
-     * @param  array<string, string>  $kelasOptions
-     * @return array<string, string>
-     */
-    protected static function kelasFieldOptions(array $kelasOptions, ?KomponenPenilaian $record): array
-    {
-        $massal = static::resolveModeMassal($record);
-
-        if ($massal === null) {
-            return static::kelasOptionsUntukForm($kelasOptions, $record);
-        }
-
-        $anchorId = $record?->kelas_mk_id ?? $massal['kelas']->first()->id;
-        $semesterKode = Semester::query()->whereKey($massal['semester_id'])->value('kode') ?? '—';
-
-        return [$anchorId => sprintf('%s (%s)', $massal['mk']->nama, $semesterKode)];
-    }
-
-    /**
-     * @param  array<string, string>  $kelasOptions
-     */
-    protected static function kelasFieldDefault(array $kelasOptions, ?KomponenPenilaian $record): ?string
-    {
-        $massal = static::resolveModeMassal($record);
-
-        if ($massal !== null) {
-            return $record?->kelas_mk_id ?? $massal['kelas']->first()->id;
-        }
-
-        return $record?->kelas_mk_id ?? (count($kelasOptions) === 1 ? array_key_first($kelasOptions) : null);
+        return [$record->mk_id => $record->mk->nama] + $mkOptions;
     }
 
     /**
      * Ringkasan bobot komponen secara realtime, termasuk nilai bobot yang
-     * sedang diisi (belum tersimpan). Dihitung terhadap mata kuliah +
-     * semester terpilih (mode massal), atau satu kelas saja bila mode
-     * massal tidak tersedia.
+     * sedang diisi (belum tersimpan), dihitung terhadap mata kuliah +
+     * semester yang sedang dipilih pada form.
      */
     protected static function bobotHelperText(Get $get, ?KomponenPenilaian $record): HtmlString
     {
-        $kelasMkId = $get('kelas_mk_id');
+        $mkId = $record?->mk_id ?? $get('mk_id');
+        $semesterId = $record?->semester_id ?? $get('semester_id');
 
-        if (blank($kelasMkId)) {
-            return new HtmlString('Pilih Kelas MK untuk melihat total bobot komponen.');
+        if (blank($mkId) || blank($semesterId)) {
+            return new HtmlString('Pilih mata kuliah dan semester untuk melihat total bobot komponen.');
         }
-
-        $massal = static::resolveModeMassal($record);
-        $kelasMkIds = $massal !== null ? $massal['kelas']->pluck('id')->all() : [(string) $kelasMkId];
 
         $pending = is_numeric($get('bobot')) ? (float) $get('bobot') : 0.0;
 
@@ -468,18 +344,16 @@ class KomponenPenilaianResource extends Resource
         // terhitung ganda bersama nilai bobot yang baru diisi.
         $kode = $record?->kode ?? (filled($get('kode')) ? (string) $get('kode') : null);
 
-        $total = BobotKomponenSama100Rule::totalBobot($kelasMkIds, $kode, $pending);
+        $total = BobotKomponenSama100Rule::totalBobot((string) $mkId, (string) $semesterId, $kode, $pending);
 
         $sudahPas = abs(100 - $total) < 0.01;
         $selisih = round(100 - $total, 2);
         $color = $sudahPas ? '#166534' : '#92400e';
-        $cakupan = $massal !== null ? 'pada mata kuliah dan semester ini' : 'pada kelas ini';
 
         $keterangan = $sudahPas
-            ? sprintf('Total bobot komponen %s: %.2f%% — sudah pas 100%%.', $cakupan, $total)
+            ? sprintf('Total bobot komponen pada mata kuliah dan semester ini: %.2f%% — sudah pas 100%%.', $total)
             : sprintf(
-                'Total bobot komponen %s: %.2f%% dari 100%% (%s %.2f%%).',
-                $cakupan,
+                'Total bobot komponen pada mata kuliah dan semester ini: %.2f%% dari 100%% (%s %.2f%%).',
                 $total,
                 $selisih > 0 ? 'kurang' : 'lebih',
                 abs($selisih),

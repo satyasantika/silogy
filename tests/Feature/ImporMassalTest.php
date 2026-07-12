@@ -402,6 +402,96 @@ it('impor subcpmk pada cpmk dan semester terpilih', function () {
         ->and($sub->bobot)->toBe(50.0);
 });
 
+it('impor subcpmk mode timpa memperbarui bobot bila belum ada interaksi dengan komponen penilaian', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-01', 'deskripsi' => 'Uji']);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create();
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+    ]);
+
+    $sub = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id,
+        'semester_id' => $semester->id,
+        'kode' => 'SUB-TIMPA',
+        'deskripsi' => 'Deskripsi lama',
+        'bobot' => 50,
+    ]);
+
+    Livewire::test(ListSubcpmks::class)
+        ->callAction('bulkImport', [
+            'rows' => 'CPMK-01|SUB-TIMPA|Deskripsi baru||||70',
+            'mode_duplikat' => 'timpa',
+            'import_mk_id' => $mk->id,
+            'import_semester_id' => $semester->id,
+        ]);
+
+    expect((float) $sub->fresh()->bobot)->toBe(70.0)
+        ->and($sub->fresh()->deskripsi)->toBe('Deskripsi baru');
+});
+
+it('impor subcpmk mode timpa tidak menimpa bobot bila sudah ada interaksi dengan komponen penilaian', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-01', 'deskripsi' => 'Uji']);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create();
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+    ]);
+
+    $sub = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id,
+        'semester_id' => $semester->id,
+        'kode' => 'SUB-TERPETAKAN',
+        'deskripsi' => 'Deskripsi lama',
+    ]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id,
+        'semester_id' => $semester->id,
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 20,
+    ]);
+
+    // Interaksi Sub-CPMK <> penugasan: bobot subcpmk otomatis jadi 20 (20% x 100%).
+    SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $sub->id,
+        'komponen_penilaian_id' => $komponen->id,
+        'bobot' => 100,
+    ]);
+
+    expect((float) $sub->fresh()->bobot)->toBe(20.0);
+
+    Livewire::test(ListSubcpmks::class)
+        ->callAction('bulkImport', [
+            'rows' => 'CPMK-01|SUB-TERPETAKAN|Deskripsi baru||||99',
+            'mode_duplikat' => 'timpa',
+            'import_mk_id' => $mk->id,
+            'import_semester_id' => $semester->id,
+        ]);
+
+    expect((float) $sub->fresh()->bobot)->toBe(20.0)
+        ->and($sub->fresh()->deskripsi)->toBe('Deskripsi baru');
+});
+
 it('impor subcpmk dengan kompetensi bloom dan evaluasi', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
@@ -560,16 +650,16 @@ it('impor asesmen menolak evaluasi tidak valid', function () {
     expect(KomponenPenilaian::query()->where('kode', 'AsesmenX')->exists())->toBeFalse();
 });
 
-it('impor asesmen menerapkan ke semua kelas mk pada mk dan semester', function () {
+it('impor asesmen menghasilkan satu komponen yang dipakai bersama semua kelas mk pada mk dan semester', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create();
     $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
-    $kelasA = KelasMk::query()->create([
+    KelasMk::query()->create([
         'mk_unit_id' => $mkUnit->id,
         'semester_id' => $semester->id,
         'kode_kelas' => 'A',
     ]);
-    $kelasB = KelasMk::query()->create([
+    KelasMk::query()->create([
         'mk_unit_id' => $mkUnit->id,
         'semester_id' => $semester->id,
         'kode_kelas' => 'B',
@@ -583,9 +673,11 @@ it('impor asesmen menerapkan ke semua kelas mk pada mk dan semester', function (
             'import_semester_id' => $semester->id,
         ]);
 
-    expect(KomponenPenilaian::query()->where('kode', 'Asesmen02')->count())->toBe(2)
-        ->and(KomponenPenilaian::query()->where('kelas_mk_id', $kelasA->id)->where('kode', 'Asesmen02')->exists())->toBeTrue()
-        ->and(KomponenPenilaian::query()->where('kelas_mk_id', $kelasB->id)->where('kode', 'Asesmen02')->exists())->toBeTrue();
+    $komponens = KomponenPenilaian::query()->where('kode', 'Asesmen02')->get();
+
+    expect($komponens)->toHaveCount(1)
+        ->and($komponens->first()->mk_id)->toBe($mk->id)
+        ->and($komponens->first()->semester_id)->toBe($semester->id);
 });
 
 it('impor kelas mk dengan koordinator default dari mk', function () {

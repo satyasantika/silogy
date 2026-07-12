@@ -27,15 +27,7 @@ class MataKuliahKoordinatorService
             ->exists();
 
         $hasAsesmen = KomponenPenilaian::query()
-            ->whereHas(
-                'kelasMk',
-                fn ($query) => $query
-                    ->where('koordinator_mk_id', $user->id)
-                    ->whereHas(
-                        'mkUnit',
-                        fn ($mkUnitQuery) => $mkUnitQuery->where('mk_id', $mk->id),
-                    ),
-            )
+            ->where('mk_id', $mk->id)
             ->exists();
 
         return [

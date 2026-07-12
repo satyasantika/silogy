@@ -62,7 +62,8 @@ beforeEach(function () {
     ]);
 
     $this->komponen = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelas->id,
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
         'evaluasi_id' => Evaluasi::query()->where('kode', 'quiz')->value('id'),
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
@@ -85,8 +86,31 @@ it('membagi bobot pivot subcpmk merata setelah pemetaan', function () {
         ->and(array_sum($bobots))->toBe(100.0);
 });
 
-it('mencari subcpmk berdasarkan kode pada mk dan semester kelas', function () {
-    $sub = SubcpmkAsesmenPemetaanService::cariSubcpmkUntukKelas('SubCPMK01.1', $this->kelas);
+it('mencari subcpmk berdasarkan kode pada mk dan semester', function () {
+    $sub = SubcpmkAsesmenPemetaanService::cariSubcpmkUntukMk('SubCPMK01.1', $this->mk->id, $this->semester->id);
 
     expect($sub?->id)->toBe($this->sub1->id);
+});
+
+it('bobot subcpmk dihitung ulang otomatis setiap interaksi dengan komponen penilaian', function () {
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1);
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub2);
+
+    // Komponen bobot 8%, dipetakan merata ke 2 Sub-CPMK (50% masing-masing) => 8 * 50% = 4.
+    expect((float) $this->sub1->fresh()->bobot)->toBe(4.0)
+        ->and((float) $this->sub2->fresh()->bobot)->toBe(4.0);
+});
+
+it('bobot subcpmk kembali ke 0 setelah satu-satunya interaksinya dihapus', function () {
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1);
+
+    expect((float) $this->sub1->fresh()->bobot)->toBe(8.0);
+
+    SubcpmkKomponenPenilaian::query()
+        ->where('subcpmk_id', $this->sub1->id)
+        ->where('komponen_penilaian_id', $this->komponen->id)
+        ->firstOrFail()
+        ->delete();
+
+    expect((float) $this->sub1->fresh()->bobot)->toBe(0.0);
 });

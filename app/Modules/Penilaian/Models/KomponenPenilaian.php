@@ -2,7 +2,8 @@
 
 namespace App\Modules\Penilaian\Models;
 
-use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kalender\Models\Semester;
+use App\Modules\MK\Models\Mk;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,11 +29,19 @@ class KomponenPenilaian extends Model
     }
 
     /**
-     * @return BelongsTo<KelasMk, $this>
+     * @return BelongsTo<Mk, $this>
      */
-    public function kelasMk(): BelongsTo
+    public function mk(): BelongsTo
     {
-        return $this->belongsTo(KelasMk::class);
+        return $this->belongsTo(Mk::class);
+    }
+
+    /**
+     * @return BelongsTo<Semester, $this>
+     */
+    public function semester(): BelongsTo
+    {
+        return $this->belongsTo(Semester::class);
     }
 
     /**

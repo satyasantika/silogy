@@ -275,9 +275,7 @@ class SubcpmkAsesmenClipboardService
                     continue;
                 }
 
-                $komponen = KomponenPenilaian::query()
-                    ->with('kelasMk')
-                    ->find($baris['komponen_id']);
+                $komponen = KomponenPenilaian::query()->find($baris['komponen_id']);
 
                 if (! $komponen instanceof KomponenPenilaian) {
                     $gagal += count(array_filter(
@@ -297,7 +295,7 @@ class SubcpmkAsesmenClipboardService
                             ],
                             [
                                 'bobot' => min((float) $sel['bobot'], 100),
-                                'semester_id' => $komponen->kelasMk?->semester_id,
+                                'semester_id' => $komponen->semester_id,
                             ],
                         );
                         $diperbarui++;
@@ -309,7 +307,8 @@ class SubcpmkAsesmenClipboardService
                         SubcpmkKomponenPenilaian::query()
                             ->where('komponen_penilaian_id', $komponen->id)
                             ->where('subcpmk_id', $sel['subcpmk_id'])
-                            ->delete();
+                            ->get()
+                            ->each(fn (SubcpmkKomponenPenilaian $pivot) => $pivot->delete());
                         $dihapus++;
                     }
                 }

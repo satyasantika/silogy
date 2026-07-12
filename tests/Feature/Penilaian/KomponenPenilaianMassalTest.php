@@ -11,6 +11,7 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\EditKomponenPenilaian;
+use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\ListKomponenPenilaians;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
@@ -62,100 +63,12 @@ beforeEach(function () {
     $this->evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 });
 
-it('membuat asesmen baru untuk semua kelas pada mk dan semester terpilih', function () {
+it('membuat asesmen baru menghasilkan satu baris untuk mk dan semester terpilih, bukan satu per kelas', function () {
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
     Livewire::test(CreateKomponenPenilaian::class)
         ->fillForm([
-            'evaluasi_id' => $this->evaluasi->id,
-            'kode' => 'UTS',
-            'nama' => 'UTS Teori',
-            'bobot' => 100,
-        ])
-        ->call('create')
-        ->assertHasNoFormErrors();
-
-    $komponens = KomponenPenilaian::query()->where('kode', 'UTS')->get();
-
-    expect($komponens)->toHaveCount(2)
-        ->and($komponens->pluck('kelas_mk_id')->sort()->values()->all())
-        ->toBe(collect([$this->kelasA->id, $this->kelasB->id])->sort()->values()->all())
-        ->and($komponens->pluck('nama')->unique()->all())->toBe(['UTS Teori']);
-});
-
-it('label kelas mk berubah menjadi mata kuliah saat mode massal aktif', function () {
-    $this->actingAs($this->korma);
-    MkTerpilih::set($this->mk->id);
-
-    Livewire::test(CreateKomponenPenilaian::class)
-        ->assertSee('Mata Kuliah', escape: false)
-        ->assertDontSee('Kelas MK', escape: false);
-});
-
-it('mengedit asesmen menerapkan perubahan ke kelas lain berkode sama', function () {
-    $utsA = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelasA->id,
-        'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS',
-        'nama' => 'UTS',
-        'bobot' => 100,
-    ]);
-    $utsB = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelasB->id,
-        'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS',
-        'nama' => 'UTS',
-        'bobot' => 100,
-    ]);
-
-    $this->actingAs($this->korma);
-    MkTerpilih::set($this->mk->id);
-
-    Livewire::test(EditKomponenPenilaian::class, ['record' => $utsA->getRouteKey()])
-        ->assertSee('Mata Kuliah', escape: false)
-        ->fillForm(['nama' => 'UTS Direvisi', 'kode' => 'UTS-1'])
-        ->call('save')
-        ->assertHasNoFormErrors();
-
-    expect($utsA->fresh())
-        ->nama->toBe('UTS Direvisi')
-        ->kode->toBe('UTS-1')
-        ->and($utsB->fresh())
-        ->nama->toBe('UTS Direvisi')
-        ->kode->toBe('UTS-1');
-});
-
-it('total bobot dihitung terhadap mata kuliah, bukan dijumlah per kelas', function () {
-    $utsA = KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelasA->id,
-        'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS',
-        'nama' => 'UTS',
-        'bobot' => 69,
-    ]);
-    KomponenPenilaian::query()->create([
-        'kelas_mk_id' => $this->kelasB->id,
-        'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS',
-        'nama' => 'UTS',
-        'bobot' => 69,
-    ]);
-
-    $this->actingAs($this->korma);
-    MkTerpilih::set($this->mk->id);
-
-    Livewire::test(EditKomponenPenilaian::class, ['record' => $utsA->getRouteKey()])
-        ->assertSee('Total bobot komponen pada mata kuliah dan semester ini: 69.00% dari 100% (kurang 31.00%).', escape: false)
-        ->assertDontSee('pada kelas ini', escape: false);
-});
-
-it('mode legacy tetap berlaku saat mode massal tidak tersedia', function () {
-    $this->actingAs($this->superadmin);
-
-    Livewire::test(CreateKomponenPenilaian::class)
-        ->fillForm([
-            'kelas_mk_id' => $this->kelasA->id,
             'evaluasi_id' => $this->evaluasi->id,
             'kode' => 'UTS',
             'nama' => 'UTS Teori',
@@ -167,5 +80,77 @@ it('mode legacy tetap berlaku saat mode massal tidak tersedia', function () {
     $komponens = KomponenPenilaian::query()->where('kode', 'UTS')->get();
 
     expect($komponens)->toHaveCount(1)
-        ->and($komponens->first()->kelas_mk_id)->toBe($this->kelasA->id);
+        ->and($komponens->first()->mk_id)->toBe($this->mk->id)
+        ->and($komponens->first()->semester_id)->toBe($this->semester->id)
+        ->and($komponens->first()->nama)->toBe('UTS Teori');
+});
+
+it('label field pada form adalah mata kuliah, bukan kelas mk', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(CreateKomponenPenilaian::class)
+        ->assertSee('Mata Kuliah', escape: false)
+        ->assertDontSee('Kelas MK', escape: false);
+});
+
+it('mengedit satu-satunya asesmen langsung berlaku untuk seluruh kelas mk terkait', function () {
+    $uts = KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(EditKomponenPenilaian::class, ['record' => $uts->getRouteKey()])
+        ->assertSee('Mata Kuliah', escape: false)
+        ->fillForm(['nama' => 'UTS Direvisi', 'kode' => 'UTS-1'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect(KomponenPenilaian::query()->count())->toBe(1)
+        ->and($uts->fresh())
+        ->nama->toBe('UTS Direvisi')
+        ->kode->toBe('UTS-1');
+});
+
+it('total bobot dihitung dari satu baris per kode, bukan dijumlah per kelas', function () {
+    $utsA = KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 69,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(EditKomponenPenilaian::class, ['record' => $utsA->getRouteKey()])
+        ->assertSee('Total bobot komponen pada mata kuliah dan semester ini: 69.00% dari 100% (kurang 31.00%).', escape: false);
+});
+
+it('mengimpor satu baris asesmen menghasilkan satu komponen yang dipakai bersama semua kelas mk (regresi 4x duplikat)', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(ListKomponenPenilaians::class)
+        ->callAction('bulkImport', data: [
+            'import_mk_id' => $this->mk->id,
+            'import_semester_id' => $this->semester->id,
+            'rows' => 'Asesmen01|Kuis Konseptual|100|Quiz|',
+        ])
+        ->assertHasNoActionErrors();
+
+    $komponens = KomponenPenilaian::query()->where('kode', 'Asesmen01')->get();
+
+    expect($komponens)->toHaveCount(1)
+        ->and($komponens->first()->mk_id)->toBe($this->mk->id)
+        ->and($komponens->first()->semester_id)->toBe($this->semester->id);
 });

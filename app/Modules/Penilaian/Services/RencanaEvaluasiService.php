@@ -43,27 +43,27 @@ class RencanaEvaluasiService
             return null;
         }
 
-        $kelasIds = KelasMk::query()
+        $adaKelas = KelasMk::query()
             ->where('semester_id', $semesterId)
             ->whereHas(
                 'mkUnit',
                 fn (Builder $query): Builder => $query->where('mk_id', $mkId),
             )
-            ->pluck('id');
+            ->exists();
 
-        if ($kelasIds->isEmpty()) {
+        if (! $adaKelas) {
             return $this->buildKosong();
         }
 
         $komponensByEvaluasi = KomponenPenilaian::query()
-            ->whereIn('kelas_mk_id', $kelasIds)
+            ->where('mk_id', $mkId)
+            ->where('semester_id', $semesterId)
             ->with([
                 'evaluasi',
                 'subcpmkKomponens.subcpmk.mkCpmk.cpmk',
                 'subcpmkKomponens.subcpmk.mkCpmk.cplMk.cplBok.cpl',
             ])
             ->get()
-            ->unique(fn (KomponenPenilaian $komponen): string => ($komponen->evaluasi_id ?? '').'|'.($komponen->kode ?? $komponen->id))
             ->groupBy('evaluasi_id');
 
         $evaluasis = Evaluasi::query()->orderBy('kode')->get();

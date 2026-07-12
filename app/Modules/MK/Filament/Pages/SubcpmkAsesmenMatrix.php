@@ -86,14 +86,13 @@ class SubcpmkAsesmenMatrix extends Page
             SubcpmkKomponenPenilaian::query()
                 ->where('komponen_penilaian_id', $komponenPenilaianId)
                 ->where('subcpmk_id', $subcpmkId)
-                ->delete();
+                ->get()
+                ->each(fn (SubcpmkKomponenPenilaian $pivot) => $pivot->delete());
 
             return;
         }
 
-        $komponen = KomponenPenilaian::query()
-            ->with('kelasMk')
-            ->findOrFail($komponenPenilaianId);
+        $komponen = KomponenPenilaian::query()->findOrFail($komponenPenilaianId);
 
         SubcpmkKomponenPenilaian::query()->updateOrCreate(
             [
@@ -102,7 +101,7 @@ class SubcpmkAsesmenMatrix extends Page
             ],
             [
                 'bobot' => min((float) $bobot, 100),
-                'semester_id' => $komponen->kelasMk?->semester_id,
+                'semester_id' => $komponen->semester_id,
             ],
         );
     }
@@ -573,30 +572,14 @@ class SubcpmkAsesmenMatrix extends Page
         $user = auth()->user();
 
         return KomponenPenilaian::query()
-            ->with(['kelasMk.mkUnit.mk', 'evaluasi'])
-            ->whereHas(
-                'kelasMk',
-                fn (Builder $kelasQuery): Builder => $kelasQuery
-                    ->where('semester_id', $semesterId)
-                    ->whereHas(
-                        'mkUnit',
-                        fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('mk_id', $mk->id),
-                    ),
-            )
+            ->with(['mk', 'evaluasi'])
+            ->where('mk_id', $mk->id)
+            ->where('semester_id', $semesterId)
             ->when(
-                $user instanceof User && PenawaranMkScope::isKoordinatorMkOnly($user),
-                fn (Builder $query): Builder => $query->whereHas(
-                    'kelasMk',
-                    fn (Builder $kelasQuery): Builder => $kelasQuery->where(function (Builder $scoped) use ($user, $mk): void {
-                        $scoped->where('koordinator_mk_id', $user->id)
-                            ->orWhereHas(
-                                'mkUnit.mk',
-                                fn (Builder $mkQuery): Builder => $mkQuery
-                                    ->where('id', $mk->id)
-                                    ->where('koordinator_mk_id', $user->id),
-                            );
-                    }),
-                ),
+                $user instanceof User
+                    && PenawaranMkScope::isKoordinatorMkOnly($user)
+                    && ! static::userCanManageMkAsKoordinator($user, $mk->id),
+                fn (Builder $query): Builder => $query->whereRaw('1 = 0'),
             )
             ->orderBy('kode');
     }
@@ -659,8 +642,6 @@ class SubcpmkAsesmenMatrix extends Page
             SemesterTerpilih::set($mk->id, (string) $semesterId);
         }
 
-        $user = auth()->user();
-
         $subcpmks = Subcpmk::query()
             ->with(['mkCpmk.cpmk'])
             ->where('semester_id', $semesterId)
@@ -671,34 +652,7 @@ class SubcpmkAsesmenMatrix extends Page
             ->orderBy('kode')
             ->get();
 
-        $baseAsesmenQuery = fn (): Builder => KomponenPenilaian::query()
-            ->with(['kelasMk.mkUnit.mk', 'evaluasi'])
-            ->whereHas(
-                'kelasMk',
-                fn ($kelasQuery) => $kelasQuery
-                    ->where('semester_id', $semesterId)
-                    ->whereHas(
-                        'mkUnit',
-                        fn ($mkUnitQuery) => $mkUnitQuery->where('mk_id', $mk->id),
-                    ),
-            )
-            ->when(
-                $user instanceof User && PenawaranMkScope::isKoordinatorMkOnly($user),
-                fn ($query) => $query->whereHas(
-                    'kelasMk',
-                    fn ($kelasQuery) => $kelasQuery->where(function ($scoped) use ($user, $mk): void {
-                        $scoped->where('koordinator_mk_id', $user->id)
-                            ->orWhereHas(
-                                'mkUnit.mk',
-                                fn ($mkQuery) => $mkQuery
-                                    ->where('id', $mk->id)
-                                    ->where('koordinator_mk_id', $user->id),
-                            );
-                    }),
-                ),
-            );
-
-        $asesmenSemua = $baseAsesmenQuery()->get();
+        $asesmenSemua = $this->baseAsesmenQuery($mk, $semesterId)->get();
 
         $evaluasiOptions = $asesmenSemua
             ->pluck('evaluasi')
@@ -711,7 +665,7 @@ class SubcpmkAsesmenMatrix extends Page
         $search = trim((string) $this->search);
         $searchLike = str_replace(['%', '_'], ['\%', '\_'], $search);
 
-        $asesmen = $baseAsesmenQuery()
+        $asesmen = $this->baseAsesmenQuery($mk, $semesterId)
             ->when(
                 $search !== '',
                 fn ($query) => $query->where(function ($scoped) use ($searchLike): void {

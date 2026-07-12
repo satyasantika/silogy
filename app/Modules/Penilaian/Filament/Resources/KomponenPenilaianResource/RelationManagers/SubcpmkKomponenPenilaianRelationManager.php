@@ -35,9 +35,8 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                     ->options(function (): array {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
-                        $komponen->loadMissing('kelasMk.mkUnit');
 
-                        $mkId = $komponen->kelasMk?->mkUnit?->mk_id;
+                        $mkId = $komponen->mk_id;
 
                         if ($mkId === null) {
                             return [];

@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\RelationManagers\MkCpmkRelationManager;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\CreateSubcpmk;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\EditSubcpmk;
@@ -10,12 +11,13 @@ use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\ListSubcpmks;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Filament\Support\Concerns\HasMkTerpilihScope;
 use App\Modules\MK\Filament\Support\Concerns\HasSemesterTerpilihFilter;
-use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Policies\SubcpmkPolicy;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
+use App\Modules\Penilaian\Services\RencanaEvaluasiService;
+use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -35,6 +37,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 class SubcpmkResource extends Resource
@@ -102,6 +105,50 @@ class SubcpmkResource extends Resource
             'P6' => 'P6',
             'P7' => 'P7',
         ];
+    }
+
+    /**
+     * Ringkasan taksonomi bloom (kognitif/afektif/psikomotorik) yang terisi, mis. ['C2', 'A2', 'P1'].
+     *
+     * @return list<string>
+     */
+    protected static function taksonomiBadges(Subcpmk $record): array
+    {
+        return array_values(array_filter([
+            $record->bloom_kognitif,
+            $record->bloom_afektif,
+            $record->bloom_psikomotorik,
+        ]));
+    }
+
+    /**
+     * Rekap bobot evaluasi Sub-CPMK ini terhadap nilai akhir mata kuliah,
+     * dikelompokkan per jenis evaluasi (mis. Tugas, Proyek Individu), agar
+     * mudah dibaca berdekatan dengan kolom Bobot pada baris yang sama.
+     * Bobot per jenis = bobot komponen penilaian × bobot pivot Sub-CPMK.
+     */
+    protected static function bobotEvaluasiHtml(Subcpmk $record): HtmlString
+    {
+        $perEvaluasi = SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi($record->id);
+
+        if ($perEvaluasi->isEmpty()) {
+            return new HtmlString(
+                '<p style="font-size:12px;opacity:.6;">Belum ada asesmen terpetakan ke Sub-CPMK ini.</p>',
+            );
+        }
+
+        $service = app(RencanaEvaluasiService::class);
+
+        $rincian = $perEvaluasi
+            ->map(fn (float $bobot, string $nama): string => e($nama).' ('.$service->formatBobot($bobot).')')
+            ->values()
+            ->join(' · ');
+
+        return new HtmlString(sprintf(
+            '<p style="font-size:12px;"><strong>Bobot evaluasi: %s</strong> — %s</p>',
+            $service->formatBobot((float) $perEvaluasi->sum()),
+            $rincian,
+        ));
     }
 
     /**
@@ -249,7 +296,7 @@ class SubcpmkResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->description(fn (): \Illuminate\Support\HtmlString => MkTerpilih::bannerHtml())
+            ->description(fn (): HtmlString => MkTerpilih::bannerHtml())
             ->columns([
                 Stack::make([
                     Split::make([
@@ -259,10 +306,12 @@ class SubcpmkResource extends Resource
                             ->sortable()
                             ->weight(FontWeight::Bold),
 
-                        TextColumn::make('bobot')
-                            ->label('Bobot')
-                            ->suffix('%')
+                        TextColumn::make('taksonomi')
+                            ->label('Taksonomi')
+                            ->getStateUsing(fn (Subcpmk $record): array => static::taksonomiBadges($record))
+                            ->badge()
                             ->placeholder('—')
+                            ->color('gray')
                             ->size('sm'),
                     ]),
 
@@ -281,16 +330,21 @@ class SubcpmkResource extends Resource
                         ->size('sm')
                         ->color('gray'),
 
-                    TextColumn::make('semester.kode')
-                        ->label('Semester')
+                    TextColumn::make('bobot')
+                        ->label('Bobot Sub-CPMK')
+                        ->suffix('%')
                         ->placeholder('—')
                         ->size('sm')
-                        ->color('gray'),
+                        ->weight(FontWeight::Bold),
+
+                    TextColumn::make('bobot_evaluasi')
+                        ->label('')
+                        ->html()
+                        ->getStateUsing(fn (Subcpmk $record): HtmlString => static::bobotEvaluasiHtml($record)),
                 ])->space(1),
             ])
             ->contentGrid(['md' => 2, 'xl' => 3])
-            ->paginated([6, 12, 24])
-            ->defaultPaginationPageOption(12)
+            ->paginated(false)
             ->filters([
                 static::semesterTerpilihFilter(
                     fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),

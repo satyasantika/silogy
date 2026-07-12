@@ -80,7 +80,19 @@ class KelasMk extends Model
      */
     public function penugasanSelesai(): bool
     {
-        $komponens = $this->komponenPenilaians()->withCount('subcpmkKomponens')->get();
+        $this->loadMissing('mkUnit');
+
+        $mkId = $this->mkUnit?->mk_id;
+
+        if ($mkId === null) {
+            return false;
+        }
+
+        $komponens = KomponenPenilaian::query()
+            ->where('mk_id', $mkId)
+            ->where('semester_id', $this->semester_id)
+            ->withCount('subcpmkKomponens')
+            ->get();
 
         if ($komponens->isEmpty()) {
             return false;
@@ -93,14 +105,6 @@ class KelasMk extends Model
         return $komponens->every(
             fn ($komponen): bool => $komponen->subcpmk_komponens_count > 0,
         );
-    }
-
-    /**
-     * @return HasMany<KomponenPenilaian, $this>
-     */
-    public function komponenPenilaians(): HasMany
-    {
-        return $this->hasMany(KomponenPenilaian::class);
     }
 
     /**

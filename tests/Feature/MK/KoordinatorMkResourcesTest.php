@@ -114,7 +114,6 @@ it('korma dapat membuat cpmk subcpmk dan komponen penilaian', function () {
 
     Livewire::test(CreateKomponenPenilaian::class)
         ->fillForm([
-            'kelas_mk_id' => $this->kelas->id,
             'evaluasi_id' => $evaluasi->id,
             'kode' => 'UTS',
             'nama' => 'UTS Teori',

@@ -37,7 +37,9 @@ use App\Modules\MK\Policies\MkUnitPolicy;
 use App\Modules\MK\Policies\SubcpmkPolicy;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
+use App\Modules\Penilaian\Observers\SubcpmkKomponenPenilaianObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
@@ -112,6 +114,7 @@ class AppServiceProvider extends ServiceProvider
         Event::subscribe(SyncKurikulumStateSubscriber::class);
 
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
+        SubcpmkKomponenPenilaian::observe(SubcpmkKomponenPenilaianObserver::class);
     }
 
     /**

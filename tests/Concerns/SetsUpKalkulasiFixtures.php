@@ -144,8 +144,11 @@ trait SetsUpKalkulasiFixtures
         float $bobotKomponen,
         float $bobotSubcpmk,
     ): SubcpmkKomponenPenilaian {
+        $kelas->loadMissing('mkUnit');
+
         $komponen = KomponenPenilaian::query()->create([
-            'kelas_mk_id' => $kelas->id,
+            'mk_id' => $kelas->mkUnit?->mk_id,
+            'semester_id' => $kelas->semester_id,
             'evaluasi_id' => $evaluasi->id,
             'kode' => $kode,
             'nama' => $kode,
