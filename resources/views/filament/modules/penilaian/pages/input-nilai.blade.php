@@ -277,116 +277,212 @@
                             heading="Portofolio"
                             description="Rekap nilai per asesmen untuk kelas terpilih. Mahasiswa diurutkan berdasarkan NIM. Halaman ini hanya untuk dibaca."
                         >
-                            <div style="overflow-x:auto;" wire:key="matriks-portofolio-{{ $kelasMkId }}">
-                                <table class="portofolio-matrix" style="width:100%;min-width:max-content;border-collapse:collapse;font-size:13px;">
-                                    <thead>
-                                        <tr style="text-align:left;">
-                                            <th class="portofolio-sticky portofolio-sticky-head" style="position:sticky;left:0;top:0;z-index:3;padding:8px 10px;min-width:190px;">
-                                                Mahasiswa
-                                            </th>
-                                            @foreach ($columns as $column)
-                                                <th
-                                                    class="portofolio-sticky-topcol"
-                                                    style="position:sticky;top:0;z-index:2;padding:8px 6px;text-align:center;white-space:nowrap;min-width:110px;vertical-align:top;"
-                                                    title="{{ $column['label'] }}"
-                                                >
-                                                    <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#e0e7ff;color:#3730a3;margin-bottom:4px;">
-                                                        {{ rtrim(rtrim(number_format($column['bobot'], 2, '.', ''), '0'), '.') }}%
-                                                    </span>
-                                                    <span style="display:block;font-weight:700;font-size:12px;">{{ $column['asesmen'] }}</span>
-                                                    <span style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-top:3px;">
-                                                        @if ($column['evaluasi_kode'])
-                                                            <span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:600;background:rgba(128,128,128,.15);opacity:.85;">
-                                                                {{ $column['evaluasi_kode'] }}
-                                                            </span>
-                                                        @endif
-                                                        @if ($column['cpl'])
-                                                            <span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:600;background:#fde68a;color:#92400e;">
-                                                                {{ $column['cpl'] }}
-                                                            </span>
-                                                        @endif
-                                                    </span>
-                                                </th>
-                                            @endforeach
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($portofolioRows as $row)
-                                            <tr
-                                                wire:key="portofolio-row-{{ $row['id'] }}"
-                                                style="border-bottom:1px solid rgba(128,128,128,.2);"
-                                            >
-                                                <td class="portofolio-sticky portofolio-sticky-cell" style="position:sticky;left:0;z-index:1;padding:8px 10px;">
-                                                    <span style="display:block;font-size:11px;opacity:.7;">{{ $row['nim'] }}</span>
-                                                    <strong style="display:block;font-size:12px;text-transform:uppercase;">{{ $row['nama'] }}</strong>
-                                                    <span style="display:flex;align-items:center;gap:5px;margin-top:3px;">
-                                                        <span style="font-size:11px;opacity:.75;">
-                                                            Nilai: {{ $row['nilai_angka'] !== null ? rtrim(rtrim(number_format($row['nilai_angka'], 2, '.', ''), '0'), '.') : '—' }}
-                                                        </span>
-                                                        @if ($row['nilai_huruf'])
-                                                            @php
-                                                                $warnaHurufPortofolio = $this->warnaNilaiHuruf($row['nilai_huruf']);
-                                                            @endphp
-                                                            <span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;background:{{ $warnaHurufPortofolio['bg'] }};color:{{ $warnaHurufPortofolio['fg'] }};">
-                                                                {{ $row['nilai_huruf'] }}
-                                                            </span>
-                                                        @endif
-                                                    </span>
-                                                </td>
-                                                @foreach ($columns as $column)
-                                                    @php
-                                                        $nilaiPortofolio = $nilai[$row['id']][$column['id']] ?? null;
-                                                    @endphp
-                                                    <td style="padding:6px;text-align:center;">
-                                                        <div style="min-width:64px;padding:4px 6px;border:1.5px solid rgba(128,128,128,.3);border-radius:6px;text-align:center;display:inline-block;">
-                                                            {{ $nilaiPortofolio !== null ? rtrim(rtrim(number_format((float) $nilaiPortofolio, 2, '.', ''), '0'), '.') : '—' }}
-                                                        </div>
-                                                    </td>
-                                                @endforeach
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                    <tfoot>
-                                        <tr style="border-top:2px solid rgba(128,128,128,.35);background:rgba(37,99,235,.08);font-weight:700;">
-                                            <td class="portofolio-sticky portofolio-sticky-foot" style="position:sticky;left:0;z-index:1;padding:8px 10px;">
-                                                Rata-rata Kelas
-                                            </td>
-                                            @foreach ($columns as $column)
-                                                @php
-                                                    $rataRataPortofolio = $this->rataRataKelas[$column['id']] ?? null;
-                                                @endphp
-                                                <td style="padding:6px;text-align:center;">
-                                                    {{ $rataRataPortofolio !== null ? rtrim(rtrim(number_format($rataRataPortofolio, 2, '.', ''), '0'), '.') : '—' }}
-                                                </td>
-                                            @endforeach
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
+                            @include('filament.modules.penilaian.partials.tabel-workcloud', [
+                                'columns' => $columns,
+                                'rows' => $portofolioRows,
+                                'nilai' => $nilai,
+                                'wireKeySuffix' => 'portofolio',
+                            ])
                         </x-filament::section>
                     </div>
 
                     <div x-show="subTab === 'cpl-v1'">
-                        <x-filament::section icon="heroicon-o-academic-cap" heading="Evaluasi CPL v1">
-                            <p style="font-size:13px;opacity:.7;">Segera hadir.</p>
+                        <x-filament::section
+                            icon="heroicon-o-academic-cap"
+                            heading="Evaluasi Ketercapaian CPL"
+                            description="Evaluasi capaian CPL berdasarkan data nilai kelas terpilih."
+                        >
+                            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                                <div style="padding:14px 20px;border-radius:10px;border:1px solid rgba(37,99,235,.3);background:rgba(37,99,235,.08);min-width:220px;">
+                                    <span style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;opacity:.7;">Target Kelulusan CPL</span>
+                                    <strong style="display:block;font-size:28px;font-weight:700;color:#2563eb;margin-top:4px;">{{ $targetCapaianLulusan }}%</strong>
+                                    <span style="display:block;font-size:11px;opacity:.65;margin-top:4px;">Persentase minimum ketercapaian rata-rata kelas</span>
+                                </div>
+                            </div>
+
+                            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;margin-bottom:16px;">
+                                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">
+                                    Evaluasi Ketercapaian CPL
+                                </div>
+                                @include('filament.modules.penilaian.partials.tabel-ketercapaian-cpl', ['ketercapaian' => $ketercapaianCpl])
+                            </div>
+
+                            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">
+                                    Distribusi Nilai &amp; Kesimpulan
+                                </div>
+                                @include('filament.modules.penilaian.partials.tabel-distribusi-nilai', ['distribusi' => $distribusiNilaiHuruf])
+                            </div>
                         </x-filament::section>
                     </div>
 
                     <div x-show="subTab === 'cpl-v2'">
-                        <x-filament::section icon="heroicon-o-academic-cap" heading="Evaluasi CPL v2">
-                            <p style="font-size:13px;opacity:.7;">Segera hadir.</p>
+                        <x-filament::section
+                            icon="heroicon-o-chart-bar"
+                            heading="Rekapitulasi Ketercapaian Sumbangan CPL"
+                            description="Rekap kontribusi CPL pada mata kuliah untuk kelas terpilih."
+                        >
+                            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+                                <div style="padding:14px 20px;border-radius:10px;border:1px solid rgba(37,99,235,.3);background:rgba(37,99,235,.08);min-width:220px;">
+                                    <span style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;opacity:.7;">Target Kelulusan CPL</span>
+                                    <strong style="display:block;font-size:28px;font-weight:700;color:#2563eb;margin-top:4px;">{{ $targetCapaianLulusan }}%</strong>
+                                </div>
+                            </div>
+
+                            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', ['detail' => $detailCplCpmkSubcpmk])
                         </x-filament::section>
                     </div>
 
                     <div x-show="subTab === 'mahasiswa'">
-                        <x-filament::section icon="heroicon-o-user-group" heading="Hasil Analisis per Mahasiswa">
-                            <p style="font-size:13px;opacity:.7;">Segera hadir.</p>
+                        <x-filament::section
+                            icon="heroicon-o-user-group"
+                            heading="Hasil Analisis MK Dosen per Mahasiswa"
+                            description="Ringkasan capaian mahasiswa pada mata kuliah terpilih."
+                        >
+                            @if (empty($rows))
+                                <p style="font-size:13px;opacity:.7;">Belum ada mahasiswa terdaftar pada kelas ini.</p>
+                            @else
+                                <div style="overflow-x:auto;">
+                                    <table style="width:100%;min-width:520px;border-collapse:collapse;font-size:13px;">
+                                        <thead>
+                                            <tr style="background:rgba(128,128,128,.08);text-align:center;">
+                                                <th style="padding:8px;text-align:left;">NPM</th>
+                                                <th style="padding:8px;text-align:left;">Nama</th>
+                                                <th style="padding:8px;">Nilai Angka</th>
+                                                <th style="padding:8px;">Nilai Huruf</th>
+                                                <th style="padding:8px;">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($rows as $row)
+                                                <tr style="border-top:1px solid rgba(128,128,128,.15);">
+                                                    <td style="padding:8px;"><strong>{{ $row['nim'] }}</strong></td>
+                                                    <td style="padding:8px;text-transform:uppercase;">{{ $row['nama'] }}</td>
+                                                    <td style="padding:8px;text-align:center;">
+                                                        {{ $row['nilai_angka'] !== null ? rtrim(rtrim(number_format($row['nilai_angka'], 2, '.', ''), '0'), '.') : '—' }}
+                                                    </td>
+                                                    <td style="padding:8px;text-align:center;">
+                                                        @if ($row['nilai_huruf'])
+                                                            @php($warnaHurufBaris = $this->warnaNilaiHuruf($row['nilai_huruf']))
+                                                            <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:{{ $warnaHurufBaris['bg'] }};color:{{ $warnaHurufBaris['fg'] }};">
+                                                                {{ $row['nilai_huruf'] }}
+                                                            </span>
+                                                        @else
+                                                            —
+                                                        @endif
+                                                    </td>
+                                                    <td style="padding:8px;text-align:center;">
+                                                        <x-filament::actions
+                                                            :actions="[$this->capaianMahasiswaAction()->arguments(['kmmId' => $row['id']])]"
+                                                            alignment="center"
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
                         </x-filament::section>
                     </div>
 
                     <div x-show="subTab === 'laporan-lengkap'">
-                        <x-filament::section icon="heroicon-o-clipboard-document-check" heading="Laporan">
-                            <p style="font-size:13px;opacity:.7;">Segera hadir.</p>
+                        <x-filament::section
+                            icon="heroicon-o-clipboard-document-check"
+                            heading="Laporan Mata Kuliah ke Prodi"
+                            description="Portofolio penilaian dan evaluasi untuk kelas terpilih."
+                        >
+                            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                                <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" onclick="window.print()">
+                                    Cetak
+                                </x-filament::button>
+                            </div>
+
+                            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;margin-bottom:16px;">
+                                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">A. Identitas Mata Kuliah</div>
+                                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                                    <tbody>
+                                        <tr>
+                                            <th style="text-align:left;padding:6px 8px;width:200px;white-space:nowrap;">Mata Kuliah</th>
+                                            <td style="padding:6px 8px;">{{ $this->identitasMk['nama'] }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th style="text-align:left;padding:6px 8px;">Kode MK / SKS</th>
+                                            <td style="padding:6px 8px;">{{ $this->identitasMk['kode'] }} / {{ $this->identitasMk['sks'] }} SKS</td>
+                                        </tr>
+                                        <tr>
+                                            <th style="text-align:left;padding:6px 8px;">Semester</th>
+                                            <td style="padding:6px 8px;">{{ $this->identitasMk['semester'] }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th style="text-align:left;padding:6px 8px;">Dosen Pengampu</th>
+                                            <td style="padding:6px 8px;">{{ $this->identitasMk['dosen'] }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th style="text-align:left;padding:6px 8px;">Target Kelulusan CPL</th>
+                                            <td style="padding:6px 8px;">{{ $this->identitasMk['target'] }}%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @include('filament.modules.penilaian.partials.rencana-evaluasi-table', ['rencana' => $rencanaEvaluasi])
+
+                            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">B. Tabel Nilai Mahasiswa (Workcloud Utama)</div>
+                            @include('filament.modules.penilaian.partials.tabel-workcloud', [
+                                'columns' => $columns,
+                                'rows' => $portofolioRows,
+                                'nilai' => $nilai,
+                                'wireKeySuffix' => 'laporan',
+                            ])
+
+                            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">C1. Evaluasi Ketercapaian CPL</div>
+                            @include('filament.modules.penilaian.partials.tabel-ketercapaian-cpl', ['ketercapaian' => $ketercapaianCpl])
+
+                            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">C2. Detail Ketercapaian CPL-CPMK-SubCPMK</div>
+                            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', ['detail' => $detailCplCpmkSubcpmk])
+
+                            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">D. Distribusi Nilai</div>
+                            @include('filament.modules.penilaian.partials.tabel-distribusi-nilai', ['distribusi' => $distribusiNilaiHuruf])
+
+                            <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
+                                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E1. Jaring Laba-laba Ketercapaian CPL</div>
+                                    <canvas
+                                        wire:key="radar-cpl-{{ $kelasMkId }}"
+                                        x-data
+                                        x-init="renderRadarSilogy($el, @js($this->radarData['cpl'] ?? ['labels' => [], 'data' => []]), '#2563eb')"
+                                        height="220"
+                                    ></canvas>
+                                </div>
+                                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E2. Jaring Laba-laba Ketercapaian CPMK</div>
+                                    <canvas
+                                        wire:key="radar-cpmk-{{ $kelasMkId }}"
+                                        x-data
+                                        x-init="renderRadarSilogy($el, @js($this->radarData['cpmk'] ?? ['labels' => [], 'data' => []]), '#059669')"
+                                        height="220"
+                                    ></canvas>
+                                </div>
+                                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E3. Jaring Laba-laba Ketercapaian Sub-CPMK</div>
+                                    <canvas
+                                        wire:key="radar-subcpmk-{{ $kelasMkId }}"
+                                        x-data
+                                        x-init="renderRadarSilogy($el, @js($this->radarData['subcpmk'] ?? ['labels' => [], 'data' => []]), '#d97706')"
+                                        height="220"
+                                    ></canvas>
+                                </div>
+                                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E4. Jaring Laba-laba Rata-rata Penugasan</div>
+                                    <canvas
+                                        wire:key="radar-asesmen-{{ $kelasMkId }}"
+                                        x-data
+                                        x-init="renderRadarSilogy($el, @js($this->radarData['asesmen'] ?? ['labels' => [], 'data' => []]), '#7c3aed')"
+                                        height="220"
+                                    ></canvas>
+                                </div>
+                            </div>
                         </x-filament::section>
                     </div>
                 </div>
@@ -472,6 +568,51 @@
                         background: #27272a;
                     }
                 </style>
+            @endonce
+
+            @once
+                {{-- Chart.js bawaan Filament dibundel privat di dalam paketnya (tidak
+                    ter-expose sebagai window.Chart), jadi 4 grafik jaring laba-laba
+                    pada tab Laporan memuat Chart.js sendiri lewat CDN. --}}
+                <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+                <script>
+                    window.renderRadarSilogy = function (canvas, dataset, color) {
+                        if (! canvas || typeof Chart === 'undefined') {
+                            return;
+                        }
+
+                        if (canvas._radarChartInstance) {
+                            canvas._radarChartInstance.destroy();
+                        }
+
+                        canvas._radarChartInstance = new Chart(canvas, {
+                            type: 'radar',
+                            data: {
+                                labels: dataset.labels,
+                                datasets: [{
+                                    label: 'Nilai',
+                                    data: dataset.data,
+                                    backgroundColor: color + '33',
+                                    borderColor: color,
+                                    pointBackgroundColor: color,
+                                }],
+                            },
+                            options: {
+                                scales: {
+                                    r: {
+                                        min: 0,
+                                        max: 100,
+                                    },
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false,
+                                    },
+                                },
+                            },
+                        });
+                    };
+                </script>
             @endonce
         @endif
     @endif

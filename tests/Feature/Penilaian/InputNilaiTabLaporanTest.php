@@ -7,6 +7,7 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
@@ -20,6 +21,7 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Penilaian\Services\EvaluasiCplService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\MahasiswaSeeder;
@@ -32,7 +34,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 /**
- * @return array{kelas: KelasMk, kmmDuluan: KelasMkMahasiswa, kmmBelakangan: KelasMkMahasiswa}
+ * @return array{kelas: KelasMk, kmmDuluan: KelasMkMahasiswa, kmmBelakangan: KelasMkMahasiswa, cpmk: Cpmk, subcpmk: Subcpmk}
  */
 function siapkanFixtureTabLaporan(User $dosen): array
 {
@@ -72,13 +74,17 @@ function siapkanFixtureTabLaporan(User $dosen): array
         'mahasiswa_id' => $mahasiswaBelakangan->id,
     ]);
 
-    $cpmk = Cpmk::factory()->forMk($mk)->create();
+    $cpmk = Cpmk::factory()->forMk($mk)->create(['kode' => 'CPMK-1']);
     $cpl = Cpl::factory()->forAcademicUnit($prodi)->create(['kode' => 'CPL06']);
     $bok = Bok::factory()->forAcademicUnit($prodi)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SubCPMK04.1']);
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create([
+        'kode' => 'SubCPMK04.1',
+        'semester_id' => $semester->id,
+        'indikator' => 'Mampu menjelaskan konsep dasar',
+    ]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
     $komponen = KomponenPenilaian::query()->create([
@@ -106,7 +112,7 @@ function siapkanFixtureTabLaporan(User $dosen): array
         'nilai' => 50,
     ]);
 
-    return compact('kelas', 'kmmDuluan', 'kmmBelakangan');
+    return compact('kelas', 'kmmDuluan', 'kmmBelakangan', 'cpmk', 'subcpmk');
 }
 
 beforeEach(function () {
@@ -132,7 +138,7 @@ it('menampilkan struktur tab Penilaian dan Laporan beserta 5 sub-tab laporan', f
         ->assertSee('Evaluasi CPL v1', escape: false)
         ->assertSee('Evaluasi CPL v2', escape: false)
         ->assertSee('Hasil Analisis per Mahasiswa', escape: false)
-        ->assertSee('Segera hadir.', escape: false);
+        ->assertSee('Laporan Mata Kuliah ke Prodi', escape: false);
 });
 
 it('portofolioRows terurut berdasarkan nim, bukan nama atau urutan dibuat', function () {
@@ -176,4 +182,184 @@ it('pane Portofolio baca-saja: tidak ada input nilai atau tombol aksi apa pun', 
     // (kelas CSS/markup portofolio-* dipakai untuk tabel baca-saja).
     expect($panePortofolio)->not->toContain('wire:model="nilai.')
         ->not->toContain('<input');
+});
+
+it('menjalankan kalkulasi CPL sinkron dan menampilkan ketercapaian CPL kelas', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    // Di test, QUEUE_CONNECTION=sync membuat RecalkulasiCplJob (dipicu saat
+    // NilaiMahasiswa dibuat) langsung ikut jalan lewat fixture di atas. Untuk
+    // membuktikan halaman ini benar-benar menghitung ulang sendiri secara
+    // sinkron (bukan hanya kebetulan sudah terisi) — meniru kondisi produksi
+    // nyata di mana worker queue-nya mati — hasil lama dihapus dulu di sini.
+    HasilCplMk::query()->delete();
+    expect(HasilCplMk::query()->count())->toBe(0);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('CPL06', escape: false)
+        ->assertSee('75', escape: false)
+        ->assertSee('Tercapai', escape: false)
+        ->assertSee('Quiz', escape: false);
+
+    expect(HasilCplMk::query()->count())->toBeGreaterThan(0);
+
+    $ketercapaian = $test->get('ketercapaianCpl');
+
+    expect($ketercapaian)->toHaveCount(1)
+        ->and($ketercapaian[0]['cpl_kode'])->toBe('CPL06')
+        ->and($ketercapaian[0]['rata_rata'])->toBe(75.0)
+        ->and($ketercapaian[0]['tercapai'])->toBeTrue()
+        ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Quiz')
+        ->and($ketercapaian[0]['kontribusi'][0]['bobot'])->toBe(100.0);
+});
+
+it('menyusun distribusi nilai huruf sesuai data KelasMkMahasiswa', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('Distribusi Nilai', escape: false)
+        ->assertSee('Nilai Huruf', escape: false);
+
+    $distribusi = collect($test->get('distribusiNilaiHuruf'))->keyBy('huruf');
+
+    expect($distribusi)->toHaveCount(10)
+        ->and($distribusi['B+']['jumlah'])->toBe(1)
+        ->and($distribusi['B+']['persentase'])->toBe(100.0)
+        ->and($distribusi['A']['jumlah'])->toBe(0);
+});
+
+it('menyusun rincian CPL-CPMK-SubCPMK dengan rowspan dan PK x RN yang benar', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('Rekapitulasi Ketercapaian Sumbangan CPL', escape: false)
+        ->assertSee('CPMK-1', escape: false)
+        ->assertSee('SubCPMK04.1', escape: false)
+        ->assertSee('Mampu menjelaskan konsep dasar', escape: false)
+        ->assertSee('Asesmen01 - Pengetahuan/Kognitif', escape: false);
+
+    $detail = $test->get('detailCplCpmkSubcpmk');
+
+    // Hanya satu kombinasi CPL/CPMK/SubCPMK/asesmen pada fixture ini, jadi
+    // seluruh rowspan harus 1 dan baris satu-satunya menjadi baris "awal"
+    // di ketiga level sekaligus.
+    expect($detail)->toHaveCount(1);
+
+    $baris = $detail[0];
+
+    expect($baris['cpl_kode'])->toBe('CPL06')
+        ->and($baris['cpl_rowspan'])->toBe(1)
+        ->and($baris['cpl_awal'])->toBeTrue()
+        ->and($baris['cpl_rata_rata'])->toBe(75.0)
+        ->and($baris['cpl_tercapai'])->toBeTrue()
+        ->and($baris['cpmk_kode'])->toBe('CPMK-1')
+        ->and($baris['cpmk_rowspan'])->toBe(1)
+        ->and($baris['cpmk_rata_rata'])->toBe(75.0)
+        ->and($baris['subcpmk_kode'])->toBe('SubCPMK04.1')
+        ->and($baris['subcpmk_rowspan'])->toBe(1)
+        ->and($baris['subcpmk_rata_rata'])->toBe(75.0)
+        ->and($baris['indikator'])->toBe('Mampu menjelaskan konsep dasar')
+        ->and($baris['sumber_data'])->toBe('Asesmen01 - Pengetahuan/Kognitif')
+        ->and($baris['pk'])->toBe(100.0)
+        ->and($baris['rn'])->toBe(75.0)
+        ->and($baris['pk_x_rn'])->toBe(75.0);
+});
+
+it('menampilkan tabel Hasil Analisis per Mahasiswa dengan tombol Capaian per baris', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('Hasil Analisis MK Dosen per Mahasiswa', escape: false)
+        ->assertSee('242151111100', escape: false)
+        ->assertSee('242151111117', escape: false)
+        ->assertSee('Capaian', escape: false);
+});
+
+it('tombol Capaian bisa dipanggil lewat mountAction dengan argumen kmmId', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $test->mountAction('capaianMahasiswa', ['kmmId' => $fixtures['kmmDuluan']->id]);
+
+    expect($test->instance()->getMountedAction())->not->toBeNull();
+});
+
+it('ketercapaian dan rincian per mahasiswa memakai nilai mahasiswa itu sendiri, bukan rata-rata kelas', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    // Picu loadMatrix() dulu supaya kalkulasi sinkron (hasil_subcpmk dkk.) terisi.
+    Livewire::test(InputNilai::class)->set('kelasMkId', $fixtures['kelas']->id);
+
+    $service = app(EvaluasiCplService::class);
+    $kelasMk = $fixtures['kelas']->fresh('mkUnit');
+
+    $ketercapaianDuluan = $service->ketercapaianCplPerKelas($kelasMk, $fixtures['kmmDuluan']->id);
+    $ketercapaianBelakangan = $service->ketercapaianCplPerKelas($kelasMk, $fixtures['kmmBelakangan']->id);
+
+    expect($ketercapaianDuluan[0]['rata_rata'])->toBe(100.0)
+        ->and($ketercapaianBelakangan[0]['rata_rata'])->toBe(50.0);
+
+    $detailDuluan = $service->detailCplCpmkSubcpmk($kelasMk, $fixtures['kmmDuluan']->id);
+    $detailBelakangan = $service->detailCplCpmkSubcpmk($kelasMk, $fixtures['kmmBelakangan']->id);
+
+    expect($detailDuluan[0]['rn'])->toBe(100.0)
+        ->and($detailDuluan[0]['pk_x_rn'])->toBe(100.0)
+        ->and($detailBelakangan[0]['rn'])->toBe(50.0)
+        ->and($detailBelakangan[0]['pk_x_rn'])->toBe(50.0);
+});
+
+it('menampilkan tab Laporan gabungan dengan identitas, rencana evaluasi, workcloud, dan grafik', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('A. Identitas Mata Kuliah', escape: false)
+        ->assertSee('IF401', escape: false)
+        ->assertSee($this->dosen->full_name, escape: false)
+        ->assertSee('B. Tabel Nilai Mahasiswa (Workcloud Utama)', escape: false)
+        ->assertSee('C1. Evaluasi Ketercapaian CPL', escape: false)
+        ->assertSee('C2. Detail Ketercapaian CPL-CPMK-SubCPMK', escape: false)
+        ->assertSee('D. Distribusi Nilai', escape: false)
+        ->assertSee('E1. Jaring Laba-laba Ketercapaian CPL', escape: false)
+        ->assertSee('E4. Jaring Laba-laba Rata-rata Penugasan', escape: false)
+        ->assertSee('cdn.jsdelivr.net/npm/chart.js', escape: false);
+
+    $html = $test->html();
+
+    expect($html)->toContain('radar-cpl-'.$fixtures['kelas']->id)
+        ->toContain('radar-cpmk-'.$fixtures['kelas']->id)
+        ->toContain('radar-subcpmk-'.$fixtures['kelas']->id)
+        ->toContain('radar-asesmen-'.$fixtures['kelas']->id);
+});
+
+it('radarData menyusun label dan nilai untuk keempat grafik jaring laba-laba', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $radar = $test->instance()->getRadarDataProperty();
+
+    expect($radar['cpl']['labels'])->toBe(['CPL06'])
+        ->and($radar['cpl']['data'])->toBe([75.0])
+        ->and($radar['cpmk']['labels'])->toBe(['CPMK-1'])
+        ->and($radar['cpmk']['data'])->toBe([75.0])
+        ->and($radar['subcpmk']['labels'])->toBe(['SubCPMK04.1'])
+        ->and($radar['subcpmk']['data'])->toBe([75.0])
+        ->and($radar['asesmen']['labels'])->toBe(['Asesmen01'])
+        ->and($radar['asesmen']['data'])->toBe([75.0]);
 });
