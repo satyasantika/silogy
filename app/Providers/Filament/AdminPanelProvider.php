@@ -49,6 +49,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Penilaian'),
                 NavigationGroup::make('Interaksi'),
                 NavigationGroup::make('AI Analisis'),
+                NavigationGroup::make('Laporan'),
                 NavigationGroup::make('Audit'),
             ])
             ->renderHook(

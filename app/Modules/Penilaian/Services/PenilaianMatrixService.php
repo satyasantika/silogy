@@ -299,6 +299,26 @@ class PenilaianMatrixService
     }
 
     /**
+     * Bobot mutu standar perguruan tinggi Indonesia (skala 4.00) — dipakai
+     * untuk menghitung IPK kumulatif dari huruf tiap mata kuliah.
+     */
+    public function bobotMutuDariHuruf(string $huruf): float
+    {
+        return match ($huruf) {
+            'A' => 4.00,
+            'A-' => 3.7,
+            'B+' => 3.3,
+            'B' => 3.0,
+            'B-' => 2.7,
+            'C+' => 2.3,
+            'C' => 2.0,
+            'C-' => 1.7,
+            'D' => 1.0,
+            default => 0.0,
+        };
+    }
+
+    /**
      * Warna badge nilai huruf (mis. A/A-, B+/B, C, D/E) untuk ditampilkan
      * berdampingan dengan nilai akhir mahasiswa pada baris tabel.
      *
