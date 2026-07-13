@@ -58,6 +58,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Spatie\ModelStates\Events\StateChanged;
@@ -115,6 +117,40 @@ class AppServiceProvider extends ServiceProvider
 
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
         SubcpmkKomponenPenilaian::observe(SubcpmkKomponenPenilaianObserver::class);
+
+        $this->configureUrlForSubpathDeployment();
+    }
+
+    /**
+     * Di belakang reverse proxy Apache (mis. supportfkip.unsil.ac.id/demo-silogy),
+     * Laravel hanya melihat host:port internal — bukan skema asli (https) ataupun
+     * prefix path (/demo-silogy) dari APP_URL. Tanpa ini, route()/url()/redirect()
+     * akan menghasilkan URL tanpa prefix tersebut, memutus login redirect, form
+     * action, dsb. Tidak berefek apa pun bila APP_URL tidak berisi path (dev lokal).
+     */
+    protected function configureUrlForSubpathDeployment(): void
+    {
+        $subPath = rtrim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
+
+        if (parse_url((string) config('app.url'), PHP_URL_SCHEME) === 'https') {
+            URL::forceScheme('https');
+        }
+
+        URL::forceRootUrl(config('app.url'));
+
+        if ($subPath === '') {
+            return;
+        }
+
+        // FrontendAssets::js() (script Livewire inti) membaca URI route mentah,
+        // bukan lewat route()/url() — jadi tidak ikut ter-prefix oleh
+        // forceRootUrl() di atas dan harus dipatch manual di sini. Route
+        // AJAX (/livewire/update) TIDAK disentuh karena sudah resolve lewat
+        // UrlGenerator::toRoute(), yang sudah menghormati forceRootUrl().
+        Livewire::setScriptRoute(fn ($handle) => Route::get(
+            $subPath.(config('app.debug') ? '/livewire/livewire.js' : '/livewire/livewire.min.js'),
+            $handle,
+        ));
     }
 
     /**
