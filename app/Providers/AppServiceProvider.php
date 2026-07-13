@@ -132,15 +132,22 @@ class AppServiceProvider extends ServiceProvider
     {
         $subPath = rtrim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
 
+        // Tanpa path di APP_URL (dev lokal, atau akses lewat port apa pun),
+        // biarkan Laravel pakai deteksi host dari request seperti biasa — kalau
+        // forceRootUrl() dipaksa ke sini tanpa syarat, URL yang dihasilkan akan
+        // selalu memakai host:port APP_URL walau browser sedang mengakses lewat
+        // port lain (mis. beberapa proyek berbagi satu docker-compose dengan
+        // port yang di-remap), sehingga tombol login/redirect malah menuju host
+        // yang salah.
+        if ($subPath === '') {
+            return;
+        }
+
         if (parse_url((string) config('app.url'), PHP_URL_SCHEME) === 'https') {
             URL::forceScheme('https');
         }
 
         URL::forceRootUrl(config('app.url'));
-
-        if ($subPath === '') {
-            return;
-        }
 
         // FrontendAssets::js() (script Livewire inti) membaca URI route mentah,
         // bukan lewat route()/url() — jadi tidak ikut ter-prefix oleh
