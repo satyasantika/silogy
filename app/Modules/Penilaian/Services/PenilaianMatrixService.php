@@ -165,6 +165,140 @@ class PenilaianMatrixService
     }
 
     /**
+     * Kolom laporan Portofolio dikelompokkan per jenis penilaian (Evaluasi),
+     * bukan per KomponenPenilaian — satu jenis (mis. "Tugas") bisa punya
+     * beberapa asesmen sekaligus (Tugas 1, Tugas 2, dst.), jadi nilainya
+     * diakumulasi lewat nilaiEvaluasiUntukMatrix().
+     *
+     * @param  Collection<int, KomponenPenilaian>  $komponens
+     * @return list<array{id: string, label: string, bobot: float, cpl: string|null, komponen_ids: list<string>}>
+     */
+    public function kolomEvaluasiDariKomponens(Collection $komponens): array
+    {
+        return $komponens
+            ->groupBy('evaluasi_id')
+            ->map(function (Collection $group): array {
+                /** @var KomponenPenilaian $pertama */
+                $pertama = $group->first();
+
+                $cplKodes = $group
+                    ->flatMap(fn (KomponenPenilaian $komponen) => $komponen->subcpmkKomponens)
+                    ->map(fn (SubcpmkKomponenPenilaian $skp): ?string => $skp->subcpmk?->mkCpmk?->cplMk?->cplBok?->cpl?->kode)
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                return [
+                    'id' => $pertama->evaluasi_id,
+                    'label' => $pertama->evaluasi?->nama ?? '—',
+                    'bobot' => round((float) $group->sum(fn (KomponenPenilaian $k): float => (float) $k->bobot), 2),
+                    'cpl' => $cplKodes->isNotEmpty() ? $cplKodes->implode(', ') : null,
+                    'komponen_ids' => $group->pluck('id')->all(),
+                ];
+            })
+            ->sortByDesc('bobot')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Akumulasi nilai per kelompok jenis penilaian (rata-rata berbobot bobot
+     * KomponenPenilaian di baliknya) — sel yang belum dinilai dianggap 0,
+     * konsisten dengan hitungNilaiAkhirMahasiswa().
+     *
+     * @param  list<array{id: string, bobot: float}>  $columns  kolom asli per komponen (untuk lookup bobot)
+     * @param  list<array{id: string, komponen_ids: list<string>}>  $kolomEvaluasi
+     * @param  array<string, array<string, string|null>>  $nilai
+     * @return array<string, array<string, float>>
+     */
+    public function nilaiEvaluasiUntukMatrix(array $columns, array $kolomEvaluasi, array $nilai): array
+    {
+        $bobotByKomponen = collect($columns)->pluck('bobot', 'id');
+
+        $hasil = [];
+
+        foreach ($nilai as $kmmId => $nilaiBaris) {
+            $hasil[$kmmId] = [];
+
+            foreach ($kolomEvaluasi as $kolom) {
+                $totalBobot = 0.0;
+                $totalNilai = 0.0;
+
+                foreach ($kolom['komponen_ids'] as $komponenId) {
+                    $bobot = (float) ($bobotByKomponen[$komponenId] ?? 0);
+                    $totalBobot += $bobot;
+
+                    $nilaiSel = $nilaiBaris[$komponenId] ?? null;
+                    $totalNilai += $bobot * ($nilaiSel !== null && $nilaiSel !== '' ? (float) $nilaiSel : 0.0);
+                }
+
+                $hasil[$kmmId][$kolom['id']] = $totalBobot > 0 ? round($totalNilai / $totalBobot, 2) : 0.0;
+            }
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Rata-rata kelas untuk kolom "Nilai Akhir" (nilai_angka tersimpan pada
+     * KelasMkMahasiswa) — mahasiswa yang belum punya nilai akhir dikecualikan
+     * dari rata-rata, konsisten dengan rataRataKelas() per kolom asesmen.
+     *
+     * @param  list<array{nilai_angka: float|null}>  $rows
+     */
+    public function rataRataNilaiAkhir(array $rows): ?float
+    {
+        $nilaiTerisi = collect($rows)
+            ->pluck('nilai_angka')
+            ->filter(fn (?float $nilai): bool => $nilai !== null)
+            ->values();
+
+        return $nilaiTerisi->isNotEmpty() ? round((float) $nilaiTerisi->avg(), 2) : null;
+    }
+
+    /**
+     * Nilai akhir mahasiswa = jumlah berbobot seluruh kolom asesmen (bobot
+     * komponen, bukan bobot per pivot Sub-CPMK); sel yang belum dinilai
+     * dianggap 0 agar nilai akhir tetap bisa dihitung begitu minimal satu
+     * asesmen tersimpan.
+     *
+     * @param  list<array{id: string, bobot: float}>  $columns
+     * @param  array<string, string|null>  $nilaiBaris
+     */
+    public function hitungNilaiAkhirMahasiswa(array $columns, array $nilaiBaris): float
+    {
+        $total = 0.0;
+
+        foreach ($columns as $column) {
+            $nilai = $nilaiBaris[$column['id']] ?? null;
+            $total += ($column['bobot'] / 100) * ($nilai !== null && $nilai !== '' ? (float) $nilai : 0.0);
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * Skala huruf standar 10 tingkat (A s.d. E) — belum ada acuan skala
+     * konversi lain di basis data, jadi dipakai konvensi umum perguruan
+     * tinggi di Indonesia.
+     */
+    public function hurufDariNilaiAkhir(float $nilaiAkhir): string
+    {
+        return match (true) {
+            $nilaiAkhir >= 85 => 'A',
+            $nilaiAkhir >= 80 => 'A-',
+            $nilaiAkhir >= 75 => 'B+',
+            $nilaiAkhir >= 70 => 'B',
+            $nilaiAkhir >= 65 => 'B-',
+            $nilaiAkhir >= 60 => 'C+',
+            $nilaiAkhir >= 55 => 'C',
+            $nilaiAkhir >= 50 => 'C-',
+            $nilaiAkhir >= 40 => 'D',
+            default => 'E',
+        };
+    }
+
+    /**
      * Warna badge nilai huruf (mis. A/A-, B+/B, C, D/E) untuk ditampilkan
      * berdampingan dengan nilai akhir mahasiswa pada baris tabel.
      *

@@ -184,6 +184,90 @@ it('pane Portofolio baca-saja: tidak ada input nilai atau tombol aksi apa pun', 
         ->not->toContain('<input');
 });
 
+it('mengelompokkan kolom Portofolio per jenis penilaian dan mengakumulasi nilai komponen', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    // Fixture sudah punya 1 komponen "Asesmen01" (evaluasi quiz, bobot 100).
+    // Tambah komponen kedua dengan evaluasi yang SAMA (quiz) supaya kolom
+    // Portofolio harus menggabungkan keduanya jadi satu kolom "Quiz" dengan
+    // nilai terakumulasi, bukan dua kolom terpisah.
+    $komponenSatu = KomponenPenilaian::query()->where('kode', 'Asesmen01')->firstOrFail();
+    $komponenSatu->update(['bobot' => 60]);
+
+    $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
+    $komponenDua = KomponenPenilaian::query()->create([
+        'mk_id' => $komponenSatu->mk_id,
+        'semester_id' => $komponenSatu->semester_id,
+        'evaluasi_id' => $evaluasiQuiz->id,
+        'kode' => 'Asesmen02',
+        'nama' => 'Kuis Praktik',
+        'bobot' => 40,
+    ]);
+    $skpDua = SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $fixtures['subcpmk']->id,
+        'komponen_penilaian_id' => $komponenDua->id,
+        'bobot' => 100,
+    ]);
+
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $skpDua->id,
+        'kelas_mk_mahasiswa_id' => $fixtures['kmmDuluan']->id,
+        'nilai' => 40,
+    ]);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('Nilai Akhir', escape: false)
+        ->assertSee('Nilai Komponen Evaluasi', escape: false)
+        ->assertSee('Quiz', escape: false);
+
+    $kolomEvaluasi = $test->get('kolomEvaluasi');
+
+    expect($kolomEvaluasi)->toHaveCount(1)
+        ->and($kolomEvaluasi[0]['label'])->toBe('Quiz')
+        ->and($kolomEvaluasi[0]['bobot'])->toBe(100.0);
+
+    $nilaiEvaluasi = $test->instance()->getNilaiEvaluasiProperty();
+    $idKolomQuiz = $kolomEvaluasi[0]['id'];
+
+    // kmmDuluan: Asesmen01=100 (bobot 60), Asesmen02=40 (bobot 40)
+    // akumulasi = (60*100 + 40*40) / 100 = 76.0
+    expect($nilaiEvaluasi[$fixtures['kmmDuluan']->id][$idKolomQuiz])->toBe(76.0);
+
+    // kmmBelakangan: Asesmen01=50 (bobot 60), Asesmen02 belum dinilai (0)
+    // akumulasi = (60*50 + 40*0) / 100 = 30.0
+    expect($nilaiEvaluasi[$fixtures['kmmBelakangan']->id][$idKolomQuiz])->toBe(30.0);
+});
+
+it('menampilkan rata-rata kelas untuk kolom Nilai Akhir pada baris Rata-rata Kelas', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    // Fixture: kmmDuluan nilai_angka=69.5, kmmBelakangan belum dinilai (null)
+    // — isi kmmBelakangan supaya rata-ratanya bisa dihitung dari 2 nilai.
+    $fixtures['kmmBelakangan']->update(['nilai_angka' => 50.5, 'nilai_huruf' => 'C-']);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    // (69.5 + 50.5) / 2 = 60.0 -> C+
+    expect($test->instance()->getRataRataNilaiAkhirProperty())->toBe(60.0)
+        ->and($test->instance()->getHurufRataRataKelasProperty())->toBe('C+');
+
+    $html = $test->html();
+    $anchor = 'matriks-portofolio-'.$fixtures['kelas']->id;
+    $mulai = strpos($html, $anchor);
+    $akhirTabel = strpos($html, '</table>', $mulai);
+    $panePortofolio = substr($html, $mulai, $akhirTabel - $mulai);
+
+    $panePortofolioRingkas = preg_replace('/\s+/', ' ', $panePortofolio);
+
+    expect($panePortofolioRingkas)->toContain('Rata-rata Kelas')
+        ->toContain('> 60 <')
+        ->toContain('C+');
+});
+
 it('menjalankan kalkulasi CPL sinkron dan menampilkan ketercapaian CPL kelas', function () {
     $this->actingAs($this->dosen);
     $fixtures = siapkanFixtureTabLaporan($this->dosen);
@@ -211,6 +295,52 @@ it('menjalankan kalkulasi CPL sinkron dan menampilkan ketercapaian CPL kelas', f
         ->and($ketercapaian[0]['cpl_kode'])->toBe('CPL06')
         ->and($ketercapaian[0]['rata_rata'])->toBe(75.0)
         ->and($ketercapaian[0]['tercapai'])->toBeTrue()
+        ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Quiz')
+        ->and($ketercapaian[0]['kontribusi'][0]['bobot'])->toBe(100.0);
+});
+
+it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, bukan per Sub-CPMK', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    // Fixture sudah punya 1 Sub-CPMK (SubCPMK04.1) yang menyumbang ke "Quiz"
+    // lewat Asesmen01 (bobot 100). Tambah Sub-CPMK KEDUA di bawah CPMK yang
+    // SAMA, disumbang lewat komponen lain dengan jenis penugasan yang SAMA
+    // ("Quiz") — kontribusinya harus digabung jadi SATU baris "Quiz" dengan
+    // bobot terjumlah, bukan tampil sebagai dua baris "Quiz" terpisah.
+    $komponenSatu = KomponenPenilaian::query()->where('kode', 'Asesmen01')->firstOrFail();
+    $komponenSatu->update(['bobot' => 60]);
+
+    $mkCpmk = $fixtures['subcpmk']->mkCpmk;
+    $subcpmkDua = Subcpmk::factory()->for($mkCpmk)->create([
+        'kode' => 'SubCPMK04.2',
+        'semester_id' => $fixtures['kelas']->semester_id,
+        'indikator' => 'Mampu menerapkan konsep dasar',
+    ]);
+
+    $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
+    $komponenDua = KomponenPenilaian::query()->create([
+        'mk_id' => $komponenSatu->mk_id,
+        'semester_id' => $komponenSatu->semester_id,
+        'evaluasi_id' => $evaluasiQuiz->id,
+        'kode' => 'Asesmen02',
+        'nama' => 'Kuis Praktik',
+        'bobot' => 40,
+    ]);
+    SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $subcpmkDua->id,
+        'komponen_penilaian_id' => $komponenDua->id,
+        'bobot' => 100,
+    ]);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $ketercapaian = $test->get('ketercapaianCpl');
+
+    // Kontribusi "Quiz" = (60 * 100/100) + (40 * 100/100) = 100, harus jadi
+    // satu baris, bukan ["Quiz"=>60, "Quiz"=>40] terpisah.
+    expect($ketercapaian[0]['kontribusi'])->toHaveCount(1)
         ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Quiz')
         ->and($ketercapaian[0]['kontribusi'][0]['bobot'])->toBe(100.0);
 });
@@ -271,6 +401,22 @@ it('menyusun rincian CPL-CPMK-SubCPMK dengan rowspan dan PK x RN yang benar', fu
         ->and($baris['pk_x_rn'])->toBe(75.0);
 });
 
+it('menampilkan baris rekapitulasi ketercapaian MK terhadap CPL di penutup tabel Evaluasi CPL v2', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('Persentase ketercapaian MK terhadap perkiraan sumbangan ke CPL', escape: false)
+        ->assertSee('Target Kelulusan CPL', escape: false)
+        ->assertSee('Rata-rata Ketercapaian', escape: false);
+
+    // Fixture hanya punya 1 CPL (CPL06) dengan rata-rata 75.0, dan target
+    // fallback (tidak ada Kurikulum aktif eksplisit) juga 75 — jadi rata-rata
+    // keseluruhan CPL = 75.0.
+    expect($test->instance()->getRataRataKeseluruhanCplProperty())->toBe(75.0);
+});
+
 it('menampilkan tabel Hasil Analisis per Mahasiswa dengan tombol Capaian per baris', function () {
     $this->actingAs($this->dosen);
     $fixtures = siapkanFixtureTabLaporan($this->dosen);
@@ -293,6 +439,44 @@ it('tombol Capaian bisa dipanggil lewat mountAction dengan argumen kmmId', funct
     $test->mountAction('capaianMahasiswa', ['kmmId' => $fixtures['kmmDuluan']->id]);
 
     expect($test->instance()->getMountedAction())->not->toBeNull();
+});
+
+it('modal Capaian menampilkan grafik CPMK, Sub-CPMK, dan Besaran Nilai Penugasan bila mahasiswa sudah dinilai', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $method = new ReflectionMethod(InputNilai::class, 'capaianMahasiswaHtml');
+    $method->setAccessible(true);
+
+    // kmmDuluan sudah punya nilai_angka (69.5) di fixture -> grafik tampil.
+    $html = (string) $method->invoke($test->instance(), $fixtures['kmmDuluan']->id);
+
+    expect($html)->toContain('Grafik Ketercapaian CPMK')
+        ->toContain('Grafik Ketercapaian Sub-CPMK')
+        ->toContain('Grafik Besaran Nilai Penugasan')
+        ->toContain('renderRadarSilogy')
+        ->toContain('renderBarSilogy')
+        ->not->toContain('belum tersedia');
+});
+
+it('modal Capaian menampilkan peringatan alih-alih grafik bila mahasiswa belum dinilai', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $method = new ReflectionMethod(InputNilai::class, 'capaianMahasiswaHtml');
+    $method->setAccessible(true);
+
+    // kmmBelakangan belum punya nilai_angka di fixture -> tampilkan peringatan.
+    $html = (string) $method->invoke($test->instance(), $fixtures['kmmBelakangan']->id);
+
+    expect($html)->toContain('Grafik belum dapat ditampilkan karena penilaian mata kuliah mahasiswa ini belum tersedia.')
+        ->not->toContain('Grafik Ketercapaian CPMK');
 });
 
 it('ketercapaian dan rincian per mahasiswa memakai nilai mahasiswa itu sendiri, bukan rata-rata kelas', function () {

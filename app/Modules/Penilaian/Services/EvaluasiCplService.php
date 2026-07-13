@@ -109,13 +109,27 @@ class EvaluasiCplService
 
                 $mkCpmkIds = $cplMk->mkCpmks->pluck('id');
 
-                $kontribusi = Subcpmk::query()
+                $subcpmks = Subcpmk::query()
                     ->whereIn('mk_cpmk_id', $mkCpmkIds)
                     ->where('semester_id', $kelasMk->semester_id)
-                    ->get()
-                    ->flatMap(fn (Subcpmk $subcpmk) => SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi($subcpmk->id)
-                        ->map(fn (float $bobot, string $nama): array => ['nama' => $nama, 'bobot' => $bobot])
-                        ->values())
+                    ->get();
+
+                // Direkap per jenis penugasan (Evaluasi) dulu, baru dijumlah
+                // bobotnya — beberapa Sub-CPMK di bawah CPL yang sama bisa
+                // sama-sama menyumbang ke jenis penugasan yang sama (mis.
+                // "Tugas"), jadi harus tampil sebagai satu baris terakumulasi,
+                // bukan satu baris per Sub-CPMK.
+                $bobotPerJenis = [];
+
+                foreach ($subcpmks as $subcpmk) {
+                    foreach (SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi($subcpmk->id) as $nama => $bobot) {
+                        $bobotPerJenis[$nama] = ($bobotPerJenis[$nama] ?? 0.0) + $bobot;
+                    }
+                }
+
+                $kontribusi = collect($bobotPerJenis)
+                    ->map(fn (float $bobot, string $nama): array => ['nama' => $nama, 'bobot' => round($bobot, 2)])
+                    ->sortByDesc('bobot')
                     ->values()
                     ->all();
 
@@ -139,6 +153,24 @@ class EvaluasiCplService
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Rata-rata ketercapaian seluruh CPL yang dibebankan pada MK ini — dipakai
+     * baris rekapitulasi penutup tabel Evaluasi CPL v2 ("Persentase
+     * ketercapaian MK terhadap perkiraan sumbangan ke CPL"). CPL yang belum
+     * punya data (rata_rata null) dikecualikan dari rata-rata.
+     *
+     * @param  list<array{rata_rata: float|null}>  $ketercapaianCpl
+     */
+    public function rataRataKeseluruhan(array $ketercapaianCpl): ?float
+    {
+        $nilaiTerisi = collect($ketercapaianCpl)
+            ->pluck('rata_rata')
+            ->filter(fn (?float $nilai): bool => $nilai !== null)
+            ->values();
+
+        return $nilaiTerisi->isNotEmpty() ? round((float) $nilaiTerisi->avg(), 2) : null;
     }
 
     /**
@@ -429,7 +461,9 @@ class EvaluasiCplService
     }
 
     /**
-     * Ringkasan ketercapaian CPL & CPMK & Sub-CPMK kelas ini, dipakai untuk
+     * Ringkasan ketercapaian CPL & CPMK & Sub-CPMK kelas ini, atau satu
+     * mahasiswa saja bila `$kelasMkMahasiswaId` diisi (dipakai grafik CPMK
+     * & Sub-CPMK pada modal "Capaian" per mahasiswa) — dipakai untuk
      * menyusun data 3 dari 4 grafik jaring laba-laba pada tab Laporan
      * (radar per-Asesmen memakai $columns + $rataRataKelas milik halaman
      * langsung, jadi tidak perlu lewat sini).
@@ -440,10 +474,10 @@ class EvaluasiCplService
      *     subcpmk: list<array{label: string, nilai: float}>,
      * }
      */
-    public function ringkasanRadarKelas(KelasMk $kelasMk): array
+    public function ringkasanRadarKelas(KelasMk $kelasMk, ?string $kelasMkMahasiswaId = null): array
     {
-        $ketercapaianCpl = $this->ketercapaianCplPerKelas($kelasMk);
-        $detail = $this->detailCplCpmkSubcpmk($kelasMk);
+        $ketercapaianCpl = $this->ketercapaianCplPerKelas($kelasMk, $kelasMkMahasiswaId);
+        $detail = $this->detailCplCpmkSubcpmk($kelasMk, $kelasMkMahasiswaId);
 
         return [
             'cpl' => collect($ketercapaianCpl)

@@ -1,3 +1,8 @@
+@php
+    $target ??= null;
+    $rataRataKeseluruhan ??= null;
+@endphp
+
 @if (empty($detail))
     <p style="font-size:13px;opacity:.7;">
         Belum ada CPL yang terpetakan pada mata kuliah ini.
@@ -86,6 +91,37 @@
                     </tr>
                 @endforeach
             </tbody>
+            <tfoot>
+                <tr style="border-top:2px solid rgba(128,128,128,.35);background:rgba(22,163,74,.06);">
+                    <td colspan="9" style="padding:14px;">
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
+                            <div style="font-weight:600;font-size:13px;color:#166534;">
+                                Persentase ketercapaian MK terhadap perkiraan sumbangan ke CPL
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                                <div style="border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:8px 16px;background:#fff;text-align:right;">
+                                    <div style="font-size:10px;font-weight:600;text-transform:uppercase;opacity:.7;">
+                                        Target Kelulusan CPL
+                                    </div>
+                                    <div style="font-size:20px;font-weight:700;">
+                                        {{ $target !== null ? rtrim(rtrim(number_format($target, 2, '.', ''), '0'), '.').'%' : '—' }}
+                                    </div>
+                                </div>
+                                <div style="border:1px solid rgba(37,99,235,.3);border-radius:10px;padding:8px 16px;background:#fff;text-align:right;">
+                                    <div style="font-size:10px;font-weight:600;text-transform:uppercase;opacity:.7;">
+                                        Rata-rata Ketercapaian
+                                    </div>
+                                    <div
+                                        style="font-size:20px;font-weight:700;color:{{ $rataRataKeseluruhan !== null && $target !== null && $rataRataKeseluruhan >= $target ? '#16a34a' : '#b91c1c' }};"
+                                    >
+                                        {{ $rataRataKeseluruhan !== null ? rtrim(rtrim(number_format($rataRataKeseluruhan, 2, '.', ''), '0'), '.').'%' : '—' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 @endif

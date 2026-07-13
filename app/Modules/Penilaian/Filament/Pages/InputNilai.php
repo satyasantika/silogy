@@ -65,6 +65,14 @@ class InputNilai extends Page
     public array $columns = [];
 
     /**
+     * Kolom laporan Portofolio, dikelompokkan per jenis penilaian (Evaluasi)
+     * bukan per KomponenPenilaian — lihat PenilaianMatrixService::kolomEvaluasiDariKomponens().
+     *
+     * @var list<array{id: string, label: string, bobot: float, cpl: string|null, komponen_ids: list<string>}>
+     */
+    public array $kolomEvaluasi = [];
+
+    /**
      * Subset id kolom (KomponenPenilaian) yang dipilih untuk ditampilkan —
      * filter tampilan (ikut mempersempit Salin matriks), tidak memengaruhi
      * data yang disimpan lewat Simpan/Tempel dari Excel.
@@ -145,6 +153,56 @@ class InputNilai extends Page
     public function getRataRataKelasProperty(): array
     {
         return app(PenilaianMatrixService::class)->rataRataKelas($this->columns, $this->rows, $this->nilai);
+    }
+
+    /**
+     * Rata-rata ketercapaian seluruh CPL pada MK ini — dipakai baris
+     * rekapitulasi penutup tabel Evaluasi CPL v2.
+     */
+    public function getRataRataKeseluruhanCplProperty(): ?float
+    {
+        return app(EvaluasiCplService::class)->rataRataKeseluruhan($this->ketercapaianCpl);
+    }
+
+    /**
+     * Nilai laporan Portofolio per (mahasiswa, jenis penilaian) — akumulasi
+     * dari seluruh KomponenPenilaian di bawah jenis penilaian tersebut.
+     *
+     * @return array<string, array<string, float>>
+     */
+    public function getNilaiEvaluasiProperty(): array
+    {
+        return app(PenilaianMatrixService::class)->nilaiEvaluasiUntukMatrix($this->columns, $this->kolomEvaluasi, $this->nilai);
+    }
+
+    /**
+     * @return array<string, float|null>
+     */
+    public function getRataRataEvaluasiProperty(): array
+    {
+        return app(PenilaianMatrixService::class)->rataRataKelas($this->kolomEvaluasi, $this->rows, $this->getNilaiEvaluasiProperty());
+    }
+
+    /**
+     * Rata-rata kelas untuk kolom "Nilai" (Nilai Akhir) pada laporan
+     * Portofolio.
+     */
+    public function getRataRataNilaiAkhirProperty(): ?float
+    {
+        return app(PenilaianMatrixService::class)->rataRataNilaiAkhir($this->rows);
+    }
+
+    /**
+     * Huruf yang mewakili rata-rata kelas pada kolom "Grade" laporan
+     * Portofolio, diturunkan dari rata-rata nilai akhir kelas.
+     */
+    public function getHurufRataRataKelasProperty(): ?string
+    {
+        $rataRataNilaiAkhir = $this->getRataRataNilaiAkhirProperty();
+
+        return $rataRataNilaiAkhir !== null
+            ? app(PenilaianMatrixService::class)->hurufDariNilaiAkhir($rataRataNilaiAkhir)
+            : null;
     }
 
     /**
@@ -229,6 +287,7 @@ class InputNilai extends Page
         $this->rows = [];
         $this->portofolioRows = [];
         $this->columns = [];
+        $this->kolomEvaluasi = [];
         $this->ketercapaianCpl = [];
         $this->distribusiNilaiHuruf = [];
         $this->detailCplCpmkSubcpmk = [];
@@ -257,6 +316,7 @@ class InputNilai extends Page
         $komponens = $matrix->komponenUntukKelas($kelasMk);
 
         $this->columns = $matrix->kolomDariKomponens($komponens);
+        $this->kolomEvaluasi = $matrix->kolomEvaluasiDariKomponens($komponens);
 
         $idKolom = collect($this->columns)->pluck('id')->all();
 
@@ -352,6 +412,17 @@ class InputNilai extends Page
             }
         }
 
+        foreach ($this->nilai as $kmmId => $nilaiBaris) {
+            $nilaiAkhir = $matrix->hitungNilaiAkhirMahasiswa($this->columns, $nilaiBaris);
+
+            KelasMkMahasiswa::query()
+                ->whereKey($kmmId)
+                ->update([
+                    'nilai_angka' => $nilaiAkhir,
+                    'nilai_huruf' => $matrix->hurufDariNilaiAkhir($nilaiAkhir),
+                ]);
+        }
+
         Notification::make()
             ->title('Tersimpan')
             ->success()
@@ -417,7 +488,15 @@ class InputNilai extends Page
             ->modalHeading(function (array $arguments): string {
                 $mahasiswa = collect($this->rows)->firstWhere('id', $arguments['kmmId'] ?? null);
 
-                return 'Capaian CPL — '.($mahasiswa['nama'] ?? 'Mahasiswa');
+                if ($mahasiswa === null) {
+                    return 'Detail Capaian Mahasiswa';
+                }
+
+                return sprintf(
+                    'Detail Capaian Mahasiswa — %s - %s',
+                    $mahasiswa['nim'],
+                    mb_strtoupper($mahasiswa['nama']),
+                );
             })
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Tutup')
@@ -443,11 +522,30 @@ class InputNilai extends Page
         $mahasiswa = collect($this->rows)->firstWhere('id', $kmmId);
         $evaluasiCpl = app(EvaluasiCplService::class);
 
+        $ringkasanRadar = $evaluasiCpl->ringkasanRadarKelas($kelasMk, $kmmId);
+        $keSet = fn (array $items): array => [
+            'labels' => collect($items)->pluck('label')->all(),
+            'data' => collect($items)->pluck('nilai')->map(fn ($n): float => (float) $n)->all(),
+        ];
+
+        $nilaiEvaluasiMahasiswa = $this->getNilaiEvaluasiProperty()[$kmmId] ?? [];
+        $radarPenugasan = [
+            'labels' => collect($this->kolomEvaluasi)->pluck('label')->all(),
+            'data' => collect($this->kolomEvaluasi)
+                ->map(fn (array $kolom): float => $nilaiEvaluasiMahasiswa[$kolom['id']] ?? 0.0)
+                ->all(),
+        ];
+
         return new HtmlString(view('filament.modules.penilaian.partials.capaian-mahasiswa', [
             'mahasiswa' => $mahasiswa,
             'warnaHuruf' => $this->warnaNilaiHuruf($mahasiswa['nilai_huruf'] ?? null),
             'ketercapaian' => $evaluasiCpl->ketercapaianCplPerKelas($kelasMk, $kmmId),
             'detail' => $evaluasiCpl->detailCplCpmkSubcpmk($kelasMk, $kmmId),
+            'radarCpmk' => $keSet($ringkasanRadar['cpmk']),
+            'radarSubcpmk' => $keSet($ringkasanRadar['subcpmk']),
+            'radarPenugasan' => $radarPenugasan,
+            'penilaianTersedia' => ($mahasiswa['nilai_angka'] ?? null) !== null,
+            'kmmId' => $kmmId,
         ])->render());
     }
 

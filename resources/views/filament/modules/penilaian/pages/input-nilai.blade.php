@@ -275,12 +275,13 @@
                         <x-filament::section
                             icon="heroicon-o-document-chart-bar"
                             heading="Portofolio"
-                            description="Rekap nilai per asesmen untuk kelas terpilih. Mahasiswa diurutkan berdasarkan NIM. Halaman ini hanya untuk dibaca."
+                            description="Rekap nilai akhir dan nilai komponen evaluasi per jenis penilaian untuk kelas terpilih. Mahasiswa diurutkan berdasarkan NIM. Halaman ini hanya untuk dibaca."
                         >
                             @include('filament.modules.penilaian.partials.tabel-workcloud', [
-                                'columns' => $columns,
+                                'kolomEvaluasi' => $kolomEvaluasi,
                                 'rows' => $portofolioRows,
-                                'nilai' => $nilai,
+                                'nilaiEvaluasi' => $this->nilaiEvaluasi,
+                                'rataRataEvaluasi' => $this->rataRataEvaluasi,
                                 'wireKeySuffix' => 'portofolio',
                             ])
                         </x-filament::section>
@@ -322,14 +323,11 @@
                             heading="Rekapitulasi Ketercapaian Sumbangan CPL"
                             description="Rekap kontribusi CPL pada mata kuliah untuk kelas terpilih."
                         >
-                            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-                                <div style="padding:14px 20px;border-radius:10px;border:1px solid rgba(37,99,235,.3);background:rgba(37,99,235,.08);min-width:220px;">
-                                    <span style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;opacity:.7;">Target Kelulusan CPL</span>
-                                    <strong style="display:block;font-size:28px;font-weight:700;color:#2563eb;margin-top:4px;">{{ $targetCapaianLulusan }}%</strong>
-                                </div>
-                            </div>
-
-                            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', ['detail' => $detailCplCpmkSubcpmk])
+                            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', [
+                                'detail' => $detailCplCpmkSubcpmk,
+                                'target' => $targetCapaianLulusan,
+                                'rataRataKeseluruhan' => $this->rataRataKeseluruhanCpl,
+                            ])
                         </x-filament::section>
                     </div>
 
@@ -430,9 +428,10 @@
 
                             <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">B. Tabel Nilai Mahasiswa (Workcloud Utama)</div>
                             @include('filament.modules.penilaian.partials.tabel-workcloud', [
-                                'columns' => $columns,
+                                'kolomEvaluasi' => $kolomEvaluasi,
                                 'rows' => $portofolioRows,
-                                'nilai' => $nilai,
+                                'nilaiEvaluasi' => $this->nilaiEvaluasi,
+                                'rataRataEvaluasi' => $this->rataRataEvaluasi,
                                 'wireKeySuffix' => 'laporan',
                             ])
 
@@ -440,7 +439,11 @@
                             @include('filament.modules.penilaian.partials.tabel-ketercapaian-cpl', ['ketercapaian' => $ketercapaianCpl])
 
                             <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">C2. Detail Ketercapaian CPL-CPMK-SubCPMK</div>
-                            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', ['detail' => $detailCplCpmkSubcpmk])
+                            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', [
+                                'detail' => $detailCplCpmkSubcpmk,
+                                'target' => $targetCapaianLulusan,
+                                'rataRataKeseluruhan' => $this->rataRataKeseluruhanCpl,
+                            ])
 
                             <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">D. Distribusi Nilai</div>
                             @include('filament.modules.penilaian.partials.tabel-distribusi-nilai', ['distribusi' => $distribusiNilaiHuruf])
@@ -600,6 +603,43 @@
                             options: {
                                 scales: {
                                     r: {
+                                        min: 0,
+                                        max: 100,
+                                    },
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false,
+                                    },
+                                },
+                            },
+                        });
+                    };
+
+                    window.renderBarSilogy = function (canvas, dataset, color) {
+                        if (! canvas || typeof Chart === 'undefined') {
+                            return;
+                        }
+
+                        if (canvas._barChartInstance) {
+                            canvas._barChartInstance.destroy();
+                        }
+
+                        canvas._barChartInstance = new Chart(canvas, {
+                            type: 'bar',
+                            data: {
+                                labels: dataset.labels,
+                                datasets: [{
+                                    label: 'Nilai',
+                                    data: dataset.data,
+                                    backgroundColor: color + '55',
+                                    borderColor: color,
+                                    borderWidth: 1,
+                                }],
+                            },
+                            options: {
+                                scales: {
+                                    y: {
                                         min: 0,
                                         max: 100,
                                     },

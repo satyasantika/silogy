@@ -1,5 +1,10 @@
 @php
     $mahasiswa ??= null;
+    $penilaianTersedia ??= false;
+    $radarCpmk ??= ['labels' => [], 'data' => []];
+    $radarSubcpmk ??= ['labels' => [], 'data' => []];
+    $radarPenugasan ??= ['labels' => [], 'data' => []];
+    $kmmId ??= null;
 @endphp
 
 @if ($mahasiswa === null)
@@ -21,6 +26,45 @@
             @endif
         </div>
     </div>
+
+    @if (! $penilaianTersedia)
+        <div style="padding:10px 14px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px;margin-bottom:16px;">
+            Grafik belum dapat ditampilkan karena penilaian mata kuliah mahasiswa ini belum tersedia.
+        </div>
+    @else
+        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;">
+            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian CPMK</div>
+                <div style="height:220px;">
+                    <canvas
+                        wire:key="radar-cpmk-mahasiswa-{{ $kmmId }}"
+                        x-data
+                        x-init="renderRadarSilogy($el, @js($radarCpmk), '#059669')"
+                    ></canvas>
+                </div>
+            </div>
+            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian Sub-CPMK</div>
+                <div style="height:220px;">
+                    <canvas
+                        wire:key="radar-subcpmk-mahasiswa-{{ $kmmId }}"
+                        x-data
+                        x-init="renderRadarSilogy($el, @js($radarSubcpmk), '#d97706')"
+                    ></canvas>
+                </div>
+            </div>
+            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Besaran Nilai Penugasan</div>
+                <div style="height:220px;">
+                    <canvas
+                        wire:key="bar-penugasan-mahasiswa-{{ $kmmId }}"
+                        x-data
+                        x-init="renderBarSilogy($el, @js($radarPenugasan), '#7c3aed')"
+                    ></canvas>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @if (empty($ketercapaian))
         <p style="font-size:13px;opacity:.7;margin-bottom:16px;">Belum ada CPL yang terpetakan pada mata kuliah ini.</p>

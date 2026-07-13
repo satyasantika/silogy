@@ -138,6 +138,11 @@ it('lets dosen save nilai in matrix', function () {
     expect($nilai)->not->toBeNull()
         ->and((float) $nilai->nilai)->toBe(85.5);
 
+    $fixtures['kmm']->refresh();
+
+    expect((float) $fixtures['kmm']->nilai_angka)->toBe(85.5)
+        ->and($fixtures['kmm']->nilai_huruf)->toBe('A');
+
     Livewire::test(InputNilai::class)
         ->set('kelasMkId', $fixtures['kelas']->id)
         ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['komponen']->id, '85.50');
