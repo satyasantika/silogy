@@ -18,7 +18,11 @@ class EditUser extends BaseEditRecord
                 ->iconButton()
                 ->tooltip('Peniruan')
                 ->record($this->getRecord())
-                ->redirectTo('/dashboard'),
+                // '/dashboard' saja tidak cukup: Livewire::redirect() mengirim
+                // string ini apa adanya ke browser (tidak lewat UrlGenerator),
+                // jadi di deployment subpath (mis. /demo-silogy) hasilnya
+                // menuju ke akar domain, bukan /demo-silogy/dashboard.
+                ->redirectTo(route('filament.admin.pages.dashboard')),
             DeleteAction::make()
                 ->iconButton()
                 ->tooltip('Hapus'),

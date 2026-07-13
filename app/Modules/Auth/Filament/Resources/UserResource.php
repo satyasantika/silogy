@@ -258,7 +258,11 @@ class UserResource extends Resource
                 Impersonate::make()
                     ->iconButton()
                     ->tooltip('Peniruan')
-                    ->redirectTo('/dashboard'),
+                    // '/dashboard' saja tidak cukup: Livewire::redirect() mengirim
+                    // string ini apa adanya ke browser (tidak lewat UrlGenerator),
+                    // jadi di deployment subpath (mis. /demo-silogy) hasilnya
+                    // menuju ke akar domain, bukan /demo-silogy/dashboard.
+                    ->redirectTo(route('filament.admin.pages.dashboard')),
                 static::makeResetPasswordAction()
                     ->iconButton()
                     ->tooltip('Reset password'),
