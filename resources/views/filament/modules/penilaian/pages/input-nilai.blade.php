@@ -371,7 +371,7 @@
                                                     </td>
                                                     <td style="padding:8px;text-align:center;">
                                                         <x-filament::actions
-                                                            :actions="[$this->capaianMahasiswaAction()->arguments(['kmmId' => $row['id']])]"
+                                                            :actions="[($this->capaianMahasiswaAction())(['kmmId' => $row['id']])]"
                                                             alignment="center"
                                                         />
                                                     </td>
@@ -451,39 +451,43 @@
                             <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
                                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E1. Jaring Laba-laba Ketercapaian CPL</div>
-                                    <canvas
-                                        wire:key="radar-cpl-{{ $kelasMkId }}"
-                                        x-data
-                                        x-init="renderRadarSilogy($el, @js($this->radarData['cpl'] ?? ['labels' => [], 'data' => []]), '#2563eb')"
-                                        height="220"
-                                    ></canvas>
+                                    <div>
+                                        <canvas
+                                            wire:key="radar-cpl-{{ $kelasMkId }}"
+                                            x-data
+                                            x-init="renderRadarSilogy($el, @js($this->radarData['cpl'] ?? ['labels' => [], 'data' => []]), '#2563eb')"
+                                        ></canvas>
+                                    </div>
                                 </div>
                                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E2. Jaring Laba-laba Ketercapaian CPMK</div>
-                                    <canvas
-                                        wire:key="radar-cpmk-{{ $kelasMkId }}"
-                                        x-data
-                                        x-init="renderRadarSilogy($el, @js($this->radarData['cpmk'] ?? ['labels' => [], 'data' => []]), '#059669')"
-                                        height="220"
-                                    ></canvas>
+                                    <div>
+                                        <canvas
+                                            wire:key="radar-cpmk-{{ $kelasMkId }}"
+                                            x-data
+                                            x-init="renderRadarSilogy($el, @js($this->radarData['cpmk'] ?? ['labels' => [], 'data' => []]), '#059669')"
+                                        ></canvas>
+                                    </div>
                                 </div>
                                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E3. Jaring Laba-laba Ketercapaian Sub-CPMK</div>
-                                    <canvas
-                                        wire:key="radar-subcpmk-{{ $kelasMkId }}"
-                                        x-data
-                                        x-init="renderRadarSilogy($el, @js($this->radarData['subcpmk'] ?? ['labels' => [], 'data' => []]), '#d97706')"
-                                        height="220"
-                                    ></canvas>
+                                    <div>
+                                        <canvas
+                                            wire:key="radar-subcpmk-{{ $kelasMkId }}"
+                                            x-data
+                                            x-init="renderRadarSilogy($el, @js($this->radarData['subcpmk'] ?? ['labels' => [], 'data' => []]), '#d97706')"
+                                        ></canvas>
+                                    </div>
                                 </div>
                                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E4. Jaring Laba-laba Rata-rata Penugasan</div>
-                                    <canvas
-                                        wire:key="radar-asesmen-{{ $kelasMkId }}"
-                                        x-data
-                                        x-init="renderRadarSilogy($el, @js($this->radarData['asesmen'] ?? ['labels' => [], 'data' => []]), '#7c3aed')"
-                                        height="220"
-                                    ></canvas>
+                                    <div>
+                                        <canvas
+                                            wire:key="radar-asesmen-{{ $kelasMkId }}"
+                                            x-data
+                                            x-init="renderRadarSilogy($el, @js($this->radarData['asesmen'] ?? ['labels' => [], 'data' => []]), '#7c3aed')"
+                                        ></canvas>
+                                    </div>
                                 </div>
                             </div>
                         </x-filament::section>
@@ -579,6 +583,18 @@
                     pada tab Laporan memuat Chart.js sendiri lewat CDN. --}}
                 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
                 <script>
+                    // Kanvas grafik bisa saja masih tersembunyi (display:none) saat
+                    // dibuat — mis. di dalam sub-tab Laporan yang belum aktif, atau di
+                    // dalam modal Capaian yang baru dimorph ke DOM sebelum benar-benar
+                    // terbuka. Chart.js membaca ukuran kontainer saat itu juga, jadi
+                    // kalau masih 0x0 grafiknya tampak kosong walau datanya benar —
+                    // paksa resize begitu frame berikutnya (setelah tab/modal terlihat)
+                    // dan begitu modal manapun terbuka, untuk berjaga-jaga.
+                    function paksaResizeSetelahTerlihat(chart) {
+                        requestAnimationFrame(() => chart.resize());
+                        window.addEventListener('open-modal', () => chart.resize(), { once: true });
+                    }
+
                     window.renderRadarSilogy = function (canvas, dataset, color) {
                         if (! canvas || typeof Chart === 'undefined') {
                             return;
@@ -601,6 +617,14 @@
                                 }],
                             },
                             options: {
+                                // Tinggi kanvas dihitung dari LEBAR kontainer dibagi
+                                // aspectRatio (bukan tinggi tetap di CSS) — lebih
+                                // tahan banting terhadap kanvas yang sempat dibuat
+                                // saat kontainernya masih tersembunyi (di dalam tab
+                                // atau modal yang belum aktif), karena hanya
+                                // butuh lebar yang benar untuk menghitung ulang
+                                // tinggi yang proporsional lewat resize().
+                                aspectRatio: 1.3,
                                 scales: {
                                     r: {
                                         min: 0,
@@ -614,6 +638,8 @@
                                 },
                             },
                         });
+
+                        paksaResizeSetelahTerlihat(canvas._radarChartInstance);
                     };
 
                     window.renderBarSilogy = function (canvas, dataset, color) {
@@ -638,6 +664,7 @@
                                 }],
                             },
                             options: {
+                                aspectRatio: 2.2,
                                 scales: {
                                     y: {
                                         min: 0,
@@ -651,6 +678,8 @@
                                 },
                             },
                         });
+
+                        paksaResizeSetelahTerlihat(canvas._barChartInstance);
                     };
                 </script>
             @endonce

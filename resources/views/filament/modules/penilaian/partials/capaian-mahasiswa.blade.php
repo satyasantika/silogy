@@ -35,7 +35,7 @@
         <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;">
             <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                 <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian CPMK</div>
-                <div style="height:220px;">
+                <div>
                     <canvas
                         wire:key="radar-cpmk-mahasiswa-{{ $kmmId }}"
                         x-data
@@ -45,7 +45,7 @@
             </div>
             <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                 <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian Sub-CPMK</div>
-                <div style="height:220px;">
+                <div>
                     <canvas
                         wire:key="radar-subcpmk-mahasiswa-{{ $kmmId }}"
                         x-data
@@ -55,7 +55,7 @@
             </div>
             <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                 <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Besaran Nilai Penugasan</div>
-                <div style="height:220px;">
+                <div>
                     <canvas
                         wire:key="bar-penugasan-mahasiswa-{{ $kmmId }}"
                         x-data

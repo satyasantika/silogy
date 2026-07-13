@@ -429,6 +429,26 @@ it('menampilkan tabel Hasil Analisis per Mahasiswa dengan tombol Capaian per bar
         ->assertSee('Capaian', escape: false);
 });
 
+it('tombol Capaian yang benar-benar dirender membawa kmmId di wire:click, bukan hanya lewat mountAction manual', function () {
+    // Regresi: sebelumnya ->arguments(['kmmId' => ...]) dipakai untuk membawa
+    // argumen ke tombol, tapi Filament v4 hanya menghormati itu untuk action
+    // yang SUDAH mounted (schema re-render) — bukan untuk membangun wire:click
+    // tombol yang belum di-mount. Action::getJsClickHandler() justru membaca
+    // getInvokedArguments() (diisi oleh __invoke(), bukan ->arguments()), jadi
+    // wire:click yang dirender jadi mountAction('capaianMahasiswa') TANPA
+    // kmmId sama sekali — baru ketahuan lewat inspeksi HTML asli, karena test
+    // mountAction() manual (di bawah) tidak pernah menyentuh path ini.
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $html = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->html();
+
+    expect($html)->toContain("mountAction('capaianMahasiswa', JSON.parse('{\\u0022kmmId\\u0022:\\u0022".$fixtures['kmmDuluan']->id."\\u0022}'))")
+        ->toContain("mountAction('capaianMahasiswa', JSON.parse('{\\u0022kmmId\\u0022:\\u0022".$fixtures['kmmBelakangan']->id."\\u0022}'))");
+});
+
 it('tombol Capaian bisa dipanggil lewat mountAction dengan argumen kmmId', function () {
     $this->actingAs($this->dosen);
     $fixtures = siapkanFixtureTabLaporan($this->dosen);
