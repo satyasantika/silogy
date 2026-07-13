@@ -211,8 +211,8 @@ class SimulasiAkademikBuilder
         $uts = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
         $uas = Evaluasi::query()->where('kode', 'uas')->firstOrFail();
 
-        $komponenUts = $this->buatKomponen($kelas, $uts, 'UTS', 50);
-        $komponenUas = $this->buatKomponen($kelas, $uas, 'UAS', 50);
+        $komponenUts = $this->buatKomponen($mk, $uts, 'UTS', 50);
+        $komponenUas = $this->buatKomponen($mk, $uas, 'UAS', 50);
 
         $skpIds = [];
         foreach ([$komponenUts, $komponenUas] as $komponen) {
@@ -448,10 +448,10 @@ class SimulasiAkademikBuilder
         $tugas = Evaluasi::query()->where('kode', 'tugas')->firstOrFail();
 
         $komponenList = [
-            $this->buatKomponen($kelas, $uts, 'UTS', 30),
-            $this->buatKomponen($kelas, $uas, 'UAS', 40),
-            $this->buatKomponen($kelas, $quiz, 'Quiz', 15),
-            $this->buatKomponen($kelas, $tugas, 'Tugas', 15),
+            $this->buatKomponen($mk, $uts, 'UTS', 30),
+            $this->buatKomponen($mk, $uas, 'UAS', 40),
+            $this->buatKomponen($mk, $quiz, 'Quiz', 15),
+            $this->buatKomponen($mk, $tugas, 'Tugas', 15),
         ];
 
         $skpIds = [];
@@ -515,10 +515,10 @@ class SimulasiAkademikBuilder
         });
     }
 
-    protected function buatKomponen(KelasMk $kelas, Evaluasi $evaluasi, string $nama, float $bobot): KomponenPenilaian
+    protected function buatKomponen(Mk $mk, Evaluasi $evaluasi, string $nama, float $bobot): KomponenPenilaian
     {
         return KomponenPenilaian::query()->firstOrCreate(
-            ['kelas_mk_id' => $kelas->id, 'kode' => $nama],
+            ['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'kode' => $nama],
             [
                 'id' => (string) Str::uuid(),
                 'evaluasi_id' => $evaluasi->id,
