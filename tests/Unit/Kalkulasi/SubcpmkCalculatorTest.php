@@ -18,8 +18,11 @@ beforeEach(function () {
 it('menghitung nilai subcpmk tertimbang untuk semua komponen (kasus normal)', function () {
     $dasar = $this->createKelasPenilaianDasar();
 
-    $uts = $this->buatKomponenSkp($dasar['kelas'], $dasar['subcpmk'], $dasar['evaluasi'], 'UTS', 60, 100);
-    $uas = $this->buatKomponenSkp($dasar['kelas'], $dasar['subcpmk'], $dasar['evaluasi'], 'UAS', 40, 100);
+    // Bobot pivot langsung berupa kontribusi nyata (skala sama dengan
+    // bobot komponen) — satu-satunya Sub-CPMK pada masing-masing komponen,
+    // jadi kontribusinya sama dengan bobot komponen itu sendiri (60, 40).
+    $uts = $this->buatKomponenSkp($dasar['kelas'], $dasar['subcpmk'], $dasar['evaluasi'], 'UTS', 60, 60);
+    $uas = $this->buatKomponenSkp($dasar['kelas'], $dasar['subcpmk'], $dasar['evaluasi'], 'UAS', 40, 40);
 
     $this->isiNilai($uts, $dasar['kmm'], 80);
     $this->isiNilai($uas, $dasar['kmm'], 90);

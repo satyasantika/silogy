@@ -273,8 +273,13 @@ class SubcpmkResource extends Resource
                         TextInput::make('bobot')
                             ->label('Bobot (%)')
                             ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100),
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->helperText(
+                                'Bobot dihitung otomatis dari interaksi Sub-CPMK ini dengan Asesmen '
+                                .'(komponen penilaian) — ubah lewat interaksi Sub-CPMK ↔ Asesmen pada '
+                                .'halaman Komponen Penilaian, bukan di sini.',
+                            ),
 
                         Select::make('bloom_kognitif')
                             ->label('Bloom kognitif')

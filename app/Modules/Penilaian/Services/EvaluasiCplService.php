@@ -337,7 +337,7 @@ class EvaluasiCplService
                     ->avg('nilai');
                 $rn = $rn !== null ? round((float) $rn, 2) : null;
 
-                $pk = round((float) ($pivot->komponenPenilaian?->bobot ?? 0) * (float) $pivot->bobot / 100, 2);
+                $pk = round((float) $pivot->bobot, 2);
                 $kodeAsesmen = $pivot->komponenPenilaian?->kode ?? '—';
                 $labelKategori = $this->labelKategori($pivot->komponenPenilaian?->evaluasi?->kategori);
 

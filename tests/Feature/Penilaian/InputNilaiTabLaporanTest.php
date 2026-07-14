@@ -311,6 +311,14 @@ it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, 
     $komponenSatu = KomponenPenilaian::query()->where('kode', 'Asesmen01')->firstOrFail();
     $komponenSatu->update(['bobot' => 60]);
 
+    // Bobot pivot Sub-CPMK <> Asesmen01 sekarang langsung berupa kontribusi
+    // nyata (bukan lagi "% bagian" dari 100) — satu-satunya Sub-CPMK yang
+    // memetakan Asesmen01, jadi disamakan dengan bobot Asesmen01 (60).
+    SubcpmkKomponenPenilaian::query()
+        ->where('subcpmk_id', $fixtures['subcpmk']->id)
+        ->where('komponen_penilaian_id', $komponenSatu->id)
+        ->update(['bobot' => 60]);
+
     $mkCpmk = $fixtures['subcpmk']->mkCpmk;
     $subcpmkDua = Subcpmk::factory()->for($mkCpmk)->create([
         'kode' => 'SubCPMK04.2',
@@ -330,7 +338,7 @@ it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, 
     SubcpmkKomponenPenilaian::query()->create([
         'subcpmk_id' => $subcpmkDua->id,
         'komponen_penilaian_id' => $komponenDua->id,
-        'bobot' => 100,
+        'bobot' => 40,
     ]);
 
     $test = Livewire::test(InputNilai::class)
@@ -338,7 +346,7 @@ it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, 
 
     $ketercapaian = $test->get('ketercapaianCpl');
 
-    // Kontribusi "Quiz" = (60 * 100/100) + (40 * 100/100) = 100, harus jadi
+    // Kontribusi "Quiz" = 60 (Asesmen01) + 40 (Asesmen02) = 100, harus jadi
     // satu baris, bukan ["Quiz"=>60, "Quiz"=>40] terpisah.
     expect($ketercapaian[0]['kontribusi'])->toHaveCount(1)
         ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Quiz')

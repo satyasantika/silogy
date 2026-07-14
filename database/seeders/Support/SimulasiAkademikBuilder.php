@@ -216,9 +216,12 @@ class SimulasiAkademikBuilder
 
         $skpIds = [];
         foreach ([$komponenUts, $komponenUas] as $komponen) {
+            // Bobot pivot langsung dipatok sama dengan bobot Komponen itu
+            // sendiri — satu-satunya Sub-CPMK yang dipetakan ke komponen
+            // ini, jadi seluruh bobot komponen jadi kontribusinya.
             $skp = SubcpmkKomponenPenilaian::query()->firstOrCreate(
                 ['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponen->id],
-                ['id' => (string) Str::uuid(), 'bobot' => 100],
+                ['id' => (string) Str::uuid(), 'bobot' => (float) $komponen->bobot],
             );
             $skpIds[] = $skp->id;
         }
@@ -457,9 +460,12 @@ class SimulasiAkademikBuilder
         $skpIds = [];
         foreach ($subcpmkIds as $subcpmkId) {
             foreach ($komponenList as $komponen) {
+                // Bobot pivot dibagi rata di antara kedua Sub-CPMK yang
+                // sama-sama dipetakan ke komponen ini (bobot komponen ÷ 2),
+                // meniru SubcpmkAsesmenPemetaanService::redistribusiBobotMerata().
                 $skp = SubcpmkKomponenPenilaian::query()->firstOrCreate(
                     ['subcpmk_id' => $subcpmkId, 'komponen_penilaian_id' => $komponen->id],
-                    ['id' => (string) Str::uuid(), 'bobot' => 100],
+                    ['id' => (string) Str::uuid(), 'bobot' => round((float) $komponen->bobot / count($subcpmkIds), 2)],
                 );
                 $skpIds[] = $skp->id;
             }

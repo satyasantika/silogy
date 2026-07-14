@@ -200,12 +200,13 @@ class SubcpmkAsesmenClipboardService
                 }
 
                 $numeric = $this->parseNumeric($rawValue);
+                $bobotAsesmen = (float) $komponen->bobot;
 
-                if ($numeric === null || $numeric < 0 || $numeric > 100) {
+                if ($numeric === null || $numeric < 0 || $numeric > $bobotAsesmen) {
                     $ringkasan['sel_invalid']++;
                     $keterangan = $numeric === null
                         ? "nilai \"{$rawValue}\" bukan angka"
-                        : 'nilai harus antara 0 dan 100';
+                        : "nilai harus antara 0 dan bobot Asesmen ini ({$bobotAsesmen})";
                     $errors[] = "Baris {$lineNumber}, kolom {$k['kode_subcpmk']}: {$keterangan}.";
 
                     $selBaris[] = [
@@ -231,6 +232,8 @@ class SubcpmkAsesmenClipboardService
                     'keterangan' => '',
                 ];
             }
+
+            $selBaris = $this->terapkanBatasBaris($selBaris, $komponen, $currentBobots, $kolom, $lineNumber, $ringkasan, $errors);
 
             $baris[] = [
                 'baris_ke' => $lineNumber,
@@ -294,7 +297,7 @@ class SubcpmkAsesmenClipboardService
                                 'subcpmk_id' => $sel['subcpmk_id'],
                             ],
                             [
-                                'bobot' => min((float) $sel['bobot'], 100),
+                                'bobot' => (float) $sel['bobot'],
                                 'semester_id' => $komponen->semester_id,
                             ],
                         );
@@ -316,6 +319,77 @@ class SubcpmkAsesmenClipboardService
         });
 
         return ['diperbarui' => $diperbarui, 'dihapus' => $dihapus, 'gagal' => $gagal];
+    }
+
+    /**
+     * Validasi TINGKAT BARIS: total bobot satu Asesmen (sel "update" yang
+     * baru ditempel + pivot lama milik Sub-CPMK lain yang TIDAK ikut jadi
+     * kolom pada tempelan ini) tidak boleh melebihi bobot Asesmen itu
+     * sendiri — validasi per sel saja tidak cukup karena beberapa sel pada
+     * baris yang sama bisa lolos validasi individual tapi jumlahnya
+     * melebihi kapasitas. Bila melebihi, seluruh sel "update" pada baris
+     * itu diturunkan jadi "invalid" (tidak ada yang diterapkan).
+     *
+     * @param  list<array{subcpmk_id: string, kode_subcpmk: string, raw: string, status: string, bobot: float|null, keterangan: string}>  $selBaris
+     * @param  list<array{index: int, subcpmk_id: string, kode_subcpmk: string}>  $kolom
+     * @param  Collection<string, float>  $currentBobots
+     * @param  array{baris_dikenali: int, baris_tidak_dikenali: int, sel_update: int, sel_hapus: int, sel_invalid: int}  $ringkasan
+     * @param  list<string>  $errors
+     * @return list<array{subcpmk_id: string, kode_subcpmk: string, raw: string, status: string, bobot: float|null, keterangan: string}>
+     */
+    private function terapkanBatasBaris(
+        array $selBaris,
+        KomponenPenilaian $komponen,
+        Collection $currentBobots,
+        array $kolom,
+        int $lineNumber,
+        array &$ringkasan,
+        array &$errors,
+    ): array {
+        $totalBaru = collect($selBaris)->where('status', 'update')->sum('bobot');
+
+        $kolomSubcpmkIds = collect($kolom)->pluck('subcpmk_id')->all();
+
+        $existingUntouched = $currentBobots
+            ->filter(function (float $ignored, string $key) use ($komponen, $kolomSubcpmkIds): bool {
+                [$komponenId, $subcpmkId] = explode('/', $key, 2);
+
+                return $komponenId === $komponen->id && ! in_array($subcpmkId, $kolomSubcpmkIds, true);
+            })
+            ->sum();
+
+        $totalBaris = (float) $existingUntouched + (float) $totalBaru;
+        $bobotAsesmen = (float) $komponen->bobot;
+
+        if ($totalBaris <= $bobotAsesmen + 0.01) {
+            return $selBaris;
+        }
+
+        $errors[] = sprintf(
+            'Baris %d: total bobot (%s) melebihi bobot Asesmen "%s" (%s) — seluruh sel pada baris ini tidak diterapkan.',
+            $lineNumber,
+            $this->formatBobot($totalBaris),
+            $komponen->kode ?? $komponen->nama,
+            $this->formatBobot($bobotAsesmen),
+        );
+
+        return collect($selBaris)
+            ->map(function (array $sel) use (&$ringkasan): array {
+                if ($sel['status'] !== 'update') {
+                    return $sel;
+                }
+
+                $ringkasan['sel_update']--;
+                $ringkasan['sel_invalid']++;
+
+                return [
+                    ...$sel,
+                    'status' => 'invalid',
+                    'bobot' => null,
+                    'keterangan' => 'total bobot baris ini melebihi bobot Asesmen',
+                ];
+            })
+            ->all();
     }
 
     private function normalize(string $value): string

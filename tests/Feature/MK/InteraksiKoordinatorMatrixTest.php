@@ -203,6 +203,49 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
         ->and((float) $subcpmk->fresh()->bobot)->toBe(0.0);
 });
 
+it('matriks subcpmk asesmen membatasi bobot pivot maksimal sisa kapasitas Asesmen', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-CAP', 'deskripsi' => 'Batas kapasitas.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $subcpmk1 = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-CAP-1', 'deskripsi' => 'Sub 1',
+    ]);
+    $subcpmk2 = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-CAP-2', 'deskripsi' => 'Sub 2',
+    ]);
+
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Kapasitas', 'bobot' => 10,
+    ]);
+
+    Livewire::test(SubcpmkAsesmenMatrix::class)
+        ->call('updateBobot', $komponen->id, $subcpmk1->id, '6');
+
+    // Sisa kapasitas komponen ini tinggal 4 (10 - 6) — input 8 harus
+    // dipotong ke sisa yang benar-benar tersedia, bukan diloloskan mentah.
+    Livewire::test(SubcpmkAsesmenMatrix::class)
+        ->call('updateBobot', $komponen->id, $subcpmk2->id, '8');
+
+    $pivot2 = SubcpmkKomponenPenilaian::query()
+        ->where('komponen_penilaian_id', $komponen->id)
+        ->where('subcpmk_id', $subcpmk2->id)
+        ->first();
+
+    expect((float) $pivot2?->bobot)->toBe(4.0);
+});
+
 it('cpmk belum diinteraksikan bila belum ada mk cpmk', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $cpmk = Cpmk::query()->create([

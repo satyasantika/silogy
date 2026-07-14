@@ -108,10 +108,13 @@ it('menampilkan rekap bobot evaluasi berdekatan dengan kolom bobot subcpmk', fun
         'evaluasi_id' => $partisipasi->id, 'kode' => 'PT1', 'nama' => 'Partisipasi 1', 'bobot' => 10,
     ]);
 
-    // Kontribusi ke nilai akhir = bobot komponen (dari 100%) x bobot pivot Sub-CPMK.
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenTugas->id, 'bobot' => 20]); // 25 * 20% = 5
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenProyek->id, 'bobot' => 20]); // 15 * 20% = 3
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenPartisipasi->id, 'bobot' => 20]); // 10 * 20% = 2
+    // Bobot pivot langsung berupa kontribusi nyata ke nilai akhir (bukan lagi
+    // "% bagian" dari komponen) — masing-masing komponen di sini punya
+    // satu-satunya Sub-CPMK, jadi bebas diisi berapa pun hingga maks bobot
+    // komponen itu sendiri (Tugas 25, Proyek 15, Partisipasi 10).
+    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenTugas->id, 'bobot' => 5]);
+    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenProyek->id, 'bobot' => 3]);
+    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenPartisipasi->id, 'bobot' => 2]);
 
     Livewire::test(ListSubcpmks::class)->loadTable()
         ->assertSee('Bobot evaluasi: 10%', escape: false)

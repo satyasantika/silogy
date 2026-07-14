@@ -11,8 +11,10 @@ class SubcpmkAsesmenPemetaanService
 {
     /**
      * Rincian kontribusi Sub-CPMK ke nilai akhir mata kuliah, dikelompokkan
-     * per jenis evaluasi (mis. Tugas, Proyek Individu). Kontribusi per
-     * jenis = bobot komponen penilaian (dari 100%) × bobot pivot Sub-CPMK.
+     * per jenis evaluasi (mis. Tugas, Proyek Individu). Bobot pivot Sub-CPMK
+     * SUDAH berupa kontribusi nyata (skala sama dengan bobot komponen
+     * penilaian, bukan lagi persentase bagian dari 100) — jadi kontribusi
+     * per jenis = jumlah bobot pivot itu sendiri, tanpa dikalikan ulang.
      * Dipakai untuk tampilan rekap maupun untuk menghitung ulang subcpmk.bobot.
      *
      * @return Collection<string, float> nama evaluasi => bobot (%)
@@ -26,7 +28,7 @@ class SubcpmkAsesmenPemetaanService
             ->filter(fn (SubcpmkKomponenPenilaian $pivot): bool => $pivot->komponenPenilaian?->evaluasi !== null)
             ->groupBy(fn (SubcpmkKomponenPenilaian $pivot): string => $pivot->komponenPenilaian->evaluasi->nama)
             ->map(fn (Collection $group): float => (float) $group->sum(
-                fn (SubcpmkKomponenPenilaian $pivot): float => (float) $pivot->komponenPenilaian->bobot * (float) $pivot->bobot / 100,
+                fn (SubcpmkKomponenPenilaian $pivot): float => (float) $pivot->bobot,
             ))
             ->sortDesc();
     }
@@ -45,7 +47,8 @@ class SubcpmkAsesmenPemetaanService
     }
 
     /**
-     * Petakan Sub-CPMK ke asesmen (komponen penilaian) lalu bagi bobot pivot merata (100 ÷ jumlah Sub-CPMK).
+     * Petakan Sub-CPMK ke asesmen (komponen penilaian) lalu bagi bobot pivot
+     * merata (bobot Asesmen ÷ jumlah Sub-CPMK).
      */
     public static function petakanSubcpmk(KomponenPenilaian $komponen, Subcpmk $subcpmk): void
     {
@@ -56,7 +59,7 @@ class SubcpmkAsesmenPemetaanService
             ],
             [
                 'semester_id' => $komponen->semester_id,
-                'bobot' => 100,
+                'bobot' => 0,
             ],
         );
 
@@ -64,14 +67,19 @@ class SubcpmkAsesmenPemetaanService
     }
 
     /**
-     * Bagi bobot pivot Sub-CPMK ↔ asesmen secara merata agar total = 100%.
+     * Bagi bobot pivot Sub-CPMK ↔ asesmen secara merata agar total = bobot
+     * Asesmen itu sendiri (bukan lagi selalu 100).
      */
     public static function redistribusiBobotMerata(KomponenPenilaian|string $komponen): void
     {
-        $komponenId = $komponen instanceof KomponenPenilaian ? $komponen->id : $komponen;
+        $komponen = $komponen instanceof KomponenPenilaian ? $komponen : KomponenPenilaian::query()->find($komponen);
+
+        if ($komponen === null) {
+            return;
+        }
 
         $pivots = SubcpmkKomponenPenilaian::query()
-            ->where('komponen_penilaian_id', $komponenId)
+            ->where('komponen_penilaian_id', $komponen->id)
             ->get();
 
         $jumlah = $pivots->count();
@@ -80,11 +88,32 @@ class SubcpmkAsesmenPemetaanService
             return;
         }
 
-        $bobotPerSubcpmk = round(100 / $jumlah, 2);
+        $bobotPerSubcpmk = round((float) $komponen->bobot / $jumlah, 2);
 
         foreach ($pivots as $pivot) {
             $pivot->update(['bobot' => $bobotPerSubcpmk]);
         }
+    }
+
+    /**
+     * Sisa kapasitas bobot yang masih tersedia pada suatu Asesmen — bobot
+     * Asesmen dikurangi jumlah bobot pivot Sub-CPMK LAIN yang sudah
+     * berinteraksi dengannya (di luar pivot $excludeSubcpmkKomponenId, bila
+     * sedang mengedit pivot yang sudah ada). Satu sumber kebenaran dipakai
+     * baik oleh form interaksi (RelationManager) maupun halaman
+     * Matrix/Clipboard, supaya batasnya konsisten di semua tempat.
+     */
+    public static function sisaBobotTersedia(KomponenPenilaian $komponen, ?string $excludeSubcpmkKomponenId = null): float
+    {
+        $terpakai = (float) SubcpmkKomponenPenilaian::query()
+            ->where('komponen_penilaian_id', $komponen->id)
+            ->when(
+                $excludeSubcpmkKomponenId !== null,
+                fn ($query) => $query->whereKeyNot($excludeSubcpmkKomponenId),
+            )
+            ->sum('bobot');
+
+        return round(max((float) $komponen->bobot - $terpakai, 0), 2);
     }
 
     /**

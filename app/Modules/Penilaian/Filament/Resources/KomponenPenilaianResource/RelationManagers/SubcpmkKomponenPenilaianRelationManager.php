@@ -4,7 +4,10 @@ namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Rel
 
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
+use App\Modules\Penilaian\Services\RencanaEvaluasiService;
+use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -66,8 +69,24 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                     ->label('Bobot (%)')
                     ->numeric()
                     ->minValue(0)
-                    ->maxValue(100)
-                    ->default(100)
+                    ->maxValue(function (?SubcpmkKomponenPenilaian $record): float {
+                        /** @var KomponenPenilaian $komponen */
+                        $komponen = $this->getOwnerRecord();
+
+                        return SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $record?->getKey());
+                    })
+                    ->helperText(function (?SubcpmkKomponenPenilaian $record): string {
+                        /** @var KomponenPenilaian $komponen */
+                        $komponen = $this->getOwnerRecord();
+
+                        $sisa = SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $record?->getKey());
+
+                        return sprintf(
+                            'Sisa bobot tersedia: %s dari total bobot Asesmen ini (%s).',
+                            app(RencanaEvaluasiService::class)->formatBobot($sisa),
+                            app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot),
+                        );
+                    })
                     ->required(),
             ]);
     }
@@ -97,37 +116,43 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                     ->color('warning')
                     ->requiresConfirmation()
                     ->modalHeading('Normalisasi bobot Sub-CPMK')
-                    ->modalDescription(
-                        'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
-                        .'secara proporsional lalu dibulatkan ke bilangan bulat terdekat, sehingga '
-                        .'totalnya tepat 100%.',
-                    )
+                    ->modalDescription(function (): string {
+                        /** @var KomponenPenilaian $komponen */
+                        $komponen = $this->getOwnerRecord();
+                        $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+
+                        return 'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
+                            .'secara proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat sama '
+                            ."dengan bobot Asesmen ini ({$bobotAsesmen}).";
+                    })
                     ->modalSubmitActionLabel('Normalisasi')
                     ->visible(function (): bool {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
                         $total = (float) $komponen->subcpmkKomponens()->sum('bobot');
 
-                        return $total > 0 && abs($total - 100) > 0.01;
+                        return $total > 0 && abs($total - (float) $komponen->bobot) > 0.01;
                     })
                     ->action(function (): void {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
 
                         $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen);
+                        $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
 
                         match ($hasil['status']) {
                             'dinormalisasi' => Notification::make()
                                 ->title('Bobot Sub-CPMK berhasil dinormalisasi')
                                 ->body(sprintf(
-                                    'Total sebelumnya %.2f%% untuk %d Sub-CPMK, kini totalnya tepat 100%%.',
+                                    'Total sebelumnya %.2f%% untuk %d Sub-CPMK, kini totalnya tepat sama dengan bobot Asesmen (%s).',
                                     $hasil['total_sebelum'],
                                     $hasil['jumlah'],
+                                    $bobotAsesmen,
                                 ))
                                 ->success()
                                 ->send(),
                             'sudah_pas' => Notification::make()
-                                ->title('Total bobot sudah 100%')
+                                ->title("Total bobot sudah {$bobotAsesmen}")
                                 ->body('Tidak ada perubahan yang diperlukan.')
                                 ->info()
                                 ->send(),

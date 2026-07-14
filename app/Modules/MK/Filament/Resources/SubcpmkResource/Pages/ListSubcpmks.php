@@ -8,7 +8,6 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Services\SubcpmkKompetensiParser;
-use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
@@ -63,7 +62,6 @@ class ListSubcpmks extends ListRecords
             ['key' => 'kompetensi', 'label' => 'kompetensi (C/A/P)', 'wajib' => false],
             ['key' => 'indikator', 'label' => 'indikator', 'wajib' => false],
             ['key' => 'evaluasi', 'label' => 'evaluasi', 'wajib' => false],
-            ['key' => 'bobot', 'label' => 'bobot (%)', 'wajib' => false],
         ];
     }
 
@@ -80,8 +78,8 @@ class ListSubcpmks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPMK-01|SUB-01|Menjelaskan definisi|C3,A2,P2|Indikator A|UTS dan kuis|50',
-            'CPMK-01|SUB-02|Menerapkan rumus|C4|||50',
+            'CPMK-01|SUB-01|Menjelaskan definisi|C3,A2,P2|Indikator A|UTS dan kuis',
+            'CPMK-01|SUB-02|Menerapkan rumus|C4||',
         ];
     }
 
@@ -94,10 +92,6 @@ class ListSubcpmks extends ListRecords
         }
 
         $context = $this->normalizeImportContext($context);
-
-        if ($data['bobot'] !== '' && ! is_numeric($data['bobot'])) {
-            return ['status' => 'invalid', 'keterangan' => 'Bobot harus berupa angka.'];
-        }
 
         if (filled($data['kompetensi'] ?? null)) {
             $validasiKompetensi = SubcpmkKompetensiParser::validasi($data['kompetensi']);
@@ -146,7 +140,6 @@ class ListSubcpmks extends ListRecords
             'semester_id' => $context['import_semester_id'],
             'kode' => $data['kode'],
             'deskripsi' => $data['deskripsi'],
-            'bobot' => $data['bobot'] !== '' ? (float) $data['bobot'] : null,
             'indikator' => $data['indikator'] ?: null,
             'evaluasi' => $data['evaluasi'] ?: null,
             ...$bloom,
@@ -165,18 +158,6 @@ class ListSubcpmks extends ListRecords
             'indikator' => $data['indikator'] ?: $subcpmk->indikator,
             'evaluasi' => filled($data['evaluasi'] ?? null) ? $data['evaluasi'] : $subcpmk->evaluasi,
         ];
-
-        // Bobot hasil impor hanya berlaku selama Sub-CPMK ini belum
-        // berinteraksi dengan komponen penilaian (asesmen). Begitu ada
-        // interaksi, bobot dikelola otomatis (lihat SubcpmkKomponenPenilaianObserver)
-        // dan tidak boleh ditimpa oleh impor massal.
-        $sudahBerinteraksi = SubcpmkKomponenPenilaian::query()
-            ->where('subcpmk_id', $existingId)
-            ->exists();
-
-        if (! $sudahBerinteraksi) {
-            $payload['bobot'] = $data['bobot'] !== '' ? (float) $data['bobot'] : $subcpmk->bobot;
-        }
 
         if (filled($data['kompetensi'] ?? null)) {
             $payload = [...$payload, ...SubcpmkKompetensiParser::parse($data['kompetensi'])];

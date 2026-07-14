@@ -389,7 +389,7 @@ it('impor subcpmk pada cpmk dan semester terpilih', function () {
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'CPMK-01|SUB-IMP-A|Menjelaskan definisi||Indikator A||50',
+            'rows' => 'CPMK-01|SUB-IMP-A|Menjelaskan definisi||Indikator A|',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
@@ -399,10 +399,10 @@ it('impor subcpmk pada cpmk dan semester terpilih', function () {
 
     expect($sub)->not->toBeNull()
         ->and($sub->mk_cpmk_id)->toBe($mkCpmk->id)
-        ->and($sub->bobot)->toBe(50.0);
+        ->and($sub->bobot)->toBeNull();
 });
 
-it('impor subcpmk mode timpa memperbarui bobot bila belum ada interaksi dengan komponen penilaian', function () {
+it('impor subcpmk mode timpa tidak pernah mengubah bobot, karena bobot hanya ditentukan lewat interaksi Sub-CPMK <> Asesmen', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
     $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
@@ -428,13 +428,13 @@ it('impor subcpmk mode timpa memperbarui bobot bila belum ada interaksi dengan k
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'CPMK-01|SUB-TIMPA|Deskripsi baru||||70',
+            'rows' => 'CPMK-01|SUB-TIMPA|Deskripsi baru|||',
             'mode_duplikat' => 'timpa',
             'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
         ]);
 
-    expect((float) $sub->fresh()->bobot)->toBe(70.0)
+    expect((float) $sub->fresh()->bobot)->toBe(50.0)
         ->and($sub->fresh()->deskripsi)->toBe('Deskripsi baru');
 });
 
@@ -471,18 +471,19 @@ it('impor subcpmk mode timpa tidak menimpa bobot bila sudah ada interaksi dengan
         'bobot' => 20,
     ]);
 
-    // Interaksi Sub-CPMK <> penugasan: bobot subcpmk otomatis jadi 20 (20% x 100%).
+    // Interaksi Sub-CPMK <> penugasan: satu-satunya Sub-CPMK pada komponen
+    // ini, jadi seluruh bobot komponen (20) jadi kontribusinya.
     SubcpmkKomponenPenilaian::query()->create([
         'subcpmk_id' => $sub->id,
         'komponen_penilaian_id' => $komponen->id,
-        'bobot' => 100,
+        'bobot' => 20,
     ]);
 
     expect((float) $sub->fresh()->bobot)->toBe(20.0);
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'CPMK-01|SUB-TERPETAKAN|Deskripsi baru||||99',
+            'rows' => 'CPMK-01|SUB-TERPETAKAN|Deskripsi baru|||',
             'mode_duplikat' => 'timpa',
             'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
@@ -510,7 +511,7 @@ it('impor subcpmk dengan kompetensi bloom dan evaluasi', function () {
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'CPMK-01|SUB-BLOOM|Menjelaskan konsep|C3,A2,P2||UTS dan kuis|40',
+            'rows' => 'CPMK-01|SUB-BLOOM|Menjelaskan konsep|C3,A2,P2||UTS dan kuis',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
@@ -542,7 +543,7 @@ it('impor subcpmk menolak format kompetensi salah', function () {
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'CPMK-01|SUB-INVALID|Deskripsi|X9|||',
+            'rows' => 'CPMK-01|SUB-INVALID|Deskripsi|X9||',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
@@ -563,7 +564,7 @@ it('impor subcpmk berhasil meski belum ada kelas mk', function () {
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('bulkImport', [
-            'rows' => 'CPMK-01|SUB-TANPA-KELAS|Deskripsi||||50',
+            'rows' => 'CPMK-01|SUB-TANPA-KELAS|Deskripsi|||',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
             'import_semester_id' => $semester->id,
@@ -623,10 +624,12 @@ it('impor asesmen dengan pemetaan subcpmk dan bobot merata', function () {
         ->orderBy('subcpmk_id')
         ->get();
 
+    // Bobot pivot dibagi rata dari bobot Komponen (8) itu sendiri, bukan
+    // lagi selalu 100 — 8 ÷ 2 Sub-CPMK = 4 masing-masing.
     expect($pivots)->toHaveCount(2)
         ->and($pivots->pluck('subcpmk_id')->all())->toContain($sub1->id, $sub2->id)
-        ->and((float) $pivots->first()->bobot)->toBe(50.0)
-        ->and((float) $pivots->last()->bobot)->toBe(50.0);
+        ->and((float) $pivots->first()->bobot)->toBe(4.0)
+        ->and((float) $pivots->last()->bobot)->toBe(4.0);
 });
 
 it('impor asesmen menolak evaluasi tidak valid', function () {

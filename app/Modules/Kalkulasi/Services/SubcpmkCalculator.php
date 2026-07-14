@@ -109,9 +109,12 @@ class SubcpmkCalculator
                 continue;
             }
 
-            $bobotKomponen = (float) $skp->komponenPenilaian->bobot / 100;
-            $bobotSubcpmk = (float) $skp->bobot / 100;
-            $bobotGabungan = $bobotKomponen * $bobotSubcpmk;
+            // $skp->bobot sudah berupa kontribusi nyata (skala sama dengan
+            // KomponenPenilaian.bobot), bukan lagi persentase bagian dari
+            // 100 — jadi TIDAK dikalikan lagi dengan bobot Asesmen di sini,
+            // supaya proporsi antar-Asesmen yang bobotnya berbeda tidak
+            // terhitung ganda.
+            $bobotGabungan = (float) $skp->bobot;
 
             $pembilang += (float) $nilai * $bobotGabungan;
             $penyebut += $bobotGabungan;

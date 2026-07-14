@@ -40,7 +40,7 @@
         <x-filament::section
             icon="heroicon-o-arrows-right-left"
             heading="Interaksi Sub-CPMK ↔ Asesmen (bobot)"
-            description="Isi bobot (%) kontribusi tiap asesmen (baris) terhadap Sub-CPMK (kolom). Kosongkan atau isi 0 untuk menghapus. Total per asesmen dihitung otomatis."
+            description="Isi bobot (%) kontribusi tiap asesmen (baris) terhadap Sub-CPMK (kolom) — total per baris tidak boleh melebihi bobot Asesmen itu sendiri. Kosongkan atau isi 0 untuk menghapus. Total per asesmen dihitung otomatis."
         >
             <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
                 <div style="flex:1 1 220px;min-width:200px;">
@@ -128,8 +128,8 @@
                                         <span style="display:block;font-size:11px;opacity:.7;">
                                             {{ $komponen->evaluasi?->nama ?? '—' }}
                                         </span>
-                                        <span style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;background:{{ $total > 100 ? '#dc2626' : ($total > 0 ? '#16a34a' : '#9ca3af') }};">
-                                            Σ {{ rtrim(rtrim(number_format($total, 2, ',', '.'), '0'), ',') }}%
+                                        <span style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;background:{{ $total > (float) $komponen->bobot ? '#dc2626' : ($total > 0 ? '#16a34a' : '#9ca3af') }};">
+                                            Σ {{ rtrim(rtrim(number_format($total, 2, ',', '.'), '0'), ',') }}% / {{ rtrim(rtrim(number_format((float) $komponen->bobot, 2, ',', '.'), '0'), ',') }}%
                                         </span>
                                     </td>
                                     @foreach ($subcpmks as $subcpmk)
@@ -137,7 +137,7 @@
                                             <input
                                                 type="number"
                                                 min="0"
-                                                max="100"
+                                                max="{{ (float) $komponen->bobot }}"
                                                 step="0.01"
                                                 style="width:74px;padding:4px 6px;border:1px solid rgba(128,128,128,.4);border-radius:6px;background:transparent;text-align:center;"
                                                 value="{{ $bobots[$komponen->id.'/'.$subcpmk->id] ?? '' }}"

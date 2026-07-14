@@ -14,6 +14,7 @@ use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenClipboardService;
+use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
@@ -94,13 +95,20 @@ class SubcpmkAsesmenMatrix extends Page
 
         $komponen = KomponenPenilaian::query()->findOrFail($komponenPenilaianId);
 
+        $existing = SubcpmkKomponenPenilaian::query()
+            ->where('komponen_penilaian_id', $komponenPenilaianId)
+            ->where('subcpmk_id', $subcpmkId)
+            ->first();
+
+        $batas = SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $existing?->getKey());
+
         SubcpmkKomponenPenilaian::query()->updateOrCreate(
             [
                 'komponen_penilaian_id' => $komponenPenilaianId,
                 'subcpmk_id' => $subcpmkId,
             ],
             [
-                'bobot' => min((float) $bobot, 100),
+                'bobot' => min((float) $bobot, $batas),
                 'semester_id' => $komponen->semester_id,
             ],
         );

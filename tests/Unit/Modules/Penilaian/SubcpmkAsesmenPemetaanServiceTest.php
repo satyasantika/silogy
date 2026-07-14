@@ -80,10 +80,12 @@ it('membagi bobot pivot subcpmk merata setelah pemetaan', function () {
         ->pluck('bobot')
         ->all();
 
+    // Komponen bobot 8%, dibagi rata ke 2 Sub-CPMK => 4% masing-masing,
+    // totalnya sama dengan bobot Komponen (bukan lagi selalu 100).
     expect($bobots)->toHaveCount(2)
-        ->and($bobots[0])->toBe(50.0)
-        ->and($bobots[1])->toBe(50.0)
-        ->and(array_sum($bobots))->toBe(100.0);
+        ->and($bobots[0])->toBe(4.0)
+        ->and($bobots[1])->toBe(4.0)
+        ->and(array_sum($bobots))->toBe(8.0);
 });
 
 it('mencari subcpmk berdasarkan kode pada mk dan semester', function () {
