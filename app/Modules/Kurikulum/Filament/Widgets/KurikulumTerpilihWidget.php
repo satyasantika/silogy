@@ -3,7 +3,6 @@
 namespace App\Modules\Kurikulum\Filament\Widgets;
 
 use App\Models\User;
-use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource;
@@ -33,6 +32,12 @@ class KurikulumTerpilihWidget extends Widget
         if (! $user instanceof User || $user->hasRole('Super Admin')) {
             // Pengelolaan kurikulum didelegasikan — superadmin tidak
             // membutuhkan jalan pintas ini.
+            return false;
+        }
+
+        // Ikuti role aktif switcher — jangan tampil hanya karena
+        // kepemilikan Tim Kurikulum / Admin atau status_tim_kurikulum.
+        if (! $user->hasAnyRole(['Tim Kurikulum', 'Admin', 'Admin Program Studi'])) {
             return false;
         }
 
@@ -94,7 +99,8 @@ class KurikulumTerpilihWidget extends Widget
             return false;
         }
 
-        return ActiveRole::userOwnsRoleName($user, 'Admin')
-            || ActiveRole::userOwnsRoleName($user, 'Admin Program Studi');
+        // Mode admin prodi mengikuti role aktif, bukan kepemilikan.
+        return $user->hasRole('Admin')
+            || $user->hasRole('Admin Program Studi');
     }
 }

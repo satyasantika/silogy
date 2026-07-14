@@ -38,6 +38,7 @@ class ActiveRole
     {
         if (blank($role)) {
             session()->forget(self::SESSION_KEY);
+            self::forgetAuthRoleRelationCache();
 
             return;
         }
@@ -46,6 +47,28 @@ class ActiveRole
 
         if ($user instanceof User && self::userOwnsRole($user, $role)) {
             session()->put(self::SESSION_KEY, $role);
+            self::forgetAuthRoleRelationCache();
+        }
+    }
+
+    /**
+     * Relasi roles() & cache permission Spatie harus dibuang setelah
+     * role aktif berubah, supaya hasRole()/can() tidak memakai hasil
+     * filter role sebelumnya pada instance user yang sama.
+     */
+    public static function forgetAuthRoleRelationCache(): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $user->unsetRelation('roles');
+        $user->unsetRelation('permissions');
+
+        if (method_exists($user, 'forgetCachedPermissions')) {
+            $user->forgetCachedPermissions();
         }
     }
 

@@ -4,7 +4,9 @@ use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Auth\Livewire\RoleSwitcher;
 use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\Kurikulum\Filament\Widgets\KurikulumTerpilihWidget;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
+use App\Modules\Penilaian\Filament\Widgets\RekapMkDosenWidget;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -136,4 +138,18 @@ it('card Selamat Datang menampilkan peran aktif user', function () {
     Livewire::test(Dashboard::class)
         ->assertSee('Anda berperan sebagai')
         ->assertSee('Tim Kurikulum');
+});
+
+it('widget dashboard mengikuti role aktif, bukan kepemilikan role', function () {
+    $this->actingAs(timkurSegar());
+
+    ActiveRole::set('Dosen Pengampu');
+
+    expect(RekapMkDosenWidget::canView())->toBeTrue()
+        ->and(KurikulumTerpilihWidget::canView())->toBeFalse();
+
+    ActiveRole::set('Tim Kurikulum');
+
+    expect(RekapMkDosenWidget::canView())->toBeFalse()
+        ->and(KurikulumTerpilihWidget::canView())->toBeTrue();
 });

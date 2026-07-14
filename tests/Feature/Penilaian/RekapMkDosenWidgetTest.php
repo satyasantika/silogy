@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
@@ -76,6 +77,17 @@ it('widget hanya tampil untuk role dosen pengampu', function () {
     expect(RekapMkDosenWidget::canView())->toBeTrue();
 
     $this->actingAs($this->korma);
+    expect(RekapMkDosenWidget::canView())->toBeFalse();
+});
+
+it('widget mengikuti role aktif pada user multi-role', function () {
+    $dosenTimkur = User::where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosenTimkur);
+
+    ActiveRole::set('Dosen Pengampu');
+    expect(RekapMkDosenWidget::canView())->toBeTrue();
+
+    ActiveRole::set('Tim Kurikulum');
     expect(RekapMkDosenWidget::canView())->toBeFalse();
 });
 

@@ -2,6 +2,7 @@
 
 use App\Filament\Pages\Dashboard;
 use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Kurikulum\Filament\Widgets\KurikulumTerpilihWidget;
@@ -57,4 +58,15 @@ it('link ganti pada banner kurikulum terpilih mengarah ke dashboard, bukan resou
 
     expect($html)->toContain(Dashboard::getUrl())
         ->and($html)->not->toContain(KurikulumResource::getUrl('index'));
+});
+
+it('widget kurikulum hanya tampil saat role aktif Tim Kurikulum/Admin', function () {
+    $dosenTimkur = User::where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosenTimkur);
+
+    ActiveRole::set('Dosen Pengampu');
+    expect(KurikulumTerpilihWidget::canView())->toBeFalse();
+
+    ActiveRole::set('Tim Kurikulum');
+    expect(KurikulumTerpilihWidget::canView())->toBeTrue();
 });

@@ -3,7 +3,6 @@
 namespace App\Modules\MK\Filament\Widgets;
 
 use App\Models\User;
-use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -31,7 +30,8 @@ class KoordinatorMkAksesWidget extends Widget
     {
         $user = auth()->user();
 
-        return $user instanceof User && ActiveRole::userOwnsRoleName($user, 'Koordinator Mata Kuliah');
+        // Ikuti role aktif switcher (hasRole), bukan kepemilikan role.
+        return $user instanceof User && $user->hasRole('Koordinator Mata Kuliah');
     }
 
     /**

@@ -3,7 +3,6 @@
 namespace App\Modules\Penilaian\Filament\Widgets;
 
 use App\Models\User;
-use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
 use Filament\Widgets\Widget;
@@ -25,7 +24,8 @@ class RekapMkDosenWidget extends Widget
     {
         $user = auth()->user();
 
-        return $user instanceof User && ActiveRole::userOwnsRoleName($user, 'Dosen Pengampu');
+        // Ikuti role aktif switcher (hasRole), bukan kepemilikan role.
+        return $user instanceof User && $user->hasRole('Dosen Pengampu');
     }
 
     /**
