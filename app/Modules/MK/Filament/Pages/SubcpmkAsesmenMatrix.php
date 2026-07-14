@@ -13,6 +13,8 @@ use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
+use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenClipboardService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use Filament\Actions\Action;
@@ -112,6 +114,69 @@ class SubcpmkAsesmenMatrix extends Page
                 'semester_id' => $komponen->semester_id,
             ],
         );
+    }
+
+    /**
+     * Tombol "Normalisasi" per baris asesmen — muncul bila total bobot
+     * Sub-CPMK-nya belum sama dengan bobot Asesmen (lihat kondisi tampil
+     * di subcpmk-asesmen-matrix.blade.php). Perilakunya sama seperti aksi
+     * serupa pada card Sub-CPMK di /komponen-penilaian/{id}/edit.
+     */
+    public function normalisasiBobotAsesmenAction(): Action
+    {
+        return Action::make('normalisasiBobotAsesmen')
+            ->label('Normalisasi')
+            ->icon(Heroicon::OutlinedScale)
+            ->color('warning')
+            ->size('sm')
+            ->requiresConfirmation()
+            ->modalHeading('Normalisasi bobot Sub-CPMK')
+            ->modalDescription(function (array $arguments): string {
+                $komponen = KomponenPenilaian::query()->find($arguments['komponenId'] ?? null);
+
+                if (! $komponen instanceof KomponenPenilaian) {
+                    return 'Asesmen tidak ditemukan.';
+                }
+
+                $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+
+                return 'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
+                    .'secara proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat sama '
+                    ."dengan bobot Asesmen ini ({$bobotAsesmen}).";
+            })
+            ->modalSubmitActionLabel('Normalisasi')
+            ->action(function (array $arguments): void {
+                $komponen = KomponenPenilaian::query()->find($arguments['komponenId'] ?? null);
+
+                if (! $komponen instanceof KomponenPenilaian) {
+                    return;
+                }
+
+                $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen);
+                $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+
+                match ($hasil['status']) {
+                    'dinormalisasi' => Notification::make()
+                        ->title('Bobot Sub-CPMK berhasil dinormalisasi')
+                        ->body(sprintf(
+                            'Total sebelumnya %.2f%% untuk %d Sub-CPMK, kini totalnya tepat sama dengan bobot Asesmen (%s).',
+                            $hasil['total_sebelum'],
+                            $hasil['jumlah'],
+                            $bobotAsesmen,
+                        ))
+                        ->success()
+                        ->send(),
+                    'sudah_pas' => Notification::make()
+                        ->title("Total bobot sudah {$bobotAsesmen}")
+                        ->body('Tidak ada perubahan yang diperlukan.')
+                        ->info()
+                        ->send(),
+                    default => Notification::make()
+                        ->title('Belum ada Sub-CPMK untuk dinormalisasi')
+                        ->warning()
+                        ->send(),
+                };
+            });
     }
 
     protected function getHeaderActions(): array

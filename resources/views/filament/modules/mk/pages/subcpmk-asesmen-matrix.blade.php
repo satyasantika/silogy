@@ -121,6 +121,15 @@
                         <tbody>
                             @foreach ($asesmen as $komponen)
                                 @php($total = (float) ($totals[$komponen->id] ?? 0))
+                                @php($bobotAsesmen = (float) $komponen->bobot)
+                                @php($selisih = $total - $bobotAsesmen)
+                                @php($warnaBadge = match (true) {
+                                    $total <= 0 => '#9ca3af',
+                                    abs($selisih) <= 0.01 => '#16a34a',
+                                    $selisih > 0.01 => '#dc2626',
+                                    default => '#d97706',
+                                })
+                                @php($perluNormalisasi = $total > 0 && abs($selisih) > 0.01)
                                 <tr style="border-bottom:1px solid rgba(128,128,128,.2);">
                                     <td style="position:sticky;left:0;z-index:1;max-width:300px;padding:8px;background:rgba(128,128,128,.04);white-space:normal;overflow-wrap:break-word;">
                                         <span style="display:block;font-size:11px;font-weight:600;opacity:.75;">{{ $komponen->kode ?? '—' }}</span>
@@ -128,19 +137,28 @@
                                         <span style="display:block;font-size:11px;opacity:.7;">
                                             {{ $komponen->evaluasi?->nama ?? '—' }}
                                         </span>
-                                        <span style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;background:{{ $total > (float) $komponen->bobot ? '#dc2626' : ($total > 0 ? '#16a34a' : '#9ca3af') }};">
-                                            Σ {{ rtrim(rtrim(number_format($total, 2, ',', '.'), '0'), ',') }}% / {{ rtrim(rtrim(number_format((float) $komponen->bobot, 2, ',', '.'), '0'), ',') }}%
+                                        <span style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;background:{{ $warnaBadge }};">
+                                            Σ {{ rtrim(rtrim(number_format($total, 2, ',', '.'), '0'), ',') }}% / {{ rtrim(rtrim(number_format($bobotAsesmen, 2, ',', '.'), '0'), ',') }}%
                                         </span>
+                                        @if ($perluNormalisasi)
+                                            <div style="margin-top:4px;">
+                                                <x-filament::actions
+                                                    :actions="[($this->normalisasiBobotAsesmenAction())(['komponenId' => $komponen->id])]"
+                                                />
+                                            </div>
+                                        @endif
                                     </td>
                                     @foreach ($subcpmks as $subcpmk)
+                                        @php($nilaiBobotSel = $bobots[$komponen->id.'/'.$subcpmk->id] ?? '')
                                         <td style="padding:6px;text-align:center;">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 max="{{ (float) $komponen->bobot }}"
-                                                step="0.01"
+                                                step="0.1"
                                                 style="width:74px;padding:4px 6px;border:1px solid rgba(128,128,128,.4);border-radius:6px;background:transparent;text-align:center;"
-                                                value="{{ $bobots[$komponen->id.'/'.$subcpmk->id] ?? '' }}"
+                                                value="{{ $nilaiBobotSel }}"
+                                                wire:key="bobot-input-{{ $komponen->id }}-{{ $subcpmk->id }}-{{ $nilaiBobotSel }}"
                                                 wire:change="updateBobot('{{ $komponen->id }}', '{{ $subcpmk->id }}', $event.target.value)"
                                             />
                                         </td>

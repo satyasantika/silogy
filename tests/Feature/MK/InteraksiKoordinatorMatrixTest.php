@@ -246,6 +246,92 @@ it('matriks subcpmk asesmen membatasi bobot pivot maksimal sisa kapasitas Asesme
     expect((float) $pivot2?->bobot)->toBe(4.0);
 });
 
+it('menandai warna badge total bobot sesuai perbandingan dengan bobot Asesmen', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-WARNA', 'deskripsi' => 'Warna badge.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $subKurang = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-KURANG', 'deskripsi' => 'Sub kurang.']);
+    $subLebih = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-LEBIH', 'deskripsi' => 'Sub lebih.']);
+    $subPas = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-PAS', 'deskripsi' => 'Sub pas.']);
+
+    KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+
+    $komponenKurang = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Kurang', 'bobot' => 8]);
+    $komponenLebih = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Lebih', 'bobot' => 8]);
+    $komponenPas = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Pas', 'bobot' => 8]);
+
+    // 7 dari 8 (kurang) → warning; 9 dari 8 (lebih) → danger; 8 dari 8 (pas) → success.
+    SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenKurang->id, 'subcpmk_id' => $subKurang->id, 'semester_id' => $this->semester->id, 'bobot' => 7]);
+    SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenLebih->id, 'subcpmk_id' => $subLebih->id, 'semester_id' => $this->semester->id, 'bobot' => 9]);
+    SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenPas->id, 'subcpmk_id' => $subPas->id, 'semester_id' => $this->semester->id, 'bobot' => 8]);
+
+    $html = Livewire::test(SubcpmkAsesmenMatrix::class)->html();
+
+    expect($html)->toContain('background:#d97706;') // warning: total < bobot asesmen
+        ->and($html)->toContain('background:#dc2626;') // danger: total > bobot asesmen
+        ->and($html)->toContain('background:#16a34a;'); // success: total = bobot asesmen
+});
+
+it('menampilkan tombol Normalisasi hanya untuk asesmen yang totalnya belum sama dengan bobotnya, dan menormalisasi saat dipanggil', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-NORM', 'deskripsi' => 'Normalisasi.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $subKurang = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-N-KURANG', 'deskripsi' => 'Sub kurang.']);
+    $subPas = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-N-PAS', 'deskripsi' => 'Sub pas.']);
+
+    KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+
+    $komponenKurang = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Kurang Norm', 'bobot' => 8]);
+    $komponenPas = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Pas Norm', 'bobot' => 8]);
+
+    $pivotKurang = SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenKurang->id, 'subcpmk_id' => $subKurang->id, 'semester_id' => $this->semester->id, 'bobot' => 7]);
+    SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenPas->id, 'subcpmk_id' => $subPas->id, 'semester_id' => $this->semester->id, 'bobot' => 8]);
+
+    $test = Livewire::test(SubcpmkAsesmenMatrix::class);
+
+    $wireKeySelBelum = "bobot-input-{$komponenKurang->id}-{$subKurang->id}-7";
+    $wireKeySelSesudah = "bobot-input-{$komponenKurang->id}-{$subKurang->id}-8";
+
+    expect($test->html())
+        ->toContain("mountAction('normalisasiBobotAsesmen', JSON.parse('{\\u0022komponenId\\u0022:\\u0022".$komponenKurang->id."\\u0022}'))")
+        ->not->toContain("mountAction('normalisasiBobotAsesmen', JSON.parse('{\\u0022komponenId\\u0022:\\u0022".$komponenPas->id."\\u0022}'))")
+        ->toContain($wireKeySelBelum)
+        ->not->toContain($wireKeySelSesudah);
+
+    $test->mountAction('normalisasiBobotAsesmen', ['komponenId' => $komponenKurang->id])
+        ->callMountedAction();
+
+    expect((float) $pivotKurang->fresh()->bobot)->toBe(8.0);
+
+    // Regresi: input bobot pada matriks diberi wire:key yang menyertakan
+    // nilainya sendiri (lihat subcpmk-asesmen-matrix.blade.php), sehingga
+    // Livewire mengganti elemen <input> sepenuhnya (bukan sekadar menimpa
+    // atribut "value" pada elemen lama) begitu bobot berubah lewat aksi
+    // Normalisasi — tanpa ini, browser tetap menampilkan nilai lama karena
+    // "value" hanyalah default awal, bukan properti yang disinkron ulang.
+    expect($test->html())
+        ->toContain($wireKeySelSesudah)
+        ->not->toContain($wireKeySelBelum);
+});
+
 it('cpmk belum diinteraksikan bila belum ada mk cpmk', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $cpmk = Cpmk::query()->create([
