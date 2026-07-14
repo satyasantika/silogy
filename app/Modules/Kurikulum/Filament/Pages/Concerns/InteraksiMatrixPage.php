@@ -27,6 +27,13 @@ trait InteraksiMatrixPage
             return true;
         }
 
+        // Matriks interaksi CPL/BoK/MK adalah ranah Tim Kurikulum/Admin —
+        // jangan tampil hanya karena status_tim_kurikulum pada pivot
+        // saat peran aktif adalah Dosen/Koordinator.
+        if (! $user->hasAnyRole(['Tim Kurikulum', 'Admin', 'Admin Program Studi'])) {
+            return false;
+        }
+
         $kurikulum = KurikulumTerpilih::current();
 
         return $kurikulum !== null

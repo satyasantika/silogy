@@ -54,7 +54,7 @@ class BokResource extends Resource
             return false;
         }
 
-        return parent::shouldRegisterNavigation();
+        return static::canAccess();
     }
 
     public static function getEloquentQuery(): Builder

@@ -3,7 +3,6 @@
 namespace App\Modules\Institusi\Support;
 
 use App\Models\User;
-use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use Illuminate\Support\Collection;
@@ -47,11 +46,8 @@ class AcademicUnitScope
             ->where('status_tim_kurikulum', true)
             ->pluck('academic_unit_id');
 
-        // Cek kepemilikan role Admin langsung (bukan role aktif switcher).
-        if (
-            ActiveRole::userOwnsRoleName($user, 'Admin')
-            || ActiveRole::userOwnsRoleName($user, 'Admin Program Studi')
-        ) {
+        // Merge unit Admin hanya bila role Admin sedang aktif.
+        if ($user->hasAnyRole(['Admin', 'Admin Program Studi'])) {
             $unitIds = $unitIds->merge(static::managedUnitIdsFor($user));
         }
 

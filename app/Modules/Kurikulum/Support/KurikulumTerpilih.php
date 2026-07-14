@@ -4,7 +4,6 @@ namespace App\Modules\Kurikulum\Support;
 
 use App\Filament\Pages\Dashboard;
 use App\Models\User;
-use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -221,8 +220,9 @@ class KurikulumTerpilih
         // Tim kurikulum + Admin (unit penugasan) via scopedTimKurikulumUnitIdsFor.
         $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user);
 
-        // Koordinator MK mengelola kelas per prodi — perlu melihat kurikulum unit penugasan.
-        if (ActiveRole::userOwnsRoleName($user, 'Koordinator Mata Kuliah')) {
+        // Koordinator MK mengelola kelas per prodi — perlu melihat kurikulum
+        // unit penugasan saat role Koordinator sedang aktif.
+        if ($user->hasRole('Koordinator Mata Kuliah')) {
             $unitIds = $unitIds->merge(AcademicUnitScope::managedUnitIdsFor($user));
         }
 

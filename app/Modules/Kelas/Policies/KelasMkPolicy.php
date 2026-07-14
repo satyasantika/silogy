@@ -3,7 +3,6 @@
 namespace App\Modules\Kelas\Policies;
 
 use App\Models\User;
-use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
@@ -26,9 +25,7 @@ class KelasMkPolicy
             return true;
         }
 
-        // Kelas MK dikelola Admin prodi — cek role/permission milik user
-        // langsung (bukan role aktif switcher) agar menu tetap tampil
-        // walau peran aktif Tim Kurikulum/Dosen dipilih.
+        // Kelas MK dikelola Admin prodi — mengikuti role aktif switcher.
         if ($this->userIsAdminProdi($user)) {
             return true;
         }
@@ -38,7 +35,7 @@ class KelasMkPolicy
 
     /**
      * Admin prodi: penugasan langsung prodi + permission kelola_kelas
-     * pada role Admin (generik atau legacy Admin Program Studi).
+     * pada role Admin (generik atau legacy Admin Program Studi) yang aktif.
      */
     protected function userIsAdminProdi(User $user): bool
     {
@@ -46,17 +43,11 @@ class KelasMkPolicy
             return false;
         }
 
-        if (! ActiveRole::userOwnsPermission($user, 'kelola_kelas')) {
+        if (! $user->can('kelola_kelas')) {
             return false;
         }
 
-        foreach (['Admin', 'Admin Program Studi'] as $roleName) {
-            if (ActiveRole::userOwnsRoleName($user, $roleName)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $user->hasAnyRole(['Admin', 'Admin Program Studi']);
     }
 
     public function view(User $user, KelasMk $kelasMk): bool
@@ -74,12 +65,9 @@ class KelasMkPolicy
             return true;
         }
 
-        return ActiveRole::userOwnsPermission($user, 'kelola_kelas')
+        return $user->can('kelola_kelas')
             && AcademicUnitScope::userHasPivotOnUnitType($user, 'study_program')
-            && (
-                ActiveRole::userOwnsRoleName($user, 'Admin')
-                || ActiveRole::userOwnsRoleName($user, 'Admin Program Studi')
-            );
+            && $user->hasAnyRole(['Admin', 'Admin Program Studi']);
     }
 
     public function update(User $user, KelasMk $kelasMk): bool
@@ -93,7 +81,7 @@ class KelasMkPolicy
             return true;
         }
 
-        if (! ActiveRole::userOwnsPermission($user, 'kelola_kelas')) {
+        if (! $user->can('kelola_kelas')) {
             return false;
         }
 
@@ -150,7 +138,7 @@ class KelasMkPolicy
         }
 
         return $this->isAdminUnit($user)
-            && ActiveRole::userOwnsPermission($user, 'setdosen_mk')
+            && $user->can('setdosen_mk')
             && $this->canManageByUnit($user, $kelasMk);
     }
 
@@ -169,7 +157,7 @@ class KelasMkPolicy
         }
 
         return $this->isAdminUnit($user)
-            && ActiveRole::userOwnsPermission($user, 'kelola_kelas')
+            && $user->can('kelola_kelas')
             && $this->canManageByUnit($user, $kelasMk);
     }
 
@@ -191,11 +179,11 @@ class KelasMkPolicy
             return true;
         }
 
-        if (ActiveRole::userOwnsPermission($user, 'kelola_kelas') && $this->canManageByUnit($user, $kelasMk)) {
+        if ($user->can('kelola_kelas') && $this->canManageByUnit($user, $kelasMk)) {
             return true;
         }
 
-        if (ActiveRole::userOwnsPermission($user, 'setdosen_mk') && (
+        if ($user->can('setdosen_mk') && (
             $this->canManageByUnit($user, $kelasMk)
             || $this->isTimKurikulumOnKelasUnit($user, $kelasMk)
         )) {
@@ -207,8 +195,7 @@ class KelasMkPolicy
 
     protected function isAdminUnit(User $user): bool
     {
-        return ActiveRole::userOwnsRoleName($user, 'Admin')
-            || ActiveRole::userOwnsRoleName($user, 'Admin Program Studi');
+        return $user->hasAnyRole(['Admin', 'Admin Program Studi']);
     }
 
     protected function canManageByUnit(User $user, KelasMk $kelasMk): bool

@@ -70,7 +70,7 @@ class KurikulumResource extends Resource
             return false;
         }
 
-        return parent::shouldRegisterNavigation();
+        return static::canAccess();
     }
 
     /**

@@ -25,6 +25,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
@@ -216,18 +217,38 @@ it('superadmin tidak lagi melihat menu kategori terdelegasi', function () {
         ->and(KomponenPenilaianResource::shouldRegisterNavigation())->toBeFalse();
 });
 
-it('admin prodi dengan peran aktif tim kurikulum tetap melihat menu kelas mk', function () {
+it('admin prodi dengan peran aktif tim kurikulum tidak melihat menu kelas mk', function () {
     $adminTim = User::query()->where('username', 'adminprodi')->firstOrFail();
     $adminTim->assignRole('Tim Kurikulum');
 
     $this->actingAs($adminTim);
-    session()->put(ActiveRole::SESSION_KEY, 'Tim Kurikulum');
-    $adminTim->unsetRelation('roles');
+    ActiveRole::set('Tim Kurikulum');
 
     expect($adminTim->hasRole('Admin'))->toBeFalse()
         ->and($adminTim->hasRole('Tim Kurikulum'))->toBeTrue()
+        ->and(KelasMkResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(KelasMkResource::canAccess())->toBeFalse();
+
+    ActiveRole::set('Admin');
+
+    expect($adminTim->hasRole('Admin'))->toBeTrue()
         ->and(KelasMkResource::shouldRegisterNavigation())->toBeTrue()
         ->and(KelasMkResource::canAccess())->toBeTrue();
+});
+
+it('menu sidebar dosentimkur mengikuti peran aktif', function () {
+    $dosenTimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosenTimkur);
+
+    ActiveRole::set('Dosen Pengampu');
+
+    expect(KelasMkResource::shouldRegisterNavigation())->toBeTrue()
+        ->and(KurikulumResource::shouldRegisterNavigation())->toBeFalse();
+
+    ActiveRole::set('Tim Kurikulum');
+
+    expect(KelasMkResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(KurikulumResource::shouldRegisterNavigation())->toBeTrue();
 });
 
 it('admin prodi melihat menu kelas mk tanpa prasyarat kelas', function () {
@@ -271,6 +292,9 @@ it('koordinator mk tetap melihat menu mata kuliah dan penilaian', function () {
         'kode_kelas' => 'A',
         'koordinator_mk_id' => $korma->id,
     ]);
+
+    // Menu CPMK/komponen hanya muncul setelah MK terpilih (sama seperti alur UI).
+    MkTerpilih::set($mk->id);
 
     expect(CpmkResource::shouldRegisterNavigation())->toBeTrue()
         ->and(KomponenPenilaianResource::shouldRegisterNavigation())->toBeTrue();

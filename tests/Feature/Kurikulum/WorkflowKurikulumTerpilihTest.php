@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
@@ -255,4 +256,36 @@ it('matriks tidak dapat diakses tanpa scope tim kurikulum', function () {
     expect(CplBokMatrix::canAccess())->toBeFalse()
         ->and(ProfilCplMatrix::canAccess())->toBeFalse()
         ->and(CplMkMatrix::canAccess())->toBeFalse();
+});
+
+it('matriks interaksi mengikuti role aktif pada dosentimkur', function () {
+    $dosenTimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosenTimkur);
+
+    // Pastikan ada kurikulum terpilih di unit tempat ia berstatus tim kurikulum.
+    KurikulumTerpilih::set(
+        Kurikulum::query()
+            ->where('academic_unit_id', AcademicUnit::query()->where('type', 'study_program')->value('id'))
+            ->value('id')
+            ?? Kurikulum::query()->create([
+                'academic_unit_id' => AcademicUnit::query()->where('type', 'study_program')->value('id'),
+                'nama' => 'Kurikulum Interaksi Role',
+                'tahun' => 2026,
+                'is_active' => true,
+            ])->id,
+    );
+
+    ActiveRole::set('Dosen Pengampu');
+
+    expect(CplBokMatrix::canAccess())->toBeFalse()
+        ->and(CplMkMatrix::canAccess())->toBeFalse()
+        ->and(CplBokMatrix::shouldRegisterNavigation())->toBeFalse()
+        ->and(CplMkMatrix::shouldRegisterNavigation())->toBeFalse();
+
+    ActiveRole::set('Tim Kurikulum');
+
+    expect(CplBokMatrix::canAccess())->toBeTrue()
+        ->and(CplMkMatrix::canAccess())->toBeTrue()
+        ->and(CplBokMatrix::shouldRegisterNavigation())->toBeTrue()
+        ->and(CplMkMatrix::shouldRegisterNavigation())->toBeTrue();
 });
