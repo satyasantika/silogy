@@ -8,8 +8,11 @@ use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
- * Select di sidebar untuk user multi-role: memilih role aktif
- * sehingga menu dan hak akses mengikuti role tersebut.
+ * Tombol di navigasi (antara pencarian dan menu pengguna) untuk user
+ * multi-role: memilih role aktif sehingga menu dan hak akses mengikuti
+ * role tersebut. Tidak ada opsi "semua peran" — user multi-role selalu
+ * punya satu role aktif yang jelas, default ke role pertama bila belum
+ * pernah memilih.
  */
 class RoleSwitcher extends Component
 {
@@ -19,9 +22,23 @@ class RoleSwitcher extends Component
     {
         $user = auth()->user();
 
-        $this->activeRole = $user instanceof User
-            ? ActiveRole::currentFor($user)
-            : null;
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $this->activeRole = ActiveRole::currentFor($user);
+
+        if ($this->activeRole === null) {
+            $roles = ActiveRole::ownedRoleNames($user);
+
+            // User multi-role belum pernah memilih role aktif — default ke
+            // role pertama, karena switcher tidak lagi menawarkan opsi
+            // "semua peran" untuk dipilih ulang.
+            if (count($roles) > 1) {
+                $this->activeRole = $roles[0];
+                ActiveRole::set($this->activeRole);
+            }
+        }
     }
 
     public function updatedActiveRole(?string $value): void

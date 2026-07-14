@@ -53,7 +53,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Audit'),
             ])
             ->renderHook(
-                PanelsRenderHook::SIDEBAR_NAV_START,
+                PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => Blade::render("@livewire('silogy.role-switcher')"),
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

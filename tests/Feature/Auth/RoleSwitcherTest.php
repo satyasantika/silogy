@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Auth\Livewire\RoleSwitcher;
 use App\Modules\Auth\Support\ActiveRole;
@@ -98,12 +99,12 @@ it('filter role aktif tidak mempengaruhi pengecekan role user lain', function ()
     expect($superadmin->hasRole('Super Admin'))->toBeTrue();
 });
 
-it('switcher tampil untuk user multi-role dan tersembunyi untuk single role', function () {
+it('switcher tampil untuk user multi-role dan tersembunyi untuk single role, tanpa opsi semua peran', function () {
     $this->actingAs(timkurSegar());
 
     Livewire::test(RoleSwitcher::class)
         ->assertSee('Peran aktif')
-        ->assertSee('Semua peran')
+        ->assertDontSee('Semua peran')
         ->assertSee('Tim Kurikulum')
         ->assertSee('Dosen Pengampu');
 
@@ -111,4 +112,28 @@ it('switcher tampil untuk user multi-role dan tersembunyi untuk single role', fu
 
     Livewire::test(RoleSwitcher::class)
         ->assertDontSee('Peran aktif');
+});
+
+it('user multi-role yang belum pernah memilih otomatis mendapat role aktif pertama', function () {
+    $this->actingAs(timkurSegar());
+
+    expect(session()->has(ActiveRole::SESSION_KEY))->toBeFalse();
+
+    $test = Livewire::test(RoleSwitcher::class);
+
+    // "Dosen Pengampu" lebih dulu secara alfabet dibanding "Tim Kurikulum"
+    // (lihat ActiveRole::ownedRoleNames, diurutkan ->orderBy('roles.name')).
+    expect($test->get('activeRole'))->toBe('Dosen Pengampu')
+        ->and(session(ActiveRole::SESSION_KEY))->toBe('Dosen Pengampu');
+});
+
+it('card Selamat Datang menampilkan peran aktif user', function () {
+    $timkur = timkurSegar();
+    $this->actingAs($timkur);
+
+    session()->put(ActiveRole::SESSION_KEY, 'Tim Kurikulum');
+
+    Livewire::test(Dashboard::class)
+        ->assertSee('Anda berperan sebagai')
+        ->assertSee('Tim Kurikulum');
 });
