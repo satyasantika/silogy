@@ -136,3 +136,26 @@ it('mengizinkan mengedit pivot yang sama hingga bobot Asesmen penuh (mengecualik
 
     expect((float) $pivot->fresh()->bobot)->toBe(10.0);
 });
+
+it('memperbarui visibilitas tombol Normalisasi begitu bobot Asesmen diubah di halaman edit, tanpa reload', function () {
+    SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $this->sub1->id,
+        'komponen_penilaian_id' => $this->komponen->id,
+        'bobot' => 10,
+    ]);
+
+    $card = Livewire::test(SubcpmkKomponenPenilaianRelationManager::class, [
+        'ownerRecord' => $this->komponen,
+        'pageClass' => EditKomponenPenilaian::class,
+    ]);
+
+    $card->assertTableActionHidden('normalisasiBobotSubcpmk');
+
+    Livewire::test(EditKomponenPenilaian::class, ['record' => $this->komponen->getKey()])
+        ->fillForm(['bobot' => 20])
+        ->call('save')
+        ->assertDispatched('komponen-penilaian-bobot-diperbarui');
+
+    $card->dispatch('komponen-penilaian-bobot-diperbarui')
+        ->assertTableActionVisible('normalisasiBobotSubcpmk');
+});

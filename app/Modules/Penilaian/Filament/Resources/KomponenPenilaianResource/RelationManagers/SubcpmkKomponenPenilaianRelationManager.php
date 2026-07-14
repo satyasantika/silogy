@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\On;
 
 class SubcpmkKomponenPenilaianRelationManager extends RelationManager
 {
@@ -28,6 +29,12 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
     protected static ?string $title = 'Sub-CPMK pada Komponen';
 
     protected static ?string $modelLabel = 'Sub-CPMK';
+
+    #[On('komponen-penilaian-bobot-diperbarui')]
+    public function refreshSetelahBobotKomponenDiperbarui(): void
+    {
+        $this->resetTable();
+    }
 
     public function form(Schema $schema): Schema
     {

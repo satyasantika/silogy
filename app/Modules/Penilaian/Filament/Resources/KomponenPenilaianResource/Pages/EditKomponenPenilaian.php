@@ -29,4 +29,9 @@ class EditKomponenPenilaian extends BaseEditRecord
 
         return $record;
     }
+
+    protected function afterSave(): void
+    {
+        $this->dispatch('komponen-penilaian-bobot-diperbarui');
+    }
 }
