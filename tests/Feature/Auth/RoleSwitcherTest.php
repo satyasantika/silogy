@@ -41,7 +41,8 @@ it('memilih role dosen menyembunyikan kemampuan tim kurikulum', function () {
     $this->actingAs(timkurSegar());
 
     Livewire::test(RoleSwitcher::class)
-        ->set('activeRole', 'Dosen Pengampu');
+        ->set('activeRole', 'Dosen Pengampu')
+        ->assertRedirect('/dashboard');
 
     $timkur = timkurSegar();
 

@@ -45,9 +45,9 @@ class RoleSwitcher extends Component
     {
         ActiveRole::set(blank($value) ? null : $value);
 
-        // Muat ulang halaman agar navigasi dan seluruh policy dibangun
-        // ulang dengan role aktif yang baru.
-        $this->redirect(url()->previous() ?: url('/dashboard'));
+        // Selalu kembali ke dashboard agar widget/menu role baru langsung
+        // terlihat, tanpa tetap di halaman yang mungkin tidak relevan.
+        $this->redirect(url('/dashboard'));
     }
 
     /**
