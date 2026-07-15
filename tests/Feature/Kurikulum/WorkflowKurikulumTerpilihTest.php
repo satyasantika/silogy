@@ -2,13 +2,13 @@
 
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\BoK\Models\Bok;
+use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\CPL\Models\CplProfilLulusan;
-use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
-use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Filament\Pages\CplBokMatrix;
@@ -102,7 +102,7 @@ it('admin prodi tidak melihat menu profil lulusan', function () {
 });
 
 it('daftar kurikulum menampilkan record dan ketersediaan menu', function () {
-    $this->actingAs(User::query()->where('username', 'superadmin')->firstOrFail());
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
 
     Livewire::test(ListKurikulums::class)
         ->loadTable()

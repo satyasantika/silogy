@@ -13,10 +13,6 @@ trait AuthorizesTimKurikulumByUnit
 
     public function viewAny(User $user): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         return $user->can($this->kelolaPermission())
             && AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->isNotEmpty();
     }
@@ -78,10 +74,6 @@ trait AuthorizesTimKurikulumByUnit
 
     public function manage(User $user, Model $model): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         if (! $user->can($this->kelolaPermission())) {
             return false;
         }

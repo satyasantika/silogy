@@ -12,7 +12,7 @@ class KomponenPenilaianPolicy
 
     public function viewAny(User $user): bool
     {
-        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+        if ($user->hasRole('Auditor Mutu')) {
             return true;
         }
 
@@ -85,7 +85,7 @@ class KomponenPenilaianPolicy
 
     protected function manage(User $user, KomponenPenilaian $komponenPenilaian): bool
     {
-        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+        if ($user->hasRole('Auditor Mutu')) {
             return true;
         }
 

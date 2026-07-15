@@ -10,10 +10,6 @@ class KurikulumPolicy
 {
     public function viewAny(User $user): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         return $user->can('kelola_kurikulum')
             && AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)->isNotEmpty();
     }
@@ -79,10 +75,6 @@ class KurikulumPolicy
 
     public function manage(User $user, Kurikulum $kurikulum): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         if (! $user->can('kelola_kurikulum')) {
             return false;
         }

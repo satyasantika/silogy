@@ -26,10 +26,6 @@ trait InteraksiKoordinatorMatrixPage
             return false;
         }
 
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         $kurikulum = KurikulumTerpilih::current();
 
         if (! $kurikulum instanceof Kurikulum || $kurikulum->academicUnit === null) {

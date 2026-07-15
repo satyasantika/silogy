@@ -5,6 +5,7 @@ namespace App\Modules\Auth\Filament\Resources;
 use App\Models\Permission;
 use App\Modules\Auth\Filament\Resources\PermissionResource\Pages\ListPermissions;
 use App\Modules\Auth\Support\DomainPermissionLabels;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -26,6 +27,30 @@ class PermissionResource extends Resource
     protected static ?string $pluralModelLabel = 'permission';
 
     protected static ?string $slug = 'permissions';
+
+    /**
+     * Menu Permission disembunyikan dari Super Admin — menu Autentikasi
+     * yang tersisa untuknya hanya Peran & Pengguna (lihat DelegasiMenu).
+     * kelola_permission tetap melekat pada rolenya untuk keperluan lain,
+     * jadi override di sini, bukan pada PermissionPolicy.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return static::canAccess();
+    }
+
+    public static function canAccess(): bool
+    {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+            return false;
+        }
+
+        return static::canViewAny();
+    }
 
     public static function table(Table $table): Table
     {

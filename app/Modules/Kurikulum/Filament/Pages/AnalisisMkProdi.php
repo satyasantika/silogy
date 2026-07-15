@@ -61,10 +61,6 @@ class AnalisisMkProdi extends Page implements HasTable
             return false;
         }
 
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         return $user->hasRole(['Pimpinan', 'Tim Kurikulum'])
             && AcademicUnitScope::scopedStudyProgramIdsFor($user)->isNotEmpty();
     }

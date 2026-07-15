@@ -53,10 +53,6 @@ class LaporanKoordinator extends Page
             return false;
         }
 
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         if (! $user->can('lihat_laporan')) {
             return false;
         }

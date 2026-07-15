@@ -19,8 +19,7 @@ class AnalisisAiPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole('Super Admin')
-            || $user->can('minta_analisis_ai');
+        return $user->can('minta_analisis_ai');
     }
 
     public function update(User $user, AnalisisAi $analisisAi): bool
@@ -40,7 +39,7 @@ class AnalisisAiPolicy
 
     protected function bolehAksesModulAi(User $user): bool
     {
-        return $user->hasRole(['Super Admin', 'Auditor Mutu'])
+        return $user->hasRole('Auditor Mutu')
             || $user->can('minta_analisis_ai');
     }
 }

@@ -61,10 +61,6 @@ class ProfilLulusanResource extends Resource
             return false;
         }
 
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         // Profil lulusan milik Tim Kurikulum — Admin prodi fokus ke kelas MK.
         if (! $user->hasRole('Tim Kurikulum')) {
             return false;

@@ -48,7 +48,11 @@ beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
     $this->seed(SemesterSeeder::class);
     $this->seed(EvaluasiSeeder::class);
-    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+    // Admin prodi: default actor untuk sebagian besar skenario impor di
+    // bawah — Super Admin tidak lagi mengelola CPL/BoK/MK/Kurikulum dkk,
+    // jadi tes yang bukan tentang area Super Admin (Unit Akademik/
+    // Mahasiswa) memakai actor operasional yang legitimate diberi akses.
+    $this->actingAs(User::where('username', 'adminprodi')->firstOrFail());
 
     $this->univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
@@ -70,7 +74,8 @@ beforeEach(function () {
 });
 
 it('unit akademik terpakai tidak dapat dihapus, unit kosong dapat', function () {
-    $superadmin = auth()->user();
+    $superadmin = User::where('username', 'superadmin')->firstOrFail();
+    $this->actingAs($superadmin);
     $policy = new AcademicUnitPolicy;
 
     // FKIP punya sub-unit → terlindungi.
@@ -90,6 +95,8 @@ it('unit akademik terpakai tidak dapat dihapus, unit kosong dapat', function () 
 });
 
 it('impor unit akademik: baru dibuat, duplikat kode terdeteksi', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
     $rows = implode("\n", [
         'fakultas|FT2|Fakultas Teknik|UNSIL|FT|aktif',
         'prodi|PTI|Prodi Pendidikan Informatika|21||aktif',
@@ -200,6 +207,8 @@ it('impor cpl prodi menolak profil lulusan yang tidak ada', function () {
 });
 
 it('impor cpl fakultas tanpa kolom profil lulusan', function () {
+    $this->actingAs(User::where('username', 'adminfak')->firstOrFail());
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => 'CPL-FAK-01|CPL tingkat fakultas|kognitif',
@@ -211,6 +220,8 @@ it('impor cpl fakultas tanpa kolom profil lulusan', function () {
 });
 
 it('impor cpl fakultas menolak baris dengan kolom profil lulusan', function () {
+    $this->actingAs(User::where('username', 'adminfak')->firstOrFail());
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => 'Pendidik|CPL-FAK-PROFIL|Deskripsi|kognitif',

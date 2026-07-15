@@ -78,7 +78,7 @@ it('kelas mk baru mewarisi koordinator default dari mk', function () {
     $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create();
     $semester = Semester::query()->where('status_aktif', true)->first();
 
-    $this->actingAs(User::where('username', 'superadmin')->first());
+    $this->actingAs(User::where('username', 'adminprodi')->first());
 
     Livewire::test(CreateKelasMk::class)
         ->fillForm([

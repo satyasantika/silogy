@@ -35,11 +35,11 @@ it('dosen pengampu tidak dapat mengakses halaman role shield', function () {
         ->assertForbidden();
 });
 
-it('superadmin dapat mengakses halaman permission', function () {
+it('superadmin tidak lagi mengakses halaman permission — menu autentikasi dibatasi ke peran & pengguna', function () {
     $this->actingAs(User::where('username', 'superadmin')->first());
 
     Livewire::test(ListPermissions::class)
-        ->assertSuccessful();
+        ->assertForbidden();
 });
 
 it('superadmin dapat menetapkan permission langsung ke pengguna', function () {

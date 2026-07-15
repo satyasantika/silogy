@@ -38,9 +38,9 @@ it('denies dosen from ai module', function () {
         ->and($this->policy->create($dosen))->toBeFalse();
 });
 
-it('allows super admin to view and create', function () {
+it('denies super admin from ai module — delegated to operational roles', function () {
     $superadmin = User::where('username', 'superadmin')->firstOrFail();
 
-    expect($this->policy->viewAny($superadmin))->toBeTrue()
-        ->and($this->policy->create($superadmin))->toBeTrue();
+    expect($this->policy->viewAny($superadmin))->toBeFalse()
+        ->and($this->policy->create($superadmin))->toBeFalse();
 });

@@ -12,10 +12,6 @@ class MkUnitPolicy
 {
     public function viewAny(User $user): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         if ($this->koordinatorMkDapatLihatDaftar($user)) {
             return true;
         }
@@ -93,10 +89,6 @@ class MkUnitPolicy
 
     public function manage(User $user, MkUnit $mkUnit): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         if ($this->koordinatorMkTanpaKelolaPenawaran($user)) {
             return false;
         }

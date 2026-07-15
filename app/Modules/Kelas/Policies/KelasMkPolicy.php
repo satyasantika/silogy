@@ -11,7 +11,7 @@ class KelasMkPolicy
 {
     public function viewAny(User $user): bool
     {
-        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+        if ($user->hasRole('Auditor Mutu')) {
             return true;
         }
 
@@ -61,10 +61,6 @@ class KelasMkPolicy
      */
     public function create(User $user): bool
     {
-        if ($user->hasRole('Super Admin')) {
-            return true;
-        }
-
         return $user->can('kelola_kelas')
             && AcademicUnitScope::userHasPivotOnUnitType($user, 'study_program')
             && $user->hasAnyRole(['Admin', 'Admin Program Studi']);
@@ -163,7 +159,7 @@ class KelasMkPolicy
 
     protected function canAccessKelas(User $user, KelasMk $kelasMk): bool
     {
-        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+        if ($user->hasRole('Auditor Mutu')) {
             return true;
         }
 

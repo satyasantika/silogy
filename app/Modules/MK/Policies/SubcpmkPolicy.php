@@ -12,7 +12,7 @@ class SubcpmkPolicy
 
     public function viewAny(User $user): bool
     {
-        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+        if ($user->hasRole('Auditor Mutu')) {
             return true;
         }
 
@@ -77,7 +77,7 @@ class SubcpmkPolicy
 
     protected function manage(User $user, Subcpmk $subcpmk): bool
     {
-        if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
+        if ($user->hasRole('Auditor Mutu')) {
             return true;
         }
 
