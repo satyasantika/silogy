@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Services;
 
 use App\Models\User;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -13,7 +14,7 @@ use Illuminate\Support\HtmlString;
 class MataKuliahKoordinatorService
 {
     /**
-     * @return array{cpmk: bool, subcpmk: bool, asesmen: bool}
+     * @return array{cpmk: bool, subcpmk: bool, asesmen: bool, mahasiswa: bool}
      */
     public static function ketersediaanPenilaian(Mk $mk, User $user): array
     {
@@ -30,10 +31,19 @@ class MataKuliahKoordinatorService
             ->where('mk_id', $mk->id)
             ->exists();
 
+        $hasMahasiswa = KelasMk::query()
+            ->whereHas(
+                'mkUnit',
+                fn ($query) => $query->where('mk_id', $mk->id),
+            )
+            ->whereHas('mahasiswas')
+            ->exists();
+
         return [
             'cpmk' => $hasCpmk,
             'subcpmk' => $hasSubcpmk,
             'asesmen' => $hasAsesmen,
+            'mahasiswa' => $hasMahasiswa,
         ];
     }
 
@@ -56,6 +66,7 @@ class MataKuliahKoordinatorService
             'cpmk' => ['label' => 'CPMK', 'menu' => 'cpmk'],
             'subcpmk' => ['label' => 'Sub-CPMK', 'menu' => 'subcpmk'],
             'asesmen' => ['label' => 'Asesmen', 'menu' => 'asesmen'],
+            'mahasiswa' => ['label' => 'Mahasiswa', 'menu' => 'mahasiswa'],
         ];
 
         $badges = collect($menu)

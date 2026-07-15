@@ -37,7 +37,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
 
             // ---- Kelas & Penilaian ----
-            'kelola_kelas', 'setdosen_mk', 'input_nilai', 'import_nilai',
+            'kelola_kelas', 'setdosen_mk', 'input_nilai', 'import_nilai', 'kelola_peserta_kelas',
 
             // ---- Laporan & AI ----
             'lihat_laporan', 'ekspor_data', 'minta_analisis_ai', 'lihat_dashboard',
@@ -68,7 +68,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_kurikulum', 'kelola_profil_lulusan',
             'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit', // penawaran mk hanya level prodi
             'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
-            'kelola_kelas',
+            'kelola_kelas', 'kelola_peserta_kelas',
             'setdosen_mk',
             'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
         ]);
@@ -87,7 +87,7 @@ class RolePermissionSeeder extends Seeder
         // --- Koordinator Mata Kuliah ---
         $korma = Role::firstOrCreate(['name' => 'Koordinator Mata Kuliah', 'guard_name' => 'web']);
         $korma->syncPermissions([
-            'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
+            'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian', 'kelola_peserta_kelas',
             'lihat_laporan', 'lihat_dashboard',
         ]);
 

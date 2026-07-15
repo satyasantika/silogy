@@ -23,5 +23,5 @@ Route::middleware(['web', 'auth'])
 
 Route::middleware(['web', 'auth'])
     ->get('/navigasi-mk/{mk}/{menu}', MkMenuRedirectController::class)
-    ->whereIn('menu', ['cpmk', 'subcpmk', 'asesmen', 'cpl-cpmk', 'subcpmk-asesmen'])
+    ->whereIn('menu', ['cpmk', 'subcpmk', 'asesmen', 'mahasiswa', 'cpl-cpmk', 'subcpmk-asesmen'])
     ->name('silogy.mk-navigasi');

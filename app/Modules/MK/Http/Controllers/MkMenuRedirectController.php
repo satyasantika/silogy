@@ -11,6 +11,7 @@ use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
+use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
 use App\Modules\MK\Policies\MataKuliahKoordinatorPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class MkMenuRedirectController extends Controller
         'cpmk' => CpmkResource::class,
         'subcpmk' => SubcpmkResource::class,
         'asesmen' => KomponenPenilaianResource::class,
+        'mahasiswa' => PesertaKelasResource::class,
     ];
 
     /**
