@@ -4,8 +4,10 @@ namespace Database\Seeders\Support;
 
 use App\Models\User;
 use App\Modules\BoK\Models\Bok;
+use App\Modules\BoK\Models\BokKodeOverride;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
+use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Institusi\Models\AcademicUnit;
@@ -238,6 +240,62 @@ class SimulasiAkademikBuilder
         $this->jalankanKalkulasi(collect([$kelas]), $unit);
     }
 
+    /**
+     * Prodi mengadaptasi MK milik unit lain (universitas/fakultas) yang
+     * sebelumnya dibuat lewat seedMkUnitRingkas(): menambah baris MkUnit
+     * berskala prodi untuk MK yang sama (tanpa mengubah baris milik unit
+     * asal), sehingga CPL/BoK unit asal otomatis tersingkap di menu prodi
+     * lewat CplBokAdaptasiScope — lalu memberi kode alias khusus prodi
+     * untuk mendemokan CplKodeOverride/BokKodeOverride.
+     */
+    public function seedAdaptasiLintasUnit(
+        AcademicUnit $prodi,
+        AcademicUnit $unitAsal,
+        string $mkKode,
+        string $kodeAliasCpl,
+        string $kodeAliasBok,
+    ): void {
+        $mkUnitAsal = MkUnit::query()
+            ->where('academic_unit_id', $unitAsal->id)
+            ->where('kode', $mkKode)
+            ->first();
+
+        if ($mkUnitAsal === null) {
+            return;
+        }
+
+        MkUnit::query()->firstOrCreate(
+            ['mk_id' => $mkUnitAsal->mk_id, 'academic_unit_id' => $prodi->id, 'kode' => $mkKode],
+            ['id' => (string) Str::uuid(), 'semester_ke' => 1, 'is_active' => true],
+        );
+
+        $suffixUnit = $this->kodeSingkatUnit($unitAsal->type);
+
+        $cplAsal = Cpl::query()
+            ->where('academic_unit_id', $unitAsal->id)
+            ->where('kode', 'CPL-SIM-'.$suffixUnit)
+            ->first();
+
+        if ($cplAsal !== null) {
+            CplKodeOverride::query()->updateOrCreate(
+                ['academic_unit_id' => $prodi->id, 'cpl_id' => $cplAsal->id],
+                ['id' => (string) Str::uuid(), 'kode' => $kodeAliasCpl],
+            );
+        }
+
+        $bokAsal = Bok::query()
+            ->where('academic_unit_id', $unitAsal->id)
+            ->where('kode', 'BOK-SIM-'.$suffixUnit)
+            ->first();
+
+        if ($bokAsal !== null) {
+            BokKodeOverride::query()->updateOrCreate(
+                ['academic_unit_id' => $prodi->id, 'bok_id' => $bokAsal->id],
+                ['id' => (string) Str::uuid(), 'kode' => $kodeAliasBok],
+            );
+        }
+    }
+
     protected function sudahAdaHasilCpl(AcademicUnit $unit): bool
     {
         return HasilCplUnit::query()
@@ -306,7 +364,7 @@ class SimulasiAkademikBuilder
         $cplIds = [];
 
         foreach ([
-            ['kode' => 'CPL-SIM-01', 'deskripsi' => 'Mampu merancang pembelajaran matematika', 'domain' => ['kognitif']],
+            ['kode' => 'CPL-SIM-01', 'deskripsi' => 'Mampu merancang pembelajaran matematika', 'domain' => ['kognitif', 'psikomotorik']],
             ['kode' => 'CPL-SIM-02', 'deskripsi' => 'Berkomitmen pada etika pendidikan', 'domain' => ['afektif']],
         ] as $row) {
             $cpl = Cpl::query()->firstOrCreate(

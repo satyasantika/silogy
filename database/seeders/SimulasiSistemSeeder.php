@@ -82,5 +82,11 @@ class SimulasiSistemSeeder extends Seeder
             'dosen' => $dosenFak,
             'koordinator' => $korma,
         ]);
+
+        // 5. Adaptasi lintas unit: prodi mengadopsi MK universitas & fakultas
+        //    di atas, lalu menyeragamkan kode tampilan CPL/BoK asalnya lewat
+        //    kode alias (CplKodeOverride/BokKodeOverride) khusus prodi.
+        $builder->seedAdaptasiLintasUnit($prodi, $univ, 'UNV101', 'CPL-ADAPT-UNIV', 'BOK-ADAPT-UNIV');
+        $builder->seedAdaptasiLintasUnit($prodi, $fkip, 'FAK101', 'CPL-ADAPT-FAK', 'BOK-ADAPT-FAK');
     }
 }
