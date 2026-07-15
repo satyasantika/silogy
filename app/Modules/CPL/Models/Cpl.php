@@ -32,6 +32,10 @@ class Cpl extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'domain' => 'array',
+    ];
+
     /**
      * @return BelongsTo<AcademicUnit, $this>
      */

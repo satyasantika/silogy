@@ -6,9 +6,12 @@ use App\Modules\BoK\Filament\Resources\BokResource\Pages\CreateBok;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\EditBok;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\BoK\Models\Bok;
+use App\Modules\BoK\Models\BokKodeOverride;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -59,14 +62,34 @@ class BokResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return static::scopeEloquentByTimKurikulumUnits(
+        $query = static::scopeEloquentByTimKurikulumUnits(
             parent::getEloquentQuery()->with('academicUnit'),
         );
+
+        if (auth()->user()?->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        $adaptasi = static::scopedTimKurikulumUnitIds()
+            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedBokIds($unitId));
+
+        return $adaptasi->isEmpty() ? $query : $query->orWhereIn('id', $adaptasi);
     }
 
     public static function form(Schema $schema): Schema
     {
         $unitIds = static::scopedTimKurikulumUnitIds();
+        // "Asing" = record bukan milik unit manapun yang saya kelola sebagai
+        // Tim Kurikulum — independen dari Kurikulum yang sedang terpilih di
+        // sesi, supaya konsisten dengan getEloquentQuery()/BokPolicy::manage().
+        $isAsing = fn (?Bok $record): bool => $record !== null && ! $unitIds->contains($record->academic_unit_id);
+
+        // Unit MILIK SAYA yang benar-benar mengadaptasi BoK asing ini — di situlah
+        // override kode-nya berlaku (satu BoK asing bisa diadaptasi lebih dari
+        // satu unit milik saya sekaligus, masing-masing dengan alias sendiri).
+        $overrideUnitId = fn (?Bok $record): ?string => $record
+            ? $unitIds->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIds($unitId)->contains($record->id))
+            : null;
 
         return $schema
             ->components([
@@ -74,18 +97,29 @@ class BokResource extends Resource
                     ->schema([
                         Select::make('academic_unit_id')
                             ->label('Unit akademik')
-                            ->options(static::timKurikulumUnitOptions())
+                            ->options(function (?Bok $record) use ($isAsing): array {
+                                $options = static::timKurikulumUnitOptions();
+
+                                if ($isAsing($record)) {
+                                    $record->loadMissing('academicUnit');
+                                    $options[$record->academic_unit_id] = $record->academicUnit?->nama ?? '—';
+                                }
+
+                                return $options;
+                            })
                             ->searchable()
-                            ->required()
+                            ->required(fn (?Bok $record): bool => ! $isAsing($record))
                             ->live()
                             ->default($unitIds->count() === 1 ? $unitIds->first() : null)
-                            ->disabled($unitIds->count() === 1)
-                            ->dehydrated(),
+                            ->disabled(fn (?Bok $record): bool => $isAsing($record) || $unitIds->count() === 1)
+                            ->dehydrated(fn (?Bok $record): bool => ! $isAsing($record)),
 
                         TextInput::make('kode')
                             ->label('Kode')
-                            ->required()
+                            ->required(fn (?Bok $record): bool => ! $isAsing($record))
                             ->maxLength(15)
+                            ->disabled($isAsing)
+                            ->dehydrated(fn (?Bok $record): bool => ! $isAsing($record))
                             ->rule(fn (Get $get, ?Bok $record): array => [
                                 static::uniqueKodePerUnitRule(
                                     'bok',
@@ -94,13 +128,61 @@ class BokResource extends Resource
                                 ),
                             ]),
 
+                        TextInput::make('kode_override')
+                            ->label('Kode (alias di unit ini)')
+                            ->helperText('BoK ini milik unit lain — hanya kode tampilannya yang bisa diseragamkan untuk unit Anda.')
+                            ->visible($isAsing)
+                            ->required($isAsing)
+                            ->maxLength(15)
+                            ->default(function (?Bok $record) use ($overrideUnitId): ?string {
+                                if (! $record) {
+                                    return null;
+                                }
+
+                                $unitId = $overrideUnitId($record);
+
+                                if ($unitId === null) {
+                                    return $record->kode;
+                                }
+
+                                return BokKodeOverride::query()
+                                    ->where('academic_unit_id', $unitId)
+                                    ->where('bok_id', $record->id)
+                                    ->value('kode') ?? $record->kode;
+                            })
+                            ->rule(fn (?Bok $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record, $overrideUnitId): void {
+                                $unitId = $overrideUnitId($record);
+
+                                if ($unitId === null) {
+                                    return;
+                                }
+
+                                if (Bok::query()->where('academic_unit_id', $unitId)->where('kode', $value)->exists()) {
+                                    $fail('Kode sudah dipakai BoK lain pada unit ini.');
+
+                                    return;
+                                }
+
+                                if (BokKodeOverride::query()
+                                    ->where('academic_unit_id', $unitId)
+                                    ->where('kode', $value)
+                                    ->where('bok_id', '!=', $record?->id)
+                                    ->exists()) {
+                                    $fail('Kode sudah dipakai sebagai alias BoK lain pada unit ini.');
+                                }
+                            }),
+
                         TextInput::make('nama')
                             ->label('Nama')
-                            ->required()
+                            ->required(fn (?Bok $record): bool => ! $isAsing($record))
+                            ->disabled($isAsing)
+                            ->dehydrated(fn (?Bok $record): bool => ! $isAsing($record))
                             ->maxLength(150),
 
                         RichEditor::make('deskripsi')
                             ->label('Deskripsi')
+                            ->disabled($isAsing)
+                            ->dehydrated(fn (?Bok $record): bool => ! $isAsing($record))
                             ->columnSpanFull(),
                     ])
                     ->columns(2)
@@ -125,7 +207,14 @@ class BokResource extends Resource
                     ->label('Kode')
                     ->searchable()
                     ->sortable()
-                    ->weight(FontWeight::Bold),
+                    ->weight(FontWeight::Bold)
+                    ->state(function (Bok $record): string {
+                        $unitId = KurikulumTerpilih::current()?->academic_unit_id;
+
+                        return $unitId === null
+                            ? $record->kode
+                            : CplBokAdaptasiScope::displayKodeMapBok(collect([$record]), $unitId)->first();
+                    }),
 
                 TextColumn::make('nama')
                     ->label('Nama')
@@ -140,9 +229,27 @@ class BokResource extends Resource
                     ->size('sm')
                     ->color('gray')
                     ->placeholder('—'),
+
+                TextColumn::make('unit_asal')
+                    ->label('')
+                    ->state(function (Bok $record): string {
+                        $unitId = KurikulumTerpilih::current()?->academic_unit_id;
+
+                        if ($unitId === null || $record->academic_unit_id === $unitId) {
+                            return '';
+                        }
+
+                        $record->loadMissing('academicUnit');
+
+                        return 'Adaptasi dari '.($record->academicUnit->nama ?? '—');
+                    })
+                    ->size('sm')
+                    ->color('warning'),
             ],
-            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+            fn (Builder $query, Kurikulum $kurikulum): Builder => CplBokAdaptasiScope::scopeVisibleBok(
+                $query,
+                $kurikulum->academic_unit_id,
+            ),
         );
     }
 

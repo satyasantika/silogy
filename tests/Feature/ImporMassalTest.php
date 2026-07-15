@@ -148,6 +148,19 @@ it('impor cpl per unit dengan validasi domain', function () {
         ->and(Cpl::query()->where('kode', 'CPL-IMP-02')->exists())->toBeFalse();
 });
 
+it('impor cpl mendukung beberapa domain sekaligus dipisah koma', function () {
+    Livewire::test(ListCpls::class)
+        ->callAction('bulkImport', [
+            'rows' => '|CPL-IMP-MULTI|Mampu memahami dan bersikap ilmiah|kognitif,afektif',
+            'mode_duplikat' => 'lewati',
+            'import_kurikulum_id' => $this->kurikulumProdi->id,
+        ]);
+
+    $cpl = Cpl::query()->where('kode', 'CPL-IMP-MULTI')->firstOrFail();
+
+    expect($cpl->domain)->toBe(['kognitif', 'afektif']);
+});
+
 it('impor cpl prodi memetakan ke beberapa profil lulusan sekaligus', function () {
     ProfilLulusan::query()->create([
         'kurikulum_id' => $this->kurikulumProdi->id,
@@ -777,6 +790,6 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
     $cpl = Cpl::query()->where('kode', 'CPL-TIMPA')->firstOrFail();
 
     expect($cpl->deskripsi)->toBe('Deskripsi baru hasil timpa')
-        ->and($cpl->domain)->toBe('afektif')
+        ->and($cpl->domain)->toBe(['afektif'])
         ->and(Cpl::query()->where('kode', 'CPL-TIMPA')->count())->toBe(1);
 });

@@ -8,6 +8,7 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
+use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Filament\Pages\CplBokMatrix;
@@ -20,6 +21,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
@@ -35,6 +37,7 @@ beforeEach(function () {
 
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $this->fakultas = AcademicUnit::query()->where('type', 'faculty')->firstOrFail();
+    $this->univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
 
     $this->kurikulumProdi = Kurikulum::query()->create([
         'academic_unit_id' => $this->prodi->id,
@@ -288,4 +291,100 @@ it('matriks interaksi mengikuti role aktif pada dosentimkur', function () {
         ->and(CplMkMatrix::canAccess())->toBeTrue()
         ->and(CplBokMatrix::shouldRegisterNavigation())->toBeTrue()
         ->and(CplMkMatrix::shouldRegisterNavigation())->toBeTrue();
+});
+
+/**
+ * Konsekuensi adaptasi MK: prodi mengadaptasi satu MK milik universitas yang
+ * sudah dipetakan universitas ke satu CPL/BoK-nya sendiri (bobot 60) —
+ * rantai mk_units -> cpl_mk -> cpl_bok inilah yang membuat CPL/BoK
+ * universitas tsb tersingkap otomatis di semesta prodi.
+ *
+ * @return array{mk: Mk, cpl: Cpl, bok: Bok, cplBok: CplBok}
+ */
+function siapkanAdaptasiUnivWorkflow(object $context): array
+{
+    $mkUniv = Mk::factory()->forAcademicUnit($context->univ)->create(['nama' => 'MK Adaptasi Univ']);
+    $cplUniv = Cpl::factory()->forAcademicUnit($context->univ)->create(['kode' => 'CPL-UNIV-1']);
+    $bokUniv = Bok::factory()->forAcademicUnit($context->univ)->create(['kode' => 'BOK-UNIV-1']);
+    $cplBokUniv = CplBok::query()->create(['cpl_id' => $cplUniv->id, 'bok_id' => $bokUniv->id]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkUniv->id, 'bobot' => 60]);
+
+    MkUnit::factory()->forAcademicUnit($context->prodi)->forMk($mkUniv)->create(['is_active' => true]);
+
+    return ['mk' => $mkUniv, 'cpl' => $cplUniv, 'bok' => $bokUniv, 'cplBok' => $cplBokUniv];
+}
+
+it('listcpls dan listboks menampilkan cpl/bok universitas yang teradaptasi lewat mk', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $adaptasi = siapkanAdaptasiUnivWorkflow($this);
+
+    Livewire::test(ListCpls::class)
+        ->loadTable()
+        ->assertCanSeeTableRecords([$adaptasi['cpl']]);
+
+    Livewire::test(ListBoks::class)
+        ->loadTable()
+        ->assertCanSeeTableRecords([$adaptasi['bok']]);
+});
+
+it('cplbokmatrix menampilkan pasangan adaptasi, menolak lepas pasangan murni asing, mengizinkan pasangan baru menyilang unit', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $adaptasi = siapkanAdaptasiUnivWorkflow($this);
+    $cplProdi = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-PRODI-X']);
+
+    $page = Livewire::test(CplBokMatrix::class)
+        ->assertSee($adaptasi['cpl']->kode)
+        ->assertSee($adaptasi['bok']->kode);
+
+    // Pasangan murni asing (cpl univ x bok univ) tidak boleh diubah dari prodi.
+    $page->call('toggle', $adaptasi['cpl']->id, $adaptasi['bok']->id);
+    expect(CplBok::query()->where('cpl_id', $adaptasi['cpl']->id)->where('bok_id', $adaptasi['bok']->id)->exists())->toBeTrue();
+
+    // Pasangan baru menyilang unit (CPL prodi x BoK universitas) boleh dibuat.
+    $page->call('toggle', $cplProdi->id, $adaptasi['bok']->id);
+    expect(CplBok::query()->where('cpl_id', $cplProdi->id)->where('bok_id', $adaptasi['bok']->id)->exists())->toBeTrue();
+});
+
+it('cplmkmatrix menjumlahkan bobot mk prodi dan mk adaptasi ke kolom cplbok yang sama (bukti perbaikan bug axis)', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $adaptasi = siapkanAdaptasiUnivWorkflow($this);
+    $mkProdi = Mk::factory()->forAcademicUnit($this->prodi)->create(['nama' => 'MK Prodi Sendiri']);
+
+    Livewire::test(CplMkMatrix::class)
+        ->call('updateBobot', $mkProdi->id, $adaptasi['cplBok']->id, '30');
+
+    expect((float) CplMk::query()
+        ->where('mk_id', $mkProdi->id)
+        ->where('cpl_bok_id', $adaptasi['cplBok']->id)
+        ->value('bobot'))->toBe(30.0);
+
+    // Total kolom = 60 (mk adaptasi) + 30 (mk prodi) = 90, bukan dua total terpisah per baris.
+    Livewire::test(CplMkMatrix::class)->assertSee('Σ 90%');
+});
+
+it('profilcplmatrix bisa toggle profil x cpl universitas yang teradaptasi', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $adaptasi = siapkanAdaptasiUnivWorkflow($this);
+    $profil = ProfilLulusan::query()->create([
+        'kurikulum_id' => $this->kurikulumProdi->id,
+        'kode' => 'PL-ADAPT',
+        'deskripsi' => 'Profil uji adaptasi',
+    ]);
+
+    Livewire::test(ProfilCplMatrix::class)
+        ->assertSee($adaptasi['cpl']->kode)
+        ->call('toggle', $adaptasi['cpl']->id, $profil->id);
+
+    expect(CplProfilLulusan::query()
+        ->where('cpl_id', $adaptasi['cpl']->id)
+        ->where('profil_lulusan_id', $profil->id)
+        ->exists())->toBeTrue();
 });

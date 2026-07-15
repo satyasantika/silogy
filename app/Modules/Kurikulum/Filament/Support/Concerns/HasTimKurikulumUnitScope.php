@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 
 trait HasTimKurikulumUnitScope
@@ -48,7 +49,7 @@ trait HasTimKurikulumUnitScope
         ?string $ignoreRecordId = null,
         ?string $academicUnitId = null,
     ): Unique {
-        $rule = Unique::make($table, 'kode');
+        $rule = Rule::unique($table, 'kode');
 
         if ($academicUnitId) {
             $rule->where('academic_unit_id', $academicUnitId);

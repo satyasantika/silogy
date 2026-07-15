@@ -173,13 +173,13 @@ it('completes full mvp journey for prodi', function () {
         'academic_unit_id' => $prodi->id,
         'kode' => 'CPL-E2E-01',
         'deskripsi' => 'CPL E2E pertama',
-        'domain' => 'kognitif',
+        'domain' => ['kognitif'],
     ]);
     $cpl2 = Cpl::query()->create([
         'academic_unit_id' => $prodi->id,
         'kode' => 'CPL-E2E-02',
         'deskripsi' => 'CPL E2E kedua',
-        'domain' => 'afektif',
+        'domain' => ['afektif'],
     ]);
 
     CplProfilLulusan::query()->create(['cpl_id' => $cpl1->id, 'profil_lulusan_id' => $profil->id]);

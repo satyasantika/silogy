@@ -6,6 +6,7 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Pages\Page;
@@ -13,7 +14,10 @@ use Filament\Support\Icons\Heroicon;
 
 /**
  * Matriks interaksi Profil ↔ CPL: kolom profil lulusan, baris CPL,
- * irisan berupa switch keterkaitan (pivot cpl_profil_lulusan).
+ * irisan berupa switch keterkaitan (pivot cpl_profil_lulusan). Turut
+ * menampilkan CPL milik unit lain yang tersingkap lewat adaptasi MK — sisi
+ * Profil selalu milik prodi sendiri, jadi seluruh baris CPL yang terlihat
+ * (termasuk yang teradaptasi) dapat ditoggle.
  */
 class ProfilCplMatrix extends Page
 {
@@ -45,6 +49,12 @@ class ProfilCplMatrix extends Page
 
     public function toggle(string $cplId, string $profilId): void
     {
+        $unitId = $this->getKurikulum()?->academic_unit_id;
+
+        if ($unitId === null || ! CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query(), $unitId)->whereKey($cplId)->exists()) {
+            return;
+        }
+
         $pivot = CplProfilLulusan::query()
             ->where('cpl_id', $cplId)
             ->where('profil_lulusan_id', $profilId)
@@ -70,8 +80,10 @@ class ProfilCplMatrix extends Page
         $kurikulum = $this->getKurikulum();
 
         if (! $kurikulum || ! ($kurikulum->academicUnit?->isProdi() ?? false)) {
-            return ['kurikulum' => $kurikulum, 'profils' => collect(), 'cpls' => collect(), 'terpetakan' => collect()];
+            return ['kurikulum' => $kurikulum, 'profils' => collect(), 'cpls' => collect(), 'terpetakan' => collect(), 'cplKodeMap' => collect(), 'cplAsalMap' => collect()];
         }
+
+        $unitId = $kurikulum->academic_unit_id;
 
         $profils = ProfilLulusan::query()
             ->where('kurikulum_id', $kurikulum->id)
@@ -79,8 +91,7 @@ class ProfilCplMatrix extends Page
             ->orderBy('kode')
             ->get();
 
-        $cpls = Cpl::query()
-            ->where('academic_unit_id', $kurikulum->academic_unit_id)
+        $cpls = CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query()->with('academicUnit'), $unitId)
             ->orderBy('kode')
             ->get();
 
@@ -91,11 +102,15 @@ class ProfilCplMatrix extends Page
                 $pivot->cpl_id.'/'.$pivot->profil_lulusan_id => true,
             ]);
 
+        $cplAsalMap = $cpls->mapWithKeys(fn (Cpl $cpl): array => [$cpl->id => $cpl->academic_unit_id !== $unitId]);
+
         return [
             'kurikulum' => $kurikulum,
             'profils' => $profils,
             'cpls' => $cpls,
             'terpetakan' => $terpetakan,
+            'cplKodeMap' => CplBokAdaptasiScope::displayKodeMapCpl($cpls, $unitId),
+            'cplAsalMap' => $cplAsalMap,
         ];
     }
 }

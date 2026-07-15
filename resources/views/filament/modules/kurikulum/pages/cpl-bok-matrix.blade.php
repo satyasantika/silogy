@@ -13,7 +13,7 @@
         <x-filament::section
             icon="heroicon-o-arrows-right-left"
             heading="Interaksi CPL ↔ BoK"
-            description="Centang irisan untuk memetakan CPL (baris) ke bahan kajian (kolom)."
+            description="Centang irisan untuk memetakan CPL (baris) ke bahan kajian (kolom). CPL/BoK bertanda † berasal dari adaptasi MK unit lain — pasangan yang murni milik unit lain tidak dapat diubah dari sini."
         >
             <div style="overflow-x:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -21,8 +21,11 @@
                         <tr style="text-align:left;border-bottom:2px solid rgba(128,128,128,.35);">
                             <th style="padding:8px;">CPL \ BoK</th>
                             @foreach ($boks as $bok)
-                                <th style="padding:8px;text-align:center;" title="{{ $bok->nama }}">
-                                    {{ $bok->kode }}
+                                <th style="padding:8px;text-align:center;" title="{{ $bok->nama }}{{ $bokAsalMap[$bok->id] ? ' — adaptasi dari '.($bok->academicUnit->nama ?? '—') : '' }}">
+                                    {{ $bokKodeMap[$bok->id] }}
+                                    @if ($bokAsalMap[$bok->id])
+                                        <sup style="color:#b45309;">†</sup>
+                                    @endif
                                 </th>
                             @endforeach
                         </tr>
@@ -30,14 +33,22 @@
                     <tbody>
                         @foreach ($cpls as $cpl)
                             <tr style="border-bottom:1px solid rgba(128,128,128,.2);">
-                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}">
-                                    <strong>{{ $cpl->kode }}</strong>
+                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ $cplAsalMap[$cpl->id] ? ' — adaptasi dari '.($cpl->academicUnit->nama ?? '—') : '' }}">
+                                    <strong>{{ $cplKodeMap[$cpl->id] }}</strong>
+                                    @if ($cplAsalMap[$cpl->id])
+                                        <sup style="color:#b45309;">†</sup>
+                                    @endif
                                 </td>
                                 @foreach ($boks as $bok)
                                     @php
                                         $kunciSel = $cpl->id.'/'.$bok->id;
                                         $sudahTerpetakan = $terpetakan->has($kunciSel);
-                                        $terkunci = $terkunciBobot->has($kunciSel);
+                                        $terkunciReferensi = $terkunciBobot->has($kunciSel);
+                                        $bisaDiedit = $editableSisi[$kunciSel] ?? false;
+                                        $terkunci = $terkunciReferensi || ! $bisaDiedit;
+                                        $titleTerkunci = ! $bisaDiedit
+                                            ? 'Pasangan ini murni milik unit lain, tidak dapat diubah dari sini'
+                                            : ($terkunciReferensi ? 'Hapus bobot pada interaksi CPL ↔ MK terlebih dahulu' : null);
                                     @endphp
                                     <td style="padding:8px;text-align:center;">
                                         <input
@@ -48,8 +59,8 @@
                                             @endif
                                             @disabled($terkunci)
                                             @checked($sudahTerpetakan)
-                                            @if ($terkunci)
-                                                title="Hapus bobot pada interaksi CPL ↔ MK terlebih dahulu"
+                                            @if ($titleTerkunci)
+                                                title="{{ $titleTerkunci }}"
                                             @endif
                                         />
                                     </td>

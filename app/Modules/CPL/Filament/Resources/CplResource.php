@@ -6,9 +6,12 @@ use App\Modules\CPL\Filament\Resources\CplResource\Pages\CreateCpl;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\EditCpl;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -67,20 +70,39 @@ class CplResource extends Resource
             'kognitif' => 'Kognitif',
             'afektif' => 'Afektif',
             'psikomotorik' => 'Psikomotorik',
-            'gabungan' => 'Gabungan',
         ];
     }
 
     public static function getEloquentQuery(): Builder
     {
-        return static::scopeEloquentByTimKurikulumUnits(
+        $query = static::scopeEloquentByTimKurikulumUnits(
             parent::getEloquentQuery()->with('academicUnit'),
         );
+
+        if (auth()->user()?->hasRole('Super Admin')) {
+            return $query;
+        }
+
+        $adaptasi = static::scopedTimKurikulumUnitIds()
+            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedCplIds($unitId));
+
+        return $adaptasi->isEmpty() ? $query : $query->orWhereIn('id', $adaptasi);
     }
 
     public static function form(Schema $schema): Schema
     {
         $unitIds = static::scopedTimKurikulumUnitIds();
+        // "Asing" = record bukan milik unit manapun yang saya kelola sebagai
+        // Tim Kurikulum — independen dari Kurikulum yang sedang terpilih di
+        // sesi, supaya konsisten dengan getEloquentQuery()/CplPolicy::manage().
+        $isAsing = fn (?Cpl $record): bool => $record !== null && ! $unitIds->contains($record->academic_unit_id);
+
+        // Unit MILIK SAYA yang benar-benar mengadaptasi CPL asing ini — di situlah
+        // override kode-nya berlaku (satu CPL asing bisa diadaptasi lebih dari
+        // satu unit milik saya sekaligus, masing-masing dengan alias sendiri).
+        $overrideUnitId = fn (?Cpl $record): ?string => $record
+            ? $unitIds->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIds($unitId)->contains($record->id))
+            : null;
 
         return $schema
             ->components([
@@ -88,18 +110,29 @@ class CplResource extends Resource
                     ->schema([
                         Select::make('academic_unit_id')
                             ->label('Unit akademik')
-                            ->options(static::timKurikulumUnitOptions())
+                            ->options(function (?Cpl $record) use ($isAsing): array {
+                                $options = static::timKurikulumUnitOptions();
+
+                                if ($isAsing($record)) {
+                                    $record->loadMissing('academicUnit');
+                                    $options[$record->academic_unit_id] = $record->academicUnit?->nama ?? '—';
+                                }
+
+                                return $options;
+                            })
                             ->searchable()
-                            ->required()
+                            ->required(fn (?Cpl $record): bool => ! $isAsing($record))
                             ->live()
                             ->default($unitIds->count() === 1 ? $unitIds->first() : null)
-                            ->disabled($unitIds->count() === 1)
-                            ->dehydrated(),
+                            ->disabled(fn (?Cpl $record): bool => $isAsing($record) || $unitIds->count() === 1)
+                            ->dehydrated(fn (?Cpl $record): bool => ! $isAsing($record)),
 
                         TextInput::make('kode')
                             ->label('Kode')
-                            ->required()
+                            ->required(fn (?Cpl $record): bool => ! $isAsing($record))
                             ->maxLength(15)
+                            ->disabled($isAsing)
+                            ->dehydrated(fn (?Cpl $record): bool => ! $isAsing($record))
                             ->rule(fn (Get $get, ?Cpl $record): array => [
                                 static::uniqueKodePerUnitRule(
                                     'cpl',
@@ -108,14 +141,63 @@ class CplResource extends Resource
                                 ),
                             ]),
 
+                        TextInput::make('kode_override')
+                            ->label('Kode (alias di unit ini)')
+                            ->helperText('CPL ini milik unit lain — hanya kode tampilannya yang bisa diseragamkan untuk unit Anda.')
+                            ->visible($isAsing)
+                            ->required($isAsing)
+                            ->maxLength(15)
+                            ->default(function (?Cpl $record) use ($overrideUnitId): ?string {
+                                if (! $record) {
+                                    return null;
+                                }
+
+                                $unitId = $overrideUnitId($record);
+
+                                if ($unitId === null) {
+                                    return $record->kode;
+                                }
+
+                                return CplKodeOverride::query()
+                                    ->where('academic_unit_id', $unitId)
+                                    ->where('cpl_id', $record->id)
+                                    ->value('kode') ?? $record->kode;
+                            })
+                            ->rule(fn (?Cpl $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($record, $overrideUnitId): void {
+                                $unitId = $overrideUnitId($record);
+
+                                if ($unitId === null) {
+                                    return;
+                                }
+
+                                if (Cpl::query()->where('academic_unit_id', $unitId)->where('kode', $value)->exists()) {
+                                    $fail('Kode sudah dipakai CPL lain pada unit ini.');
+
+                                    return;
+                                }
+
+                                if (CplKodeOverride::query()
+                                    ->where('academic_unit_id', $unitId)
+                                    ->where('kode', $value)
+                                    ->where('cpl_id', '!=', $record?->id)
+                                    ->exists()) {
+                                    $fail('Kode sudah dipakai sebagai alias CPL lain pada unit ini.');
+                                }
+                            }),
+
                         RichEditor::make('deskripsi')
                             ->label('Deskripsi')
-                            ->required()
+                            ->required(fn (?Cpl $record): bool => ! $isAsing($record))
+                            ->disabled($isAsing)
+                            ->dehydrated(fn (?Cpl $record): bool => ! $isAsing($record))
                             ->columnSpanFull(),
 
                         Select::make('domain')
                             ->label('Domain')
-                            ->options(static::domainOptions()),
+                            ->options(static::domainOptions())
+                            ->multiple()
+                            ->disabled($isAsing)
+                            ->dehydrated(fn (?Cpl $record): bool => ! $isAsing($record)),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -140,12 +222,20 @@ class CplResource extends Resource
                         ->label('Kode')
                         ->searchable()
                         ->sortable()
-                        ->weight(FontWeight::Bold),
+                        ->weight(FontWeight::Bold)
+                        ->state(function (Cpl $record): string {
+                            $unitId = KurikulumTerpilih::current()?->academic_unit_id;
+
+                            return $unitId === null
+                                ? $record->kode
+                                : CplBokAdaptasiScope::displayKodeMapCpl(collect([$record]), $unitId)->first();
+                        }),
 
                     TextColumn::make('domain')
                         ->label('Domain')
                         ->badge()
-                        ->formatStateUsing(fn (?string $state): string => $state ? (static::domainOptions()[$state] ?? $state) : '—'),
+                        ->formatStateUsing(fn (string $state): string => static::domainOptions()[$state] ?? $state)
+                        ->placeholder('—'),
                 ]),
 
                 TextColumn::make('deskripsi')
@@ -156,9 +246,27 @@ class CplResource extends Resource
                         : '—')
                     ->size('sm')
                     ->color('gray'),
+
+                TextColumn::make('unit_asal')
+                    ->label('')
+                    ->state(function (Cpl $record): string {
+                        $unitId = KurikulumTerpilih::current()?->academic_unit_id;
+
+                        if ($unitId === null || $record->academic_unit_id === $unitId) {
+                            return '';
+                        }
+
+                        $record->loadMissing('academicUnit');
+
+                        return 'Adaptasi dari '.($record->academicUnit->nama ?? '—');
+                    })
+                    ->size('sm')
+                    ->color('warning'),
             ],
-            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+            fn (Builder $query, Kurikulum $kurikulum): Builder => CplBokAdaptasiScope::scopeVisibleCpl(
+                $query,
+                $kurikulum->academic_unit_id,
+            ),
         );
     }
 

@@ -13,7 +13,7 @@
         <x-filament::section
             icon="heroicon-o-arrows-right-left"
             heading="Interaksi Profil ↔ CPL"
-            description="Centang irisan untuk memetakan CPL (baris) ke profil lulusan (kolom)."
+            description="Centang irisan untuk memetakan CPL (baris) ke profil lulusan (kolom). CPL bertanda † berasal dari adaptasi MK unit lain."
         >
             <div style="overflow-x:auto;">
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -30,8 +30,11 @@
                     <tbody>
                         @foreach ($cpls as $cpl)
                             <tr style="border-bottom:1px solid rgba(128,128,128,.2);">
-                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}">
-                                    <strong>{{ $cpl->kode }}</strong>
+                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ ($cplAsalMap[$cpl->id] ?? false) ? ' — adaptasi dari '.($cpl->academicUnit->nama ?? '—') : '' }}">
+                                    <strong>{{ $cplKodeMap[$cpl->id] ?? $cpl->kode }}</strong>
+                                    @if ($cplAsalMap[$cpl->id] ?? false)
+                                        <sup style="color:#b45309;">†</sup>
+                                    @endif
                                 </td>
                                 @foreach ($profils as $profil)
                                     <td style="padding:8px;text-align:center;">

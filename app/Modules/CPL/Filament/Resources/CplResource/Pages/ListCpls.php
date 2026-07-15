@@ -88,7 +88,7 @@ class ListCpls extends ListRecords
     {
         return [
             'Satu baris = satu CPL pada unit kurikulum yang dipilih di atas.',
-            'Domain opsional: kognitif, afektif, psikomotorik, atau gabungan.',
+            'Domain opsional: kognitif, afektif, dan/atau psikomotorik; lebih dari satu dipisah koma (,), mis. kognitif,afektif.',
         ];
     }
 
@@ -117,7 +117,7 @@ class ListCpls extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPL-01|Mampu memahami konsep dasar|kognitif',
+            'CPL-01|Mampu memahami konsep dasar|kognitif,afektif',
             'CPL-02|Mampu menganalisis data|',
         ];
     }
@@ -133,7 +133,7 @@ class ListCpls extends ListRecords
         }
 
         return [
-            'Pendidik;Peneliti|CPL-01|Mampu memahami konsep dasar|kognitif',
+            'Pendidik;Peneliti|CPL-01|Mampu memahami konsep dasar|kognitif,afektif',
             '|CPL-02|Mampu menganalisis data|',
         ];
     }
@@ -152,8 +152,8 @@ class ListCpls extends ListRecords
             return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu.'];
         }
 
-        if ($data['domain'] !== '' && ! in_array(Str::lower($data['domain']), ['kognitif', 'afektif', 'psikomotorik', 'gabungan'], true)) {
-            return ['status' => 'invalid', 'keterangan' => 'Domain harus kognitif, afektif, psikomotorik, atau gabungan.'];
+        if ($data['domain'] !== '' && $this->parseDomainImport($data['domain']) === null) {
+            return ['status' => 'invalid', 'keterangan' => 'Domain harus kognitif, afektif, dan/atau psikomotorik, dipisah koma.'];
         }
 
         $ringkasanProfil = $this->ringkasanProfilImport($data, $context);
@@ -194,7 +194,7 @@ class ListCpls extends ListRecords
             'academic_unit_id' => $unitId,
             'kode' => $data['kode'],
             'deskripsi' => $data['deskripsi'],
-            'domain' => $data['domain'] !== '' ? Str::lower($data['domain']) : null,
+            'domain' => $data['domain'] !== '' ? $this->parseDomainImport($data['domain']) : null,
         ]);
 
         $this->petakanProfil($cpl, $data, $context);
@@ -210,7 +210,7 @@ class ListCpls extends ListRecords
 
         $cpl->update([
             'deskripsi' => $data['deskripsi'],
-            'domain' => $data['domain'] !== '' ? Str::lower($data['domain']) : $cpl->domain,
+            'domain' => $data['domain'] !== '' ? $this->parseDomainImport($data['domain']) : $cpl->domain,
         ]);
 
         $this->petakanProfil($cpl, $data, $context);
@@ -308,6 +308,24 @@ class ListCpls extends ListRecords
                     ->orWhereRaw('LOWER(TRIM(nama)) = ?', [$normal]);
             })
             ->first();
+    }
+
+    /**
+     * @return list<string>|null null bila ada domain yang tidak dikenal
+     */
+    protected function parseDomainImport(string $raw): ?array
+    {
+        $domains = collect(explode(',', $raw))
+            ->map(fn (string $domain): string => Str::lower(trim($domain)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($domains->isEmpty() || $domains->contains(fn (string $domain): bool => ! in_array($domain, ['kognitif', 'afektif', 'psikomotorik'], true))) {
+            return null;
+        }
+
+        return $domains->all();
     }
 
     /**

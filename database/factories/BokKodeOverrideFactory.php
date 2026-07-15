@@ -2,26 +2,22 @@
 
 namespace Database\Factories;
 
-use App\Modules\CPL\Models\Cpl;
+use App\Modules\BoK\Models\Bok;
+use App\Modules\BoK\Models\BokKodeOverride;
 use App\Modules\Institusi\Models\AcademicUnit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Cpl>
+ * @extends Factory<BokKodeOverride>
  */
-class CplFactory extends Factory
+class BokKodeOverrideFactory extends Factory
 {
-    protected $model = Cpl::class;
+    protected $model = BokKodeOverride::class;
 
     public function definition(): array
     {
         return [
-            'kode' => 'CPL-'.fake()->unique()->numerify('##'),
-            'deskripsi' => fake()->sentence(),
-            'domain' => fake()->randomElements(
-                ['kognitif', 'afektif', 'psikomotorik'],
-                fake()->numberBetween(1, 3),
-            ),
+            'kode' => 'BOK-OV-'.fake()->unique()->numerify('##'),
         ];
     }
 
@@ -29,6 +25,13 @@ class CplFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'academic_unit_id' => $academicUnit->id,
+        ]);
+    }
+
+    public function forBok(Bok $bok): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'bok_id' => $bok->id,
         ]);
     }
 }

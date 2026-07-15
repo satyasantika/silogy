@@ -3,25 +3,21 @@
 namespace Database\Factories;
 
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\Institusi\Models\AcademicUnit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Cpl>
+ * @extends Factory<CplKodeOverride>
  */
-class CplFactory extends Factory
+class CplKodeOverrideFactory extends Factory
 {
-    protected $model = Cpl::class;
+    protected $model = CplKodeOverride::class;
 
     public function definition(): array
     {
         return [
-            'kode' => 'CPL-'.fake()->unique()->numerify('##'),
-            'deskripsi' => fake()->sentence(),
-            'domain' => fake()->randomElements(
-                ['kognitif', 'afektif', 'psikomotorik'],
-                fake()->numberBetween(1, 3),
-            ),
+            'kode' => 'CPL-OV-'.fake()->unique()->numerify('##'),
         ];
     }
 
@@ -29,6 +25,13 @@ class CplFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'academic_unit_id' => $academicUnit->id,
+        ]);
+    }
+
+    public function forCpl(Cpl $cpl): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'cpl_id' => $cpl->id,
         ]);
     }
 }

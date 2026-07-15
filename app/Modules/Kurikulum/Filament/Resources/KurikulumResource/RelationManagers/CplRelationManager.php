@@ -2,6 +2,7 @@
 
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers;
 
+use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -43,12 +44,8 @@ class CplRelationManager extends BaseKurikulumRelationManager
 
                 Select::make('domain')
                     ->label('Domain')
-                    ->options([
-                        'kognitif' => 'Kognitif',
-                        'afektif' => 'Afektif',
-                        'psikomotorik' => 'Psikomotorik',
-                        'gabungan' => 'Gabungan',
-                    ]),
+                    ->options(CplResource::domainOptions())
+                    ->multiple(),
             ]);
     }
 
@@ -58,7 +55,11 @@ class CplRelationManager extends BaseKurikulumRelationManager
             ->columns([
                 TextColumn::make('kode')->label('Kode')->sortable(),
                 TextColumn::make('deskripsi')->label('Deskripsi')->limit(60),
-                TextColumn::make('domain')->label('Domain')->badge(),
+                TextColumn::make('domain')
+                    ->label('Domain')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => CplResource::domainOptions()[$state] ?? $state)
+                    ->placeholder('—'),
                 TextColumn::make('profil_mappings')
                     ->label('Profil terpetakan')
                     ->state(function (Cpl $record): string {

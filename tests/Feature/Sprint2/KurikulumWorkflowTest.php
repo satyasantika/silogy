@@ -96,13 +96,13 @@ it('runs full curriculum workflow for prodi', function () {
         'academic_unit_id' => $this->prodiA->id,
         'kode' => 'CPL-01',
         'deskripsi' => 'CPL pertama',
-        'domain' => 'kognitif',
+        'domain' => ['kognitif'],
     ]);
     $cpl2 = Cpl::query()->create([
         'academic_unit_id' => $this->prodiA->id,
         'kode' => 'CPL-02',
         'deskripsi' => 'CPL kedua',
-        'domain' => 'afektif',
+        'domain' => ['afektif'],
     ]);
 
     CplProfilLulusan::query()->create([
