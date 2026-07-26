@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="SILOGY — Siliwangi Learning Outcomes &amp; Quality Analytics; platform pengelolaan mutu akademik berbasis OBE untuk Universitas Siliwangi.">
     <title>SILOGY &mdash; Siliwangi Learning Outcomes &amp; Quality Analytics</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ asset('images/favicon-48x48.png') }}">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito:400,500,600,700,800,900&family=Nunito+Sans:400,600,700" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -134,10 +137,13 @@
         }
         .logo-mark {
             position: relative; flex-shrink: 0;
-            width: 42px; height: 42px; border-radius: 12px;
-            background: linear-gradient(145deg, var(--g700) 0%, var(--g500) 100%);
-            display: grid; place-items: center; color: #fff; font-size: 1.2rem;
-            box-shadow: 0 0 0 1px rgba(74,222,128,.3), 0 6px 20px rgba(22,163,74,.4);
+            width: 42px; height: 42px; border-radius: 10px;
+            display: grid; place-items: center;
+            overflow: hidden;
+            background: transparent;
+        }
+        .logo-mark img {
+            width: 100%; height: 100%; object-fit: contain; display: block;
         }
         .logo-sub {
             display: block; font-family: 'Nunito Sans', sans-serif;
@@ -435,7 +441,9 @@
 <nav class="navbar">
     <div class="nav-c">
         <a class="logo" href="{{ url('/') }}">
-            <span class="logo-mark"><i class="bi bi-mortarboard-fill"></i></span>
+            <span class="logo-mark">
+                <img src="{{ asset('images/logo.png') }}" alt="Universitas Siliwangi" width="42" height="42">
+            </span>
             <span>
                 SILOGY
                 <span class="logo-sub">Siliwangi Learning Outcomes &amp; Quality Analytics</span>
@@ -684,7 +692,9 @@
     <div class="footer-c">
         <div class="fb">
             <a class="logo" href="{{ url('/') }}" style="display:inline-flex;">
-                <span class="logo-mark" style="width:36px;height:36px;font-size:1rem;border-radius:10px;"><i class="bi bi-mortarboard-fill"></i></span>
+                <span class="logo-mark" style="width:36px;height:36px;border-radius:8px;">
+                    <img src="{{ asset('images/logo.png') }}" alt="Universitas Siliwangi" width="36" height="36">
+                </span>
                 <span style="font-family:'Nunito',sans-serif;font-size:1.1rem;">SILOGY</span>
             </a>
             <p>Siliwangi Learning Outcomes &amp; Quality Analytics &mdash; Universitas Siliwangi.</p>

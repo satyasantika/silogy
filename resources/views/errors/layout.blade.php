@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>@yield('code') | @yield('status') — SILOGY</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}" sizes="32x32">
+    <link rel="apple-touch-icon" href="{{ asset('images/favicon-48x48.png') }}">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800,900&family=Nunito+Sans:400,600,700" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -79,13 +82,17 @@
         .err-logo-mark {
             width: 38px;
             height: 38px;
-            border-radius: 10px;
-            background: linear-gradient(145deg, var(--g700) 0%, var(--g500) 100%);
+            border-radius: 9px;
             display: grid;
             place-items: center;
-            color: #fff;
-            font-size: 1rem;
-            box-shadow: 0 0 0 1px rgba(74,222,128,.28), 0 6px 18px rgba(22,163,74,.35);
+            overflow: hidden;
+            background: transparent;
+        }
+        .err-logo-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
         }
 
         .err-card {
@@ -222,7 +229,9 @@
 <body>
     <div class="err-shell">
         <a href="{{ url('/') }}" class="err-logo">
-            <span class="err-logo-mark"><i class="bi bi-mortarboard-fill"></i></span>
+            <span class="err-logo-mark">
+                <img src="{{ asset('images/logo.png') }}" alt="Universitas Siliwangi" width="38" height="38">
+            </span>
             <span>SILOGY</span>
         </a>
 

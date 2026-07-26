@@ -1,6 +1,9 @@
 <div class="lp-wrap" id="lp-wrap">
 
 {{-- CDN assets --}}
+<link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+<link rel="icon" type="image/png" href="{{ asset('favicon.png') }}" sizes="32x32">
+<link rel="apple-touch-icon" href="{{ asset('images/favicon-48x48.png') }}">
 <link rel="preconnect" href="https://fonts.bunny.net">
 <link href="https://fonts.bunny.net/css?family=Nunito:400,600,700,800,900&family=Nunito+Sans:400,600,700" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -145,10 +148,12 @@
         margin-bottom: 3.5rem; text-decoration: none;
     }
     .lp-logo-mark {
-        width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
-        background: linear-gradient(145deg, var(--g700) 0%, var(--g500) 100%);
-        display: grid; place-items: center; color: #fff; font-size: 1.1rem;
-        box-shadow: 0 0 0 1px rgba(74,222,128,.3), 0 6px 20px rgba(22,163,74,.4);
+        width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+        display: grid; place-items: center; overflow: hidden;
+        background: transparent;
+    }
+    .lp-logo-mark img {
+        width: 100%; height: 100%; object-fit: contain; display: block;
     }
     .lp-logo-sub { display: block; font-size: .6rem; font-weight: 600; color: var(--tws); line-height: 1.2; margin-top: 2px; }
 
@@ -323,7 +328,9 @@
     <div class="lp-left-inner">
 
         <a href="{{ url('/') }}" class="lp-logo">
-            <span class="lp-logo-mark"><i class="bi bi-mortarboard-fill"></i></span>
+            <span class="lp-logo-mark">
+                <img src="{{ asset('images/logo.png') }}" alt="Universitas Siliwangi" width="40" height="40">
+            </span>
             <span>
                 SILOGY
                 <span class="lp-logo-sub">Siliwangi Learning Outcomes &amp; Quality Analytics</span>

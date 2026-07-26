@@ -41,6 +41,9 @@ class AdminPanelProvider extends PanelProvider
             ->profile(EditProfile::class)
             ->homeUrl('/dashboard')
             ->brandName('SILOGY')
+            ->brandLogo(fn () => view('filament.components.brand-logo'))
+            ->brandLogoHeight('auto')
+            ->favicon(asset('favicon.ico'))
             ->colors([
                 'primary' => Color::hex('#1e3a5f'),
             ])
@@ -75,7 +78,8 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::STYLES_AFTER,
-                fn (): string => view('filament.hooks.sidebar-user-menu-styles')->render(),
+                fn (): string => view('filament.hooks.sidebar-user-menu-styles')->render()
+                    .view('filament.hooks.brand-logo-styles')->render(),
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverResources(
