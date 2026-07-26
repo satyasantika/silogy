@@ -6,7 +6,9 @@ use App\Models\User;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 
 /**
@@ -24,15 +26,22 @@ class PeranUnitFormFields
         $roles = ActiveRole::ownedRoleNames($user);
 
         return [
-            Radio::make('role')
+            ToggleButtons::make('role')
                 ->label('Peran')
-                ->options(array_combine($roles, $roles))
+                ->options(array_combine($roles, $roles) ?: [])
+                ->icons(collect($roles)
+                    ->mapWithKeys(fn (string $role): array => [$role => static::iconForRole($role)])
+                    ->all())
+                ->colors(collect($roles)
+                    ->mapWithKeys(fn (string $role): array => [$role => static::colorForRole($role)])
+                    ->all())
+                ->columns(min(3, max(1, count($roles))))
                 ->required()
                 ->live()
                 ->default(static::defaultRole($user)),
 
             Radio::make('unit_id')
-                ->label('Unit')
+                ->label('Unit akademik')
                 ->options(fn (Get $get): array => AcademicUnitTerpilih::optionsForUnitIds(
                     static::unitIdsForRole($user, $get('role')),
                 ))
@@ -40,6 +49,30 @@ class PeranUnitFormFields
                 ->required(fn (Get $get): bool => static::unitCountForRole($user, $get('role')) > 1)
                 ->default(static::defaultUnitId($user)),
         ];
+    }
+
+    public static function iconForRole(string $role): Heroicon
+    {
+        return match ($role) {
+            'Super Admin' => Heroicon::ShieldCheck,
+            'Pimpinan' => Heroicon::BuildingLibrary,
+            'Tim Kurikulum' => Heroicon::AcademicCap,
+            'Koordinator Mata Kuliah' => Heroicon::RectangleStack,
+            'Dosen Pengampu' => Heroicon::PencilSquare,
+            default => Heroicon::UserCircle,
+        };
+    }
+
+    public static function colorForRole(string $role): string
+    {
+        return match ($role) {
+            'Super Admin' => 'danger',
+            'Pimpinan' => 'warning',
+            'Tim Kurikulum' => 'info',
+            'Koordinator Mata Kuliah' => 'success',
+            'Dosen Pengampu' => 'primary',
+            default => 'gray',
+        };
     }
 
     public static function defaultRole(User $user): ?string

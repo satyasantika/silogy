@@ -86,9 +86,9 @@
 
                     @if ($bisaGanti)
                         <x-filament::dropdown.list.item
-                            wire:click="mountAction('gantiPeranUnit')"
+                            tag="a"
+                            :href="$pilihPeranUnitUrl"
                             icon="heroicon-m-arrows-right-left"
-                            x-on:click="close()"
                         >
                             Ganti peran & unit
                         </x-filament::dropdown.list.item>

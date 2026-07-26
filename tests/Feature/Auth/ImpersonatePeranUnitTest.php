@@ -80,23 +80,17 @@ it('PeranUnitMenu menampilkan menu identitas, ganti peran, dan aksi keluar', fun
         ->assertActionExists('gantiPassword');
 });
 
-it('modal ganti peran & unit dari PeranUnitMenu berhasil menyimpan', function () {
+it('menu identitas PeranUnitMenu menautkan ganti peran ke halaman gerbang', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
-    $unitIds = \App\Modules\Institusi\Support\AcademicUnitScope::scopedTimKurikulumUnitIdsFor($dosentimkur);
-    $prodi = AcademicUnit::query()->whereIn('id', $unitIds)->where('type', 'study_program')->firstOrFail();
-
     Livewire::test(PeranUnitMenu::class)
-        ->mountAction('gantiPeranUnit')
-        ->setActionData(['role' => 'Tim Kurikulum', 'unit_id' => $prodi->id])
-        ->callMountedAction();
-
-    expect(ActiveRole::currentFor($dosentimkur))->toBe('Tim Kurikulum')
-        ->and(AcademicUnitTerpilih::currentId($dosentimkur))->toBe($prodi->id);
+        ->assertSee('Ganti peran & unit')
+        ->assertSee(PilihPeranUnit::getUrl(), false)
+        ->assertActionDoesNotExist('gantiPeranUnit');
 });
 
-it('modal keluar menampilkan konfirmasi, beranda, dan ganti peran untuk multi-role', function () {
+it('modal keluar menampilkan konfirmasi ringkas tanpa ganti peran', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
@@ -107,8 +101,8 @@ it('modal keluar menampilkan konfirmasi, beranda, dan ganti peran untuk multi-ro
         ->assertSee('Yakin akan keluar aplikasi?')
         ->assertSee('Kembali')
         ->assertSee('Beranda')
-        ->assertSee('Ganti peran')
-        ->assertSee('Ya, keluar');
+        ->assertSee('Ya, keluar')
+        ->assertActionDoesNotExist(['keluar', 'gantiPeranDariKeluar']);
 });
 
 it('user tanpa role sama sekali melihat keterangan danger di menu pengguna', function () {

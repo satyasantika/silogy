@@ -6,22 +6,16 @@ use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\PeranUnitFormFields;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Lab404\Impersonate\Services\ImpersonateManager;
 
 /**
- * Gerbang "Pilih Peran & Unit" — dijalankan sekali saat login untuk user
- * multi-role (lihat FilamentDefaultLoginRedirect) atau saat admin mulai
- * impersonate user multi-role (lihat UserResource/EditUser), dan dapat
- * dibuka lagi kapan pun lewat ikon di footer sidebar (lihat
- * AdminPanelProvider).
- *
- * SENGAJA terpisah dari RoleSwitcher: RoleSwitcher tetap auto-pilih role
- * pertama secara diam-diam agar perilaku lamanya tidak berubah. Halaman
- * ini memberi kontrol eksplisit lebih dulu, supaya role baru yang
- * diberikan ke user tidak tersembunyi oleh pilihan alfabetis default itu.
+ * Gerbang "Pilih Peran & Unit" — kelola peran/unit aktif untuk user
+ * multi-role (atau single-role dengan banyak unit). Dipakai saat login,
+ * impersonate, dan ganti peran dari menu pengguna.
  */
 class PilihPeranUnit extends Page
 {
@@ -106,5 +100,27 @@ class PilihPeranUnit extends Page
         session()->forget(AcademicUnitTerpilih::SESSION_KEY);
 
         $this->redirect(url('/dashboard'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function getViewData(): array
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        $unitAktifId = AcademicUnitTerpilih::currentId($user);
+
+        return [
+            'user' => $user,
+            'peranAktif' => ActiveRole::currentFor($user),
+            'unitAktifNama' => $unitAktifId
+                ? AcademicUnit::query()->find($unitAktifId)?->nama
+                : null,
+        ];
     }
 }

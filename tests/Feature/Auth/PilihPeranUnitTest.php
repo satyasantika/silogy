@@ -47,6 +47,29 @@ it('user multi-role diarahkan ke halaman Pilih Peran & Unit, bukan langsung dash
     $response = $this->get(PilihPeranUnit::getUrl());
     $response->assertOk();
     $response->assertSee('Pilih peran dan unit Anda');
+    $response->assertSee($dosentimkur->full_name);
+    $response->assertSee('@'.$dosentimkur->username);
+    $response->assertSee('Peran saat ini');
+    $response->assertSee('Unit saat ini');
+    $response->assertSee('Dosen Pengampu');
+    $response->assertSee('Tim Kurikulum');
+});
+
+it('pilihan peran memakai ToggleButtons berikon representatif', function () {
+    $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosentimkur);
+
+    Livewire::test(PilihPeranUnit::class)
+        ->assertFormFieldExists('role')
+        ->assertSee('Dosen Pengampu')
+        ->assertSee('Tim Kurikulum');
+
+    expect(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Dosen Pengampu')->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::PencilSquare->value)
+        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Tim Kurikulum')->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::AcademicCap->value)
+        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::colorForRole('Pimpinan'))
+        ->toBe('warning');
 });
 
 it('mount() PilihPeranUnit redirect ke dashboard bila user single-role tanpa pilihan unit', function () {
@@ -102,15 +125,18 @@ it('submit gerbang menyimpan role dan unit aktif, lalu KurikulumTerpilih mengiku
     expect($kurikulumFakultas?->academic_unit_id)->toBe($fakultas->id);
 });
 
-it('ikon switcher sidebar tampil untuk multi-role dan tersembunyi untuk single-role', function () {
+it('ganti peran hanya di menu identitas, bukan ikon nav RoleSwitcher', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $timkur = User::query()->where('username', 'timkur')->firstOrFail();
 
     $this->actingAs($dosentimkur);
     $response = $this->get('/dashboard');
+    $response->assertSee('Ganti peran & unit');
     $response->assertSee('pilih-peran-unit', false);
+    $response->assertDontSee('Ganti peran aktif');
 
     $this->actingAs($timkur);
     $response = $this->get('/dashboard');
-    $response->assertDontSee('pilih-peran-unit', false);
+    // Single-role tanpa pilihan unit: item ganti peran tidak perlu tampil.
+    $response->assertDontSee('Ganti peran aktif');
 });

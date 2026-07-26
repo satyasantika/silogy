@@ -6,7 +6,7 @@ use App\Filament\Pages\Auth\EditProfile;
 use App\Models\User;
 use App\Modules\Auth\Filament\Actions\GantiPasswordAction;
 use App\Modules\Auth\Filament\Actions\KeluarAction;
-use App\Modules\Auth\Filament\Concerns\HasGantiPeranUnitAction;
+use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
@@ -27,7 +27,6 @@ use Livewire\Component;
  */
 class PeranUnitMenu extends Component implements HasActions, HasSchemas
 {
-    use HasGantiPeranUnitAction;
     use InteractsWithActions;
     use InteractsWithSchemas;
 
@@ -75,6 +74,7 @@ class PeranUnitMenu extends Component implements HasActions, HasSchemas
             'unitAktifId' => $user instanceof User ? PeranUnitFormFields::defaultUnitId($user) : null,
             'bisaGanti' => $bisaGanti,
             'profileUrl' => filament()->getProfileUrl() ?? EditProfile::getUrl(),
+            'pilihPeranUnitUrl' => PilihPeranUnit::getUrl(),
             'isImpersonating' => app(ImpersonateManager::class)->isImpersonating(),
         ]);
     }

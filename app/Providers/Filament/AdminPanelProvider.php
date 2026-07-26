@@ -6,9 +6,12 @@ use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\WelcomeWidget;
+use App\Models\User;
 use App\Modules\Auth\Filament\Actions\GantiPasswordAction;
 use App\Modules\Auth\Filament\Actions\KeluarAction;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
+use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
@@ -19,6 +22,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -50,6 +54,24 @@ class AdminPanelProvider extends PanelProvider
             ->darkMode(condition: true, isForced: false)
             ->sidebarCollapsibleOnDesktop()
             ->userMenuItems([
+                Action::make('gantiPeranUnit')
+                    ->label('Ganti peran & unit')
+                    ->icon(Heroicon::ArrowsRightLeft)
+                    ->url(fn (): string => PilihPeranUnit::getUrl())
+                    ->visible(function (): bool {
+                        $user = auth()->user();
+
+                        if (! $user instanceof User) {
+                            return false;
+                        }
+
+                        $roles = ActiveRole::ownedRoleNames($user);
+                        $peranAktif = PeranUnitFormFields::defaultRole($user);
+
+                        return count($roles) > 1
+                            || PeranUnitFormFields::unitCountForRole($user, $peranAktif) > 1;
+                    })
+                    ->sort(5),
                 fn (): Action => GantiPasswordAction::make()
                     ->sort(10),
                 'logout' => fn (): Action => KeluarAction::make('logout')
@@ -68,6 +90,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Laporan'),
                 NavigationGroup::make('Audit'),
             ])
+            // RoleSwitcher headless: auto-set role aktif, tanpa ikon di nav.
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => Blade::render("@livewire('silogy.role-switcher')"),

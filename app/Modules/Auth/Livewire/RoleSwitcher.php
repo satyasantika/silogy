@@ -8,11 +8,9 @@ use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 /**
- * Tombol di navigasi (antara pencarian dan menu pengguna) untuk user
- * multi-role: memilih role aktif sehingga menu dan hak akses mengikuti
- * role tersebut. Tidak ada opsi "semua peran" — user multi-role selalu
- * punya satu role aktif yang jelas, default ke role pertama bila belum
- * pernah memilih.
+ * Headless switcher peran aktif: auto-set role pertama bila user
+ * multi-role belum memilih. UI ganti peran ada di menu identitas
+ * pengguna (footer sidebar / user-menu topbar), bukan ikon nav terpisah.
  */
 class RoleSwitcher extends Component
 {
