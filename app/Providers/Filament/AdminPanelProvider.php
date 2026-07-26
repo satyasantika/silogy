@@ -2,13 +2,15 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\WelcomeWidget;
-use App\Models\User;
+use App\Modules\Auth\Filament\Actions\GantiPasswordAction;
+use App\Modules\Auth\Filament\Actions\KeluarAction;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
-use App\Modules\Auth\Support\ActiveRole;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Filament\Actions\Action;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -36,6 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('')
             ->login(Login::class)
             ->passwordReset()
+            ->profile(EditProfile::class)
             ->homeUrl('/dashboard')
             ->brandName('SILOGY')
             ->colors([
@@ -43,6 +46,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode(condition: true, isForced: false)
             ->sidebarCollapsibleOnDesktop()
+            ->userMenuItems([
+                fn (): Action => GantiPasswordAction::make()
+                    ->sort(10),
+                'logout' => fn (): Action => KeluarAction::make('logout')
+                    ->label(__('filament-panels::layout.actions.logout.label'))
+                    ->sort(PHP_INT_MAX),
+            ])
             ->navigationGroups([
                 NavigationGroup::make('Institusi'),
                 NavigationGroup::make('Autentikasi'),
@@ -61,18 +71,11 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_FOOTER,
-                function (): string {
-                    $user = auth()->user();
-
-                    if (! $user instanceof User || count(ActiveRole::ownedRoleNames($user)) <= 1) {
-                        return '';
-                    }
-
-                    return Blade::render(
-                        '<x-filament::icon-button icon="heroicon-o-arrows-right-left" tag="a" :href="$url" label="Ganti peran & unit" tooltip="Ganti peran & unit" />',
-                        ['url' => PilihPeranUnit::getUrl()],
-                    );
-                },
+                fn (): string => Blade::render("@livewire('silogy.peran-unit-menu')"),
+            )
+            ->renderHook(
+                PanelsRenderHook::STYLES_AFTER,
+                fn (): string => view('filament.hooks.sidebar-user-menu-styles')->render(),
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverResources(
