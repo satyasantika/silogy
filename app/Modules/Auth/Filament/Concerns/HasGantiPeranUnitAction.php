@@ -10,7 +10,7 @@ use Filament\Support\Icons\Heroicon;
 
 /**
  * Modal "Ganti peran & unit", dipakai bersama oleh WelcomeWidget (kartu
- * Selamat Datang) dan PeranUnitMenu (menu pengguna baru) — satu modal
+ * Selamat Datang) dan PeranUnitMenu (footer sidebar) — satu modal
  * gabungan (peran + unit sekaligus), bukan dua modal terpisah.
  *
  * Method HARUS public (bukan protected seperti pola trait aksi lain di
