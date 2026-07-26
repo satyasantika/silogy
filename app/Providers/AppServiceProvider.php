@@ -18,6 +18,8 @@ use App\Modules\BoK\Policies\BokPolicy;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Policies\CplPolicy;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Institusi\Observers\AcademicUnitUserObserver;
 use App\Modules\Institusi\Policies\AcademicUnitPolicy;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
@@ -117,6 +119,7 @@ class AppServiceProvider extends ServiceProvider
 
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
         SubcpmkKomponenPenilaian::observe(SubcpmkKomponenPenilaianObserver::class);
+        AcademicUnitUser::observe(AcademicUnitUserObserver::class);
 
         $this->configureUrlForSubpathDeployment();
     }
