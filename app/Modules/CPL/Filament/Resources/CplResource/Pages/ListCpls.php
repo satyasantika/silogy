@@ -117,8 +117,8 @@ class ListCpls extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPL-01|Mampu memahami konsep dasar|kognitif,afektif',
-            'CPL-02|Mampu menganalisis data|',
+            "CPL-01\tMampu memahami konsep dasar\tkognitif,afektif",
+            "CPL-02\tMampu menganalisis data\t",
         ];
     }
 
@@ -133,8 +133,8 @@ class ListCpls extends ListRecords
         }
 
         return [
-            'Pendidik;Peneliti|CPL-01|Mampu memahami konsep dasar|kognitif,afektif',
-            '|CPL-02|Mampu menganalisis data|',
+            "Pendidik;Peneliti\tCPL-01\tMampu memahami konsep dasar\tkognitif,afektif",
+            "\tCPL-02\tMampu menganalisis data\t",
         ];
     }
 

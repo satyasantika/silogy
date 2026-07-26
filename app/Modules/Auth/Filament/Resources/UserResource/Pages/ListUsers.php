@@ -43,7 +43,7 @@ class ListUsers extends ListRecords
 
     protected function importHelperNote(): string
     {
-        return 'Lebih dari satu role dipisahkan koma.';
+        return 'Lebih dari satu role dipisahkan titik koma.';
     }
 
     /**
@@ -52,8 +52,8 @@ class ListUsers extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'Budi Santoso|budis|RahasiaKuat123|budi@silogy.test|Dosen Pengampu',
-            'Siti Aminah|sitiaminah|RahasiaKuat456|siti@silogy.test|Tim Kurikulum, Dosen Pengampu',
+            "Budi Santoso\tbudis\tRahasiaKuat123\tbudi@silogy.test\tDosen Pengampu",
+            "Siti Aminah\tsitiaminah\tRahasiaKuat456\tsiti@silogy.test\tTim Kurikulum;Dosen Pengampu",
         ];
     }
 
@@ -137,7 +137,7 @@ class ListUsers extends ListRecords
      */
     protected function parseRoleNames(string $roleInput): Collection
     {
-        return collect(explode(',', $roleInput))
+        return collect(explode(';', $roleInput))
             ->map(fn (string $role): string => trim($role))
             ->filter()
             ->values();

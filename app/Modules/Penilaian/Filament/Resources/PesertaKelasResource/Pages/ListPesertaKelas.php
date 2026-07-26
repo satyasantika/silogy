@@ -107,8 +107,8 @@ class ListPesertaKelas extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            '227000001|Contoh Mahasiswa Satu|A',
-            '227000002|Contoh Mahasiswa Dua|A',
+            "227000001\tContoh Mahasiswa Satu\tA",
+            "227000002\tContoh Mahasiswa Dua\tA",
         ];
     }
 

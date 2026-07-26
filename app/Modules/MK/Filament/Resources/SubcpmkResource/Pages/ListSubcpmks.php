@@ -78,8 +78,8 @@ class ListSubcpmks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPMK-01|SUB-01|Menjelaskan definisi|C3,A2,P2|Indikator A|UTS dan kuis',
-            'CPMK-01|SUB-02|Menerapkan rumus|C4||',
+            "CPMK-01\tSUB-01\tMenjelaskan definisi\tC3,A2,P2\tIndikator A\tUTS dan kuis",
+            "CPMK-01\tSUB-02\tMenerapkan rumus\tC4\t\t",
         ];
     }
 

@@ -88,8 +88,8 @@ class ListMahasiswas extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            '227000001|Mahasiswa Satu|2022|L|mahasiswa1@silogy.test',
-            '227000002|Mahasiswa Dua|2022|P|',
+            "227000001\tMahasiswa Satu\t2022\tL\tmahasiswa1@silogy.test",
+            "227000002\tMahasiswa Dua\t2022\tP\t",
         ];
     }
 

@@ -53,8 +53,8 @@ class ListAcademicUnits extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'fakultas|FT|Fakultas Teknik|UNSIL|FT|aktif',
-            'prodi|PTI|Prodi Pendidikan Informatika|FT||aktif',
+            "fakultas\tFT\tFakultas Teknik\tUNSIL\tFT\taktif",
+            "prodi\tPTI\tProdi Pendidikan Informatika\tFT\t\taktif",
         ];
     }
 

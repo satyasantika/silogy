@@ -92,8 +92,8 @@ class ListCpmks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'CPMK-01|Mahasiswa memahami konsep dasar|CPL-01',
-            'CPMK-02|Mahasiswa mampu menganalisis masalah|',
+            "CPMK-01\tMahasiswa memahami konsep dasar\tCPL-01",
+            "CPMK-02\tMahasiswa mampu menganalisis masalah\t",
         ];
     }
 

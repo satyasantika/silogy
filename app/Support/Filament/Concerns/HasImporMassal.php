@@ -146,9 +146,11 @@ trait HasImporMassal
     }
 
     /**
+     * Teks contoh siap tempel untuk placeholder textarea "Data yang ditempel".
+     *
      * @param  array<string, mixed>  $context
      */
-    protected function renderImportExampleHtml(array $context = []): ?HtmlString
+    protected function importExamplePlaceholder(array $context = []): ?string
     {
         $rows = $this->importExampleRowsForContext($context);
 
@@ -156,18 +158,7 @@ trait HasImporMassal
             return null;
         }
 
-        $content = collect($rows)
-            ->map(fn (string $row): string => e($row))
-            ->join("\n");
-
-        return new HtmlString(
-            '<div class="mt-3 border-t border-primary-600/20 pt-3 dark:border-primary-500/20">'
-            .'<p class="mb-1.5 text-xs font-semibold uppercase tracking-wide opacity-80">Contoh data (salin-tempel)</p>'
-            .'<pre class="overflow-x-auto rounded-md border border-gray-200 bg-white/80 p-3 font-mono text-xs leading-relaxed text-gray-800 dark:border-white/10 dark:bg-black/20 dark:text-gray-100">'
-            .$content
-            .'</pre>'
-            .'</div>'
-        );
+        return implode("\n", $rows);
     }
 
     /**
@@ -176,18 +167,7 @@ trait HasImporMassal
      */
     protected function importInstructionsList(array $context = []): array
     {
-        $items = [
-            'Satu baris = satu record.',
-            'Pemisah kolom: tab (hasil copy dari Excel) atau karakter |.',
-            new HtmlString($this->renderImportUrutanKolomHtml($context)),
-            new HtmlString($this->renderImportKolomWajibHtml($context)),
-        ];
-
-        $opsional = $this->renderImportKolomOpsionalHtml($context);
-
-        if ($opsional !== null) {
-            $items[] = new HtmlString($opsional);
-        }
+        $items = [];
 
         foreach ($this->importInstructionsExtraForContext($context) as $extra) {
             $items[] = $extra;
@@ -201,55 +181,102 @@ trait HasImporMassal
     }
 
     /**
-     * @param  array<string, mixed>  $context
+     * Konversi indeks kolom (0-based) ke huruf kolom gaya Excel (A, B, ..., Z, AA, AB, ...).
      */
-    protected function renderImportUrutanKolomHtml(array $context = []): string
+    protected function excelColumnLetter(int $index): string
     {
-        $urutan = collect($this->importColumnsForContext($context))
-            ->map(function (array $col): string {
-                $label = e($col['label']);
+        $letter = '';
+        $index++;
 
-                if ($col['wajib']) {
-                    return '<span style="color:#b45309;font-weight:600;">'.$label.'</span>';
-                }
+        while ($index > 0) {
+            $remainder = ($index - 1) % 26;
+            $letter = chr(65 + $remainder).$letter;
+            $index = intdiv($index - 1, 26);
+        }
 
-                return '<span style="color:#2563eb;">'.$label.'</span>';
-            })
-            ->join(' <span style="opacity:.45;">→</span> ');
-
-        return 'Urutan kolom: '.$urutan.'.';
+        return $letter;
     }
 
     /**
+     * Tabel bergaya lembar Excel (huruf kolom, nomor baris, baris label
+     * berwarna sesuai wajib/opsional, dan baris contoh data) yang
+     * menggantikan penjelasan teks urutan kolom / kolom wajib / opsional.
+     *
      * @param  array<string, mixed>  $context
      */
-    protected function renderImportKolomWajibHtml(array $context = []): string
+    protected function renderImportContohExcelHtml(array $context = []): ?HtmlString
     {
-        $wajib = collect($this->importColumnsForContext($context))
-            ->where('wajib', true)
-            ->pluck('label')
-            ->map(fn (string $label): string => '<span style="color:#b45309;font-weight:600;">'.e($label).'</span>')
-            ->join(', ');
+        $columns = $this->importColumnsForContext($context);
 
-        return 'Kolom wajib: '.$wajib.'.';
-    }
-
-    /**
-     * @param  array<string, mixed>  $context
-     */
-    protected function renderImportKolomOpsionalHtml(array $context = []): ?string
-    {
-        $opsional = collect($this->importColumnsForContext($context))
-            ->where('wajib', false)
-            ->pluck('label')
-            ->map(fn (string $label): string => '<span style="color:#2563eb;">'.e($label).'</span>')
-            ->join(', ');
-
-        if ($opsional === '') {
+        if ($columns === []) {
             return null;
         }
 
-        return 'Kolom opsional: '.$opsional.'.';
+        $contohBaris = collect($this->importExampleRowsForContext($context))
+            ->map(function (string $row) use ($columns): array {
+                $separator = str_contains($row, "\t") ? "\t" : '|';
+                $parts = array_map('trim', explode($separator, $row));
+
+                return array_map(fn (int $i): string => $parts[$i] ?? '', array_keys($columns));
+            })
+            ->all();
+
+        if ($contohBaris === []) {
+            return null;
+        }
+
+        $chromeStyle = 'padding:2px 8px;background:rgba(128,128,128,.15);border:1px solid rgba(128,128,128,.25);font-weight:600;opacity:.7;';
+        $cellStyle = 'padding:4px 8px;border:1px solid rgba(128,128,128,.25);white-space:nowrap;';
+
+        $hurufKolom = '<td style="'.$chromeStyle.'"></td>';
+        foreach (array_keys($columns) as $i) {
+            $hurufKolom .= '<td style="'.$chromeStyle.'text-align:center;">'.$this->excelColumnLetter($i).'</td>';
+        }
+
+        $baris = [];
+
+        $headerCells = '';
+        foreach ($columns as $col) {
+            $warna = $col['wajib'] ? '#b45309' : '#2563eb';
+            $headerCells .= '<td style="'.$cellStyle.'font-weight:600;color:'.$warna.';">'.e($col['label']).'</td>';
+        }
+        $baris[] = $this->renderImportContohExcelRow(1, $headerCells, $chromeStyle);
+
+        foreach ($contohBaris as $i => $parts) {
+            $cells = '';
+            foreach ($parts as $value) {
+                $cells .= '<td style="'.$cellStyle.'">'.e($value).'</td>';
+            }
+            $baris[] = $this->renderImportContohExcelRow($i + 2, $cells, $chromeStyle);
+        }
+
+        $tabel = '<div style="overflow-x:auto;margin-bottom:12px;">'
+            .'<table style="border-collapse:collapse;font-size:12px;">'
+            .'<tbody>'
+            .'<tr>'.$hurufKolom.'</tr>'
+            .implode('', $baris)
+            .'</tbody></table></div>';
+
+        $legendParts = [];
+
+        if (collect($columns)->contains('wajib', true)) {
+            $legendParts[] = '<span style="color:#b45309;font-weight:600;">Oranye</span> = kolom wajib';
+        }
+
+        if (collect($columns)->contains('wajib', false)) {
+            $legendParts[] = '<span style="color:#2563eb;">Biru</span> = kolom opsional';
+        }
+
+        $legend = $legendParts === []
+            ? ''
+            : '<p class="mb-2 text-xs opacity-80">'.implode(' · ', $legendParts).'</p>';
+
+        return new HtmlString($legend.$tabel);
+    }
+
+    private function renderImportContohExcelRow(int $nomor, string $cells, string $chromeStyle): string
+    {
+        return '<tr><td style="'.$chromeStyle.'text-align:center;">'.$nomor.'</td>'.$cells.'</tr>';
     }
 
     /**
@@ -257,23 +284,25 @@ trait HasImporMassal
      */
     protected function renderImportGuideBox(array $context = []): HtmlString
     {
-        $list = collect($this->importInstructionsList($context))
-            ->map(function (string|HtmlString $item): string {
-                $content = $item instanceof HtmlString ? $item->toHtml() : e($item);
+        $items = $this->importInstructionsList($context);
 
-                return '<li>'.$content.'</li>';
-            })
-            ->join('');
+        $list = $items === []
+            ? ''
+            : '<ul class="list-disc space-y-1 ps-5">'
+                .collect($items)
+                    ->map(function (string|HtmlString $item): string {
+                        $content = $item instanceof HtmlString ? $item->toHtml() : e($item);
+
+                        return '<li>'.$content.'</li>';
+                    })
+                    ->join('')
+                .'</ul>';
 
         return new HtmlString(
             '<div class="rounded-lg border border-primary-600/30 bg-primary-50 p-4 text-sm text-gray-700 dark:border-primary-500/30 dark:bg-primary-950/40 dark:text-gray-200">'
             .'<p class="mb-2 font-semibold">Petunjuk tempel data</p>'
-            .'<p class="mb-2 text-xs opacity-80">'
-            .'<span style="color:#b45309;font-weight:600;">Oranye</span> = kolom wajib · '
-            .'<span style="color:#2563eb;">Biru</span> = kolom opsional'
-            .'</p>'
-            .'<ul class="list-disc space-y-1 ps-5">'.$list.'</ul>'
-            .($this->renderImportExampleHtml($context)?->toHtml() ?? '')
+            .($this->renderImportContohExcelHtml($context)?->toHtml() ?? '')
+            .$list
             .'</div>'
         );
     }
@@ -281,7 +310,7 @@ trait HasImporMassal
     protected function importColumnsHelperText(): string
     {
         if ($this->importExampleRows() !== []) {
-            return 'Tempel baris data di bawah petunjuk (contoh siap salin ada di kotak petunjuk). Pratinjau tersedia pada langkah berikutnya.';
+            return 'Tempel baris data di bawah petunjuk (lihat contoh pada placeholder kotak di bawah). Pratinjau tersedia pada langkah berikutnya.';
         }
 
         return 'Tempel baris data di bawah petunjuk. Pratinjau tersedia pada langkah berikutnya.';
@@ -468,6 +497,7 @@ trait HasImporMassal
                                 ->required()
                                 ->rows(10)
                                 ->live()
+                                ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get)))
                                 ->helperText($this->importColumnsHelperText()),
                         ]),
                     Step::make('Preview & konfirmasi')

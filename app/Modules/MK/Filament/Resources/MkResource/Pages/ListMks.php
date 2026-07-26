@@ -92,8 +92,8 @@ class ListMks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'Kalkulus|3|1|0|wajib|BOK-01;BOK-02|0000000030',
-            'Teori Saja|3|||wajib||',
+            "Kalkulus\t3\t1\t0\twajib\tBOK-01;BOK-02\t0000000030",
+            "Teori Saja\t3\t\t\twajib\t\t",
         ];
     }
 

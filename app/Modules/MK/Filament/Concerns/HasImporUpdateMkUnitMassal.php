@@ -81,8 +81,8 @@ trait HasImporUpdateMkUnitMassal
     protected function importExampleRows(): array
     {
         return [
-            'Kalkulus|MTK101|3',
-            'Pendidikan Pancasila|PP101|2',
+            "Kalkulus\tMTK101\t3",
+            "Pendidikan Pancasila\tPP101\t2",
         ];
     }
 

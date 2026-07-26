@@ -704,8 +704,8 @@ class ListKelasMks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'ADP101|A|dosen|',
-            'ADP101|B|dosen|',
+            "ADP101\tA\tdosen\t",
+            "ADP101\tB\tdosen\t",
         ];
     }
 

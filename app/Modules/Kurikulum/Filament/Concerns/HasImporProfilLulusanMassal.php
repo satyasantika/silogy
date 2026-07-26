@@ -45,8 +45,8 @@ trait HasImporProfilLulusanMassal
             .'(4) Mampu mendesain pengelolaan kelas yang baik untuk terciptanya lingkungan belajar yang kondusif';
 
         return [
-            '1|Pendidik|Menjadi pendidik matematika profesional|'.$indikator,
-            '2|Peneliti||',
+            "1\tPendidik\tMenjadi pendidik matematika profesional\t".$indikator,
+            "2\tPeneliti\t\t",
         ];
     }
 

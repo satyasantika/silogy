@@ -84,8 +84,8 @@ class ListBoks extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'BOK-01|Aljabar|Dasar aljabar linear|CPL-01;CPL-02',
-            'BOK-02|Statistik||',
+            "BOK-01\tAljabar\tDasar aljabar linear\tCPL-01;CPL-02",
+            "BOK-02\tStatistik\t\t",
         ];
     }
 

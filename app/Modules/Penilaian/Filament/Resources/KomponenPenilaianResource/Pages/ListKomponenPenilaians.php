@@ -244,9 +244,9 @@ class ListKomponenPenilaians extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            'Asesmen01|Kuis Konseptual dan Ringkasan Tertulis Terstruktur|8|Quiz|SubCPMK01.1',
-            'Asesmen01|Kuis Konseptual dan Ringkasan Tertulis Terstruktur|8|Quiz|SubCPMK01.2',
-            'Asesmen02|UTS Teori|42|Ujian Tengah Semester|',
+            "Asesmen01\tKuis Konseptual dan Ringkasan Tertulis Terstruktur\t8\tQuiz\tSubCPMK01.1",
+            "Asesmen01\tKuis Konseptual dan Ringkasan Tertulis Terstruktur\t8\tQuiz\tSubCPMK01.2",
+            "Asesmen02\tUTS Teori\t42\tUjian Tengah Semester\t",
         ];
     }
 
