@@ -1,50 +1,119 @@
-<div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:8px 12px;min-width:260px;">
-    <div style="display:flex;gap:10px;align-items:center;">
-        <x-filament-panels::avatar.user size="md" :user="$user" loading="lazy" />
+{{--
+    Footer sidebar (satu baris): menu identitas | tombol Keluar.
+    Saat sidebar diminimize hanya Keluar yang tampil.
+--}}
+@php
+    use App\Modules\Institusi\Models\AcademicUnit;
 
-        <div>
-            <p style="font-weight:600;font-size:.875rem;">{{ $user ? filament()->getUserName($user) : '' }}</p>
+    $unitNama = $unitAktifId ? AcademicUnit::find($unitAktifId)?->nama : null;
+@endphp
 
-            @if (count($roles) === 0)
-                <p class="fi-color-danger fi-text-color-600" style="font-size:.75rem;font-weight:600;">
-                    Belum ada peran/unit. Hubungi admin.
-                </p>
-            @else
-                <p style="font-size:.75rem;opacity:.75;">
-                    Peran: {{ $peranAktif }}
+<div
+    class="fi-sidebar-footer silogy-sidebar-user"
+    x-data="{}"
+>
+    <div
+        class="silogy-sidebar-user-row"
+        style="display:flex;align-items:center;gap:8px;padding:4px 0;"
+        x-bind:class="{ 'silogy-sidebar-user-row--collapsed': ! $store.sidebar.isOpen }"
+    >
+        <div
+            class="silogy-sidebar-user-identity"
+            x-show="$store.sidebar.isOpen"
+            x-cloak
+            style="flex:1;min-width:0;"
+        >
+            <x-filament::dropdown placement="top-start" teleport>
+                <x-slot name="trigger">
+                    <button
+                        type="button"
+                        aria-label="Menu pengguna"
+                        class="fi-user-menu-trigger"
+                        style="width:100%;justify-content:flex-start;"
+                    >
+                        <x-filament-panels::avatar.user size="md" :user="$user" loading="lazy" />
+
+                        <span class="fi-user-menu-trigger-text" style="min-width:0;text-align:start;">
+                            <span style="display:block;font-weight:600;font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                {{ $user ? filament()->getUserName($user) : '' }}
+                            </span>
+                            @if (count($roles) === 0)
+                                <span class="fi-color-danger fi-text-color-600" style="display:block;font-size:.7rem;font-weight:600;">
+                                    Belum ada peran/unit
+                                </span>
+                            @else
+                                <span style="display:block;font-size:.7rem;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                    {{ $peranAktif }}@if ($unitNama) · {{ $unitNama }}@endif
+                                </span>
+                            @endif
+                        </span>
+
+                        {{
+                            \Filament\Support\generate_icon_html(
+                                \Filament\Support\Icons\Heroicon::ChevronUp,
+                                alias: \Filament\View\PanelsIconAlias::USER_MENU_TOGGLE_BUTTON,
+                            )
+                        }}
+                    </button>
+                </x-slot>
+
+                <x-filament::dropdown.header icon="heroicon-m-user-circle">
+                    {{ $user ? filament()->getUserName($user) : '' }}
+                </x-filament::dropdown.header>
+
+                @if (filament()->hasDarkMode() && (! filament()->hasDarkModeForced()))
+                    <x-filament::dropdown.list>
+                        <x-filament-panels::theme-switcher />
+                    </x-filament::dropdown.list>
+                @endif
+
+                <x-filament::dropdown.list>
+                    <x-filament::dropdown.list.item
+                        tag="a"
+                        :href="$profileUrl"
+                        icon="heroicon-m-user-circle"
+                    >
+                        Profil
+                    </x-filament::dropdown.list.item>
+
+                    <x-filament::dropdown.list.item
+                        wire:click="mountAction('gantiPassword')"
+                        icon="heroicon-m-key"
+                        x-on:click="close()"
+                    >
+                        Ganti kata sandi
+                    </x-filament::dropdown.list.item>
+
                     @if ($bisaGanti)
-                        {{ $this->gantiPeranUnitAction() }}
+                        <x-filament::dropdown.list.item
+                            wire:click="mountAction('gantiPeranUnit')"
+                            icon="heroicon-m-arrows-right-left"
+                            x-on:click="close()"
+                        >
+                            Ganti peran & unit
+                        </x-filament::dropdown.list.item>
                     @endif
-                </p>
-                <p style="font-size:.75rem;opacity:.75;">
-                    Unit: {{ $unitAktifId ? \App\Modules\Institusi\Models\AcademicUnit::find($unitAktifId)?->nama : '—' }}
-                    @if ($bisaGanti)
-                        {{ $this->gantiPeranUnitAction() }}
-                    @endif
-                </p>
+                </x-filament::dropdown.list>
+            </x-filament::dropdown>
+        </div>
+
+        <div
+            class="silogy-sidebar-user-actions"
+            style="display:flex;align-items:center;gap:4px;flex-shrink:0;"
+            x-bind:style="! $store.sidebar.isOpen ? 'margin-inline:auto;' : null"
+        >
+            @if ($isImpersonating)
+                <x-filament::icon-button
+                    icon="heroicon-o-arrow-uturn-left"
+                    color="warning"
+                    tooltip="Tinggalkan impersonate"
+                    wire:click="leaveImpersonate"
+                />
             @endif
+
+            {{ $this->keluarAction() }}
         </div>
     </div>
 
-    <div style="display:flex;gap:4px;">
-        @if ($isImpersonating)
-            <x-filament::icon-button
-                icon="heroicon-o-arrow-uturn-left"
-                color="warning"
-                tooltip="Tinggalkan impersonate"
-                wire:click="leaveImpersonate"
-            />
-        @endif
-
-        <form action="{{ filament()->getLogoutUrl() }}" method="post">
-            @csrf
-            <x-filament::icon-button
-                icon="heroicon-o-arrow-left-end-on-rectangle"
-                color="danger"
-                tooltip="Keluar"
-                tag="button"
-                type="submit"
-            />
-        </form>
-    </div>
+    <x-filament-actions::modals />
 </div>

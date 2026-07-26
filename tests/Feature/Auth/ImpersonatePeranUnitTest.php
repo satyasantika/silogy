@@ -57,22 +57,27 @@ it('impersonate user multi-role diarahkan ke gerbang Pilih Peran & Unit', functi
         ->and(session()->has(ActiveRole::SESSION_KEY))->toBeFalse();
 });
 
-it('menu pengguna baru tampil, tombol Profile/Logout bawaan Filament hilang', function () {
+it('footer sidebar memuat PeranUnitMenu dan user-menu bawaan Filament tetap ada di topbar', function () {
     $timkur = User::query()->where('username', 'timkur')->firstOrFail();
     $this->actingAs($timkur);
 
     $response = $this->get('/dashboard');
     $response->assertOk();
     $response->assertSee('silogy.peran-unit-menu', false);
+    $response->assertSee('fi-user-menu', false);
+    $response->assertSee('silogy-sidebar-user', false);
 });
 
-it('PeranUnitMenu menampilkan peran, unit, dan tombol keluar', function () {
+it('PeranUnitMenu menampilkan menu identitas, ganti peran, dan aksi keluar', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
     Livewire::test(PeranUnitMenu::class)
-        ->assertSee('Peran:')
-        ->assertSee('Unit:');
+        ->assertSee('Profil')
+        ->assertSee('Ganti kata sandi')
+        ->assertSee('Ganti peran & unit')
+        ->assertActionExists('keluar')
+        ->assertActionExists('gantiPassword');
 });
 
 it('modal ganti peran & unit dari PeranUnitMenu berhasil menyimpan', function () {
@@ -89,6 +94,21 @@ it('modal ganti peran & unit dari PeranUnitMenu berhasil menyimpan', function ()
 
     expect(ActiveRole::currentFor($dosentimkur))->toBe('Tim Kurikulum')
         ->and(AcademicUnitTerpilih::currentId($dosentimkur))->toBe($prodi->id);
+});
+
+it('modal keluar menampilkan konfirmasi, beranda, dan ganti peran untuk multi-role', function () {
+    $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosentimkur);
+
+    expect(count(ActiveRole::ownedRoleNames($dosentimkur)))->toBeGreaterThan(1);
+
+    Livewire::test(PeranUnitMenu::class)
+        ->mountAction('keluar')
+        ->assertSee('Yakin akan keluar aplikasi?')
+        ->assertSee('Kembali')
+        ->assertSee('Beranda')
+        ->assertSee('Ganti peran')
+        ->assertSee('Ya, keluar');
 });
 
 it('user tanpa role sama sekali melihat keterangan danger di menu pengguna', function () {
