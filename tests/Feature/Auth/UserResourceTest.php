@@ -86,7 +86,7 @@ it('superadmin dapat membuka halaman edit pengguna', function () {
 it('dapat mengimpor pengguna massal lewat copypaste dengan pemisah pipe', function () {
     $rows = implode("\n", [
         'Budi Santoso|budisantoso|RahasiaKuat123|budi@silogy.test|Dosen Pengampu',
-        'Siti Aminah|sitiaminah|RahasiaKuat456|siti@silogy.test|Tim Kurikulum, Dosen Pengampu',
+        'Siti Aminah|sitiaminah|RahasiaKuat456|siti@silogy.test|Tim Kurikulum;Dosen Pengampu',
     ]);
 
     Livewire::test(ListUsers::class)

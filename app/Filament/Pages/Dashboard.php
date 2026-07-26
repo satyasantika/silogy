@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\WelcomeWidget;
 use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Filament\Support\Concerns\CanAccessDashboardWidgets;
@@ -20,7 +21,6 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Widgets\AccountWidget;
 use Filament\Widgets\Widget;
 use Filament\Widgets\WidgetConfiguration;
 
@@ -49,7 +49,7 @@ class Dashboard extends BaseDashboard
     }
 
     /**
-     * Ucapan selamat datang (AccountWidget) selalu paling atas setelah judul,
+     * Ucapan selamat datang (WelcomeWidget) selalu paling atas setelah judul,
      * sebelum filter dashboard.
      */
     public function content(Schema $schema): Schema
@@ -58,7 +58,7 @@ class Dashboard extends BaseDashboard
             ->components([
                 Grid::make(1)
                     ->schema(fn (): array => $this->getWidgetsSchemaComponents([
-                        AccountWidget::class,
+                        WelcomeWidget::class,
                         KurikulumTerpilihWidget::class,
                         KoordinatorMkAksesWidget::class,
                         RekapMkDosenWidget::class,

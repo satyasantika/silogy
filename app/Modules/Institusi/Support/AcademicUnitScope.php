@@ -55,6 +55,31 @@ class AcademicUnitScope
     }
 
     /**
+     * Unit kerja pimpinan user: unit tempat ia berstatus pimpinan, ditambah —
+     * untuk role Admin — seluruh unit dalam jangkauan penugasannya, sama
+     * seperti scopedTimKurikulumUnitIdsFor().
+     *
+     * @return Collection<int, string>
+     */
+    public static function scopedPimpinanUnitIdsFor(User $user): Collection
+    {
+        if ($user->hasRole('Super Admin')) {
+            return AcademicUnit::query()->pluck('id');
+        }
+
+        $unitIds = AcademicUnitUser::query()
+            ->where('user_id', $user->id)
+            ->where('status_pimpinan', true)
+            ->pluck('academic_unit_id');
+
+        if ($user->hasAnyRole(['Admin', 'Admin Program Studi'])) {
+            $unitIds = $unitIds->merge(static::managedUnitIdsFor($user));
+        }
+
+        return $unitIds->unique()->values();
+    }
+
+    /**
      * Unit tempat user berstatus tim kurikulum pada pivot (tanpa merge Admin).
      *
      * @return Collection<int, string>

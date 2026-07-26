@@ -3,6 +3,7 @@
 namespace App\Modules\Auth\Filament\Resources\UserResource\Pages;
 
 use App\Modules\Auth\Filament\Resources\UserResource;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
 use STS\FilamentImpersonate\Actions\Impersonate;
@@ -18,11 +19,8 @@ class EditUser extends BaseEditRecord
                 ->iconButton()
                 ->tooltip('Peniruan')
                 ->record($this->getRecord())
-                // '/dashboard' saja tidak cukup: Livewire::redirect() mengirim
-                // string ini apa adanya ke browser (tidak lewat UrlGenerator),
-                // jadi di deployment subpath (mis. /demo-silogy) hasilnya
-                // menuju ke akar domain, bukan /demo-silogy/dashboard.
-                ->redirectTo(route('filament.admin.pages.dashboard')),
+                // Closure — lihat catatan di UserResource.php pada action yang sama.
+                ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart()),
             DeleteAction::make()
                 ->iconButton()
                 ->tooltip('Hapus'),

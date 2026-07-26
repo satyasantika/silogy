@@ -8,6 +8,7 @@ use App\Modules\Auth\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\EditUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Modules\Auth\Support\DomainPermissionLabels;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
@@ -258,11 +259,16 @@ class UserResource extends Resource
                 Impersonate::make()
                     ->iconButton()
                     ->tooltip('Peniruan')
+                    // Closure (bukan string statis) supaya bisa membersihkan sisa
+                    // peran/unit sesi admin sebelumnya dan mengarahkan ke gerbang
+                    // Pilih Peran & Unit bila target multi-role — lihat
+                    // PeranUnitFormFields::redirectUrlAfterImpersonateStart().
                     // '/dashboard' saja tidak cukup: Livewire::redirect() mengirim
                     // string ini apa adanya ke browser (tidak lewat UrlGenerator),
                     // jadi di deployment subpath (mis. /demo-silogy) hasilnya
-                    // menuju ke akar domain, bukan /demo-silogy/dashboard.
-                    ->redirectTo(route('filament.admin.pages.dashboard')),
+                    // menuju ke akar domain, bukan /demo-silogy/dashboard — sudah
+                    // ditangani lewat route() di dalam helper tersebut.
+                    ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart()),
                 static::makeResetPasswordAction()
                     ->iconButton()
                     ->tooltip('Reset password'),

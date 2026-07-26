@@ -10,6 +10,7 @@ use App\Modules\AI\Policies\AnalisisAiPolicy;
 use App\Modules\AI\RateLimiters\GeminiPerUserPerDay;
 use App\Modules\Audit\Models\Activity;
 use App\Modules\Audit\Policies\ActivityLogPolicy;
+use App\Modules\Auth\Livewire\PeranUnitMenu;
 use App\Modules\Auth\Livewire\RoleSwitcher;
 use App\Modules\Auth\Policies\PermissionPolicy;
 use App\Modules\Auth\Policies\UserPolicy;
@@ -84,6 +85,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Livewire::component('silogy.role-switcher', RoleSwitcher::class);
+        Livewire::component('silogy.peran-unit-menu', PeranUnitMenu::class);
 
         $this->configureFilamentActionIcons();
 

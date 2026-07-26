@@ -6,6 +6,7 @@ use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -70,6 +71,20 @@ class KurikulumTerpilih
 
     public static function default(User $user): ?Kurikulum
     {
+        $unitId = AcademicUnitTerpilih::currentId($user);
+
+        if ($unitId !== null) {
+            $kandidat = static::scopedQuery($user)
+                ->with('academicUnit')
+                ->where('academic_unit_id', $unitId)
+                ->where('is_active', true)
+                ->first();
+
+            if ($kandidat) {
+                return $kandidat;
+            }
+        }
+
         $kandidat = static::scopedQuery($user)
             ->with('academicUnit')
             ->where('is_active', true)

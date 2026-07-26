@@ -4,6 +4,10 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\WelcomeWidget;
+use App\Models\User;
+use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
+use App\Modules\Auth\Support\ActiveRole;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -14,7 +18,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
-use Filament\Widgets\AccountWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -55,6 +58,21 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn (): string => Blade::render("@livewire('silogy.role-switcher')"),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIDEBAR_FOOTER,
+                function (): string {
+                    $user = auth()->user();
+
+                    if (! $user instanceof User || count(ActiveRole::ownedRoleNames($user)) <= 1) {
+                        return '';
+                    }
+
+                    return Blade::render(
+                        '<x-filament::icon-button icon="heroicon-o-arrows-right-left" tag="a" :href="$url" label="Ganti peran & unit" tooltip="Ganti peran & unit" />',
+                        ['url' => PilihPeranUnit::getUrl()],
+                    );
+                },
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverResources(
@@ -120,6 +138,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->pages([
                 Dashboard::class,
+                PilihPeranUnit::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->discoverWidgets(
@@ -127,7 +146,7 @@ class AdminPanelProvider extends PanelProvider
                 for: 'App\Modules\Kalkulasi\Filament\Widgets',
             )
             ->widgets([
-                AccountWidget::class,
+                WelcomeWidget::class,
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),

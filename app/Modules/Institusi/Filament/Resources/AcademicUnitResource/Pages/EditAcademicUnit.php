@@ -25,4 +25,14 @@ class EditAcademicUnit extends BaseEditRecord
 
         return $data;
     }
+
+    public function hasCombinedRelationManagerTabsWithContent(): bool
+    {
+        return true;
+    }
+
+    public function getContentTabLabel(): ?string
+    {
+        return 'Detail Unit';
+    }
 }

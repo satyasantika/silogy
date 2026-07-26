@@ -251,6 +251,13 @@
                     Dashboard
                 </a>
 
+                @if (auth()->check() && app('impersonate')->isImpersonating())
+                    <a href="{{ route('filament-impersonate.leave') }}" class="err-btn err-btn-ghost">
+                        <i class="bi bi-arrow-90deg-left"></i>
+                        Tinggalkan impersonate
+                    </a>
+                @endif
+
                 @auth
                     <form method="POST" action="{{ route('filament.admin.auth.logout') }}" style="display:contents;">
                         @csrf
