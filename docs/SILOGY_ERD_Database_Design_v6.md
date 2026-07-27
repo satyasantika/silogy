@@ -10,7 +10,7 @@
 | Sistem Operasional | SILARIS – Siliwangi Learning & Quality Assurance System |
 | Paradigma | Outcome-Based Education (OBE) |
 | Stack Teknologi | Laravel 13 · Filament v3 · MySQL 8 · Redis |
-| Versi Dokumen | 6.0 |
+| Versi Dokumen | 6.1 |
 | Tagline | *"From learning data to academic quality"* |
 
 ---
@@ -34,6 +34,10 @@
 - **analisis_ai.** `prodi_id` → `academic_unit_id` agar AI dapat memprediksi pada setiap level unit.
 - **Spatie Permission UUID.** Tetap pakai `CHAR(36)` UUID.
 - **Laravel 13 + PHP 8.3.** Sintaks migration menggunakan `foreignUuid()`, `cascadeOnDelete()`, anonymous-class migrations.
+
+**Perubahan v6.1:**
+
+- **`kurikulum_id` pada `cpl`, `bok`, `mk`, `mk_units`.** Paket OBE (CPL→BoK→MK→penawaran) diikat ke satu kurikulum. Kurikulum baru di unit yang sama mulai kosong; data historis tidak otomatis ikut. `academic_unit_id` tetap ada sebagai pemilik hierarki (adaptasi lintas unit). Unique kode: `(kurikulum_id, kode)` untuk CPL/BoK/mk_units; `(kurikulum_id, mk_id)` untuk mk_units.
 
 ---
 
@@ -323,15 +327,16 @@ Riwayat transisi state pada model bertingkat (Kurikulum, Mk, dll.).
 | Kolom | Tipe | NULL | Key | Deskripsi |
 |---|---|---|---|---|
 | id | CHAR(36) | NO | PK | UUID v4 |
-| academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` (CPL bisa di level mana saja) |
+| academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` (pemilik hierarki; CPL bisa di level mana saja) |
+| kurikulum_id | CHAR(36) | NO | FK | → `kurikulum.id` — paket CPL milik kurikulum ini |
 | kode | VARCHAR(15) | NO | | Mis. CPL-P01 |
 | deskripsi | TEXT | NO | | |
 | domain | ENUM('kognitif','afektif','psikomotorik','gabungan') | YES | | |
 | created_at | TIMESTAMP | YES | | |
 | updated_at | TIMESTAMP | YES | | |
 
-**FK:** `academic_unit_id → academic_units.id (CASCADE)`
-**Indeks:** `idx_cpl_unit (academic_unit_id)`
+**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `kurikulum_id → kurikulum.id (CASCADE)`
+**Indeks:** `idx_cpl_unit (academic_unit_id)` · `idx_cpl_kurikulum (kurikulum_id)` · UQ `(kurikulum_id, kode)`
 
 ### Tabel: `bok`
 
@@ -339,20 +344,26 @@ Riwayat transisi state pada model bertingkat (Kurikulum, Mk, dll.).
 |---|---|---|---|---|
 | id | CHAR(36) | NO | PK | UUID v4 |
 | academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` |
+| kurikulum_id | CHAR(36) | NO | FK | → `kurikulum.id` |
 | kode | VARCHAR(15) | NO | | |
 | nama | VARCHAR(150) | NO | | |
 | deskripsi | TEXT | YES | | |
 | created_at | TIMESTAMP | YES | | |
 | updated_at | TIMESTAMP | YES | | |
 
+**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `kurikulum_id → kurikulum.id (CASCADE)`
+**Indeks:** `idx_bok_unit (academic_unit_id)` · `idx_bok_kurikulum (kurikulum_id)` · UQ `(kurikulum_id, kode)`
+
 ### Tabel: `mk`
 
-> Catatan v6: `kode` dan `semester_ke` **dipindah** ke `mk_units`. Status diganti `is_active`.
+> Catatan v6: `kode` dan `semester_ke` **dipindah** ke `mk_units`. Status diganti `is_active`.  
+> Catatan v6.1: `kurikulum_id` wajib — MK milik satu kurikulum pemilik.
 
 | Kolom | Tipe | NULL | Key | Deskripsi |
 |---|---|---|---|---|
 | id | CHAR(36) | NO | PK | UUID v4 |
 | academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` (pemilik MK – universitas/fakultas/jurusan/prodi) |
+| kurikulum_id | CHAR(36) | NO | FK | → `kurikulum.id` (kurikulum pemilik MK) |
 | state | VARCHAR(50) | NO | | laravel-state |
 | nama | VARCHAR(150) | NO | | Nama mata kuliah |
 | sks | TINYINT | NO | | Total SKS (= sks_teori + sks_praktik + sks_lapangan) |
@@ -364,26 +375,27 @@ Riwayat transisi state pada model bertingkat (Kurikulum, Mk, dll.).
 | created_at | TIMESTAMP | YES | | |
 | updated_at | TIMESTAMP | YES | | |
 
-**FK:** `academic_unit_id → academic_units.id (CASCADE)`
-**Indeks:** `idx_mk_unit (academic_unit_id)` · `idx_mk_active (is_active)`
+**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `kurikulum_id → kurikulum.id (CASCADE)`
+**Indeks:** `idx_mk_unit (academic_unit_id)` · `idx_mk_kurikulum (kurikulum_id)` · `idx_mk_active (is_active)`
 
 ### Tabel: `mk_units` *(BARU)*
 
-> Penawaran MK pada unit spesifik. Memungkinkan satu MK universitas/fakultas dipakai di banyak prodi dengan kode & semester_ke berbeda.
+> Penawaran MK pada **kurikulum** unit spesifik. Memungkinkan satu MK universitas/fakultas diadaptasi ke kurikulum prodi dengan kode & semester_ke berbeda.
 
 | Kolom | Tipe | NULL | Key | Deskripsi |
 |---|---|---|---|---|
 | id | CHAR(36) | NO | PK | UUID v4 |
 | academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` (unit yang menawarkan MK – umumnya prodi) |
+| kurikulum_id | CHAR(36) | NO | FK | → `kurikulum.id` (kurikulum penawar) |
 | mk_id | CHAR(36) | NO | FK | → `mk.id` |
-| kode | VARCHAR(20) | NO | IDX | Kode MK pada unit ini (mis. IF1234) |
-| semester_ke | TINYINT | YES | IDX | Rekomendasi semester (1–8) pada unit ini |
+| kode | VARCHAR(20) | NO | IDX | Kode MK pada penawaran ini (mis. IF1234) |
+| semester_ke | TINYINT | YES | IDX | Rekomendasi semester (1–8) pada penawaran ini |
 | is_active | TINYINT(1) | NO | | Default 1 |
 | created_at | TIMESTAMP | YES | | |
 | updated_at | TIMESTAMP | YES | | |
 
-**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `mk_id → mk.id (CASCADE)`
-**Indeks:** UQ `(academic_unit_id, mk_id)` · UQ `(academic_unit_id, kode)` · `idx_mu_semester (semester_ke)` · `idx_mu_active (is_active)`
+**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `kurikulum_id → kurikulum.id (CASCADE)` · `mk_id → mk.id (CASCADE)`
+**Indeks:** UQ `(kurikulum_id, mk_id)` · UQ `(kurikulum_id, kode)` · `idx_mu_semester (semester_ke)` · `idx_mu_active (is_active)` · `idx_mk_units_kurikulum (kurikulum_id)`
 
 ### 7.1 Pivot Rantai CPL → BoK → MK → CPMK → SubCPMK
 
@@ -1094,30 +1106,40 @@ return new class extends Migration {
             $table->uuid('id')->primary();
             $table->foreignUuid('academic_unit_id')
                   ->constrained('academic_units')->cascadeOnDelete();
+            $table->foreignUuid('kurikulum_id')
+                  ->constrained('kurikulum')->cascadeOnDelete();
             $table->string('kode', 15);
             $table->text('deskripsi');
             $table->enum('domain', ['kognitif','afektif','psikomotorik','gabungan'])->nullable();
             $table->timestamps();
 
             $table->index('academic_unit_id', 'idx_cpl_unit');
+            $table->index('kurikulum_id', 'idx_cpl_kurikulum');
+            $table->unique(['kurikulum_id', 'kode'], 'uq_cpl_kur_kode');
         });
 
         Schema::create('bok', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('academic_unit_id')
                   ->constrained('academic_units')->cascadeOnDelete();
+            $table->foreignUuid('kurikulum_id')
+                  ->constrained('kurikulum')->cascadeOnDelete();
             $table->string('kode', 15);
             $table->string('nama', 150);
             $table->text('deskripsi')->nullable();
             $table->timestamps();
 
             $table->index('academic_unit_id', 'idx_bok_unit');
+            $table->index('kurikulum_id', 'idx_bok_kurikulum');
+            $table->unique(['kurikulum_id', 'kode'], 'uq_bok_kur_kode');
         });
 
         Schema::create('mk', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('academic_unit_id')
                   ->constrained('academic_units')->cascadeOnDelete();
+            $table->foreignUuid('kurikulum_id')
+                  ->constrained('kurikulum')->cascadeOnDelete();
             $table->string('state', 50)->default('draft');
             $table->string('nama', 150);
             $table->unsignedTinyInteger('sks');
@@ -1129,6 +1151,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index('academic_unit_id', 'idx_mk_unit');
+            $table->index('kurikulum_id', 'idx_mk_kurikulum');
             $table->index('is_active', 'idx_mk_active');
         });
 
@@ -1136,6 +1159,8 @@ return new class extends Migration {
             $table->uuid('id')->primary();
             $table->foreignUuid('academic_unit_id')
                   ->constrained('academic_units')->cascadeOnDelete();
+            $table->foreignUuid('kurikulum_id')
+                  ->constrained('kurikulum')->cascadeOnDelete();
             $table->foreignUuid('mk_id')
                   ->constrained('mk')->cascadeOnDelete();
             $table->string('kode', 20);
@@ -1143,8 +1168,8 @@ return new class extends Migration {
             $table->boolean('is_active')->default(true);
             $table->timestamps();
 
-            $table->unique(['academic_unit_id', 'mk_id'], 'uq_mu_unit_mk');
-            $table->unique(['academic_unit_id', 'kode'], 'uq_mu_unit_kode');
+            $table->unique(['kurikulum_id', 'mk_id'], 'uq_mu_kur_mk');
+            $table->unique(['kurikulum_id', 'kode'], 'uq_mu_kur_kode');
             $table->index('semester_ke', 'idx_mu_semester');
             $table->index('is_active', 'idx_mu_active');
         });

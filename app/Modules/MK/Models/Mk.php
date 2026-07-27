@@ -5,6 +5,7 @@ namespace App\Modules\MK\Models;
 use App\Models\User;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -54,6 +55,14 @@ class Mk extends Model
         return Attribute::get(
             fn (): int => (int) $this->sks_teori + (int) $this->sks_praktik + (int) $this->sks_lapangan,
         );
+    }
+
+    /**
+     * @return BelongsTo<Kurikulum, $this>
+     */
+    public function kurikulum(): BelongsTo
+    {
+        return $this->belongsTo(Kurikulum::class);
     }
 
     /**

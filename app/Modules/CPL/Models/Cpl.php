@@ -4,6 +4,7 @@ namespace App\Modules\CPL\Models;
 
 use App\Modules\BoK\Models\Bok;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\CplFactory;
@@ -42,6 +43,14 @@ class Cpl extends Model
     public function academicUnit(): BelongsTo
     {
         return $this->belongsTo(AcademicUnit::class);
+    }
+
+    /**
+     * @return BelongsTo<Kurikulum, $this>
+     */
+    public function kurikulum(): BelongsTo
+    {
+        return $this->belongsTo(Kurikulum::class);
     }
 
     /**

@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Modules\CPL\Models\Cpl;
-use App\Modules\Institusi\Models\AcademicUnit;
+use Database\Factories\Concerns\BelongsToKurikulumFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class CplFactory extends Factory
 {
+    use BelongsToKurikulumFactory;
+
     protected $model = Cpl::class;
 
     public function definition(): array
@@ -23,12 +25,5 @@ class CplFactory extends Factory
                 fake()->numberBetween(1, 3),
             ),
         ];
-    }
-
-    public function forAcademicUnit(AcademicUnit $academicUnit): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'academic_unit_id' => $academicUnit->id,
-        ]);
     }
 }

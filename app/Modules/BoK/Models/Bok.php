@@ -5,6 +5,7 @@ namespace App\Modules\BoK\Models;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use Database\Factories\BokFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -37,6 +38,14 @@ class Bok extends Model
     public function academicUnit(): BelongsTo
     {
         return $this->belongsTo(AcademicUnit::class);
+    }
+
+    /**
+     * @return BelongsTo<Kurikulum, $this>
+     */
+    public function kurikulum(): BelongsTo
+    {
+        return $this->belongsTo(Kurikulum::class);
     }
 
     /**

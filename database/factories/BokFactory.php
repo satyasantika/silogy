@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Modules\BoK\Models\Bok;
-use App\Modules\Institusi\Models\AcademicUnit;
+use Database\Factories\Concerns\BelongsToKurikulumFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class BokFactory extends Factory
 {
+    use BelongsToKurikulumFactory;
+
     protected $model = Bok::class;
 
     public function definition(): array
@@ -20,12 +22,5 @@ class BokFactory extends Factory
             'nama' => fake()->words(3, true),
             'deskripsi' => fake()->optional()->sentence(),
         ];
-    }
-
-    public function forAcademicUnit(AcademicUnit $academicUnit): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'academic_unit_id' => $academicUnit->id,
-        ]);
     }
 }

@@ -9,6 +9,8 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\States\KurikulumState;
+use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -68,7 +70,7 @@ class Kurikulum extends Model
      */
     public function cpls(): HasMany
     {
-        return $this->hasMany(Cpl::class, 'academic_unit_id', 'academic_unit_id');
+        return $this->hasMany(Cpl::class);
     }
 
     /**
@@ -76,7 +78,23 @@ class Kurikulum extends Model
      */
     public function boks(): HasMany
     {
-        return $this->hasMany(Bok::class, 'academic_unit_id', 'academic_unit_id');
+        return $this->hasMany(Bok::class);
+    }
+
+    /**
+     * @return HasMany<Mk, $this>
+     */
+    public function mks(): HasMany
+    {
+        return $this->hasMany(Mk::class);
+    }
+
+    /**
+     * @return HasMany<MkUnit, $this>
+     */
+    public function mkUnits(): HasMany
+    {
+        return $this->hasMany(MkUnit::class);
     }
 
     /**
@@ -87,9 +105,9 @@ class Kurikulum extends Model
         return $this->hasManyThrough(
             CplBok::class,
             Cpl::class,
-            'academic_unit_id',
+            'kurikulum_id',
             'cpl_id',
-            'academic_unit_id',
+            'id',
             'id',
         );
     }
@@ -104,7 +122,7 @@ class Kurikulum extends Model
                 $query->select('cpl_bok.id')
                     ->from('cpl_bok')
                     ->join('cpl', 'cpl.id', '=', 'cpl_bok.cpl_id')
-                    ->whereColumn('cpl.academic_unit_id', 'kurikulum.academic_unit_id');
+                    ->whereColumn('cpl.kurikulum_id', 'kurikulum.id');
             });
     }
 
@@ -118,11 +136,15 @@ class Kurikulum extends Model
     }
 
     /**
-     * Kurikulum masih hanya metadata awal — belum ada baris turunan yang
-     * mereferensi langsung ke record ini (saat ini: profil_lulusan).
+     * Kurikulum masih hanya metadata awal — belum ada baris turunan
+     * (profil, CPL, BoK, MK, penawaran MK).
      */
     public function belumDigunakanDiTabelLain(): bool
     {
-        return ! $this->profilLulusan()->exists();
+        return ! $this->profilLulusan()->exists()
+            && ! $this->cpls()->exists()
+            && ! $this->boks()->exists()
+            && ! $this->mks()->exists()
+            && ! $this->mkUnits()->exists();
     }
 }

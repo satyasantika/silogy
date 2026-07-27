@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\MK\Models\Mk;
+use Database\Factories\Concerns\BelongsToKurikulumFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class MkFactory extends Factory
 {
+    use BelongsToKurikulumFactory;
+
     protected $model = Mk::class;
 
     public function definition(): array
@@ -29,12 +31,5 @@ class MkFactory extends Factory
             'jenis' => fake()->randomElement(['wajib', 'pilihan', 'praktikum']),
             'is_active' => true,
         ];
-    }
-
-    public function forAcademicUnit(AcademicUnit $academicUnit): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'academic_unit_id' => $academicUnit->id,
-        ]);
     }
 }

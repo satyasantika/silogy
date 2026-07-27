@@ -4,6 +4,7 @@ namespace App\Modules\MK\Models;
 
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -44,6 +45,14 @@ class MkUnit extends Model
     public function mk(): BelongsTo
     {
         return $this->belongsTo(Mk::class);
+    }
+
+    /**
+     * @return BelongsTo<Kurikulum, $this>
+     */
+    public function kurikulum(): BelongsTo
+    {
+        return $this->belongsTo(Kurikulum::class);
     }
 
     /**
