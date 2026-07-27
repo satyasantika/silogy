@@ -758,6 +758,49 @@ it('impor profil lulusan pada kurikulum prodi', function () {
         ->and($profil->indikators()->count())->toBe(2);
 });
 
+it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', function () {
+    $this->actingAs(User::where('username', 'timkur')->firstOrFail());
+
+    $kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Preview Profil',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $raw = "1\tPendidik Matematika\tOrang yang melakukan proses pengubahan sikap dan perilaku seseorang atau kelompok orang dalam usaha mendewasakan manusia melalui upaya pengajaran, bimbingan dan latihan di bidang matematika dengan menguasai materi matematika (Content Knowledge), pedagogik (Pedagogical Knowledge) dan teknologi (Technological Knowledge)";
+
+    $page = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+        ->instance();
+    $parsed = $page->parseImportRaw($raw, ['import_kurikulum_id' => $kurikulum->id]);
+    $preview = $page->renderImportPreview($raw, ['import_kurikulum_id' => $kurikulum->id])->toHtml();
+
+    expect($parsed)->toHaveCount(1)
+        ->and($parsed[0]['status'])->toBe('baru')
+        ->and($parsed[0]['data']['nama'])->toBe('Pendidik Matematika')
+        ->and($parsed[0]['data']['deskripsi'])->toContain('Content Knowledge')
+        ->and($parsed[0]['data']['indikator'])->toBe('')
+        ->and($preview)->toContain('Pendidik Matematika')
+        ->and($preview)->not->toContain('Belum ada data yang dapat dibaca');
+
+    // assertSee()/html() lihat snapshot HTML halaman PENUH, tapi modal aksi
+    // dirender Livewire sebagai "partial" terpisah pada request lanjutan
+    // (lihat PartialsComponentHook::shouldSkipRender()) — assertSee tidak
+    // pernah melihatnya. Assersi khusus modal aksi Filament di bawah ini
+    // (assertMountedActionModalSee dkk.) membaca dari partial yang benar.
+    Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+        ->mountAction('bulkImport')
+        ->setActionData([
+            'import_kurikulum_id' => $kurikulum->id,
+            'rows' => $raw,
+        ])
+        ->assertMountedActionModalSee('Pendidik Matematika')
+        ->goToNextWizardStep()
+        ->assertMountedActionModalSee('Pendidik Matematika')
+        ->assertMountedActionModalSee('Tindakan untuk data duplikat')
+        ->assertMountedActionModalDontSee('Belum ada data yang dapat dibaca');
+});
+
 it('impor profil lulusan mewajibkan nama dan mendeteksi jumlah indikator', function () {
     $kurikulum = Kurikulum::query()->create([
         'academic_unit_id' => $this->prodi->id,

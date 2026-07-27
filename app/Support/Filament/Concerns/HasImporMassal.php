@@ -28,6 +28,19 @@ use Illuminate\Support\HtmlString;
 trait HasImporMassal
 {
     /**
+     * Salinan langsung nilai textarea "rows" saat ini, disinkronkan lewat
+     * afterStateUpdated() pada Textarea (BUKAN lewat Get()/Set() lintas
+     * step Wizard — itu terbukti rapuh karena Get::__invoke() sengaja
+     * skip menelusuri anak-kontainer milik komponen yang sedang
+     * dievaluasi, sehingga pemanggilan dari afterValidation() milik Step
+     * 1 untuk membaca anaknya sendiri ('rows') bisa jatuh ke fallback
+     * yang tidak selalu menemukan state form dengan benar — lihat
+     * makeImporMassalAction()). Harus public supaya ikut
+     * disimpan/dipulihkan Livewire antar request.
+     */
+    public string $importMassalRowsLive = '';
+
+    /**
      * Definisi kolom sesuai urutan tempel.
      *
      * @return list<array{key: string, label: string, wajib: bool}>
@@ -310,10 +323,10 @@ trait HasImporMassal
     protected function importColumnsHelperText(): string
     {
         if ($this->importExampleRows() !== []) {
-            return 'Tempel baris data di bawah petunjuk (lihat contoh pada placeholder kotak di bawah). Pratinjau tersedia pada langkah berikutnya.';
+            return 'Tempel baris data di bawah petunjuk (lihat contoh pada placeholder kotak di bawah). Pratinjau muncul otomatis di bawah kotak tempel.';
         }
 
-        return 'Tempel baris data di bawah petunjuk. Pratinjau tersedia pada langkah berikutnya.';
+        return 'Tempel baris data di bawah petunjuk. Pratinjau muncul otomatis di bawah kotak tempel.';
     }
 
     /**
@@ -397,12 +410,18 @@ trait HasImporMassal
     /**
      * @param  array<string, mixed>  $context
      */
-    public function renderImportPreview(string $raw, array $context = []): HtmlString
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    public function renderImportPreview(string $raw, array $context = [], ?string $emptyMessage = null): HtmlString
     {
         $rows = $this->parseImportRaw($raw, $context);
 
         if ($rows === []) {
-            return new HtmlString('<p class="text-sm">Belum ada data yang dapat dibaca. Kembali ke langkah sebelumnya dan tempel data terlebih dahulu.</p>');
+            $pesan = $emptyMessage
+                ?? 'Belum ada data yang dapat dibaca. Tempel data pada kotak di atas terlebih dahulu.';
+
+            return new HtmlString('<p class="text-sm opacity-80">'.$pesan.'</p>');
         }
 
         $jumlah = ['baru' => 0, 'duplikat' => 0, 'invalid' => 0];
@@ -496,9 +515,26 @@ trait HasImporMassal
                                 ->label('Data yang ditempel')
                                 ->required()
                                 ->rows(10)
-                                ->live()
+                                ->live(debounce: 400)
+                                ->afterStateUpdated(function (?string $state): void {
+                                    // Sengaja TIDAK lewat Get()/Set() cross-step — lihat
+                                    // catatan pada properti $importMassalRowsLive. $state
+                                    // adalah nilai textarea terbaru, dikirim langsung
+                                    // sebagai parameter closure, jadi tidak butuh
+                                    // pencarian path form sama sekali.
+                                    $this->importMassalRowsLive = (string) $state;
+                                })
                                 ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get)))
                                 ->helperText($this->importColumnsHelperText()),
+                            // Pratinjau di langkah yang sama, dibaca dari property
+                            // (bukan Get('rows')) agar konsisten dengan step 2.
+                            Placeholder::make('preview_live')
+                                ->hiddenLabel()
+                                ->content(fn (Get $get): HtmlString => $this->renderImportPreview(
+                                    $this->importMassalRowsLive,
+                                    $contextFromGet($get),
+                                    emptyMessage: 'Pratinjau akan muncul di sini setelah data ditempel.',
+                                )),
                         ]),
                     Step::make('Preview & konfirmasi')
                         ->icon(Heroicon::OutlinedEye)
@@ -506,7 +542,7 @@ trait HasImporMassal
                             Placeholder::make('preview')
                                 ->hiddenLabel()
                                 ->content(fn (Get $get): HtmlString => $this->renderImportPreview(
-                                    (string) $get('rows'),
+                                    $this->importMassalRowsLive,
                                     $contextFromGet($get),
                                 )),
                             Radio::make('mode_duplikat')
@@ -527,7 +563,7 @@ trait HasImporMassal
                 }
 
                 $this->runImport(
-                    (string) $data['rows'],
+                    $this->importMassalRowsLive !== '' ? $this->importMassalRowsLive : (string) ($data['rows'] ?? ''),
                     (string) ($data['mode_duplikat'] ?? 'lewati'),
                     $context,
                 );
