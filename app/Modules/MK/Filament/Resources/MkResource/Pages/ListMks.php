@@ -6,16 +6,12 @@ use App\Models\User;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
-use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Models\Mk;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 
 class ListMks extends ListRecords
@@ -38,29 +34,6 @@ class ListMks extends ListRecords
         return 'Impor mata kuliah massal';
     }
 
-    /**
-     * @return list<string>
-     */
-    protected function importContextKeys(): array
-    {
-        return ['import_kurikulum_id'];
-    }
-
-    /**
-     * @return array<int, Component|Field>
-     */
-    protected function importContextComponents(): array
-    {
-        return [
-            Select::make('import_kurikulum_id')
-                ->label('Kurikulum')
-                ->options(KurikulumTerpilih::options())
-                ->searchable()
-                ->required()
-                ->default(fn (): ?string => KurikulumTerpilih::currentId()),
-        ];
-    }
-
     protected function importColumns(): array
     {
         return [
@@ -77,7 +50,7 @@ class ListMks extends ListRecords
     protected function importInstructionsExtra(): array
     {
         return [
-            'Satu baris = satu mata kuliah pada unit kurikulum yang dipilih di atas.',
+            'Satu baris = satu mata kuliah pada kurikulum yang sedang dikerjakan (lihat banner di atas halaman).',
             'Jenis: wajib, pilihan, atau praktikum.',
             'SKS praktik dan SKS lapangan opsional; kosongkan atau isi 0 bila tidak ada.',
             'Kode bahan kajian opsional; lebih dari satu kode dipisah titik koma (;), mis. BOK-01;BOK-02.',
@@ -104,10 +77,11 @@ class ListMks extends ListRecords
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $unitId = $this->unitIdDariKonteks();
+        $kurikulumId = $this->kurikulumIdDariKonteks();
 
-        if (blank($unitId)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum pemilik MK terlebih dahulu.'];
+        if (blank($unitId) || blank($kurikulumId)) {
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum pemilik MK terlebih dahulu lewat banner di atas halaman.'];
         }
 
         foreach (['sks_teori', 'sks_praktik', 'sks_lapangan'] as $key) {
@@ -126,7 +100,7 @@ class ListMks extends ListRecords
         }
 
         if ($data['kode_bok'] !== '') {
-            $pesanInvalid = $this->validasiKodeBok($data['kode_bok'], $unitId);
+            $pesanInvalid = $this->validasiKodeBok($data['kode_bok'], $kurikulumId);
 
             if ($pesanInvalid !== null) {
                 return ['status' => 'invalid', 'keterangan' => $pesanInvalid];
@@ -134,14 +108,14 @@ class ListMks extends ListRecords
         }
 
         $existing = Mk::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->where('nama', $data['nama'])
             ->first();
 
         if ($existing) {
             return [
                 'status' => 'duplikat',
-                'keterangan' => 'MK dengan nama ini sudah ada pada unit.',
+                'keterangan' => 'MK dengan nama ini sudah ada pada kurikulum ini.',
                 'existing_id' => $existing->id,
                 'dedup' => mb_strtolower($data['nama']),
             ];
@@ -152,11 +126,13 @@ class ListMks extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $unitId = $this->unitIdDariKonteks();
+        $kurikulumId = $this->kurikulumIdDariKonteks();
         [$teori, $praktik, $lapangan] = $this->sksDariData($data);
 
         Mk::query()->create([
             'academic_unit_id' => $unitId,
+            'kurikulum_id' => $kurikulumId,
             'nama' => $data['nama'],
             'sks_teori' => $teori,
             'sks_praktik' => $praktik,
@@ -169,11 +145,11 @@ class ListMks extends ListRecords
         ]);
 
         $mk = Mk::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->where('nama', $data['nama'])
             ->firstOrFail();
 
-        $this->petakanBok($mk, $data, $context);
+        $this->petakanBok($mk, $data);
     }
 
     /**
@@ -194,7 +170,7 @@ class ListMks extends ListRecords
             'koordinator_mk_id' => $this->koordinatorId($data) ?? $mk->koordinator_mk_id,
         ]);
 
-        $this->petakanBok($mk, $data, $context);
+        $this->petakanBok($mk, $data);
     }
 
     /**
@@ -224,20 +200,19 @@ class ListMks extends ListRecords
 
     /**
      * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
      */
-    protected function petakanBok(Mk $mk, array $data, array $context): void
+    protected function petakanBok(Mk $mk, array $data): void
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $kurikulumId = $this->kurikulumIdDariKonteks();
 
-        if (blank($unitId) || $data['kode_bok'] === '') {
+        if (blank($kurikulumId) || $data['kode_bok'] === '') {
             return;
         }
 
         $cplBokIds = collect($this->kodeBokDariBaris($data['kode_bok']))
-            ->flatMap(function (string $kodeBok) use ($unitId): array {
+            ->flatMap(function (string $kodeBok) use ($kurikulumId): array {
                 $bok = Bok::query()
-                    ->where('academic_unit_id', $unitId)
+                    ->where('kurikulum_id', $kurikulumId)
                     ->where('kode', $kodeBok)
                     ->first();
 
@@ -291,7 +266,7 @@ class ListMks extends ListRecords
             ->all();
     }
 
-    protected function validasiKodeBok(string $raw, string $unitId): ?string
+    protected function validasiKodeBok(string $raw, string $kurikulumId): ?string
     {
         $kodes = $this->kodeBokDariBaris($raw);
 
@@ -301,12 +276,12 @@ class ListMks extends ListRecords
 
         foreach ($kodes as $kode) {
             $bok = Bok::query()
-                ->where('academic_unit_id', $unitId)
+                ->where('kurikulum_id', $kurikulumId)
                 ->where('kode', $kode)
                 ->first();
 
             if (! $bok) {
-                return "BoK '{$kode}' tidak ditemukan pada unit ini.";
+                return "BoK '{$kode}' tidak ditemukan pada kurikulum ini.";
             }
 
             if (! CplBok::query()->where('bok_id', $bok->id)->exists()) {
@@ -318,18 +293,15 @@ class ListMks extends ListRecords
     }
 
     /**
-     * Unit pemilik diturunkan dari kurikulum terpilih pada konteks impor.
-     *
-     * @param  array<string, mixed>  $context
+     * Unit pemilik diturunkan dari kurikulum yang sedang dikerjakan (banner).
      */
-    protected function unitIdDariKonteks(array $context): ?string
+    protected function unitIdDariKonteks(): ?string
     {
-        $kurikulumId = $context['import_kurikulum_id'] ?? null;
+        return KurikulumTerpilih::current()?->academic_unit_id;
+    }
 
-        if (blank($kurikulumId)) {
-            return null;
-        }
-
-        return Kurikulum::query()->whereKey($kurikulumId)->value('academic_unit_id');
+    protected function kurikulumIdDariKonteks(): ?string
+    {
+        return KurikulumTerpilih::currentId();
     }
 }

@@ -6,14 +6,10 @@ use App\Modules\BoK\Filament\Resources\BokResource;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
-use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 
 class ListBoks extends ListRecords
@@ -36,29 +32,6 @@ class ListBoks extends ListRecords
         return 'Impor bahan kajian (BoK) massal';
     }
 
-    /**
-     * @return list<string>
-     */
-    protected function importContextKeys(): array
-    {
-        return ['import_kurikulum_id'];
-    }
-
-    /**
-     * @return array<int, Component|Field>
-     */
-    protected function importContextComponents(): array
-    {
-        return [
-            Select::make('import_kurikulum_id')
-                ->label('Kurikulum')
-                ->options(KurikulumTerpilih::options())
-                ->searchable()
-                ->required()
-                ->default(fn (): ?string => KurikulumTerpilih::currentId()),
-        ];
-    }
-
     protected function importColumns(): array
     {
         return [
@@ -72,7 +45,7 @@ class ListBoks extends ListRecords
     protected function importInstructionsExtra(): array
     {
         return [
-            'Satu baris = satu bahan kajian (BoK) pada unit kurikulum yang dipilih di atas.',
+            'Satu baris = satu bahan kajian (BoK) pada kurikulum yang sedang dikerjakan (lihat banner di atas halaman).',
             'Kode CPL terpetakan boleh lebih dari satu; pisahkan dengan titik koma (;), mis. CPL-01;CPL-02.',
             'Setiap kode CPL harus sudah ada pada unit yang sama sebelum impor.',
         ];
@@ -96,14 +69,15 @@ class ListBoks extends ListRecords
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $unitId = $this->unitIdDariKonteks();
+        $kurikulumId = $this->kurikulumIdDariKonteks();
 
-        if (blank($unitId)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu.'];
+        if (blank($unitId) || blank($kurikulumId)) {
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu lewat banner di atas halaman.'];
         }
 
         if ($data['kode_cpl'] !== '') {
-            $pesanInvalid = $this->validasiKodeCpl($data['kode_cpl'], $unitId);
+            $pesanInvalid = $this->validasiKodeCpl($data['kode_cpl'], $kurikulumId);
 
             if ($pesanInvalid !== null) {
                 return ['status' => 'invalid', 'keterangan' => $pesanInvalid];
@@ -111,14 +85,14 @@ class ListBoks extends ListRecords
         }
 
         $existing = Bok::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->where('kode', $data['kode'])
             ->first();
 
         if ($existing) {
             return [
                 'status' => 'duplikat',
-                'keterangan' => 'Kode BoK sudah ada pada unit ini.',
+                'keterangan' => 'Kode BoK sudah ada pada kurikulum ini.',
                 'existing_id' => $existing->id,
                 'dedup' => mb_strtolower($data['kode']),
             ];
@@ -129,15 +103,18 @@ class ListBoks extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $unitId = $this->unitIdDariKonteks();
+        $kurikulumId = $this->kurikulumIdDariKonteks();
+
         $bok = Bok::query()->create([
             'academic_unit_id' => $unitId,
+            'kurikulum_id' => $kurikulumId,
             'kode' => $data['kode'],
             'nama' => $data['nama'],
             'deskripsi' => $data['deskripsi'] ?: null,
         ]);
 
-        $this->petakanCpl($bok, $data, $context);
+        $this->petakanCpl($bok, $data);
     }
 
     /**
@@ -153,24 +130,23 @@ class ListBoks extends ListRecords
             'deskripsi' => $data['deskripsi'] ?: $bok->deskripsi,
         ]);
 
-        $this->petakanCpl($bok, $data, $context);
+        $this->petakanCpl($bok, $data);
     }
 
     /**
      * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
      */
-    protected function petakanCpl(Bok $bok, array $data, array $context): void
+    protected function petakanCpl(Bok $bok, array $data): void
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $kurikulumId = $this->kurikulumIdDariKonteks();
 
-        if (blank($unitId)) {
+        if (blank($kurikulumId)) {
             return;
         }
 
         foreach ($this->kodeCplDariBaris($data['kode_cpl']) as $kodeCpl) {
             $cpl = Cpl::query()
-                ->where('academic_unit_id', $unitId)
+                ->where('kurikulum_id', $kurikulumId)
                 ->where('kode', $kodeCpl)
                 ->first();
 
@@ -200,7 +176,7 @@ class ListBoks extends ListRecords
             ->all();
     }
 
-    protected function validasiKodeCpl(string $raw, string $unitId): ?string
+    protected function validasiKodeCpl(string $raw, string $kurikulumId): ?string
     {
         $kodes = $this->kodeCplDariBaris($raw);
 
@@ -210,12 +186,12 @@ class ListBoks extends ListRecords
 
         foreach ($kodes as $kode) {
             $cplAda = Cpl::query()
-                ->where('academic_unit_id', $unitId)
+                ->where('kurikulum_id', $kurikulumId)
                 ->where('kode', $kode)
                 ->exists();
 
             if (! $cplAda) {
-                return "CPL '{$kode}' tidak ditemukan pada unit ini.";
+                return "CPL '{$kode}' tidak ditemukan pada kurikulum ini.";
             }
         }
 
@@ -223,18 +199,15 @@ class ListBoks extends ListRecords
     }
 
     /**
-     * Unit pemilik diturunkan dari kurikulum terpilih pada konteks impor.
-     *
-     * @param  array<string, mixed>  $context
+     * Unit pemilik diturunkan dari kurikulum yang sedang dikerjakan (banner).
      */
-    protected function unitIdDariKonteks(array $context): ?string
+    protected function unitIdDariKonteks(): ?string
     {
-        $kurikulumId = $context['import_kurikulum_id'] ?? null;
+        return KurikulumTerpilih::current()?->academic_unit_id;
+    }
 
-        if (blank($kurikulumId)) {
-            return null;
-        }
-
-        return Kurikulum::query()->whereKey($kurikulumId)->value('academic_unit_id');
+    protected function kurikulumIdDariKonteks(): ?string
+    {
+        return KurikulumTerpilih::currentId();
     }
 }

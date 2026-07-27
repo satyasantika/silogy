@@ -18,6 +18,7 @@ use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikul
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\ProfilLulusanRelationManager;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource\Pages\ListMahasiswas;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
@@ -144,23 +145,29 @@ it('impor cpl per unit dengan validasi domain', function () {
         '|CPL-IMP-02|Domain salah|tidakvalid',
     ]);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => $rows,
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
-    expect(Cpl::query()->where('kode', 'CPL-IMP-01')->where('academic_unit_id', $this->prodi->id)->exists())->toBeTrue()
+    $cpl = Cpl::query()->where('kode', 'CPL-IMP-01')->first();
+
+    expect($cpl)->not->toBeNull()
+        ->and($cpl->academic_unit_id)->toBe($this->prodi->id)
+        ->and($cpl->kurikulum_id)->toBe($this->kurikulumProdi->id)
         ->and(Cpl::query()->where('kode', 'CPL-IMP-02')->exists())->toBeFalse();
 });
 
 it('impor cpl mendukung beberapa domain sekaligus dipisah koma', function () {
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => '|CPL-IMP-MULTI|Mampu memahami dan bersikap ilmiah|kognitif,afektif',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $cpl = Cpl::query()->where('kode', 'CPL-IMP-MULTI')->firstOrFail();
@@ -183,11 +190,12 @@ it('impor cpl prodi memetakan ke beberapa profil lulusan sekaligus', function ()
         'deskripsi' => 'Profil peneliti',
     ]);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => 'Pendidik;Peneliti|CPL-PROFIL-01|Mampu pedagogik|kognitif',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $cpl = Cpl::query()->where('kode', 'CPL-PROFIL-01')->firstOrFail();
@@ -196,11 +204,12 @@ it('impor cpl prodi memetakan ke beberapa profil lulusan sekaligus', function ()
 });
 
 it('impor cpl prodi menolak profil lulusan yang tidak ada', function () {
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => 'Profil Tidak Ada|CPL-INVALID-PROFIL|Deskripsi CPL|kognitif',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     expect(Cpl::query()->where('kode', 'CPL-INVALID-PROFIL')->exists())->toBeFalse();
@@ -208,12 +217,12 @@ it('impor cpl prodi menolak profil lulusan yang tidak ada', function () {
 
 it('impor cpl fakultas tanpa kolom profil lulusan', function () {
     $this->actingAs(User::where('username', 'adminfak')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumFak->id);
 
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => 'CPL-FAK-01|CPL tingkat fakultas|kognitif',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumFak->id,
         ]);
 
     expect(Cpl::query()->where('kode', 'CPL-FAK-01')->where('academic_unit_id', $this->fakultas->id)->exists())->toBeTrue();
@@ -221,12 +230,12 @@ it('impor cpl fakultas tanpa kolom profil lulusan', function () {
 
 it('impor cpl fakultas menolak baris dengan kolom profil lulusan', function () {
     $this->actingAs(User::where('username', 'adminfak')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumFak->id);
 
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => 'Pendidik|CPL-FAK-PROFIL|Deskripsi|kognitif',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumFak->id,
         ]);
 
     expect(Cpl::query()->where('kode', 'CPL-FAK-PROFIL')->exists())->toBeFalse();
@@ -235,16 +244,18 @@ it('impor cpl fakultas menolak baris dengan kolom profil lulusan', function () {
 it('impor bok sekaligus memetakan ke cpl', function () {
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-MAP']);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListBoks::class)
         ->callAction('bulkImport', [
             'rows' => 'BOK-IMP-01|Aljabar Dasar|Bahan kajian aljabar|CPL-MAP',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $bok = Bok::query()->where('kode', 'BOK-IMP-01')->first();
 
     expect($bok)->not->toBeNull()
+        ->and($bok->kurikulum_id)->toBe($this->kurikulumProdi->id)
         ->and(CplBok::query()->where('cpl_id', $cpl->id)->where('bok_id', $bok->id)->exists())->toBeTrue();
 });
 
@@ -252,11 +263,12 @@ it('impor bok dapat memetakan ke beberapa cpl sekaligus', function () {
     $cpl1 = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-M1']);
     $cpl2 = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-M2']);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListBoks::class)
         ->callAction('bulkImport', [
             'rows' => 'BOK-MULTI|Statistik|BoK statistik|CPL-M1;CPL-M2',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $bok = Bok::query()->where('kode', 'BOK-MULTI')->firstOrFail();
@@ -269,11 +281,12 @@ it('impor bok dapat memetakan ke beberapa cpl sekaligus', function () {
 it('impor bok menolak kode cpl tidak valid dalam daftar titik koma', function () {
     Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-ADA']);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListBoks::class)
         ->callAction('bulkImport', [
             'rows' => 'BOK-INVALID|Geometri||CPL-ADA;CPL-TIDAK-ADA',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     expect(Bok::query()->where('kode', 'BOK-INVALID')->exists())->toBeFalse();
@@ -282,11 +295,12 @@ it('impor bok menolak kode cpl tidak valid dalam daftar titik koma', function ()
 it('impor mk dengan sks, jenis, dan koordinator', function () {
     $korma = User::query()->where('username', 'korma')->firstOrFail();
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListMks::class)
         ->callAction('bulkImport', [
             'rows' => "Kalkulus Impor\t3\t1\t0\twajib\t\t{$korma->nidn}",
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $mk = Mk::query()->where('nama', 'Kalkulus Impor')->first();
@@ -294,15 +308,17 @@ it('impor mk dengan sks, jenis, dan koordinator', function () {
     expect($mk)->not->toBeNull()
         ->and($mk->sks)->toBe(4)
         ->and($mk->jenis)->toBe('wajib')
-        ->and($mk->koordinator_mk_id)->toBe($korma->id);
+        ->and($mk->koordinator_mk_id)->toBe($korma->id)
+        ->and($mk->kurikulum_id)->toBe($this->kurikulumProdi->id);
 });
 
 it('impor mk menganggap sks praktik dan lapangan kosong sebagai nol', function () {
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListMks::class)
         ->callAction('bulkImport', [
             'rows' => "Teori Saja\t3\t\t\twajib",
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $mk = Mk::query()->where('nama', 'Teori Saja')->firstOrFail();
@@ -321,11 +337,12 @@ it('impor mk memetakan ke beberapa bahan kajian sekaligus', function () {
     CplBok::query()->create(['cpl_id' => $cpl1->id, 'bok_id' => $bok1->id, 'bobot' => 100]);
     CplBok::query()->create(['cpl_id' => $cpl2->id, 'bok_id' => $bok2->id, 'bobot' => 100]);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListMks::class)
         ->callAction('bulkImport', [
             'rows' => 'MK BoK Multi|3|0|0|wajib|BOK-MK1;BOK-MK2',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $mk = Mk::query()->where('nama', 'MK BoK Multi')->firstOrFail();
@@ -336,11 +353,12 @@ it('impor mk memetakan ke beberapa bahan kajian sekaligus', function () {
 it('impor mk menolak kode bahan kajian yang belum dipetakan ke cpl', function () {
     Bok::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'BOK-TANPA-CPL']);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListMks::class)
         ->callAction('bulkImport', [
             'rows' => 'MK Invalid BoK|3|0|0|wajib|BOK-TANPA-CPL',
             'mode_duplikat' => 'lewati',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     expect(Mk::query()->where('nama', 'MK Invalid BoK')->exists())->toBeFalse();
@@ -768,12 +786,14 @@ it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', functi
         'is_active' => true,
     ]);
 
+    KurikulumTerpilih::set($kurikulum->id);
+
     $raw = "1\tPendidik Matematika\tOrang yang melakukan proses pengubahan sikap dan perilaku seseorang atau kelompok orang dalam usaha mendewasakan manusia melalui upaya pengajaran, bimbingan dan latihan di bidang matematika dengan menguasai materi matematika (Content Knowledge), pedagogik (Pedagogical Knowledge) dan teknologi (Technological Knowledge)";
 
     $page = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
         ->instance();
-    $parsed = $page->parseImportRaw($raw, ['import_kurikulum_id' => $kurikulum->id]);
-    $preview = $page->renderImportPreview($raw, ['import_kurikulum_id' => $kurikulum->id])->toHtml();
+    $parsed = $page->parseImportRaw($raw);
+    $preview = $page->renderImportPreview($raw)->toHtml();
 
     expect($parsed)->toHaveCount(1)
         ->and($parsed[0]['status'])->toBe('baru')
@@ -791,12 +811,10 @@ it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', functi
     Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
         ->mountAction('bulkImport')
         ->setActionData([
-            'import_kurikulum_id' => $kurikulum->id,
             'rows' => $raw,
         ])
         ->assertMountedActionModalSee('Pendidik Matematika')
         ->goToNextWizardStep()
-        ->assertMountedActionModalSee('Pendidik Matematika')
         ->assertMountedActionModalSee('Tindakan untuk data duplikat')
         ->assertMountedActionModalDontSee('Belum ada data yang dapat dibaca');
 });
@@ -834,11 +852,12 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
         'deskripsi' => 'Deskripsi lama',
     ]);
 
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
     Livewire::test(ListCpls::class)
         ->callAction('bulkImport', [
             'rows' => '|CPL-TIMPA|Deskripsi baru hasil timpa|afektif',
             'mode_duplikat' => 'timpa',
-            'import_kurikulum_id' => $this->kurikulumProdi->id,
         ]);
 
     $cpl = Cpl::query()->where('kode', 'CPL-TIMPA')->firstOrFail();
@@ -846,4 +865,63 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
     expect($cpl->deskripsi)->toBe('Deskripsi baru hasil timpa')
         ->and($cpl->domain)->toBe(['afektif'])
         ->and(Cpl::query()->where('kode', 'CPL-TIMPA')->count())->toBe(1);
+});
+
+it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda tetap dianggap baru (versioning per kurikulum)', function () {
+    $kurikulumLain = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Prodi Versi Lama',
+        'tahun' => 2020,
+        'is_active' => false,
+    ]);
+
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    Livewire::test(ListCpls::class)
+        ->callAction('bulkImport', [
+            'rows' => '|CPL-VERSI|Deskripsi versi baru|kognitif',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    Livewire::test(ListBoks::class)
+        ->callAction('bulkImport', [
+            'rows' => 'BOK-VERSI|Bahan kajian versi baru|Deskripsi versi baru|',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    Livewire::test(ListMks::class)
+        ->callAction('bulkImport', [
+            'rows' => 'MK Versi|3|0|0|wajib||',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    KurikulumTerpilih::set($kurikulumLain->id);
+
+    Livewire::test(ListCpls::class)
+        ->callAction('bulkImport', [
+            'rows' => '|CPL-VERSI|Deskripsi versi lama|kognitif',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    Livewire::test(ListBoks::class)
+        ->callAction('bulkImport', [
+            'rows' => 'BOK-VERSI|Bahan kajian versi lama|Deskripsi versi lama|',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    Livewire::test(ListMks::class)
+        ->callAction('bulkImport', [
+            'rows' => 'MK Versi|4|0|0|wajib||',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    expect(Cpl::query()->where('kode', 'CPL-VERSI')->count())->toBe(2)
+        ->and(Cpl::query()->where('kurikulum_id', $this->kurikulumProdi->id)->where('kode', 'CPL-VERSI')->value('deskripsi'))->toBe('Deskripsi versi baru')
+        ->and(Cpl::query()->where('kurikulum_id', $kurikulumLain->id)->where('kode', 'CPL-VERSI')->value('deskripsi'))->toBe('Deskripsi versi lama')
+        ->and(Bok::query()->where('kode', 'BOK-VERSI')->count())->toBe(2)
+        ->and(Bok::query()->where('kurikulum_id', $this->kurikulumProdi->id)->where('kode', 'BOK-VERSI')->value('deskripsi'))->toBe('Deskripsi versi baru')
+        ->and(Bok::query()->where('kurikulum_id', $kurikulumLain->id)->where('kode', 'BOK-VERSI')->value('deskripsi'))->toBe('Deskripsi versi lama')
+        ->and(Mk::query()->where('nama', 'MK Versi')->count())->toBe(2)
+        ->and(Mk::query()->where('kurikulum_id', $this->kurikulumProdi->id)->where('nama', 'MK Versi')->value('sks_teori'))->toBe(3)
+        ->and(Mk::query()->where('kurikulum_id', $kurikulumLain->id)->where('nama', 'MK Versi')->value('sks_teori'))->toBe(4);
 });

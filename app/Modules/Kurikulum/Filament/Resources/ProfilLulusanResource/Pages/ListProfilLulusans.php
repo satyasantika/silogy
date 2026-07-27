@@ -7,10 +7,7 @@ use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Schemas\Components\Component;
 
 class ListProfilLulusans extends ListRecords
 {
@@ -39,40 +36,19 @@ class ListProfilLulusans extends ListRecords
         return 'Impor profil lulusan massal';
     }
 
-    /**
-     * @return list<string>
-     */
-    protected function importContextKeys(): array
-    {
-        return ['import_kurikulum_id'];
-    }
-
-    /**
-     * @return array<int, Component|Field>
-     */
-    protected function importContextComponents(): array
-    {
-        return [
-            Select::make('import_kurikulum_id')
-                ->label('Kurikulum (prodi)')
-                ->options(ProfilLulusanResource::kurikulumProdiOptions())
-                ->searchable()
-                ->required()
-                ->default(fn (): ?string => KurikulumTerpilih::current()?->academicUnit?->isProdi()
-                    ? KurikulumTerpilih::currentId()
-                    : null),
-        ];
-    }
-
     protected function importHelperNote(): string
     {
-        return 'Seluruh baris diimpor ke kurikulum yang dipilih di atas.';
+        return 'Seluruh baris diimpor ke kurikulum prodi yang sedang dikerjakan (lihat banner di atas halaman).';
     }
 
     protected function kurikulumIdUntukImporProfil(array $context): ?string
     {
-        $id = $context['import_kurikulum_id'] ?? null;
+        $kurikulum = KurikulumTerpilih::current();
 
-        return blank($id) ? null : (string) $id;
+        if (! $kurikulum?->academicUnit?->isProdi()) {
+            return null;
+        }
+
+        return $kurikulum->id;
     }
 }

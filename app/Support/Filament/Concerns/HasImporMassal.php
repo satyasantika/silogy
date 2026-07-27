@@ -523,6 +523,20 @@ trait HasImporMassal
                                     // sebagai parameter closure, jadi tidak butuh
                                     // pencarian path form sama sekali.
                                     $this->importMassalRowsLive = (string) $state;
+
+                                    // Filament v4 PartialsComponentHook memakai partial key
+                                    // berbeda antara request mountAction pertama kali
+                                    // ('action-modals') dan request update berikutnya pada
+                                    // action yang sama ('action-modals.{index}'). DOM
+                                    // browser masih membawa wire:partial dari key lama,
+                                    // sehingga partials.js gagal menemukan elemen match dan
+                                    // diam-diam membuang HTML preview yang baru dihitung
+                                    // (tanpa error/console warning). Paksa full render agar
+                                    // morph memakai jalur Livewire standar, bukan sistem
+                                    // partial custom Filament yang kena bug key-mismatch itu.
+                                    if (method_exists($this, 'forceRender')) {
+                                        $this->forceRender();
+                                    }
                                 })
                                 ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get)))
                                 ->helperText($this->importColumnsHelperText()),
@@ -536,15 +550,9 @@ trait HasImporMassal
                                     emptyMessage: 'Pratinjau akan muncul di sini setelah data ditempel.',
                                 )),
                         ]),
-                    Step::make('Preview & konfirmasi')
+                    Step::make('Konfirmasi')
                         ->icon(Heroicon::OutlinedEye)
                         ->schema([
-                            Placeholder::make('preview')
-                                ->hiddenLabel()
-                                ->content(fn (Get $get): HtmlString => $this->renderImportPreview(
-                                    $this->importMassalRowsLive,
-                                    $contextFromGet($get),
-                                )),
                             Radio::make('mode_duplikat')
                                 ->label('Tindakan untuk data duplikat')
                                 ->options($duplikatOptions)

@@ -5,15 +5,11 @@ namespace App\Modules\CPL\Filament\Resources\CplResource\Pages;
 use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplProfilLulusan;
-use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
-use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 
 class ListCpls extends ListRecords
@@ -36,30 +32,6 @@ class ListCpls extends ListRecords
         return 'Impor CPL massal';
     }
 
-    /**
-     * @return list<string>
-     */
-    protected function importContextKeys(): array
-    {
-        return ['import_kurikulum_id'];
-    }
-
-    /**
-     * @return array<int, Component|Field>
-     */
-    protected function importContextComponents(): array
-    {
-        return [
-            Select::make('import_kurikulum_id')
-                ->label('Kurikulum')
-                ->options(KurikulumTerpilih::options())
-                ->searchable()
-                ->required()
-                ->live()
-                ->default(fn (): ?string => KurikulumTerpilih::currentId()),
-        ];
-    }
-
     protected function importColumns(): array
     {
         return [
@@ -74,7 +46,7 @@ class ListCpls extends ListRecords
      */
     protected function importColumnsForContext(array $context = []): array
     {
-        if (! $this->isKurikulumProdi($context)) {
+        if (! $this->isKurikulumProdi()) {
             return $this->importColumns();
         }
 
@@ -87,7 +59,7 @@ class ListCpls extends ListRecords
     protected function importInstructionsExtra(): array
     {
         return [
-            'Satu baris = satu CPL pada unit kurikulum yang dipilih di atas.',
+            'Satu baris = satu CPL pada kurikulum yang sedang dikerjakan (lihat banner di atas halaman).',
             'Domain opsional: kognitif, afektif, dan/atau psikomotorik; lebih dari satu dipisah koma (,), mis. kognitif,afektif.',
         ];
     }
@@ -99,7 +71,7 @@ class ListCpls extends ListRecords
     {
         $extra = $this->importInstructionsExtra();
 
-        if (! $this->isKurikulumProdi($context)) {
+        if (! $this->isKurikulumProdi()) {
             return $extra;
         }
 
@@ -128,7 +100,7 @@ class ListCpls extends ListRecords
      */
     protected function importExampleRowsForContext(array $context = []): array
     {
-        if (! $this->isKurikulumProdi($context)) {
+        if (! $this->isKurikulumProdi()) {
             return $this->importExampleRows();
         }
 
@@ -145,20 +117,20 @@ class ListCpls extends ListRecords
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        $unitId = $this->unitIdDariKonteks($context);
-        $kurikulumId = $context['import_kurikulum_id'] ?? null;
+        $unitId = $this->unitIdDariKonteks();
+        $kurikulumId = $this->kurikulumIdDariKonteks();
 
         if (blank($unitId) || blank($kurikulumId)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu.'];
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu lewat banner di atas halaman.'];
         }
 
         if ($data['domain'] !== '' && $this->parseDomainImport($data['domain']) === null) {
             return ['status' => 'invalid', 'keterangan' => 'Domain harus kognitif, afektif, dan/atau psikomotorik, dipisah koma.'];
         }
 
-        $ringkasanProfil = $this->ringkasanProfilImport($data, $context);
-        $pesanProfil = $this->isKurikulumProdi($context)
-            ? $this->validasiProfilImport($data, $context)
+        $ringkasanProfil = $this->ringkasanProfilImport($data);
+        $pesanProfil = $this->isKurikulumProdi()
+            ? $this->validasiProfilImport($data)
             : null;
 
         if ($pesanProfil !== null) {
@@ -166,14 +138,14 @@ class ListCpls extends ListRecords
         }
 
         $existing = Cpl::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->where('kode', $data['kode'])
             ->first();
 
         if ($existing) {
             return [
                 'status' => 'duplikat',
-                'keterangan' => "Kode CPL sudah ada pada unit ini. {$ringkasanProfil}.",
+                'keterangan' => "Kode CPL sudah ada pada kurikulum ini. {$ringkasanProfil}.",
                 'existing_id' => $existing->id,
                 'dedup' => mb_strtolower($data['kode']),
             ];
@@ -188,16 +160,18 @@ class ListCpls extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
-        $unitId = $this->unitIdDariKonteks($context);
+        $unitId = $this->unitIdDariKonteks();
+        $kurikulumId = $this->kurikulumIdDariKonteks();
 
         $cpl = Cpl::query()->create([
             'academic_unit_id' => $unitId,
+            'kurikulum_id' => $kurikulumId,
             'kode' => $data['kode'],
             'deskripsi' => $data['deskripsi'],
             'domain' => $data['domain'] !== '' ? $this->parseDomainImport($data['domain']) : null,
         ]);
 
-        $this->petakanProfil($cpl, $data, $context);
+        $this->petakanProfil($cpl, $data);
     }
 
     /**
@@ -213,20 +187,19 @@ class ListCpls extends ListRecords
             'domain' => $data['domain'] !== '' ? $this->parseDomainImport($data['domain']) : $cpl->domain,
         ]);
 
-        $this->petakanProfil($cpl, $data, $context);
+        $this->petakanProfil($cpl, $data);
     }
 
     /**
      * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
      */
-    protected function petakanProfil(Cpl $cpl, array $data, array $context): void
+    protected function petakanProfil(Cpl $cpl, array $data): void
     {
-        if (! $this->isKurikulumProdi($context) || trim($data['profil']) === '') {
+        if (! $this->isKurikulumProdi() || trim($data['profil']) === '') {
             return;
         }
 
-        $kurikulumId = (string) $context['import_kurikulum_id'];
+        $kurikulumId = (string) KurikulumTerpilih::currentId();
 
         foreach ($this->referensiProfilDariBaris($data['profil']) as $referensi) {
             $profil = $this->cariProfilLulusan($kurikulumId, $referensi);
@@ -244,9 +217,8 @@ class ListCpls extends ListRecords
 
     /**
      * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
      */
-    protected function validasiProfilImport(array $data, array $context): ?string
+    protected function validasiProfilImport(array $data): ?string
     {
         $referensi = $this->referensiProfilDariBaris($data['profil']);
 
@@ -254,7 +226,7 @@ class ListCpls extends ListRecords
             return null;
         }
 
-        $kurikulumId = (string) $context['import_kurikulum_id'];
+        $kurikulumId = (string) KurikulumTerpilih::currentId();
 
         foreach ($referensi as $referensiProfil) {
             if (! $this->cariProfilLulusan($kurikulumId, $referensiProfil)) {
@@ -267,11 +239,10 @@ class ListCpls extends ListRecords
 
     /**
      * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
      */
-    protected function ringkasanProfilImport(array $data, array $context): string
+    protected function ringkasanProfilImport(array $data): string
     {
-        if (! $this->isKurikulumProdi($context)) {
+        if (! $this->isKurikulumProdi()) {
             return '';
         }
 
@@ -328,37 +299,21 @@ class ListCpls extends ListRecords
         return $domains->all();
     }
 
-    /**
-     * @param  array<string, mixed>  $context
-     */
-    protected function isKurikulumProdi(array $context): bool
+    protected function isKurikulumProdi(): bool
     {
-        $kurikulumId = $context['import_kurikulum_id'] ?? null;
-
-        if (blank($kurikulumId)) {
-            return false;
-        }
-
-        return Kurikulum::query()
-            ->with('academicUnit')
-            ->find($kurikulumId)
-            ?->academicUnit
-            ?->isProdi() ?? false;
+        return KurikulumTerpilih::current()?->academicUnit?->isProdi() ?? false;
     }
 
     /**
-     * Unit pemilik diturunkan dari kurikulum terpilih pada konteks impor.
-     *
-     * @param  array<string, mixed>  $context
+     * Unit pemilik diturunkan dari kurikulum yang sedang dikerjakan (banner).
      */
-    protected function unitIdDariKonteks(array $context): ?string
+    protected function unitIdDariKonteks(): ?string
     {
-        $kurikulumId = $context['import_kurikulum_id'] ?? null;
+        return KurikulumTerpilih::current()?->academic_unit_id;
+    }
 
-        if (blank($kurikulumId)) {
-            return null;
-        }
-
-        return Kurikulum::query()->whereKey($kurikulumId)->value('academic_unit_id');
+    protected function kurikulumIdDariKonteks(): ?string
+    {
+        return KurikulumTerpilih::currentId();
     }
 }

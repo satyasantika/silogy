@@ -57,7 +57,7 @@ trait HasImporProfilLulusanMassal
         $kurikulumId = $this->kurikulumIdUntukImporProfil($context);
 
         if (blank($kurikulumId)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum terlebih dahulu.'];
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum program studi terlebih dahulu lewat banner di atas halaman.'];
         }
 
         if ($data['urutan'] !== '' && ! ctype_digit($data['urutan'])) {
