@@ -14,6 +14,7 @@ use App\Modules\Kurikulum\Filament\Pages\AnalisisMkProdi;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Services\AnalisisMkProdiService;
 use App\Modules\Kurikulum\Services\IpkKumulatifService;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -113,6 +114,8 @@ beforeEach(function () {
         'tahun' => 2026,
         'is_active' => true,
     ]);
+
+    KurikulumTerpilih::set($this->kurikulum->id);
 });
 
 it('kaprodi (Pimpinan prodi) bisa mengakses halaman Analisis MK Prodi', function () {
@@ -142,15 +145,30 @@ it('pimpinan/tim kurikulum tanpa penugasan prodi manapun tidak bisa mengakses', 
     expect(AnalisisMkProdi::canAccess())->toBeFalse();
 });
 
-it('prodi otomatis terpilih bila hanya ada satu opsi', function () {
-    $this->actingAs($this->kaprodi);
+it('analisis mengikuti kurikulum terpilih di session', function () {
+    $this->actingAs($this->timkur);
 
-    Livewire::test(AnalisisMkProdi::class)
-        ->assertSet('prodiId', $this->prodi->id);
+    $kurikulumAktif = $this->kurikulum;
+    $kurikulumDraft = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Draft Analisis',
+        'tahun' => 2025,
+        'is_active' => false,
+    ]);
+
+    KurikulumTerpilih::set($kurikulumDraft->id);
+
+    $test = Livewire::test(AnalisisMkProdi::class)
+        ->assertSee('Kurikulum terpilih:', escape: false)
+        ->assertDontSee('Pilih Program Studi', escape: false);
+
+    expect($test->get('kurikulum')?->id)->toBe($kurikulumDraft->id)
+        ->and($kurikulumAktif->is_active)->toBeTrue();
 });
 
 it('menampilkan tabel pemetaan CPL-MK sesuai bobot CplMk, dikelompokkan per CPL dengan rowspan', function () {
     $this->actingAs($this->kaprodi);
+    KurikulumTerpilih::set($this->kurikulum->id);
 
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create([
         'kode' => 'CPL01',
@@ -206,6 +224,7 @@ it('menampilkan tabel pemetaan CPL-MK sesuai bobot CplMk, dikelompokkan per CPL 
 
 it('menampilkan pesan kosong bila belum ada CPL yang dibebankan', function () {
     $this->actingAs($this->kaprodi);
+    KurikulumTerpilih::set($this->kurikulum->id);
 
     Livewire::test(AnalisisMkProdi::class)
         ->assertSee('Belum ada CPL yang dibebankan', escape: false);

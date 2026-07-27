@@ -28,7 +28,7 @@
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
                     <p class="text-sm" style="margin-top:6px;opacity:.75;">
-                        Halaman Profil, CPL, BoK, Mata Kuliah, Penawaran MK, dan Kelas MK mengikuti kurikulum ini.
+                        Halaman Profil, CPL, BoK, Mata Kuliah, Penawaran MK, Kelas MK, Interaksi, dan Analisis MK Prodi mengikuti kurikulum aktif ini.
                     </p>
                 </div>
 

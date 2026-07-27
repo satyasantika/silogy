@@ -3,11 +3,11 @@
 namespace App\Modules\Kurikulum\Filament\Pages;
 
 use App\Models\User;
-use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Services\AnalisisMkProdiService;
 use App\Modules\Kurikulum\Services\IpkKumulatifService;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
@@ -19,9 +19,8 @@ use Filament\Tables\Table;
 use Illuminate\Support\Collection;
 
 /**
- * Laporan CPL prodi-wide untuk Pimpinan/Tim Kurikulum yang di-scope ke satu
- * atau beberapa program studi (lewat pivot academic_unit_users) — berbeda
- * dari /penilaian/input-nilai yang selalu per satu KelasMk.
+ * Laporan CPL prodi-wide untuk Pimpinan/Tim Kurikulum — mengikuti
+ * kurikulum terpilih di session (sama seperti CPL/BoK/MK/interaksi).
  */
 class AnalisisMkProdi extends Page implements HasTable
 {
@@ -38,8 +37,6 @@ class AnalisisMkProdi extends Page implements HasTable
     protected static ?string $title = 'Analisis MK Prodi';
 
     protected static ?string $slug = 'laporan/analisis-mk-prodi';
-
-    public ?string $prodiId = null;
 
     /**
      * @var array{
@@ -72,35 +69,20 @@ class AnalisisMkProdi extends Page implements HasTable
 
     public function mount(): void
     {
-        $options = $this->getProdiOptionsProperty();
-
-        if (count($options) === 1) {
-            $this->prodiId = array_key_first($options);
-        }
-
         $this->muatHasilAnalisis();
-    }
-
-    public function pilihProdi(string $prodiId): void
-    {
-        if (array_key_exists($prodiId, $this->getProdiOptionsProperty())) {
-            $this->prodiId = $prodiId;
-            $this->muatHasilAnalisis();
-        }
     }
 
     /**
      * Memicu sinkronisasi kalkulasi CPL prodi-wide (queue mati, lihat
      * AnalisisMkProdiService::sinkronkanKalkulasiProdi()) lalu memuat data
-     * tab 2 — dipanggil sekali per pemilihan prodi, BUKAN lewat computed
-     * property, supaya operasi berat ini tidak berjalan berulang dalam satu
-     * request yang sama.
+     * tab 2 — dipanggil sekali di mount, BUKAN lewat computed property,
+     * supaya operasi berat ini tidak berjalan berulang dalam satu request.
      */
     protected function muatHasilAnalisis(): void
     {
         $kurikulum = $this->getKurikulumProperty();
 
-        if ($kurikulum === null) {
+        if ($kurikulum === null || ! ($kurikulum->academicUnit?->isProdi() ?? false)) {
             $this->hasilAnalisis = ['angkatan_list' => [], 'pemetaan' => []];
 
             return;
@@ -111,41 +93,21 @@ class AnalisisMkProdi extends Page implements HasTable
         $this->hasilAnalisis = $service->hasilAnalisisPerAngkatan($kurikulum);
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function getProdiOptionsProperty(): array
-    {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return [];
-        }
-
-        $prodiIds = AcademicUnitScope::scopedStudyProgramIdsFor($user);
-
-        if ($prodiIds->isEmpty()) {
-            return [];
-        }
-
-        return AcademicUnit::query()
-            ->whereIn('id', $prodiIds)
-            ->orderBy('nama')
-            ->pluck('nama', 'id')
-            ->all();
-    }
-
     public function getKurikulumProperty(): ?Kurikulum
     {
-        if ($this->prodiId === null) {
+        $terpilih = KurikulumTerpilih::current();
+
+        if (! $terpilih instanceof Kurikulum) {
             return null;
         }
 
-        return Kurikulum::query()
-            ->where('academic_unit_id', $this->prodiId)
-            ->where('is_active', true)
-            ->with('academicUnit')
-            ->first();
+        $prodiIds = AcademicUnitScope::scopedStudyProgramIdsFor(auth()->user());
+
+        if (! $prodiIds->contains($terpilih->academic_unit_id)) {
+            return null;
+        }
+
+        return $terpilih->loadMissing('academicUnit');
     }
 
     /**

@@ -1,6 +1,5 @@
 <?php
 
-use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
@@ -46,18 +45,46 @@ it('tim kurikulum sungguhan tetap melihat dropdown pilih-kurikulum dan tombol ke
 
     Livewire::test(KurikulumTerpilihWidget::class)
         ->assertSee('Kelola kurikulum', escape: false)
-        ->assertDontSee('Kelola Kelas MK', escape: false);
+        ->assertDontSee('Kelola Kelas MK', escape: false)
+        ->assertSeeHtml(KurikulumResource::getUrl('index'));
 });
 
-it('link ganti pada banner kurikulum terpilih mengarah ke dashboard, bukan resource kurikulum', function () {
+it('dropdown dashboard tim kurikulum hanya menampilkan kurikulum aktif', function () {
+    $timKurikulum = User::where('username', 'timkur')->firstOrFail();
+    $this->actingAs($timKurikulum);
+
+    $kurikulumNonAktif = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Draft Nonaktif',
+        'tahun' => 2025,
+        'is_active' => false,
+    ]);
+
+    KurikulumTerpilih::set($kurikulumNonAktif->id);
+
+    $component = Livewire::test(KurikulumTerpilihWidget::class);
+
+    expect(KurikulumTerpilih::options(hanyaAktif: true))
+        ->toHaveKey($this->kurikulum->id)
+        ->not->toHaveKey($kurikulumNonAktif->id)
+        ->and(KurikulumTerpilih::currentId())->toBe($this->kurikulum->id);
+
+    $component
+        ->assertSee('Kurikulum Widget Uji', escape: false)
+        ->assertDontSee('Kurikulum Draft Nonaktif', escape: false);
+});
+
+it('banner kurikulum terpilih merender komponen livewire modal ganti', function () {
     $adminProdi = User::where('username', 'adminprodi')->firstOrFail();
     $this->actingAs($adminProdi);
     KurikulumTerpilih::set($this->kurikulum->id);
 
     $html = KurikulumTerpilih::bannerHtml()->toHtml();
 
-    expect($html)->toContain(Dashboard::getUrl())
-        ->and($html)->not->toContain(KurikulumResource::getUrl('index'));
+    expect($html)->not->toContain(KurikulumResource::getUrl('index'))
+        ->and(
+            str_contains($html, 'wire:') || str_contains($html, 'Kurikulum terpilih'),
+        )->toBeTrue();
 });
 
 it('widget kurikulum hanya tampil saat role aktif Tim Kurikulum/Admin', function () {

@@ -86,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Livewire::component('silogy.role-switcher', RoleSwitcher::class);
         Livewire::component('silogy.peran-unit-menu', PeranUnitMenu::class);
+        Livewire::component('silogy.kurikulum-terpilih-banner', \App\Modules\Kurikulum\Livewire\KurikulumTerpilihBanner::class);
 
         $this->configureFilamentActionIcons();
 

@@ -46,13 +46,50 @@ class KurikulumTerpilihWidget extends Widget
 
     public function mount(): void
     {
-        $this->kurikulumId = KurikulumTerpilih::currentId();
+        $user = auth()->user();
+
+        // Mode admin prodi: tampilkan kurikulum unitnya apa adanya (tanpa
+        // memaksa filter is_active seperti dropdown Tim Kurikulum).
+        if ($user instanceof User && $this->isAdminProdiTanpaTimKurikulum($user)) {
+            $this->kurikulumId = KurikulumTerpilih::currentId();
+
+            return;
+        }
+
+        $this->sinkronkanKurikulumAktif();
     }
 
     public function updatedKurikulumId(?string $value): void
     {
-        KurikulumTerpilih::set(blank($value) ? null : $value);
+        $options = KurikulumTerpilih::options(hanyaAktif: true);
+
+        if (filled($value) && array_key_exists($value, $options)) {
+            KurikulumTerpilih::set($value);
+        } else {
+            KurikulumTerpilih::set(array_key_first($options));
+        }
+
         $this->kurikulumId = KurikulumTerpilih::currentId();
+    }
+
+    /**
+     * Dropdown dashboard Tim Kurikulum hanya menampilkan kurikulum aktif;
+     * sesuaikan session bila yang tersimpan non-aktif / di luar opsi.
+     */
+    protected function sinkronkanKurikulumAktif(): void
+    {
+        $options = KurikulumTerpilih::options(hanyaAktif: true);
+        $currentId = KurikulumTerpilih::currentId();
+
+        if ($currentId !== null && array_key_exists($currentId, $options)) {
+            $this->kurikulumId = $currentId;
+
+            return;
+        }
+
+        $defaultId = array_key_first($options);
+        KurikulumTerpilih::set($defaultId);
+        $this->kurikulumId = $defaultId;
     }
 
     /**
@@ -61,15 +98,20 @@ class KurikulumTerpilihWidget extends Widget
     protected function getViewData(): array
     {
         $user = auth()->user();
+        $adminProdiMode = $user instanceof User && $this->isAdminProdiTanpaTimKurikulum($user);
         $kurikulum = KurikulumTerpilih::current();
+        $options = KurikulumTerpilih::options(hanyaAktif: true);
+
+        // Tim Kurikulum: jangan tampilkan kurikulum non-aktif di kartu.
+        if (! $adminProdiMode && $kurikulum !== null && ! array_key_exists($kurikulum->id, $options)) {
+            $kurikulum = null;
+        }
 
         return [
-            'adminProdiMode' => $user instanceof User && $this->isAdminProdiTanpaTimKurikulum($user),
-            'options' => KurikulumTerpilih::options(),
+            'adminProdiMode' => $adminProdiMode,
+            'options' => $options,
             'kurikulum' => $kurikulum,
-            'kelolaUrl' => $kurikulum
-                ? KurikulumResource::getUrl('edit', ['record' => $kurikulum])
-                : KurikulumResource::getUrl('index'),
+            'kelolaUrl' => KurikulumResource::getUrl('index'),
             'kelolaKelasUrl' => KelasMkResource::getUrl('index'),
         ];
     }

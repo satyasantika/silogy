@@ -2,7 +2,6 @@
 
 namespace App\Modules\Kurikulum\Support;
 
-use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
@@ -10,6 +9,7 @@ use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -105,7 +105,7 @@ class KurikulumTerpilih
     /**
      * @return array<string, string>
      */
-    public static function options(): array
+    public static function options(bool $hanyaAktif = false): array
     {
         $user = auth()->user();
 
@@ -113,7 +113,7 @@ class KurikulumTerpilih
             return [];
         }
 
-        return static::optionsForUnits(static::scopedUnitIds($user));
+        return static::optionsForUnits(static::scopedUnitIds($user), $hanyaAktif);
     }
 
     /**
@@ -122,16 +122,22 @@ class KurikulumTerpilih
      * @param  Collection<int, string>  $unitIds
      * @return array<string, string>
      */
-    public static function optionsForUnits(Collection $unitIds): array
+    public static function optionsForUnits(Collection $unitIds, bool $hanyaAktif = false): array
     {
         if ($unitIds->isEmpty()) {
             return [];
         }
 
-        return Kurikulum::query()
+        $query = Kurikulum::query()
             ->with('academicUnit')
             ->whereIn('academic_unit_id', $unitIds)
-            ->orderBy('nama')
+            ->orderBy('nama');
+
+        if ($hanyaAktif) {
+            $query->where('is_active', true);
+        }
+
+        return $query
             ->get()
             ->mapWithKeys(fn (Kurikulum $kurikulum): array => [
                 $kurikulum->id => static::label($kurikulum),
@@ -174,36 +180,13 @@ class KurikulumTerpilih
     }
 
     /**
-     * Banner konteks kurikulum terpilih untuk halaman Profil, CPL, BoK, MK, Penawaran MK, dan matriks interaksi.
+     * Banner konteks kurikulum terpilih (Livewire) — tombol Ganti membuka
+     * modal penggantian tanpa meninggalkan halaman.
      */
     public static function bannerHtml(): HtmlString
     {
-        $gantiUrl = Dashboard::getUrl();
-        $kurikulum = static::current();
-
-        if (! $kurikulum instanceof Kurikulum) {
-            return new HtmlString(
-                '<div style="padding:12px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;line-height:1.55;">'
-                .'<div>Belum ada kurikulum terpilih.</div>'
-                .'<div style="margin-top:4px;">'
-                .'<a href="'.e($gantiUrl).'" style="font-weight:600;color:#b45309;text-decoration:underline;">Pilih dari dashboard</a>'
-                .'</div>'
-                .'</div>'
-            );
-        }
-
-        $kurikulum->loadMissing('academicUnit');
-        $hierarchy = static::unitHierarchyLabel($kurikulum->academicUnit);
-
         return new HtmlString(
-            '<div style="padding:12px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:13px;line-height:1.55;">'
-            .'<div>'
-            .'<span style="opacity:.88;">Kurikulum terpilih:</span> '
-            .'<strong>'.e($kurikulum->nama).'</strong> '
-            .'<a href="'.e($gantiUrl).'" style="margin-left:6px;font-weight:600;color:#1d4ed8;text-decoration:underline;">Ganti</a>'
-            .'</div>'
-            .'<div style="margin-top:6px;opacity:.92;">'.e($hierarchy).'</div>'
-            .'</div>'
+            Blade::render('@livewire(\'silogy.kurikulum-terpilih-banner\')'),
         );
     }
 
