@@ -218,6 +218,11 @@ class KurikulumTerpilih
         // Tim kurikulum + Admin (unit penugasan) via scopedTimKurikulumUnitIdsFor.
         $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user);
 
+        // Pimpinan membaca laporan CPL prodi (mis. Analisis MK Prodi) yang
+        // mengikuti kurikulum terpilih, jadi unit pimpinannya ikut ter-scope
+        // meskipun ia bukan tim kurikulum.
+        $unitIds = $unitIds->merge(AcademicUnitScope::scopedPimpinanUnitIdsFor($user));
+
         // Koordinator MK mengelola kelas per prodi — perlu melihat kurikulum
         // unit penugasan saat role Koordinator sedang aktif.
         if ($user->hasRole('Koordinator Mata Kuliah')) {
