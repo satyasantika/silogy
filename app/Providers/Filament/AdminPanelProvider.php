@@ -103,7 +103,8 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::STYLES_AFTER,
                 fn (): string => view('filament.hooks.sidebar-user-menu-styles')->render()
                     .view('filament.hooks.brand-logo-styles')->render()
-                    .view('filament.hooks.kurikulum-cards-styles')->render(),
+                    .view('filament.hooks.kurikulum-cards-styles')->render()
+                    .view('filament.hooks.keluar-modal-styles')->render(),
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverResources(

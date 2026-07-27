@@ -9,14 +9,12 @@ use App\Modules\Auth\Filament\Actions\KeluarAction;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\PeranUnitFormFields;
-use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Illuminate\Contracts\View\View;
-use Lab404\Impersonate\Services\ImpersonateManager;
 use Livewire\Component;
 
 /**
@@ -29,22 +27,6 @@ class PeranUnitMenu extends Component implements HasActions, HasSchemas
 {
     use InteractsWithActions;
     use InteractsWithSchemas;
-
-    public function leaveImpersonate(): void
-    {
-        $manager = app(ImpersonateManager::class);
-
-        if (! $manager->isImpersonating()) {
-            return;
-        }
-
-        $manager->leave();
-
-        session()->forget(ActiveRole::SESSION_KEY);
-        session()->forget(AcademicUnitTerpilih::SESSION_KEY);
-
-        $this->redirect(url('/dashboard'));
-    }
 
     public function gantiPasswordAction(): Action
     {
@@ -75,7 +57,6 @@ class PeranUnitMenu extends Component implements HasActions, HasSchemas
             'bisaGanti' => $bisaGanti,
             'profileUrl' => filament()->getProfileUrl() ?? EditProfile::getUrl(),
             'pilihPeranUnitUrl' => PilihPeranUnit::getUrl(),
-            'isImpersonating' => app(ImpersonateManager::class)->isImpersonating(),
         ]);
     }
 }

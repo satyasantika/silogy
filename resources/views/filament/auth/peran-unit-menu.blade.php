@@ -42,8 +42,25 @@
                                     Belum ada peran/unit
                                 </span>
                             @else
-                                <span style="display:block;font-size:.7rem;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                    {{ $peranAktif }}@if ($unitNama) · {{ $unitNama }}@endif
+                                <span class="silogy-sidebar-user-meta" style="display:block;font-size:.7rem;opacity:.75;min-width:0;">
+                                    <span
+                                        class="silogy-sidebar-user-peran"
+                                        style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                        @if (filled($peranAktif))
+                                            x-tooltip="{ content: @js($peranAktif), theme: $store.theme }"
+                                        @endif
+                                    >
+                                        {{ $peranAktif }}
+                                    </span>
+                                    @if (filled($unitNama))
+                                        <span
+                                            class="silogy-sidebar-user-unit"
+                                            style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                            x-tooltip="{ content: @js($unitNama), theme: $store.theme }"
+                                        >
+                                            {{ $unitNama }}
+                                        </span>
+                                    @endif
                                 </span>
                             @endif
                         </span>
@@ -102,15 +119,6 @@
             style="display:flex;align-items:center;gap:4px;flex-shrink:0;"
             x-bind:style="! $store.sidebar.isOpen ? 'margin-inline:auto;' : null"
         >
-            @if ($isImpersonating)
-                <x-filament::icon-button
-                    icon="heroicon-o-arrow-uturn-left"
-                    color="warning"
-                    tooltip="Tinggalkan impersonate"
-                    wire:click="leaveImpersonate"
-                />
-            @endif
-
             {{ $this->keluarAction() }}
         </div>
     </div>

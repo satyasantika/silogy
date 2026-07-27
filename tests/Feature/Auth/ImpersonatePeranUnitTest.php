@@ -90,7 +90,7 @@ it('menu identitas PeranUnitMenu menautkan ganti peran ke halaman gerbang', func
         ->assertActionDoesNotExist('gantiPeranUnit');
 });
 
-it('modal keluar menampilkan konfirmasi ringkas tanpa ganti peran', function () {
+it('modal keluar menampilkan ganti peran untuk user multi-peran', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
@@ -101,8 +101,22 @@ it('modal keluar menampilkan konfirmasi ringkas tanpa ganti peran', function () 
         ->assertSee('Yakin akan keluar aplikasi?')
         ->assertSee('Kembali')
         ->assertSee('Beranda')
+        ->assertSee('Ganti peran')
         ->assertSee('Ya, keluar')
-        ->assertActionDoesNotExist(['keluar', 'gantiPeranDariKeluar']);
+        ->assertDontSee('Tinggalkan impersonate');
+});
+
+it('modal keluar menampilkan tinggalkan impersonate saat impersonate aktif', function () {
+    $superAdmin = User::query()->where('username', 'superadmin')->firstOrFail();
+    $timkur = User::query()->where('username', 'timkur')->firstOrFail();
+
+    $this->actingAs($superAdmin);
+    app(ImpersonateManager::class)->take($superAdmin, $timkur);
+
+    Livewire::test(PeranUnitMenu::class)
+        ->mountAction('keluar')
+        ->assertSee('Tinggalkan impersonate')
+        ->assertSee('Ya, keluar');
 });
 
 it('user tanpa role sama sekali melihat keterangan danger di menu pengguna', function () {
