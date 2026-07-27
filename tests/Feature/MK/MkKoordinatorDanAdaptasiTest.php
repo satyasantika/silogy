@@ -152,6 +152,13 @@ it('tim kurikulum prodi dapat mengadaptasi mk universitas dengan kode dan semest
         'nama' => 'Pendidikan Pancasila',
     ]);
 
+    Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Prodi Adaptasi MK',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
     $timkurProdi = buatTimkurProdi($this->prodi);
     $this->actingAs($timkurProdi);
 
@@ -179,6 +186,13 @@ it('tim kurikulum prodi dapat mengadaptasi mk fakultas', function () {
     $mkFak = Mk::factory()->create([
         'academic_unit_id' => $this->fakultas->id,
         'nama' => 'Metodologi Penelitian Pendidikan',
+    ]);
+
+    Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Prodi Adaptasi MK Fakultas',
+        'tahun' => 2026,
+        'is_active' => true,
     ]);
 
     $timkurProdi = buatTimkurProdi($this->prodi);

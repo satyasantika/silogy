@@ -40,6 +40,14 @@ beforeEach(function () {
     $this->korma = User::where('username', 'korma')->firstOrFail();
     $this->semester = Semester::query()->where('status_aktif', true)->firstOrFail();
 
+    $this->kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Uji Subcpmk',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    KurikulumTerpilih::set($this->kurikulum->id);
+
     $this->mk = Mk::factory()->create([
         'academic_unit_id' => $this->prodi->id,
         'koordinator_mk_id' => $this->korma->id,
@@ -52,14 +60,6 @@ beforeEach(function () {
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
     $cpmk = Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK-01', 'deskripsi' => 'Uji']);
     $this->mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
-
-    $this->kurikulum = Kurikulum::query()->create([
-        'academic_unit_id' => $this->prodi->id,
-        'nama' => 'Kurikulum Uji Subcpmk',
-        'tahun' => 2026,
-        'is_active' => true,
-    ]);
-    KurikulumTerpilih::set($this->kurikulum->id);
 
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);

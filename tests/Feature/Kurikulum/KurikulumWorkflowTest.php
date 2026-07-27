@@ -64,6 +64,7 @@ it('workflow prodi naik dari draft ke cpl setelah profil dan pemetaan cpl', func
 
     $cpl = Cpl::query()->create([
         'academic_unit_id' => $prodi->id,
+        'kurikulum_id' => $kurikulum->id,
         'kode' => 'CPL-01',
         'deskripsi' => 'CPL uji workflow',
         'domain' => ['kognitif'],

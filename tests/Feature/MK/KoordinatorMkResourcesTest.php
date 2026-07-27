@@ -45,6 +45,14 @@ beforeEach(function () {
     $this->dosen = User::where('username', 'dosen')->first();
     $this->semester = Semester::query()->where('status_aktif', true)->first();
 
+    $this->kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Korma Resource',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    KurikulumTerpilih::set($this->kurikulum->id);
+
     $this->mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $this->mkUnit = MkUnit::factory()->forMk($this->mk)->forAcademicUnit($this->prodi)->create([
         'kode' => 'IF101',
@@ -69,14 +77,6 @@ beforeEach(function () {
         'mk_id' => $this->mk->id,
         'bobot' => 100,
     ]);
-
-    $this->kurikulum = Kurikulum::query()->create([
-        'academic_unit_id' => $this->prodi->id,
-        'nama' => 'Kurikulum Korma Resource',
-        'tahun' => 2026,
-        'is_active' => true,
-    ]);
-    KurikulumTerpilih::set($this->kurikulum->id);
 });
 
 it('korma dapat membuat cpmk subcpmk dan komponen penilaian', function () {

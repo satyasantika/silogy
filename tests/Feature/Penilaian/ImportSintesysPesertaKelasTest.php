@@ -36,13 +36,6 @@ beforeEach(function () {
     $this->korma = User::query()->where('username', 'korma')->firstOrFail();
     $this->semester = Semester::query()->where('status_aktif', true)->firstOrFail();
 
-    $this->mk = Mk::factory()->create([
-        'academic_unit_id' => $this->prodi->id,
-        'koordinator_mk_id' => $this->korma->id,
-        'nama' => 'Aplikasi Komputer Matematika',
-    ]);
-    $this->mkUnit = MkUnit::factory()->forMk($this->mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KP21514004']);
-
     $this->kurikulum = Kurikulum::query()->create([
         'academic_unit_id' => $this->prodi->id,
         'nama' => 'Kurikulum Korma Peserta',
@@ -50,6 +43,13 @@ beforeEach(function () {
         'is_active' => true,
     ]);
     KurikulumTerpilih::set($this->kurikulum->id);
+
+    $this->mk = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'koordinator_mk_id' => $this->korma->id,
+        'nama' => 'Aplikasi Komputer Matematika',
+    ]);
+    $this->mkUnit = MkUnit::factory()->forMk($this->mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KP21514004']);
 
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);

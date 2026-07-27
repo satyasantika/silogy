@@ -6,6 +6,7 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\CPL\Policies\CplPolicy;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
@@ -22,6 +23,16 @@ beforeEach(function () {
     $this->univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $this->timkur = User::query()->where('username', 'timkur')->firstOrFail();
+
+    // MkUnit yang mengadaptasi MK asing butuh kurikulum_id milik prodi
+    // (lihat CplBokAdaptasiScope::adaptedMkIds()), jadi harus ada Kurikulum
+    // untuk prodi supaya BelongsToKurikulumFactory bisa menurunkannya.
+    Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Prodi Uji Policy',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
 });
 
 it('tim kurikulum dengan kelola_cpl dapat mengelola cpl di prodi', function () {

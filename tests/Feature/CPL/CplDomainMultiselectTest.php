@@ -5,6 +5,7 @@ use App\Modules\CPL\Filament\Resources\CplResource\Pages\CreateCpl;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\EditCpl;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
@@ -19,6 +20,14 @@ beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
 
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+
+    Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Domain Multiselect',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
     $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
 });
 

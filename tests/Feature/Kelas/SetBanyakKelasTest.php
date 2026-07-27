@@ -36,8 +36,6 @@ beforeEach(function () {
         'is_active' => true,
     ]);
 
-    KurikulumTerpilih::set($this->kurikulum->id);
-
     $this->mkA = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Statistika']);
     $this->mkB = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Basis Data']);
     $this->mkUnitA = MkUnit::factory()->forMk($this->mkA)->forAcademicUnit($this->prodi)->create([
@@ -50,12 +48,21 @@ beforeEach(function () {
     ]);
 
     $this->actingAs($this->adminProdi);
+
+    // KurikulumTerpilih::set() reads auth()->user() untuk memvalidasi
+    // scope, jadi harus dipanggil setelah actingAs() agar tersimpan di session.
+    KurikulumTerpilih::set($this->kurikulum->id);
 });
 
 it('kurikulum aktif otomatis terpakai (tanpa filter dropdown) saat halaman dimuat', function () {
+    // Banner kurikulum (nested Livewire component di table description) hanya
+    // ikut ter-render penuh pada render pass PERTAMA komponen; loadTable()
+    // memicu render pass baru di mana anak Livewire yang belum berubah cuma
+    // dikirim sebagai placeholder kosong (mengandalkan DOM browser yang sudah
+    // ter-hydrate). Karena itu assertSee banner harus dicek sebelum loadTable().
     Livewire::test(ListKelasMks::class)
-        ->loadTable()
-        ->assertSee('Kurikulum Set Kelas', escape: false);
+        ->assertSee('Kurikulum Set Kelas', escape: false)
+        ->loadTable();
 });
 
 it('koordinator mk melihat opsi kurikulum prodi pada filter kelas mk', function () {
@@ -68,8 +75,8 @@ it('koordinator mk melihat opsi kurikulum prodi pada filter kelas mk', function 
     expect(KurikulumTerpilih::optionsForUnits($unitIds))->toHaveKey($this->kurikulum->id);
 
     Livewire::test(ListKelasMks::class)
-        ->loadTable()
-        ->assertSee('Kurikulum Set Kelas', escape: false);
+        ->assertSee('Kurikulum Set Kelas', escape: false)
+        ->loadTable();
 });
 
 it('modal set banyak kelas menampilkan daftar mata kuliah per semester ke', function () {

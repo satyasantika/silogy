@@ -108,6 +108,7 @@ it('ketersediaan menu menampilkan status ada atau belum', function () {
 
     Cpl::query()->create([
         'academic_unit_id' => $prodi->id,
+        'kurikulum_id' => $kurikulum->id,
         'kode' => 'CPL-01',
         'deskripsi' => 'CPL uji',
         'domain' => ['kognitif'],
@@ -191,6 +192,7 @@ it('observer pivot cpl profil lulusan ikut memicu sinkronisasi state', function 
 
     $cpl = Cpl::query()->create([
         'academic_unit_id' => $prodi->id,
+        'kurikulum_id' => $kurikulum->id,
         'kode' => 'CPL-01',
         'deskripsi' => 'CPL pivot',
         'domain' => ['kognitif'],
