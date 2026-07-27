@@ -10,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
@@ -25,6 +26,7 @@ class KurikulumTerpilihBanner extends Component implements HasActions, HasSchema
     {
         return Action::make('ganti')
             ->label('Ganti')
+            ->icon(Heroicon::ArrowsRightLeft)
             ->link()
             ->color('primary')
             ->modalHeading('Ganti kurikulum')

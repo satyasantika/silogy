@@ -8,6 +8,7 @@ use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -39,12 +40,18 @@ it('banner kurikulum membuka modal ganti dan menyimpan pilihan', function () {
         'is_active' => false,
     ]);
 
-    Livewire::test(KurikulumTerpilihBanner::class)
+    $banner = Livewire::test(KurikulumTerpilihBanner::class)
         ->assertSee('Kurikulum Banner Modal')
         ->assertSee('Ganti')
-        ->callAction('ganti', data: [
-            'kurikulum_id' => $kurikulumLain->id,
-        ]);
+        ->assertSeeHtml('silogy-kurikulum-banner-ganti');
+
+    // Ikon dirender sebagai SVG inline (tanpa nama heroicon di HTML), jadi
+    // keberadaannya diperiksa lewat definisi action.
+    expect($banner->instance()->gantiAction()->getIcon())->toBe(Heroicon::ArrowsRightLeft);
+
+    $banner->callAction('ganti', data: [
+        'kurikulum_id' => $kurikulumLain->id,
+    ]);
 
     expect(KurikulumTerpilih::currentId())->toBe($kurikulumLain->id);
 });
