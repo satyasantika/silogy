@@ -54,12 +54,14 @@ class PeranUnitFormFields
     public static function iconForRole(string $role): Heroicon
     {
         return match ($role) {
-            'Super Admin' => Heroicon::ShieldCheck,
-            'Pimpinan' => Heroicon::BuildingLibrary,
-            'Tim Kurikulum' => Heroicon::AcademicCap,
-            'Koordinator Mata Kuliah' => Heroicon::RectangleStack,
-            'Dosen Pengampu' => Heroicon::PencilSquare,
-            default => Heroicon::UserCircle,
+            'Super Admin' => Heroicon::OutlinedShieldCheck,
+            'Admin' => Heroicon::OutlinedCog6Tooth,
+            'Pimpinan' => Heroicon::OutlinedBuildingLibrary,
+            'Tim Kurikulum' => Heroicon::OutlinedBookOpen,
+            'Koordinator Mata Kuliah' => Heroicon::OutlinedClipboardDocumentList,
+            'Dosen Pengampu' => Heroicon::OutlinedAcademicCap,
+            'Auditor Mutu' => Heroicon::OutlinedMagnifyingGlassCircle,
+            default => Heroicon::OutlinedUserCircle,
         };
     }
 
@@ -67,10 +69,12 @@ class PeranUnitFormFields
     {
         return match ($role) {
             'Super Admin' => 'danger',
+            'Admin' => 'gray',
             'Pimpinan' => 'warning',
             'Tim Kurikulum' => 'info',
             'Koordinator Mata Kuliah' => 'success',
             'Dosen Pengampu' => 'primary',
+            'Auditor Mutu' => 'danger',
             default => 'gray',
         };
     }

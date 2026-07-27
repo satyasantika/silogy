@@ -55,19 +55,27 @@ it('user multi-role diarahkan ke halaman Pilih Peran & Unit, bukan langsung dash
     $response->assertSee('Tim Kurikulum');
 });
 
-it('pilihan peran memakai ToggleButtons berikon representatif', function () {
+it('pilihan peran memakai kartu persegi berikon representatif tanpa tombol Lanjutkan', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
     Livewire::test(PilihPeranUnit::class)
-        ->assertFormFieldExists('role')
         ->assertSee('Dosen Pengampu')
-        ->assertSee('Tim Kurikulum');
+        ->assertSee('Tim Kurikulum')
+        ->assertSeeHtml('silogy-peran-card')
+        ->assertSeeHtml('wire:click="pilihPeran')
+        ->assertDontSee('Lanjutkan');
 
     expect(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Dosen Pengampu')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::PencilSquare->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedAcademicCap->value)
         ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Tim Kurikulum')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::AcademicCap->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedBookOpen->value)
+        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Super Admin')->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedShieldCheck->value)
+        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Koordinator Mata Kuliah')->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedClipboardDocumentList->value)
+        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Auditor Mutu')->value)
+        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedMagnifyingGlassCircle->value)
         ->and(\App\Modules\Auth\Support\PeranUnitFormFields::colorForRole('Pimpinan'))
         ->toBe('warning');
 });
@@ -81,7 +89,7 @@ it('mount() PilihPeranUnit redirect ke dashboard bila user single-role tanpa pil
     expect($response->headers->get('Location'))->not->toContain('pilih-peran-unit');
 });
 
-it('submit gerbang menyimpan role dan unit aktif, lalu KurikulumTerpilih mengikuti unit tersebut', function () {
+it('klik kartu peran/unit menyimpan role dan unit aktif, lalu KurikulumTerpilih mengikuti unit tersebut', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
@@ -103,9 +111,11 @@ it('submit gerbang menyimpan role dan unit aktif, lalu KurikulumTerpilih mengiku
     ]);
 
     Livewire::test(PilihPeranUnit::class)
-        ->set('data.role', 'Tim Kurikulum')
-        ->set('data.unit_id', $prodi->id)
-        ->call('submit');
+        ->call('pilihPeran', 'Tim Kurikulum')
+        ->assertSet('selectedRole', 'Tim Kurikulum')
+        ->assertSee($prodi->nama)
+        ->call('pilihUnit', $prodi->id)
+        ->assertRedirect();
 
     expect(ActiveRole::currentFor($dosentimkur))->toBe('Tim Kurikulum')
         ->and(AcademicUnitTerpilih::currentId($dosentimkur))->toBe($prodi->id);
@@ -117,12 +127,23 @@ it('submit gerbang menyimpan role dan unit aktif, lalu KurikulumTerpilih mengiku
     // membuktikan bug asli (data kurikulum tidak ditemukan) sudah selesai:
     // sekarang unit yang ditampilkan benar-benar mengikuti pilihan eksplisit user.
     Livewire::test(PilihPeranUnit::class)
-        ->set('data.role', 'Tim Kurikulum')
-        ->set('data.unit_id', $fakultas->id)
-        ->call('submit');
+        ->call('pilihPeran', 'Tim Kurikulum')
+        ->call('pilihUnit', $fakultas->id)
+        ->assertRedirect();
 
     $kurikulumFakultas = KurikulumTerpilih::default($dosentimkur);
     expect($kurikulumFakultas?->academic_unit_id)->toBe($fakultas->id);
+});
+
+it('klik kartu peran tanpa pilihan unit langsung menerapkan dan redirect', function () {
+    $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosentimkur);
+
+    Livewire::test(PilihPeranUnit::class)
+        ->call('pilihPeran', 'Dosen Pengampu')
+        ->assertRedirect();
+
+    expect(ActiveRole::currentFor($dosentimkur))->toBe('Dosen Pengampu');
 });
 
 it('ganti peran hanya di menu identitas, bukan ikon nav RoleSwitcher', function () {

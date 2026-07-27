@@ -9,13 +9,16 @@ use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Pages\Page;
-use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Lab404\Impersonate\Services\ImpersonateManager;
 
 /**
  * Gerbang "Pilih Peran & Unit" — kelola peran/unit aktif untuk user
  * multi-role (atau single-role dengan banyak unit). Dipakai saat login,
  * impersonate, dan ganti peran dari menu pengguna.
+ *
+ * UX: klik kartu persegi untuk memilih peran (dan unit bila perlu);
+ * tanpa tombol "Lanjutkan".
  */
 class PilihPeranUnit extends Page
 {
@@ -27,17 +30,21 @@ class PilihPeranUnit extends Page
 
     protected static ?string $title = 'Pilih Peran & Unit';
 
+    public ?string $selectedRole = null;
+
     /**
-     * @var array<string, mixed>|null
+     * Opsi unit akademik setelah peran yang butuh pilihan unit dipilih.
+     *
+     * @var array<int, array{id: string, nama: string, type: string}>
      */
-    public ?array $data = [];
+    public array $unitOptions = [];
 
     public function mount(): void
     {
         $user = auth()->user();
 
         if (! $user instanceof User) {
-            redirect()->intended(Dashboard::getUrl());
+            $this->redirectIntended(Dashboard::getUrl());
 
             return;
         }
@@ -50,25 +57,12 @@ class PilihPeranUnit extends Page
                 && PeranUnitFormFields::unitCountForRole($user, $singleRole) > 1;
 
             if (! $hasUnitChoice) {
-                redirect()->intended(Dashboard::getUrl());
-
-                return;
+                $this->redirectIntended(Dashboard::getUrl());
             }
         }
-
-        $this->form->fill();
     }
 
-    public function form(Schema $schema): Schema
-    {
-        $user = auth()->user();
-
-        return $schema
-            ->components($user instanceof User ? PeranUnitFormFields::schema($user) : [])
-            ->statePath('data');
-    }
-
-    public function submit(): void
+    public function pilihPeran(string $role): void
     {
         $user = auth()->user();
 
@@ -76,9 +70,64 @@ class PilihPeranUnit extends Page
             return;
         }
 
-        PeranUnitFormFields::apply($this->form->getState());
+        $roles = ActiveRole::ownedRoleNames($user);
 
-        redirect()->intended(Dashboard::getUrl());
+        if (! in_array($role, $roles, true)) {
+            return;
+        }
+
+        $unitIds = PeranUnitFormFields::unitIdsForRole($user, $role);
+
+        if ($unitIds->count() <= 1) {
+            PeranUnitFormFields::apply([
+                'role' => $role,
+                'unit_id' => $unitIds->first(),
+            ]);
+
+            $this->redirectIntended(Dashboard::getUrl());
+
+            return;
+        }
+
+        $this->selectedRole = $role;
+        $this->unitOptions = AcademicUnit::query()
+            ->whereIn('id', $unitIds)
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'type'])
+            ->map(fn (AcademicUnit $unit): array => [
+                'id' => $unit->id,
+                'nama' => $unit->nama,
+                'type' => (string) $unit->type,
+            ])
+            ->all();
+    }
+
+    public function pilihUnit(string $unitId): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || blank($this->selectedRole)) {
+            return;
+        }
+
+        $unitIds = PeranUnitFormFields::unitIdsForRole($user, $this->selectedRole);
+
+        if (! $unitIds->contains($unitId)) {
+            return;
+        }
+
+        PeranUnitFormFields::apply([
+            'role' => $this->selectedRole,
+            'unit_id' => $unitId,
+        ]);
+
+        $this->redirectIntended(Dashboard::getUrl());
+    }
+
+    public function kembaliKePeran(): void
+    {
+        $this->selectedRole = null;
+        $this->unitOptions = [];
     }
 
     public function isImpersonating(): bool
@@ -121,6 +170,14 @@ class PilihPeranUnit extends Page
             'unitAktifNama' => $unitAktifId
                 ? AcademicUnit::query()->find($unitAktifId)?->nama
                 : null,
+            'roles' => collect(ActiveRole::ownedRoleNames($user))
+                ->map(fn (string $role): array => [
+                    'name' => $role,
+                    'icon' => PeranUnitFormFields::iconForRole($role),
+                    'color' => PeranUnitFormFields::colorForRole($role),
+                ])
+                ->all(),
+            'unitIcon' => Heroicon::OutlinedBuildingOffice2,
         ];
     }
 }
