@@ -191,10 +191,10 @@ class MkUnitResource extends Resource
                                 array_keys(static::adaptableMkOptions($get('academic_unit_id'))),
                             ))
                             ->rule(fn (Get $get, ?MkUnit $record): Unique => (new Unique('mk_units', 'mk_id'))
-                                ->where('academic_unit_id', $get('academic_unit_id'))
+                                ->where('kurikulum_id', $record?->kurikulum_id ?? KurikulumTerpilih::currentId())
                                 ->ignore($record?->id))
                             ->validationMessages([
-                                'unique' => 'MK ini sudah ditawarkan pada unit tersebut.',
+                                'unique' => 'MK ini sudah ditawarkan pada kurikulum tersebut.',
                             ]),
 
                         TextInput::make('kode')
@@ -202,7 +202,7 @@ class MkUnitResource extends Resource
                             ->required()
                             ->maxLength(20)
                             ->rule(fn (Get $get, ?MkUnit $record): Unique => (new Unique('mk_units', 'kode'))
-                                ->where('academic_unit_id', $get('academic_unit_id'))
+                                ->where('kurikulum_id', $record?->kurikulum_id ?? KurikulumTerpilih::currentId())
                                 ->ignore($record?->id)),
 
                         TextInput::make('semester_ke')
@@ -236,7 +236,7 @@ class MkUnitResource extends Resource
                         ->visible(fn (MkUnit $record): bool => auth()->user()?->can('update', $record) ?? false),
                 ]),
             fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+                ->where('kurikulum_id', $kurikulum->id),
         );
     }
 

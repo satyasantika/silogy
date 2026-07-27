@@ -41,9 +41,11 @@ class CplMkMatrix extends Page
 
     public function updateBobot(string $mkId, string $cplBokId, ?string $bobot): void
     {
-        $unitId = $this->getKurikulum()?->academic_unit_id;
+        $kurikulum = $this->getKurikulum();
+        $kurikulumId = $kurikulum?->id;
+        $unitId = $kurikulum?->academic_unit_id;
 
-        if ($unitId === null || ! CplBokAdaptasiScope::isVisibleMkCplBokCell($mkId, $cplBokId, $unitId)) {
+        if ($kurikulumId === null || $unitId === null || ! CplBokAdaptasiScope::isVisibleMkCplBokCell($mkId, $cplBokId, $kurikulumId)) {
             Notification::make()
                 ->title('Sel interaksi tidak valid untuk kurikulum ini')
                 ->warning()
@@ -161,12 +163,13 @@ class CplMkMatrix extends Page
         }
 
         $unitId = $kurikulum->academic_unit_id;
+        $kurikulumId = $kurikulum->id;
 
-        $adaptedMkIds = CplBokAdaptasiScope::adaptedMkIds($unitId);
+        $adaptedMkIds = CplBokAdaptasiScope::adaptedMkIds($kurikulumId);
 
         $mks = Mk::query()
             ->where(fn ($query) => $query
-                ->where('academic_unit_id', $unitId)
+                ->where('kurikulum_id', $kurikulumId)
                 ->when(
                     $adaptedMkIds->isNotEmpty(),
                     fn ($q) => $q->orWhereIn('id', $adaptedMkIds),
@@ -174,7 +177,7 @@ class CplMkMatrix extends Page
             ->orderBy('nama')
             ->get();
 
-        $cplBoks = CplBokAdaptasiScope::scopeVisibleCplBok(CplBok::query(), $unitId)
+        $cplBoks = CplBokAdaptasiScope::scopeVisibleCplBok(CplBok::query(), $kurikulumId)
             ->with(['cpl', 'bok'])
             ->get()
             ->sortBy(fn (CplBok $cplBok): string => $cplBok->cpl->kode.'/'.$cplBok->bok->kode)

@@ -24,7 +24,7 @@ class EditBok extends BaseSimpleEditRecord
     protected function overrideUnitId(Bok $bok): ?string
     {
         return BokResource::scopedTimKurikulumUnitIds()
-            ->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIds($unitId)->contains($bok->id));
+            ->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIdsAcrossUnit($unitId)->contains($bok->id));
     }
 
     protected function isAsing(Bok $bok): bool

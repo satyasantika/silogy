@@ -15,10 +15,10 @@ class BokState extends KurikulumState
 
     public function canTransition(?string $toStateClass = null): bool
     {
-        $unitId = $this->kurikulum()->academic_unit_id;
+        $kurikulumId = $this->kurikulum()->id;
 
         return CplBok::query()
-            ->whereHas('cpl', fn ($query) => $query->where('academic_unit_id', $unitId))
+            ->whereHas('cpl', fn ($query) => $query->where('kurikulum_id', $kurikulumId))
             ->exists();
     }
 }

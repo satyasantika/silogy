@@ -39,7 +39,7 @@ class BokPolicy
         }
 
         return AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)
-            ->contains(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIds($unitId)->contains($bok->id));
+            ->contains(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIdsAcrossUnit($unitId)->contains($bok->id));
     }
 
     public function delete(User $user, Bok $bok): bool

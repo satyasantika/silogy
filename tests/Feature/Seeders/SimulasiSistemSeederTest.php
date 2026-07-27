@@ -104,9 +104,14 @@ it('seeder simulasi mengadaptasi mk universitas dan fakultas ke prodi lewat kode
     $cplFak = Cpl::query()->where('academic_unit_id', $fkip->id)->where('kode', 'CPL-SIM-FAK')->firstOrFail();
     $bokFak = Bok::query()->where('academic_unit_id', $fkip->id)->where('kode', 'BOK-SIM-FAK')->firstOrFail();
 
-    expect(CplBokAdaptasiScope::adaptedCplIds($prodi->id)->toArray())
+    $kurikulumProdi = \App\Modules\Kurikulum\Models\Kurikulum::query()
+        ->where('academic_unit_id', $prodi->id)
+        ->orderByDesc('is_active')
+        ->firstOrFail();
+
+    expect(CplBokAdaptasiScope::adaptedCplIds($kurikulumProdi->id)->toArray())
         ->toContain($cplUniv->id, $cplFak->id)
-        ->and(CplBokAdaptasiScope::adaptedBokIds($prodi->id)->toArray())
+        ->and(CplBokAdaptasiScope::adaptedBokIds($kurikulumProdi->id)->toArray())
         ->toContain($bokUniv->id, $bokFak->id)
         ->and(CplKodeOverride::query()->where('academic_unit_id', $prodi->id)->where('cpl_id', $cplUniv->id)->value('kode'))
         ->toBe('CPL-ADAPT-UNIV')

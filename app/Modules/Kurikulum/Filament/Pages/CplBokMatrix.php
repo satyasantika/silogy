@@ -38,9 +38,11 @@ class CplBokMatrix extends Page
 
     public function toggle(string $cplId, string $bokId): void
     {
-        $unitId = $this->getKurikulum()?->academic_unit_id;
+        $kurikulum = $this->getKurikulum();
+        $kurikulumId = $kurikulum?->id;
+        $unitId = $kurikulum?->academic_unit_id;
 
-        if ($unitId === null || ! CplBokAdaptasiScope::isVisiblePair($cplId, $bokId, $unitId)) {
+        if ($kurikulumId === null || $unitId === null || ! CplBokAdaptasiScope::isVisiblePair($cplId, $bokId, $kurikulumId)) {
             Notification::make()
                 ->title('Pasangan CPL/BoK tidak valid untuk kurikulum ini')
                 ->warning()
@@ -110,12 +112,13 @@ class CplBokMatrix extends Page
         }
 
         $unitId = $kurikulum->academic_unit_id;
+        $kurikulumId = $kurikulum->id;
 
-        $cpls = CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query()->with('academicUnit'), $unitId)
+        $cpls = CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query()->with('academicUnit'), $kurikulumId)
             ->orderBy('kode')
             ->get();
 
-        $boks = CplBokAdaptasiScope::scopeVisibleBok(Bok::query()->with('academicUnit'), $unitId)
+        $boks = CplBokAdaptasiScope::scopeVisibleBok(Bok::query()->with('academicUnit'), $kurikulumId)
             ->orderBy('kode')
             ->get();
 

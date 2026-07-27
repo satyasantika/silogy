@@ -67,12 +67,13 @@ class SimulasiAkademikBuilder
 
         $kurikulum = $this->buatKurikulumAktif($prodi);
         $cplIds = $this->buatCplDanProfil($prodi, $kurikulum);
-        $cplBokMap = $this->buatBokDanPivot($prodi, $cplIds);
+        $cplBokMap = $this->buatBokDanPivot($kurikulum, $cplIds);
         $kelasCollection = collect();
 
         foreach ($this->mkProdi as $kode => $nama) {
             $kelas = $this->buatRantaiPenilaianProdi(
                 unit: $prodi,
+                kurikulum: $kurikulum,
                 cplBokMap: $cplBokMap,
                 kodeMk: $kode,
                 namaMk: $nama,
@@ -119,20 +120,23 @@ class SimulasiAkademikBuilder
         }
 
         $suffixUnit = $this->kodeSingkatUnit($unit->type);
+        $kurikulum = $this->pastikanKurikulum($unit);
 
         $cpl = Cpl::query()->firstOrCreate(
-            ['academic_unit_id' => $unit->id, 'kode' => 'CPL-SIM-'.$suffixUnit],
+            ['kurikulum_id' => $kurikulum->id, 'kode' => 'CPL-SIM-'.$suffixUnit],
             [
                 'id' => (string) Str::uuid(),
+                'academic_unit_id' => $unit->id,
                 'deskripsi' => 'CPL simulasi '.$unit->nama,
                 'domain' => ['kognitif'],
             ],
         );
 
         $bok = Bok::query()->firstOrCreate(
-            ['academic_unit_id' => $unit->id, 'kode' => 'BOK-SIM-'.$suffixUnit],
+            ['kurikulum_id' => $kurikulum->id, 'kode' => 'BOK-SIM-'.$suffixUnit],
             [
                 'id' => (string) Str::uuid(),
+                'academic_unit_id' => $unit->id,
                 'nama' => 'BoK simulasi '.$unit->nama,
                 'deskripsi' => 'BoK sementara untuk demo',
             ],
@@ -144,9 +148,10 @@ class SimulasiAkademikBuilder
         );
 
         $mk = Mk::query()->firstOrCreate(
-            ['academic_unit_id' => $unit->id, 'nama' => $definisi['nama']],
+            ['kurikulum_id' => $kurikulum->id, 'nama' => $definisi['nama']],
             [
                 'id' => (string) Str::uuid(),
+                'academic_unit_id' => $unit->id,
                 'state' => 'penilaian',
                 'koordinator_mk_id' => $koordinator->id,
                 'sks_teori' => 2,
@@ -164,9 +169,10 @@ class SimulasiAkademikBuilder
         );
 
         $mkUnit = MkUnit::query()->firstOrCreate(
-            ['mk_id' => $mk->id, 'academic_unit_id' => $unit->id, 'kode' => $definisi['kode']],
+            ['mk_id' => $mk->id, 'kurikulum_id' => $kurikulum->id, 'kode' => $definisi['kode']],
             [
                 'id' => (string) Str::uuid(),
+                'academic_unit_id' => $unit->id,
                 'semester_ke' => 1,
                 'is_active' => true,
             ],
@@ -264,9 +270,16 @@ class SimulasiAkademikBuilder
             return;
         }
 
+        $kurikulumProdi = $this->pastikanKurikulum($prodi);
+
         MkUnit::query()->firstOrCreate(
-            ['mk_id' => $mkUnitAsal->mk_id, 'academic_unit_id' => $prodi->id, 'kode' => $mkKode],
-            ['id' => (string) Str::uuid(), 'semester_ke' => 1, 'is_active' => true],
+            ['mk_id' => $mkUnitAsal->mk_id, 'kurikulum_id' => $kurikulumProdi->id, 'kode' => $mkKode],
+            [
+                'id' => (string) Str::uuid(),
+                'academic_unit_id' => $prodi->id,
+                'semester_ke' => 1,
+                'is_active' => true,
+            ],
         );
 
         $suffixUnit = $this->kodeSingkatUnit($unitAsal->type);
@@ -302,6 +315,35 @@ class SimulasiAkademikBuilder
             ->where('academic_unit_id', $unit->id)
             ->where('semester_id', $this->semester->id)
             ->exists();
+    }
+
+    protected function pastikanKurikulum(AcademicUnit $unit): Kurikulum
+    {
+        $existing = Kurikulum::query()
+            ->where('academic_unit_id', $unit->id)
+            ->orderByDesc('is_active')
+            ->orderByDesc('tahun')
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        if ($unit->isProdi()) {
+            return $this->buatKurikulumAktif($unit);
+        }
+
+        return Kurikulum::query()->create([
+            'id' => (string) Str::uuid(),
+            'academic_unit_id' => $unit->id,
+            'nama' => 'Kurikulum Simulasi '.$unit->nama,
+            'kode' => 'SIM-'.($unit->code ?? 'UNIT').'-2025',
+            'tahun' => 2025,
+            'target_capaian_lulusan' => 75,
+            'deskripsi' => 'Data sementara untuk demo end-to-end SILOGY',
+            'is_active' => true,
+            'dibuat_oleh' => $this->timkur->id,
+        ]);
     }
 
     protected function buatKurikulumAktif(AcademicUnit $prodi): Kurikulum
@@ -368,8 +410,8 @@ class SimulasiAkademikBuilder
             ['kode' => 'CPL-SIM-02', 'deskripsi' => 'Berkomitmen pada etika pendidikan', 'domain' => ['afektif']],
         ] as $row) {
             $cpl = Cpl::query()->firstOrCreate(
-                ['academic_unit_id' => $prodi->id, 'kode' => $row['kode']],
-                ['id' => (string) Str::uuid(), ...$row],
+                ['kurikulum_id' => $kurikulum->id, 'kode' => $row['kode']],
+                ['id' => (string) Str::uuid(), 'academic_unit_id' => $prodi->id, ...$row],
             );
 
             CplProfilLulusan::query()->firstOrCreate(
@@ -387,7 +429,7 @@ class SimulasiAkademikBuilder
      * @param  list<string>  $cplIds
      * @return array<string, string>
      */
-    protected function buatBokDanPivot(AcademicUnit $prodi, array $cplIds): array
+    protected function buatBokDanPivot(Kurikulum $kurikulum, array $cplIds): array
     {
         $map = [];
         $bokDefs = [
@@ -398,8 +440,13 @@ class SimulasiAkademikBuilder
 
         foreach ($bokDefs as $index => $def) {
             $bok = Bok::query()->firstOrCreate(
-                ['academic_unit_id' => $prodi->id, 'kode' => $def['kode']],
-                ['id' => (string) Str::uuid(), 'nama' => $def['nama'], 'deskripsi' => 'BoK simulasi'],
+                ['kurikulum_id' => $kurikulum->id, 'kode' => $def['kode']],
+                [
+                    'id' => (string) Str::uuid(),
+                    'academic_unit_id' => $kurikulum->academic_unit_id,
+                    'nama' => $def['nama'],
+                    'deskripsi' => 'BoK simulasi',
+                ],
             );
 
             $cplId = $cplIds[$index % count($cplIds)];
@@ -419,6 +466,7 @@ class SimulasiAkademikBuilder
      */
     protected function buatRantaiPenilaianProdi(
         AcademicUnit $unit,
+        Kurikulum $kurikulum,
         array $cplBokMap,
         string $kodeMk,
         string $namaMk,
@@ -429,9 +477,10 @@ class SimulasiAkademikBuilder
         $cplBokId = array_values($cplBokMap)[crc32($kodeMk) % count($cplBokMap)];
 
         $mk = Mk::query()->firstOrCreate(
-            ['academic_unit_id' => $unit->id, 'nama' => $namaMk],
+            ['kurikulum_id' => $kurikulum->id, 'nama' => $namaMk],
             [
                 'id' => (string) Str::uuid(),
+                'academic_unit_id' => $unit->id,
                 'state' => 'penilaian',
                 'koordinator_mk_id' => $koordinator->id,
                 'sks_teori' => 2,
@@ -449,9 +498,10 @@ class SimulasiAkademikBuilder
         );
 
         $mkUnit = MkUnit::query()->firstOrCreate(
-            ['mk_id' => $mk->id, 'academic_unit_id' => $unit->id, 'kode' => $kodeMk],
+            ['mk_id' => $mk->id, 'kurikulum_id' => $kurikulum->id, 'kode' => $kodeMk],
             [
                 'id' => (string) Str::uuid(),
+                'academic_unit_id' => $unit->id,
                 'semester_ke' => $semesterKe,
                 'is_active' => true,
             ],

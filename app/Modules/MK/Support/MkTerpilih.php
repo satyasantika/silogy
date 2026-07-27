@@ -109,7 +109,7 @@ class MkTerpilih
         $mk->loadMissing('mkUnits');
 
         return $mk->mkUnits
-            ->where('academic_unit_id', $kurikulum->academic_unit_id)
+            ->where('kurikulum_id', $kurikulum->id)
             ->where('is_active', true)
             ->isNotEmpty();
     }

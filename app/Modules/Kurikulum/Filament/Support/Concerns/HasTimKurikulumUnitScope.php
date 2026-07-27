@@ -49,9 +49,20 @@ trait HasTimKurikulumUnitScope
         ?string $ignoreRecordId = null,
         ?string $academicUnitId = null,
     ): Unique {
+        return static::uniqueKodePerKurikulumRule($table, $ignoreRecordId, kurikulumId: null, academicUnitId: $academicUnitId);
+    }
+
+    public static function uniqueKodePerKurikulumRule(
+        string $table,
+        ?string $ignoreRecordId = null,
+        ?string $kurikulumId = null,
+        ?string $academicUnitId = null,
+    ): Unique {
         $rule = Rule::unique($table, 'kode');
 
-        if ($academicUnitId) {
+        if ($kurikulumId) {
+            $rule->where('kurikulum_id', $kurikulumId);
+        } elseif ($academicUnitId) {
             $rule->where('academic_unit_id', $academicUnitId);
         }
 

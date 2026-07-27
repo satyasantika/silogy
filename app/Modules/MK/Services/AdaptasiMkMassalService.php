@@ -85,8 +85,22 @@ class AdaptasiMkMassalService
             ]];
         }
 
+        $kurikulumTarget = $this->kurikulumTargetProdi($prodi);
+
+        if ($kurikulumTarget === null) {
+            return [[
+                'line' => 1,
+                'mk_id' => '',
+                'nama' => '',
+                'sumber' => '',
+                'status' => 'invalid',
+                'keterangan' => 'Belum ada kurikulum terpilih/aktif untuk prodi penawaran.',
+                'existing_id' => null,
+            ]];
+        }
+
         $existingByMk = MkUnit::query()
-            ->where('academic_unit_id', $prodi->id)
+            ->where('kurikulum_id', $kurikulumTarget->id)
             ->pluck('id', 'mk_id');
 
         $rows = [];
@@ -157,11 +171,22 @@ class AdaptasiMkMassalService
     public function jalankan(array $rows, string $modeDuplikat, array $context): array
     {
         $unitId = (string) ($context['adaptasi_unit_id'] ?? '');
+        $prodi = AcademicUnit::query()->find($unitId);
+        $kurikulumTarget = $prodi instanceof AcademicUnit ? $this->kurikulumTargetProdi($prodi) : null;
 
         $dibuat = 0;
         $diperbarui = 0;
         $dilewati = 0;
         $gagal = [];
+
+        if ($kurikulumTarget === null) {
+            return [
+                'dibuat' => 0,
+                'diperbarui' => 0,
+                'dilewati' => 0,
+                'gagal' => ['Belum ada kurikulum terpilih/aktif untuk prodi penawaran.'],
+            ];
+        }
 
         foreach ($rows as $row) {
             if ($row['status'] === 'invalid') {
@@ -193,8 +218,9 @@ class AdaptasiMkMassalService
 
             MkUnit::query()->create([
                 'academic_unit_id' => $unitId,
+                'kurikulum_id' => $kurikulumTarget->id,
                 'mk_id' => $row['mk_id'],
-                'kode' => $this->generateKodeUnik($unitId, (string) $row['nama']),
+                'kode' => $this->generateKodeUnik($kurikulumTarget->id, (string) $row['nama']),
                 'semester_ke' => null,
                 'is_active' => true,
             ]);
@@ -205,7 +231,7 @@ class AdaptasiMkMassalService
         return compact('dibuat', 'diperbarui', 'dilewati', 'gagal');
     }
 
-    public function generateKodeUnik(string $unitId, string $nama): string
+    public function generateKodeUnik(string $kurikulumId, string $nama): string
     {
         $kata = collect(preg_split('/\s+/u', trim($nama)) ?: [])
             ->filter()
@@ -223,12 +249,27 @@ class AdaptasiMkMassalService
         $kode = $base;
         $suffix = 1;
 
-        while (MkUnit::query()->where('academic_unit_id', $unitId)->where('kode', $kode)->exists()) {
+        while (MkUnit::query()->where('kurikulum_id', $kurikulumId)->where('kode', $kode)->exists()) {
             $kode = Str::limit($base, 12, '').'-'.$suffix;
             $suffix++;
         }
 
         return $kode;
+    }
+
+    protected function kurikulumTargetProdi(AcademicUnit $prodi): ?Kurikulum
+    {
+        $terpilih = KurikulumTerpilih::current();
+
+        if ($terpilih instanceof Kurikulum && $terpilih->academic_unit_id === $prodi->id) {
+            return $terpilih;
+        }
+
+        return Kurikulum::query()
+            ->where('academic_unit_id', $prodi->id)
+            ->orderByDesc('is_active')
+            ->orderByDesc('tahun')
+            ->first();
     }
 
     /**
@@ -338,7 +379,7 @@ class AdaptasiMkMassalService
             $labelSumber = "{$labelLevel[$type]} — {$unitNama}";
 
             $mks = Mk::query()
-                ->where('academic_unit_id', $kurikulum->academic_unit_id)
+                ->where('kurikulum_id', $kurikulum->id)
                 ->where('is_active', true)
                 ->orderBy('nama')
                 ->get();

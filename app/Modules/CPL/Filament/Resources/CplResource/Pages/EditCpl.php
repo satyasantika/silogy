@@ -24,7 +24,7 @@ class EditCpl extends BaseSimpleEditRecord
     protected function overrideUnitId(Cpl $cpl): ?string
     {
         return CplResource::scopedTimKurikulumUnitIds()
-            ->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIds($unitId)->contains($cpl->id));
+            ->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($unitId)->contains($cpl->id));
     }
 
     protected function isAsing(Cpl $cpl): bool

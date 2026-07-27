@@ -39,7 +39,7 @@ class CplPolicy
         }
 
         return AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user)
-            ->contains(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIds($unitId)->contains($cpl->id));
+            ->contains(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($unitId)->contains($cpl->id));
     }
 
     public function delete(User $user, Cpl $cpl): bool

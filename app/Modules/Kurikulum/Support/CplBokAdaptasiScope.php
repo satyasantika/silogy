@@ -8,35 +8,31 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\CPL\Models\CplMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
- * Konsekuensi adaptasi MK lintas unit: satu-satunya jalur dari MK yang
- * diadaptasi prodi menuju CPL/BoK milik unit asal (universitas/fakultas)
- * adalah mk_units.mk_id -> cpl_mk.mk_id -> cpl_mk.cpl_bok_id ->
- * cpl_bok.{cpl_id,bok_id}. Kelas ini adalah satu-satunya sumber query
- * untuk "apa saja yang terlihat/bisa diedit" lewat rantai tsb — dipakai
- * bersama oleh CplResource, BokResource, CplBokMatrix, CplMkMatrix, dan
- * ProfilCplMatrix, supaya aturannya konsisten di semua tempat.
+ * Konsekuensi adaptasi MK lintas unit: jalur dari MK yang diadaptasi
+ * (mk_units milik kurikulum penawar) menuju CPL/BoK unit asal adalah
+ * mk_units.mk_id -> cpl_mk.mk_id -> cpl_bok -> cpl/bok.
  *
- * Kaidah keteredit-an yang berlaku seragam: suatu record/pasangan bisa
- * diedit oleh unit tertentu HANYA JIKA setidaknya satu sisinya benar-benar
- * milik unit tsb (bukan sekadar "terlihat" lewat rantai adaptasi).
+ * Visibility daftar/matriks di-scope per kurikulum_id; hak edit tetap
+ * berbasis kepemilikan academic_unit (minimal satu sisi milik unit saya).
  */
 class CplBokAdaptasiScope
 {
     /**
-     * MK yang diadaptasi (aktif) oleh unit tertentu.
+     * MK yang diadaptasi (aktif) oleh kurikulum tertentu.
      *
      * @return Collection<int, string>
      */
-    public static function adaptedMkIds(string $unitId): Collection
+    public static function adaptedMkIds(string $kurikulumId): Collection
     {
         return MkUnit::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->where('is_active', true)
             ->pluck('mk_id')
             ->unique()
@@ -44,13 +40,11 @@ class CplBokAdaptasiScope
     }
 
     /**
-     * Baris cpl_bok yang terjangkau lewat MK yang diadaptasi unit tsb.
-     *
      * @return Collection<int, string>
      */
-    public static function adaptedCplBokIds(string $unitId): Collection
+    public static function adaptedCplBokIds(string $kurikulumId): Collection
     {
-        $mkIds = self::adaptedMkIds($unitId);
+        $mkIds = self::adaptedMkIds($kurikulumId);
 
         if ($mkIds->isEmpty()) {
             return collect();
@@ -66,9 +60,9 @@ class CplBokAdaptasiScope
     /**
      * @return Collection<int, string>
      */
-    public static function adaptedCplIds(string $unitId): Collection
+    public static function adaptedCplIds(string $kurikulumId): Collection
     {
-        $cplBokIds = self::adaptedCplBokIds($unitId);
+        $cplBokIds = self::adaptedCplBokIds($kurikulumId);
 
         if ($cplBokIds->isEmpty()) {
             return collect();
@@ -84,9 +78,9 @@ class CplBokAdaptasiScope
     /**
      * @return Collection<int, string>
      */
-    public static function adaptedBokIds(string $unitId): Collection
+    public static function adaptedBokIds(string $kurikulumId): Collection
     {
-        $cplBokIds = self::adaptedCplBokIds($unitId);
+        $cplBokIds = self::adaptedCplBokIds($kurikulumId);
 
         if ($cplBokIds->isEmpty()) {
             return collect();
@@ -100,16 +94,45 @@ class CplBokAdaptasiScope
     }
 
     /**
+     * Agregat adaptasi lintas semua kurikulum milik satu unit (untuk
+     * policy / getEloquentQuery yang belum punya konteks kurikulum tunggal).
+     *
+     * @return Collection<int, string>
+     */
+    public static function adaptedCplIdsAcrossUnit(string $unitId): Collection
+    {
+        return Kurikulum::query()
+            ->where('academic_unit_id', $unitId)
+            ->pluck('id')
+            ->flatMap(fn (string $kurikulumId): Collection => self::adaptedCplIds($kurikulumId))
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public static function adaptedBokIdsAcrossUnit(string $unitId): Collection
+    {
+        return Kurikulum::query()
+            ->where('academic_unit_id', $unitId)
+            ->pluck('id')
+            ->flatMap(fn (string $kurikulumId): Collection => self::adaptedBokIds($kurikulumId))
+            ->unique()
+            ->values();
+    }
+
+    /**
      * @param  Builder<Cpl>  $query
      * @return Builder<Cpl>
      */
-    public static function scopeVisibleCpl(Builder $query, string $unitId): Builder
+    public static function scopeVisibleCpl(Builder $query, string $kurikulumId): Builder
     {
-        $adapted = self::adaptedCplIds($unitId);
+        $adapted = self::adaptedCplIds($kurikulumId);
 
         return $query->where(
             fn (Builder $scoped): Builder => $scoped
-                ->where('academic_unit_id', $unitId)
+                ->where('kurikulum_id', $kurikulumId)
                 ->when(
                     $adapted->isNotEmpty(),
                     fn (Builder $q): Builder => $q->orWhereIn('id', $adapted),
@@ -121,13 +144,13 @@ class CplBokAdaptasiScope
      * @param  Builder<Bok>  $query
      * @return Builder<Bok>
      */
-    public static function scopeVisibleBok(Builder $query, string $unitId): Builder
+    public static function scopeVisibleBok(Builder $query, string $kurikulumId): Builder
     {
-        $adapted = self::adaptedBokIds($unitId);
+        $adapted = self::adaptedBokIds($kurikulumId);
 
         return $query->where(
             fn (Builder $scoped): Builder => $scoped
-                ->where('academic_unit_id', $unitId)
+                ->where('kurikulum_id', $kurikulumId)
                 ->when(
                     $adapted->isNotEmpty(),
                     fn (Builder $q): Builder => $q->orWhereIn('id', $adapted),
@@ -136,17 +159,14 @@ class CplBokAdaptasiScope
     }
 
     /**
-     * Pivot cpl_bok yang terlihat oleh unit: cpl-nya milik unit, atau
-     * bok-nya milik unit, atau pivotnya sendiri terjangkau lewat adaptasi.
-     *
      * @param  Builder<CplBok>  $query
      * @return Builder<CplBok>
      */
-    public static function scopeVisibleCplBok(Builder $query, string $unitId): Builder
+    public static function scopeVisibleCplBok(Builder $query, string $kurikulumId): Builder
     {
-        $ownCplIds = Cpl::query()->where('academic_unit_id', $unitId)->pluck('id');
-        $ownBokIds = Bok::query()->where('academic_unit_id', $unitId)->pluck('id');
-        $adapted = self::adaptedCplBokIds($unitId);
+        $ownCplIds = Cpl::query()->where('kurikulum_id', $kurikulumId)->pluck('id');
+        $ownBokIds = Bok::query()->where('kurikulum_id', $kurikulumId)->pluck('id');
+        $adapted = self::adaptedCplBokIds($kurikulumId);
 
         return $query->where(function (Builder $scoped) use ($ownCplIds, $ownBokIds, $adapted): void {
             $scoped->whereIn('cpl_id', $ownCplIds)
@@ -158,9 +178,6 @@ class CplBokAdaptasiScope
         });
     }
 
-    /**
-     * "Minimal satu sisi milik saya" — primitif keteredit-an dasar.
-     */
     public static function pairEditable(string $unitA, string $unitB, string $viewingUnitId): bool
     {
         return $unitA === $viewingUnitId || $unitB === $viewingUnitId;
@@ -182,34 +199,25 @@ class CplBokAdaptasiScope
         return self::canToggleCplBok($cplBok->cpl, $cplBok->bok, $viewingUnitId);
     }
 
-    /**
-     * Guard pertahanan-berlapis untuk toggle()/updateBobot(): id mentah
-     * dari client wajib divalidasi terhadap semesta yang benar-benar
-     * terlihat oleh unit ybs, jangan hanya mengandalkan atribut disabled
-     * di blade.
-     */
-    public static function isVisiblePair(string $cplId, string $bokId, string $viewingUnitId): bool
+    public static function isVisiblePair(string $cplId, string $bokId, string $kurikulumId): bool
     {
-        return self::scopeVisibleCpl(Cpl::query(), $viewingUnitId)->whereKey($cplId)->exists()
-            && self::scopeVisibleBok(Bok::query(), $viewingUnitId)->whereKey($bokId)->exists();
+        return self::scopeVisibleCpl(Cpl::query(), $kurikulumId)->whereKey($cplId)->exists()
+            && self::scopeVisibleBok(Bok::query(), $kurikulumId)->whereKey($bokId)->exists();
     }
 
-    public static function isVisibleMkCplBokCell(string $mkId, string $cplBokId, string $viewingUnitId): bool
+    public static function isVisibleMkCplBokCell(string $mkId, string $cplBokId, string $kurikulumId): bool
     {
-        $mkVisible = Mk::query()->where('id', $mkId)->where('academic_unit_id', $viewingUnitId)->exists()
-            || self::adaptedMkIds($viewingUnitId)->contains($mkId);
+        $mkVisible = Mk::query()->where('id', $mkId)->where('kurikulum_id', $kurikulumId)->exists()
+            || self::adaptedMkIds($kurikulumId)->contains($mkId);
 
         if (! $mkVisible) {
             return false;
         }
 
-        return self::scopeVisibleCplBok(CplBok::query(), $viewingUnitId)->whereKey($cplBokId)->exists();
+        return self::scopeVisibleCplBok(CplBok::query(), $kurikulumId)->whereKey($cplBokId)->exists();
     }
 
     /**
-     * Peta kode tampilan (override-aware), dihitung sekaligus (batched)
-     * untuk menghindari N+1 di tabel/matriks.
-     *
      * @param  Collection<int, Cpl>  $cpls
      * @return Collection<string, string>
      */

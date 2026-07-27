@@ -107,15 +107,38 @@ it('daftar kurikulum menampilkan record dan ketersediaan menu', function () {
     Livewire::test(ListKurikulums::class)
         ->loadTable()
         ->assertSee('Kurikulum Prodi 2026')
+        ->assertSee('Program Studi')
         ->assertSee('Profil ·')
-        ->assertSee('CPL ·');
+        ->assertSee('CPL ·')
+        ->assertSee('Aktif');
+});
+
+it('card kurikulum terpilih menampilkan Sedang dikerjakan dan aksi kerjakan mengganti session', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+
+    $kurikulumLain = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Prodi Alternatif',
+        'tahun' => 2027,
+        'is_active' => false,
+    ]);
+
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    Livewire::test(ListKurikulums::class)
+        ->loadTable()
+        ->assertSee('Sedang dikerjakan')
+        ->assertSee('Nonaktif')
+        ->callTableAction('kerjakan', $kurikulumLain);
+
+    expect(KurikulumTerpilih::currentId())->toBe($kurikulumLain->id);
 });
 
 it('scope kurikulum terpilih diterapkan otomatis pada daftar cpl', function () {
     $this->actingAs(User::query()->where('username', 'dosentimkur')->firstOrFail());
 
-    $cplProdi = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-AUTO-PRODI']);
-    $cplFak = Cpl::factory()->forAcademicUnit($this->fakultas)->create(['kode' => 'CPL-AUTO-FAK']);
+    $cplProdi = Cpl::factory()->forKurikulum($this->kurikulumProdi)->create(['kode' => 'CPL-AUTO-PRODI']);
+    $cplFak = Cpl::factory()->forKurikulum($this->kurikulumFak)->create(['kode' => 'CPL-AUTO-FAK']);
 
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
@@ -134,6 +157,27 @@ it('scope kurikulum terpilih diterapkan otomatis pada daftar cpl', function () {
     expect(KurikulumTerpilih::currentId())->toBe($this->kurikulumFak->id);
 });
 
+it('kurikulum baru di prodi yang sama tidak menampilkan cpl kurikulum lama', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+
+    $cplLama = Cpl::factory()->forKurikulum($this->kurikulumProdi)->create(['kode' => 'CPL-LAMA-01']);
+
+    $kurikulumBaru = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Prodi Baru Kosong',
+        'tahun' => 2027,
+        'is_active' => true,
+    ]);
+
+    KurikulumTerpilih::set($kurikulumBaru->id);
+
+    Livewire::test(ListCpls::class)
+        ->loadTable()
+        ->assertCanNotSeeTableRecords([$cplLama]);
+
+    expect(KurikulumResource::ketersediaanMenu($kurikulumBaru)['cpl'])->toBeFalse();
+});
+
 it('banner kurikulum terpilih menampilkan hierarki unit', function () {
     $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
     KurikulumTerpilih::set($this->kurikulumProdi->id);
@@ -144,9 +188,7 @@ it('banner kurikulum terpilih menampilkan hierarki unit', function () {
     $html = KurikulumTerpilih::bannerHtml()->toHtml();
 
     expect($html)
-        ->toContain('Kurikulum terpilih:')
         ->toContain('Kurikulum Prodi 2026')
-        ->toContain('Ganti')
         ->toContain($hierarchy);
 });
 

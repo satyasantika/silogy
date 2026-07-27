@@ -16,10 +16,10 @@ class SetdosenmkState extends KurikulumState
 
     public function canTransition(?string $toStateClass = null): bool
     {
-        $unitId = $this->kurikulum()->academic_unit_id;
+        $kurikulumId = $this->kurikulum()->id;
 
         $mkUnitIds = MkUnit::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->pluck('id');
 
         if ($mkUnitIds->isEmpty()) {

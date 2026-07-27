@@ -71,7 +71,7 @@ class BokResource extends Resource
         }
 
         $adaptasi = static::scopedTimKurikulumUnitIds()
-            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedBokIds($unitId));
+            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedBokIdsAcrossUnit($unitId));
 
         return $adaptasi->isEmpty() ? $query : $query->orWhereIn('id', $adaptasi);
     }
@@ -88,7 +88,7 @@ class BokResource extends Resource
         // override kode-nya berlaku (satu BoK asing bisa diadaptasi lebih dari
         // satu unit milik saya sekaligus, masing-masing dengan alias sendiri).
         $overrideUnitId = fn (?Bok $record): ?string => $record
-            ? $unitIds->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIds($unitId)->contains($record->id))
+            ? $unitIds->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedBokIdsAcrossUnit($unitId)->contains($record->id))
             : null;
 
         return $schema
@@ -121,10 +121,10 @@ class BokResource extends Resource
                             ->disabled($isAsing)
                             ->dehydrated(fn (?Bok $record): bool => ! $isAsing($record))
                             ->rule(fn (Get $get, ?Bok $record): array => [
-                                static::uniqueKodePerUnitRule(
+                                static::uniqueKodePerKurikulumRule(
                                     'bok',
                                     $record?->id,
-                                    $get('academic_unit_id'),
+                                    $record?->kurikulum_id ?? \App\Modules\Kurikulum\Support\KurikulumTerpilih::currentId() ?? $get('kurikulum_id'),
                                 ),
                             ]),
 
@@ -248,7 +248,7 @@ class BokResource extends Resource
             ],
             fn (Builder $query, Kurikulum $kurikulum): Builder => CplBokAdaptasiScope::scopeVisibleBok(
                 $query,
-                $kurikulum->academic_unit_id,
+                $kurikulum->id,
             ),
         );
     }

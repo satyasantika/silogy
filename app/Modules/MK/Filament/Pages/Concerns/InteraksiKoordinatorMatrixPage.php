@@ -36,7 +36,7 @@ trait InteraksiKoordinatorMatrixPage
             return $user->can('kelola_cpmk')
                 && MkTerpilih::current() !== null
                 && PenawaranMkScope::penawaranMkQuery($user)
-                    ->where('academic_unit_id', $kurikulum->academic_unit_id)
+                    ->where('kurikulum_id', $kurikulum->id)
                     ->exists();
         }
 

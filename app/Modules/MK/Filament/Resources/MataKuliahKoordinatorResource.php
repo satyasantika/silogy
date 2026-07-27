@@ -156,7 +156,7 @@ class MataKuliahKoordinatorResource extends Resource
             fn (Builder $query, Kurikulum $kurikulum): Builder => $query->whereHas(
                 'mkUnits',
                 fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
-                    ->where('academic_unit_id', $kurikulum->academic_unit_id)
+                    ->where('kurikulum_id', $kurikulum->id)
                     ->where('is_active', true),
             ),
             withKurikulumFilter: true,

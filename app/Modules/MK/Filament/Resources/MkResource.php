@@ -214,7 +214,7 @@ class MkResource extends Resource
                     ]),
                 ]),
             fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                ->where('academic_unit_id', $kurikulum->academic_unit_id),
+                ->where('kurikulum_id', $kurikulum->id),
         );
     }
 

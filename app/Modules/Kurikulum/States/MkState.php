@@ -16,14 +16,14 @@ class MkState extends KurikulumState
 
     public function canTransition(?string $toStateClass = null): bool
     {
-        $unitId = $this->kurikulum()->academic_unit_id;
+        $kurikulumId = $this->kurikulum()->id;
 
         $hasMkUnit = MkUnit::query()
-            ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->exists();
 
         $hasCplMk = CplMk::query()
-            ->whereHas('mk', fn ($query) => $query->where('academic_unit_id', $unitId))
+            ->whereHas('mk', fn ($query) => $query->where('kurikulum_id', $kurikulumId))
             ->exists();
 
         return $hasMkUnit && $hasCplMk;

@@ -84,7 +84,7 @@ class CplResource extends Resource
         }
 
         $adaptasi = static::scopedTimKurikulumUnitIds()
-            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedCplIds($unitId));
+            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($unitId));
 
         return $adaptasi->isEmpty() ? $query : $query->orWhereIn('id', $adaptasi);
     }
@@ -101,7 +101,7 @@ class CplResource extends Resource
         // override kode-nya berlaku (satu CPL asing bisa diadaptasi lebih dari
         // satu unit milik saya sekaligus, masing-masing dengan alias sendiri).
         $overrideUnitId = fn (?Cpl $record): ?string => $record
-            ? $unitIds->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIds($unitId)->contains($record->id))
+            ? $unitIds->first(fn (string $unitId): bool => CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($unitId)->contains($record->id))
             : null;
 
         return $schema
@@ -134,10 +134,10 @@ class CplResource extends Resource
                             ->disabled($isAsing)
                             ->dehydrated(fn (?Cpl $record): bool => ! $isAsing($record))
                             ->rule(fn (Get $get, ?Cpl $record): array => [
-                                static::uniqueKodePerUnitRule(
+                                static::uniqueKodePerKurikulumRule(
                                     'cpl',
                                     $record?->id,
-                                    $get('academic_unit_id'),
+                                    $record?->kurikulum_id ?? KurikulumTerpilih::currentId() ?? $get('kurikulum_id'),
                                 ),
                             ]),
 
@@ -265,7 +265,7 @@ class CplResource extends Resource
             ],
             fn (Builder $query, Kurikulum $kurikulum): Builder => CplBokAdaptasiScope::scopeVisibleCpl(
                 $query,
-                $kurikulum->academic_unit_id,
+                $kurikulum->id,
             ),
         );
     }

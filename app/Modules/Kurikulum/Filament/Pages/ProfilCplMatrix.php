@@ -49,9 +49,9 @@ class ProfilCplMatrix extends Page
 
     public function toggle(string $cplId, string $profilId): void
     {
-        $unitId = $this->getKurikulum()?->academic_unit_id;
+        $kurikulumId = $this->getKurikulum()?->id;
 
-        if ($unitId === null || ! CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query(), $unitId)->whereKey($cplId)->exists()) {
+        if ($kurikulumId === null || ! CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query(), $kurikulumId)->whereKey($cplId)->exists()) {
             return;
         }
 
@@ -84,14 +84,15 @@ class ProfilCplMatrix extends Page
         }
 
         $unitId = $kurikulum->academic_unit_id;
+        $kurikulumId = $kurikulum->id;
 
         $profils = ProfilLulusan::query()
-            ->where('kurikulum_id', $kurikulum->id)
+            ->where('kurikulum_id', $kurikulumId)
             ->orderBy('urutan')
             ->orderBy('kode')
             ->get();
 
-        $cpls = CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query()->with('academicUnit'), $unitId)
+        $cpls = CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query()->with('academicUnit'), $kurikulumId)
             ->orderBy('kode')
             ->get();
 

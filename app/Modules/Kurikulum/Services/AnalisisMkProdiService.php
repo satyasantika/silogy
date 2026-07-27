@@ -35,7 +35,7 @@ class AnalisisMkProdiService
         // mengasumsikan tabel "kurikulum" sudah ter-join di query luar
         // (subquery-nya gagal bila diakses langsung dari instance model).
         $cplMks = CplMk::query()
-            ->whereHas('cplBok.cpl', fn ($query) => $query->where('academic_unit_id', $kurikulum->academic_unit_id))
+            ->whereHas('cplBok.cpl', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
             ->with(['cplBok.cpl', 'mk'])
             ->get()
             ->filter(fn (CplMk $pivot): bool => $pivot->cplBok?->cpl !== null && $pivot->mk !== null);
@@ -94,7 +94,7 @@ class AnalisisMkProdiService
     public function sinkronkanKalkulasiProdi(Kurikulum $kurikulum): void
     {
         $mkUnitIds = MkUnit::query()
-            ->where('academic_unit_id', $kurikulum->academic_unit_id)
+            ->where('kurikulum_id', $kurikulum->id)
             ->pluck('id');
 
         if ($mkUnitIds->isEmpty()) {
@@ -244,7 +244,7 @@ class AnalisisMkProdiService
     {
         return MkUnit::query()
             ->whereIn('mk_id', $mkIds)
-            ->where('academic_unit_id', $kurikulum->academic_unit_id)
+            ->where('kurikulum_id', $kurikulum->id)
             ->get()
             ->groupBy('mk_id')
             ->map(fn (Collection $units): string => ($units->firstWhere('is_active', true) ?? $units->first())->kode)
