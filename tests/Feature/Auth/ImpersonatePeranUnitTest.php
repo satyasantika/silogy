@@ -1,20 +1,35 @@
 <?php
 
+use App\Filament\Widgets\WelcomeWidget;
 use App\Models\User;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
+use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Modules\Auth\Livewire\PeranUnitMenu;
 use App\Modules\Auth\Support\ActiveRole;
-use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Lab404\Impersonate\Services\ImpersonateManager;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+/**
+ * HTML modal aksi yang sedang di-mount. Livewire mengirim modal lewat partial
+ * "action-modals" (bukan bagian dari HTML komponen utuh), sehingga assertSee()
+ * biasa tidak menjangkau isi modal.
+ */
+function htmlModalAksi(Testable $test): string
+{
+    return $test->effects['partials']['action-modals'] ?? '';
+}
 
 beforeEach(function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
@@ -32,7 +47,7 @@ it('impersonate user single-role langsung ke dashboard tanpa gerbang', function 
 
     app(ImpersonateManager::class)->take($superAdmin, $timkur);
 
-    $url = \App\Modules\Auth\Support\PeranUnitFormFields::redirectUrlAfterImpersonateStart();
+    $url = PeranUnitFormFields::redirectUrlAfterImpersonateStart();
 
     expect($url)->not->toContain('pilih-peran-unit')
         ->and(auth()->user()->id)->toBe($timkur->id);
@@ -51,7 +66,7 @@ it('impersonate user multi-role diarahkan ke gerbang Pilih Peran & Unit', functi
 
     app(ImpersonateManager::class)->take($superAdmin, $dosentimkur);
 
-    $url = \App\Modules\Auth\Support\PeranUnitFormFields::redirectUrlAfterImpersonateStart();
+    $url = PeranUnitFormFields::redirectUrlAfterImpersonateStart();
 
     expect($url)->toContain('pilih-peran-unit')
         ->and(session()->has(ActiveRole::SESSION_KEY))->toBeFalse();
@@ -75,7 +90,7 @@ it('PeranUnitMenu menampilkan menu identitas, ganti peran, dan aksi keluar', fun
     Livewire::test(PeranUnitMenu::class)
         ->assertSee('Profil')
         ->assertSee('Ganti kata sandi')
-        ->assertSee('Ganti peran & unit')
+        ->assertSee('Ganti peran & unit', escape: false)
         ->assertActionExists('keluar')
         ->assertActionExists('gantiPassword');
 });
@@ -85,7 +100,7 @@ it('menu identitas PeranUnitMenu menautkan ganti peran ke halaman gerbang', func
     $this->actingAs($dosentimkur);
 
     Livewire::test(PeranUnitMenu::class)
-        ->assertSee('Ganti peran & unit')
+        ->assertSee('Ganti peran & unit', escape: false)
         ->assertSee(PilihPeranUnit::getUrl(), false)
         ->assertActionDoesNotExist('gantiPeranUnit');
 });
@@ -96,14 +111,16 @@ it('modal keluar menampilkan ganti peran untuk user multi-peran', function () {
 
     expect(count(ActiveRole::ownedRoleNames($dosentimkur)))->toBeGreaterThan(1);
 
-    Livewire::test(PeranUnitMenu::class)
-        ->mountAction('keluar')
-        ->assertSee('Yakin akan keluar aplikasi?')
-        ->assertSee('Kembali')
-        ->assertSee('Beranda')
-        ->assertSee('Ganti peran')
-        ->assertSee('Ya, keluar')
-        ->assertDontSee('Tinggalkan impersonate');
+    $modal = htmlModalAksi(
+        Livewire::test(PeranUnitMenu::class)->mountAction('keluar'),
+    );
+
+    expect($modal)->toContain('Yakin akan keluar aplikasi?')
+        ->toContain('Kembali')
+        ->toContain('Beranda')
+        ->toContain('Ganti peran')
+        ->toContain('Ya, keluar')
+        ->not->toContain('Tinggalkan impersonate');
 });
 
 it('modal keluar menampilkan tinggalkan impersonate saat impersonate aktif', function () {
@@ -113,10 +130,12 @@ it('modal keluar menampilkan tinggalkan impersonate saat impersonate aktif', fun
     $this->actingAs($superAdmin);
     app(ImpersonateManager::class)->take($superAdmin, $timkur);
 
-    Livewire::test(PeranUnitMenu::class)
-        ->mountAction('keluar')
-        ->assertSee('Tinggalkan impersonate')
-        ->assertSee('Ya, keluar');
+    $modal = htmlModalAksi(
+        Livewire::test(PeranUnitMenu::class)->mountAction('keluar'),
+    );
+
+    expect($modal)->toContain('Tinggalkan impersonate')
+        ->toContain('Ya, keluar');
 });
 
 it('user tanpa role sama sekali melihat keterangan danger di menu pengguna', function () {
@@ -131,7 +150,7 @@ it('halaman error menampilkan tombol leave-impersonate hanya saat impersonate ak
     $superAdmin = User::query()->where('username', 'superadmin')->firstOrFail();
     $timkur = User::query()->where('username', 'timkur')->firstOrFail();
 
-    \Illuminate\Support\Facades\Route::get('/uji-forbidden-impersonate', fn () => abort(403));
+    Route::get('/uji-forbidden-impersonate', fn () => abort(403));
 
     $this->actingAs($timkur)
         ->get('/uji-forbidden-impersonate')
@@ -150,10 +169,10 @@ it('modal ganti peran & unit dari WelcomeWidget (kartu Selamat Datang) berhasil 
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
-    $unitIds = \App\Modules\Institusi\Support\AcademicUnitScope::scopedTimKurikulumUnitIdsFor($dosentimkur);
+    $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($dosentimkur);
     $fakultas = AcademicUnit::query()->whereIn('id', $unitIds)->where('type', 'faculty')->firstOrFail();
 
-    Livewire::test(\App\Filament\Widgets\WelcomeWidget::class)
+    Livewire::test(WelcomeWidget::class)
         ->mountAction('gantiPeranUnit')
         ->setActionData(['role' => 'Tim Kurikulum', 'unit_id' => $fakultas->id])
         ->callMountedAction();
@@ -186,7 +205,7 @@ it('tombol Impersonate sungguhan di daftar pengguna mengarah ke gerbang untuk ta
 
     $this->actingAs($superAdmin);
 
-    Livewire::test(\App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers::class)
+    Livewire::test(ListUsers::class)
         ->callTableAction('impersonate', $dosentimkur)
         ->assertRedirect();
 
@@ -199,7 +218,7 @@ it('tombol Impersonate sungguhan mengarah langsung ke dashboard untuk target sin
 
     $this->actingAs($superAdmin);
 
-    Livewire::test(\App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers::class)
+    Livewire::test(ListUsers::class)
         ->callTableAction('impersonate', $timkur)
         ->assertRedirect(route('filament.admin.pages.dashboard'));
 });

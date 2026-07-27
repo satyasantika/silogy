@@ -102,14 +102,13 @@ it('filter role aktif tidak mempengaruhi pengecekan role user lain', function ()
     expect($superadmin->hasRole('Super Admin'))->toBeTrue();
 });
 
-it('switcher tampil untuk user multi-role dan tersembunyi untuk single role, tanpa opsi semua peran', function () {
+it('switcher headless: tidak merender UI peran karena ganti peran lewat menu identitas', function () {
     $this->actingAs(timkurSegar());
 
     Livewire::test(RoleSwitcher::class)
-        ->assertSee('Peran aktif')
+        ->assertDontSee('Peran aktif')
         ->assertDontSee('Semua peran')
-        ->assertSee('Tim Kurikulum')
-        ->assertSee('Dosen Pengampu');
+        ->assertSee('aria-hidden="true"', escape: false);
 
     $this->actingAs(User::query()->where('username', 'dosen')->firstOrFail());
 
