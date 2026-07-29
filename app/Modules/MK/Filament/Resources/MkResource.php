@@ -27,9 +27,11 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Gate;
 
 class MkResource extends Resource
 {
@@ -155,12 +157,8 @@ class MkResource extends Resource
 
                         Select::make('koordinator_mk_id')
                             ->label('Koordinator MK')
-                            ->helperText('Menjadi koordinator default saat kelas MK dibuat.')
-                            ->options(fn (): array => User::query()
-                                ->role(['Koordinator Mata Kuliah', 'Dosen Pengampu'])
-                                ->orderBy('full_name')
-                                ->pluck('full_name', 'id')
-                                ->all())
+                            ->helperText('Pilih dari dosen pengampu. Menetapkan koordinator otomatis memberi role Koordinator Mata Kuliah.')
+                            ->options(fn (): array => static::koordinatorMkOptions())
                             ->searchable()
                             ->nullable(),
 
@@ -178,6 +176,38 @@ class MkResource extends Resource
     {
         $total = (int) $get('sks_teori') + (int) $get('sks_praktik') + (int) $get('sks_lapangan');
         $set('sks', $total);
+    }
+
+    /**
+     * Opsi koordinator: seluruh user ber-role Dosen Pengampu, label
+     * "Nama (kode_prodi)". Kode dari unit prodi penugasan; bila belum ada
+     * prodi, pakai kode unit pertama.
+     *
+     * @return array<string, string>
+     */
+    public static function koordinatorMkOptions(): array
+    {
+        return User::query()
+            ->role('Dosen Pengampu')
+            ->with(['academicUnits' => fn ($query) => $query->orderBy('nama')])
+            ->orderBy('full_name')
+            ->get()
+            ->mapWithKeys(fn (User $user): array => [
+                $user->id => static::labelKoordinatorMk($user),
+            ])
+            ->all();
+    }
+
+    public static function labelKoordinatorMk(User $user): string
+    {
+        $nama = $user->full_name ?? $user->username ?? 'Tanpa nama';
+
+        $kodeProdi = $user->academicUnits
+            ->first(fn (AcademicUnit $unit): bool => $unit->isProdi())
+            ?->code
+            ?? $user->academicUnits->first()?->code;
+
+        return filled($kodeProdi) ? "{$nama} ({$kodeProdi})" : $nama;
     }
 
     /**
@@ -205,9 +235,23 @@ class MkResource extends Resource
                         ->label('Jenis')
                         ->formatStateUsing(fn (string $state): string => static::jenisOptions()[$state] ?? $state),
                     TextColumn::make('state')->label('State')->badge(),
-                    TextColumn::make('koordinatorMk.full_name')
+                    SelectColumn::make('koordinator_mk_id')
                         ->label('Koordinator MK')
-                        ->placeholder('—'),
+                        ->options(fn (): array => static::koordinatorMkOptions())
+                        ->searchableOptions()
+                        ->placeholder('—')
+                        ->selectablePlaceholder()
+                        ->getOptionLabelUsing(function ($value): ?string {
+                            if (blank($value)) {
+                                return null;
+                            }
+
+                            $user = User::query()->with('academicUnits')->find($value);
+
+                            return $user !== null ? static::labelKoordinatorMk($user) : null;
+                        })
+                        ->disabled(fn (Mk $record): bool => Gate::denies('update', $record))
+                        ->rules(['nullable', 'uuid']),
                     IconColumn::make('is_active')->label('Aktif')->boolean(),
                 ])
                 ->recordActions([

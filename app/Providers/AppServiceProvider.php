@@ -34,6 +34,7 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Observers\MkObserver;
 use App\Modules\MK\Policies\CpmkPolicy;
 use App\Modules\MK\Policies\MkPolicy;
 use App\Modules\MK\Policies\MkUnitPolicy;
@@ -123,6 +124,7 @@ class AppServiceProvider extends ServiceProvider
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
         SubcpmkKomponenPenilaian::observe(SubcpmkKomponenPenilaianObserver::class);
         AcademicUnitUser::observe(AcademicUnitUserObserver::class);
+        Mk::observe(MkObserver::class);
 
         $this->configureUrlForSubpathDeployment();
     }
