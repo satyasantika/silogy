@@ -172,10 +172,32 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
                 PilihPeranUnit::class,
             ])
+            // Semua direktori widget WAJIB di-discover walau widgetnya
+            // dipasang manual di Dashboard::content()/getWidgets(): panel-lah
+            // yang mendaftarkan alias Livewire tiap widget (Panel::
+            // registerLivewireComponents), dan tanpa itu request
+            // /livewire/update dari widget (polling, wire:model.live, aksi)
+            // gagal dengan ComponentNotFoundException.
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->discoverWidgets(
+                in: app_path('Modules/AI/Filament/Widgets'),
+                for: 'App\Modules\AI\Filament\Widgets',
+            )
             ->discoverWidgets(
                 in: app_path('Modules/Kalkulasi/Filament/Widgets'),
                 for: 'App\Modules\Kalkulasi\Filament\Widgets',
+            )
+            ->discoverWidgets(
+                in: app_path('Modules/Kurikulum/Filament/Widgets'),
+                for: 'App\Modules\Kurikulum\Filament\Widgets',
+            )
+            ->discoverWidgets(
+                in: app_path('Modules/MK/Filament/Widgets'),
+                for: 'App\Modules\MK\Filament\Widgets',
+            )
+            ->discoverWidgets(
+                in: app_path('Modules/Penilaian/Filament/Widgets'),
+                for: 'App\Modules\Penilaian\Filament\Widgets',
             )
             ->widgets([
                 WelcomeWidget::class,
