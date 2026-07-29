@@ -10,7 +10,10 @@ use App\Modules\Kalkulasi\Filament\Support\DashboardAcademicUnitOptions;
 use App\Modules\Kalkulasi\Filament\Widgets\CplPerMkUnitTable;
 use App\Modules\Kalkulasi\Filament\Widgets\CplUnitChartWidget;
 use App\Modules\Kalkulasi\Services\DashboardCplDataService;
+use App\Modules\Kurikulum\Filament\Widgets\CplTertinggiChartWidget;
+use App\Modules\Kurikulum\Filament\Widgets\KurikulumKpiWidget;
 use App\Modules\Kurikulum\Filament\Widgets\KurikulumTerpilihWidget;
+use App\Modules\Kurikulum\Filament\Widgets\MkCapaianTertinggiTable;
 use App\Modules\MK\Filament\Widgets\KoordinatorMkAksesWidget;
 use App\Modules\Penilaian\Filament\Widgets\RekapMkDosenWidget;
 use Filament\Forms\Components\Select;
@@ -41,6 +44,17 @@ class Dashboard extends BaseDashboard
             return [];
         }
 
+        // Tim Kurikulum bekerja per kurikulum, bukan per unit+semester:
+        // KPI kurikulum + peringkat capaian lintas kurikulum menggantikan
+        // widget CPL ber-filter (lihat isDashboardTimKurikulum()).
+        if (static::isDashboardTimKurikulum()) {
+            return [
+                KurikulumKpiWidget::class,
+                CplTertinggiChartWidget::class,
+                MkCapaianTertinggiTable::class,
+            ];
+        }
+
         return [
             AiInsightWidget::class,
             CplUnitChartWidget::class,
@@ -57,13 +71,15 @@ class Dashboard extends BaseDashboard
         return $schema
             ->components([
                 Grid::make(1)
-                    ->schema(fn (): array => $this->getWidgetsSchemaComponents([
+                    ->schema(fn (): array => $this->getWidgetsSchemaComponents(array_values(array_filter([
                         WelcomeWidget::class,
-                        KurikulumTerpilihWidget::class,
+                        // Kurikulum yang dikerjakan cukup diwakili KPI
+                        // KurikulumKpiWidget pada mode Tim Kurikulum.
+                        static::isDashboardTimKurikulum() ? null : KurikulumTerpilihWidget::class,
                         KoordinatorMkAksesWidget::class,
                         RekapMkDosenWidget::class,
-                    ])),
-                ...(static::canViewDashboardWidgets() ? [$this->getFiltersFormContentComponent()] : []),
+                    ])))),
+                ...(static::canViewDashboardCplWidgets() ? [$this->getFiltersFormContentComponent()] : []),
                 $this->getWidgetsContentComponent(),
             ]);
     }
@@ -107,6 +123,12 @@ class Dashboard extends BaseDashboard
      */
     protected function buildDefaultFilters(): array
     {
+        // Tanpa form filter (mis. mode Tim Kurikulum) tidak perlu menyiapkan
+        // opsi unit/semester/CPL yang tidak pernah dirender.
+        if (! static::canViewDashboardCplWidgets()) {
+            return [];
+        }
+
         $unitOptions = DashboardAcademicUnitOptions::forUser();
         $semester = Semester::query()->where('status_aktif', true)->first();
 

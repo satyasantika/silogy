@@ -25,7 +25,7 @@ class CplPerMkUnitTable extends TableWidget
 
     public static function canView(): bool
     {
-        return static::canViewDashboardWidgets();
+        return static::canViewDashboardCplWidgets();
     }
 
     public function getTableHeading(): string|Htmlable|null

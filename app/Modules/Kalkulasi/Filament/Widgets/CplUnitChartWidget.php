@@ -25,7 +25,7 @@ class CplUnitChartWidget extends ChartWidget
 
     public static function canView(): bool
     {
-        return static::canViewDashboardWidgets();
+        return static::canViewDashboardCplWidgets();
     }
 
     public function getHeading(): string|Htmlable|null
