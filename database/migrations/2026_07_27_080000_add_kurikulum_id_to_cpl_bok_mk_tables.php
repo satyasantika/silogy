@@ -156,6 +156,16 @@ return new class extends Migration
     protected function ensureUniqueIndexes(): void
     {
         if ($this->indexExists('mk_units', 'uq_mu_unit_mk')) {
+            // uq_mu_unit_mk & uq_mu_unit_kode sama-sama diawali academic_unit_id,
+            // sehingga MySQL memakai salah satunya sebagai index pendukung FK
+            // academic_unit_id (tidak membuat index khusus). Index eksplisit ini
+            // dibuat dulu agar FK tetap punya index pendukung saat keduanya di-drop.
+            if (! $this->indexExists('mk_units', 'idx_mu_academic_unit_id')) {
+                Schema::table('mk_units', function (Blueprint $table): void {
+                    $table->index('academic_unit_id', 'idx_mu_academic_unit_id');
+                });
+            }
+
             Schema::table('mk_units', function (Blueprint $table): void {
                 $table->dropUnique('uq_mu_unit_mk');
                 $table->dropUnique('uq_mu_unit_kode');
