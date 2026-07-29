@@ -40,6 +40,12 @@ return [
         'token' => env('SINTESYS_API_TOKEN'),
     ],
 
+    // Feeder akademik lama (semester ≤ 20242). Endpoint diisi saat integrasi Simak siap.
+    'simak' => [
+        'endpoint' => env('SIMAK_API_ENDPOINT'),
+        'token' => env('SIMAK_API_TOKEN'),
+    ],
+
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         'model_default' => env('GEMINI_MODEL_DEFAULT', 'gemini-2.5-pro'),
