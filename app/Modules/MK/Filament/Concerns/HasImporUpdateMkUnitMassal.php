@@ -2,14 +2,12 @@
 
 namespace App\Modules\MK\Filament\Concerns;
 
-use App\Modules\Kurikulum\Support\KurikulumTerpilih;
-use App\Modules\MK\Filament\Resources\MkUnitResource;
+use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Services\MkUnitUpdateMassalService;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Component;
 use Filament\Support\Icons\Heroicon;
 
@@ -38,21 +36,29 @@ trait HasImporUpdateMkUnitMassal
     }
 
     /**
+     * Kurikulum sasaran tidak dipilih manual: selalu kurikulum prodi yang
+     * sedang dikerjakan, ditegaskan lewat banner identitas di atas modal.
+     *
      * @return array<int, Component|Field>
      */
     protected function importContextComponents(): array
     {
         return [
-            Select::make('import_kurikulum_id')
-                ->label('Kurikulum (prodi)')
-                ->options(MkUnitResource::kurikulumProdiOptions())
-                ->searchable()
-                ->required()
-                ->live()
-                ->default(fn (): ?string => KurikulumTerpilih::current()?->academicUnit?->isProdi()
-                    ? KurikulumTerpilih::currentId()
-                    : null),
+            BannerKurikulumDikerjakan::placeholder(
+                'Seluruh baris di bawah akan memperbarui kode dan semester penawaran MK pada kurikulum ini.',
+            ),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    protected function normalisasiImportContext(array $context): array
+    {
+        $context['import_kurikulum_id'] = BannerKurikulumDikerjakan::kurikulumProdi()?->id;
+
+        return $context;
     }
 
     protected function importColumns(): array
@@ -67,7 +73,7 @@ trait HasImporUpdateMkUnitMassal
     protected function importInstructionsExtra(): array
     {
         return [
-            'Satu baris = satu penawaran MK pada prodi kurikulum yang dipilih di atas.',
+            'Satu baris = satu penawaran MK pada kurikulum prodi yang dikerjakan (lihat banner di atas).',
             'Nama mata kuliah harus persis sama dengan penawaran yang sudah ada (adaptasi MK).',
             'Kode dan semester ke- wajib diisi; semester harus angka 1–14.',
             'Pratinjau menandai baris siap diperbarui, duplikat (nilai sudah sama), atau invalid.',

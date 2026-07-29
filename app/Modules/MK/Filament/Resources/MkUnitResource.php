@@ -115,20 +115,6 @@ class MkUnitResource extends Resource
     }
 
     /**
-     * Kurikulum prodi untuk konteks penawaran / update massal.
-     *
-     * @return array<string, string>
-     */
-    public static function kurikulumProdiOptions(): array
-    {
-        return collect(KurikulumTerpilih::options())
-            ->filter(function (string $label, string $id): bool {
-                return Kurikulum::query()->with('academicUnit')->find($id)?->academicUnit?->isProdi() ?? false;
-            })
-            ->all();
-    }
-
-    /**
      * MK yang dapat diadaptasi unit penawaran: milik unit sendiri
      * atau milik unit induknya (fakultas/universitas).
      *

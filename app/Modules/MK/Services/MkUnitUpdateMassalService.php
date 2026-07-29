@@ -19,7 +19,7 @@ class MkUnitUpdateMassalService
         if (blank($unitId)) {
             return [
                 'status' => 'invalid',
-                'keterangan' => 'Pilih kurikulum prodi terlebih dahulu.',
+                'keterangan' => 'Kurikulum prodi yang dikerjakan belum ditetapkan.',
             ];
         }
 

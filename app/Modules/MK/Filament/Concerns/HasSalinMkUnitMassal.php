@@ -2,7 +2,7 @@
 
 namespace App\Modules\MK\Filament\Concerns;
 
-use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\MK\Services\MkUnitSalinExportService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
@@ -24,12 +24,15 @@ trait HasSalinMkUnitMassal
             ->modalSubmitActionLabel('Salin ke clipboard')
             ->modalCancelActionLabel('Tutup')
             ->schema([
+                BannerKurikulumDikerjakan::placeholder(
+                    'Daftar di bawah adalah penawaran MK pada kurikulum ini.',
+                ),
                 Placeholder::make('salin_petunjuk')
                     ->hiddenLabel()
                     ->content(fn (): HtmlString => new HtmlString(
                         '<p class="text-sm text-gray-600 dark:text-gray-300">'
                         .'Kolom: <strong>mata kuliah</strong>, <strong>kode</strong>, <strong>semester ke-</strong> '
-                        .'(pemisah tab, siap tempel ke Excel). Data mengikuti filter kurikulum prodi yang aktif.</p>'
+                        .'(pemisah tab, siap tempel ke Excel).</p>'
                     )),
                 Textarea::make('export_text')
                     ->label('Data penawaran MK')
@@ -63,9 +66,9 @@ trait HasSalinMkUnitMassal
 
     protected function teksSalinMkUnit(): string
     {
-        $kurikulum = KurikulumTerpilih::current();
+        $kurikulum = BannerKurikulumDikerjakan::kurikulumProdi();
 
-        if (! $kurikulum?->academicUnit?->isProdi()) {
+        if ($kurikulum === null) {
             return '';
         }
 
