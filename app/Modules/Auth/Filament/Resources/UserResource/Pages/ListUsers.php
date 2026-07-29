@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Auth\Filament\Resources\UserResource;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Collection;
 
@@ -44,6 +45,28 @@ class ListUsers extends ListRecords
     protected function importHelperNote(): string
     {
         return 'Lebih dari satu role dipisahkan titik koma.';
+    }
+
+    /**
+     * @return array<int, \Filament\Schemas\Components\Component|\Filament\Forms\Components\Field>
+     */
+    protected function importContextComponents(): array
+    {
+        return [
+            Toggle::make('isi_nidn_dari_username')
+                ->label('Isi NIDN dari username untuk role Dosen Pengampu')
+                ->helperText('Jika aktif, baris dengan role Dosen Pengampu otomatis mengisi NIDN memakai nilai username yang sama.')
+                ->default(false)
+                ->inline(false),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function importContextKeys(): array
+    {
+        return ['isi_nidn_dari_username'];
     }
 
     /**
@@ -87,6 +110,17 @@ class ListUsers extends ListRecords
             return ['status' => 'invalid', 'keterangan' => 'Username dan email menunjuk dua pengguna berbeda yang sudah terdaftar.'];
         }
 
+        if ($this->shouldFillNidnFromUsername($data, $context)) {
+            $adaKonflikNidn = User::query()
+                ->where('nidn', $data['username'])
+                ->when($byUsername, fn ($query) => $query->whereKeyNot($byUsername->id))
+                ->exists();
+
+            if ($adaKonflikNidn) {
+                return ['status' => 'invalid', 'keterangan' => 'NIDN (dari username) sudah dipakai pengguna lain.'];
+            }
+        }
+
         $dedup = mb_strtolower($data['username']).'/'.mb_strtolower($data['email']);
         $existing = $byUsername ?? $byEmail;
 
@@ -104,12 +138,18 @@ class ListUsers extends ListRecords
 
     protected function createImportRow(array $data, array $context): void
     {
-        $user = User::create([
+        $attributes = [
             'full_name' => $data['name'],
             'username' => $data['username'],
             'password' => $data['password'],
             'email' => $data['email'],
-        ]);
+        ];
+
+        if ($this->shouldFillNidnFromUsername($data, $context)) {
+            $attributes['nidn'] = $data['username'];
+        }
+
+        $user = User::create($attributes);
 
         $user->forceFill(['email_verified_at' => now()])->save();
         $user->syncRoles($this->parseRoleNames($data['role'])->all());
@@ -123,12 +163,18 @@ class ListUsers extends ListRecords
     {
         $user = User::query()->findOrFail($existingId);
 
-        $user->update([
+        $attributes = [
             'full_name' => $data['name'],
             'username' => $data['username'],
             'email' => $data['email'],
             'password' => $data['password'],
-        ]);
+        ];
+
+        if ($this->shouldFillNidnFromUsername($data, $context)) {
+            $attributes['nidn'] = $data['username'];
+        }
+
+        $user->update($attributes);
         $user->syncRoles($this->parseRoleNames($data['role'])->all());
     }
 
@@ -141,5 +187,18 @@ class ListUsers extends ListRecords
             ->map(fn (string $role): string => trim($role))
             ->filter()
             ->values();
+    }
+
+    /**
+     * @param  array<string, string>  $data
+     * @param  array<string, mixed>  $context
+     */
+    protected function shouldFillNidnFromUsername(array $data, array $context): bool
+    {
+        if (! ($context['isi_nidn_dari_username'] ?? false)) {
+            return false;
+        }
+
+        return $this->parseRoleNames($data['role'])->contains('Dosen Pengampu');
     }
 }

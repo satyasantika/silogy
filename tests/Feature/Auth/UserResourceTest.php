@@ -157,6 +157,82 @@ it('duplikat dilewati saat mode lewati dan ditimpa saat mode timpa', function ()
         ->and(User::where('email', 'userlama@silogy.test')->count())->toBe(1);
 });
 
+it('opsi isi nidn dari username hanya berlaku untuk baris role dosen pengampu', function () {
+    $rows = implode("\n", [
+        'Budi Dosen|budidosen|RahasiaKuat123|budidosen@silogy.test|Dosen Pengampu',
+        'Siti Kurikulum|sitikurikulum|RahasiaKuat123|siti@silogy.test|Tim Kurikulum',
+    ]);
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', [
+            'rows' => $rows,
+            'mode_duplikat' => 'lewati',
+            'isi_nidn_dari_username' => true,
+        ])
+        ->assertHasNoActionErrors();
+
+    $budi = User::where('username', 'budidosen')->firstOrFail();
+    $siti = User::where('username', 'sitikurikulum')->firstOrFail();
+
+    expect($budi->nidn)->toBe('budidosen')
+        ->and($siti->nidn)->toBeNull();
+});
+
+it('nidn tetap kosong bila opsi isi nidn dari username tidak diaktifkan', function () {
+    $rows = 'Budi Dosen|budidosen|RahasiaKuat123|budidosen@silogy.test|Dosen Pengampu';
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati'])
+        ->assertHasNoActionErrors();
+
+    expect(User::where('username', 'budidosen')->firstOrFail()->nidn)->toBeNull();
+});
+
+it('baris ditandai invalid bila nidn dari username bentrok dengan pengguna lain', function () {
+    User::create([
+        'full_name' => 'Sudah Punya NIDN',
+        'username' => 'punyanidnlain',
+        'email' => 'punyanidnlain@silogy.test',
+        'password' => 'RahasiaKuat123',
+        'nidn' => 'budidosen',
+    ]);
+
+    $rows = implode("\n", [
+        'Budi Dosen|budidosen|RahasiaKuat123|budidosen@silogy.test|Dosen Pengampu',
+        'Lain Dosen|laindosen|RahasiaKuat123|laindosen@silogy.test|Dosen Pengampu',
+    ]);
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', [
+            'rows' => $rows,
+            'mode_duplikat' => 'lewati',
+            'isi_nidn_dari_username' => true,
+        ]);
+
+    expect(User::where('username', 'budidosen')->exists())->toBeFalse()
+        ->and(User::where('username', 'laindosen')->firstOrFail()->nidn)->toBe('laindosen');
+});
+
+it('mode timpa dengan opsi aktif ikut memperbarui nidn pengguna lama', function () {
+    $lama = User::create([
+        'full_name' => 'Nama Lama',
+        'username' => 'dosenlama',
+        'email' => 'dosenlama@silogy.test',
+        'password' => 'PasswordLama123',
+    ]);
+
+    $rows = 'Nama Baru|dosenlama|PasswordBaru123|dosenlama@silogy.test|Dosen Pengampu';
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', [
+            'rows' => $rows,
+            'mode_duplikat' => 'timpa',
+            'isi_nidn_dari_username' => true,
+        ]);
+
+    expect($lama->fresh()->nidn)->toBe('dosenlama');
+});
+
 it('preview impor menandai status baru, duplikat, dan invalid', function () {
     User::create([
         'full_name' => 'Sudah Ada',
