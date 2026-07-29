@@ -158,18 +158,21 @@ class AnalisisMkProdi extends Page implements HasTable
 
     /**
      * Tab 4 — "Hasil Analisis Asesmen CPL per Mahasiswa": roster IPK
-     * kumulatif prodi lewat komponen Table Filament native (bukan HTML
-     * mentah seperti tab 1-3) supaya dapat search/pagination bawaan untuk
-     * ~100+ mahasiswa. Ringkasan IPK dihitung SEKALI per render tabel (bukan
-     * per baris) lewat IpkKumulatifService::rosterProdi(), disimpan ke
-     * variabel lokal yang di-closure-kan ke tiap kolom — menghindari N+1.
+     * kumulatif kurikulum yang dikerjakan lewat komponen Table Filament
+     * native (bukan HTML mentah seperti tab 1-3) supaya dapat
+     * search/pagination bawaan untuk ~100+ mahasiswa. Ringkasan IPK
+     * dihitung SEKALI per render tabel (bukan per baris) lewat
+     * IpkKumulatifService::rosterKurikulum(), disimpan ke variabel lokal
+     * yang di-closure-kan ke tiap kolom — menghindari N+1. SKS, nilai,
+     * IPK, dan grafik CPL modal hanya menghitung penawaran MK kurikulum ini.
      */
     public function table(Table $table): Table
     {
-        $prodi = $this->getKurikulumProperty()?->academicUnit;
+        $kurikulum = $this->getKurikulumProperty();
+        $prodi = $kurikulum?->academicUnit;
 
-        $roster = $prodi !== null
-            ? collect(app(IpkKumulatifService::class)->rosterProdi($prodi))->keyBy('mahasiswa_id')
+        $roster = $kurikulum !== null
+            ? collect(app(IpkKumulatifService::class)->rosterKurikulum($kurikulum))->keyBy('mahasiswa_id')
             : new Collection;
 
         return $table
@@ -216,10 +219,16 @@ class AnalisisMkProdi extends Page implements HasTable
                     ->color('gray')
                     ->size('sm')
                     ->modalHeading(fn (Mahasiswa $record): string => "Capaian CPL — {$record->nim} - {$record->nama}")
-                    ->modalContent(fn (Mahasiswa $record) => view('filament.modules.kurikulum.partials.capaian-cpl-mahasiswa', [
-                        'mahasiswaId' => $record->id,
-                        'capaian' => app(IpkKumulatifService::class)->capaianCplMahasiswa($record->id),
-                    ]))
+                    ->modalContent(function (Mahasiswa $record) use ($kurikulum) {
+                        $capaian = $kurikulum !== null
+                            ? app(IpkKumulatifService::class)->capaianCplMahasiswa($record->id, $kurikulum)
+                            : [];
+
+                        return view('filament.modules.kurikulum.partials.capaian-cpl-mahasiswa', [
+                            'mahasiswaId' => $record->id,
+                            'capaian' => $capaian,
+                        ]);
+                    })
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Tutup'),
             ])

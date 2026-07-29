@@ -1,7 +1,7 @@
 <x-filament-panels::page>
-    <div style="margin-bottom:1rem;">
-        @livewire('silogy.kurikulum-terpilih-banner')
-    </div>
+    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner', [
+        'catatan' => 'Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini.',
+    ])
 
     @php
         $kurikulum = $this->kurikulum;
@@ -74,7 +74,7 @@
                 <x-filament::section
                     icon="heroicon-o-chart-bar"
                     heading="Hasil Analisis Asesmen CPL per Mahasiswa"
-                    description="Informasi pencapaian CPL setiap mahasiswa"
+                    description="Informasi pencapaian CPL setiap mahasiswa pada kurikulum yang dikerjakan"
                 >
                     {{ $this->table }}
                 </x-filament::section>

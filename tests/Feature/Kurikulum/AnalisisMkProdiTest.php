@@ -159,7 +159,8 @@ it('analisis mengikuti kurikulum terpilih di session', function () {
     KurikulumTerpilih::set($kurikulumDraft->id);
 
     $test = Livewire::test(AnalisisMkProdi::class)
-        ->assertSee('Kurikulum terpilih:', escape: false)
+        ->assertSee('Kurikulum yang dikerjakan', escape: false)
+        ->assertSee('Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini', escape: false)
         ->assertDontSee('Pilih Program Studi', escape: false);
 
     expect($test->get('kurikulum')?->id)->toBe($kurikulumDraft->id)
@@ -335,16 +336,22 @@ it('roster IPK kumulatif menghitung SKS dikontrak, nilai rerata, dan IPK ber-SKS
     ]);
 
     $mkA = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'sks_teori' => 3, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 3]);
-    $mkUnitA = MkUnit::factory()->forMk($mkA)->forAcademicUnit($this->prodi)->create(['kode' => 'KU21516001']);
+    $mkUnitA = MkUnit::factory()->forMk($mkA)->forAcademicUnit($this->prodi)->create([
+        'kurikulum_id' => $this->kurikulum->id,
+        'kode' => 'KU21516001',
+    ]);
     $kelasA = KelasMk::query()->create(['mk_unit_id' => $mkUnitA->id, 'semester_id' => $semester->id, 'kode_kelas' => 'A', 'dosen_pengampu_id' => $this->dosen->id]);
     KelasMkMahasiswa::query()->create(['kelas_mk_id' => $kelasA->id, 'mahasiswa_id' => $mahasiswa->id, 'nilai_angka' => 90, 'nilai_huruf' => 'A']);
 
     $mkB = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'sks_teori' => 2, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 2]);
-    $mkUnitB = MkUnit::factory()->forMk($mkB)->forAcademicUnit($this->prodi)->create(['kode' => 'KU21517001']);
+    $mkUnitB = MkUnit::factory()->forMk($mkB)->forAcademicUnit($this->prodi)->create([
+        'kurikulum_id' => $this->kurikulum->id,
+        'kode' => 'KU21517001',
+    ]);
     $kelasB = KelasMk::query()->create(['mk_unit_id' => $mkUnitB->id, 'semester_id' => $semester->id, 'kode_kelas' => 'A', 'dosen_pengampu_id' => $this->dosen->id]);
     KelasMkMahasiswa::query()->create(['kelas_mk_id' => $kelasB->id, 'mahasiswa_id' => $mahasiswa->id, 'nilai_angka' => 60, 'nilai_huruf' => 'C+']);
 
-    $roster = app(IpkKumulatifService::class)->rosterProdi($this->prodi);
+    $roster = app(IpkKumulatifService::class)->rosterKurikulum($this->kurikulum);
     $baris = collect($roster)->firstWhere('mahasiswa_id', $mahasiswa->id);
 
     expect($baris['sks_dikontrak'])->toBe(5)
@@ -358,18 +365,100 @@ it('roster IPK kumulatif menghitung SKS dikontrak, nilai rerata, dan IPK ber-SKS
         ->assertSee('3.32', escape: false);
 });
 
-it('capaianCplMahasiswa merangkum rerata nilai_akhir lintas semua MK yang pernah diambil', function () {
+it('roster IPK dan grafik CPL mahasiswa mengabaikan kelas dari kurikulum lain', function () {
+    $this->seed(SemesterSeeder::class);
+    $this->actingAs($this->kaprodi);
+
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+
+    $kurikulumLain = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Lama Analisis',
+        'tahun' => 2020,
+        'is_active' => false,
+    ]);
+
+    $mahasiswa = Mahasiswa::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nim' => '242151100099',
+        'nama' => 'Uji Scope Kurikulum',
+    ]);
+
+    $mkAktif = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'sks_teori' => 2, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 2,
+    ]);
+    $mkUnitAktif = MkUnit::factory()->forMk($mkAktif)->forKurikulum($this->kurikulum)->create(['kode' => 'AKTIF-01']);
+    $kelasAktif = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitAktif->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+    $kmmAktif = KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelasAktif->id,
+        'mahasiswa_id' => $mahasiswa->id,
+        'nilai_angka' => 80,
+        'nilai_huruf' => 'A-',
+    ]);
+
+    $mkLama = Mk::factory()->forKurikulum($kurikulumLain)->create([
+        'sks_teori' => 4, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 4,
+    ]);
+    $mkUnitLama = MkUnit::factory()->forMk($mkLama)->forKurikulum($kurikulumLain)->create(['kode' => 'LAMA-01']);
+    $kelasLama = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitLama->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+    $kmmLama = KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelasLama->id,
+        'mahasiswa_id' => $mahasiswa->id,
+        'nilai_angka' => 40,
+        'nilai_huruf' => 'E',
+    ]);
+
+    $cplAktif = Cpl::factory()->forKurikulum($this->kurikulum)->create(['kode' => 'CPL-AKTIF']);
+    $cplLama = Cpl::factory()->forKurikulum($kurikulumLain)->create(['kode' => 'CPL-LAMA']);
+
+    HasilCplMk::query()->create([
+        'cpl_id' => $cplAktif->id,
+        'mk_unit_id' => $mkUnitAktif->id,
+        'kelas_mk_mahasiswa_id' => $kmmAktif->id,
+        'semester_id' => $semester->id,
+        'nilai_akhir' => 85,
+    ]);
+    HasilCplMk::query()->create([
+        'cpl_id' => $cplLama->id,
+        'mk_unit_id' => $mkUnitLama->id,
+        'kelas_mk_mahasiswa_id' => $kmmLama->id,
+        'semester_id' => $semester->id,
+        'nilai_akhir' => 40,
+    ]);
+
+    $service = app(IpkKumulatifService::class);
+    $baris = collect($service->rosterKurikulum($this->kurikulum))->firstWhere('mahasiswa_id', $mahasiswa->id);
+    $capaian = $service->capaianCplMahasiswa($mahasiswa->id, $this->kurikulum);
+
+    expect($baris['sks_dikontrak'])->toBe(2)
+        ->and($baris['nilai_angka'])->toBe(80.0)
+        ->and($capaian)->toHaveCount(1)
+        ->and($capaian[0]['cpl_kode'])->toBe('CPL-AKTIF')
+        ->and($capaian[0]['nilai_rata_rata'])->toBe(85.0);
+});
+
+it('capaianCplMahasiswa merangkum rerata nilai_akhir lintas MK pada kurikulum yang dikerjakan', function () {
     $this->seed(SemesterSeeder::class);
 
     $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
     $mahasiswa = Mahasiswa::factory()->create(['academic_unit_id' => $this->prodi->id]);
 
-    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
-    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KU21518001']);
+    $mk = Mk::factory()->forKurikulum($this->kurikulum)->create();
+    $mkUnit = MkUnit::factory()->forMk($mk)->forKurikulum($this->kurikulum)->create(['kode' => 'KU21518001']);
     $kelas = KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $semester->id, 'kode_kelas' => 'A', 'dosen_pengampu_id' => $this->dosen->id]);
     $kmm = KelasMkMahasiswa::query()->create(['kelas_mk_id' => $kelas->id, 'mahasiswa_id' => $mahasiswa->id]);
 
-    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL05']);
+    $cpl = Cpl::factory()->forKurikulum($this->kurikulum)->create(['kode' => 'CPL05']);
 
     HasilCplMk::query()->create([
         'cpl_id' => $cpl->id,
@@ -379,7 +468,7 @@ it('capaianCplMahasiswa merangkum rerata nilai_akhir lintas semua MK yang pernah
         'nilai_akhir' => 80,
     ]);
 
-    $capaian = app(IpkKumulatifService::class)->capaianCplMahasiswa($mahasiswa->id);
+    $capaian = app(IpkKumulatifService::class)->capaianCplMahasiswa($mahasiswa->id, $this->kurikulum);
 
     expect($capaian)->toHaveCount(1)
         ->and($capaian[0]['cpl_kode'])->toBe('CPL05')

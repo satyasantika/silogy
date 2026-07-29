@@ -2,32 +2,27 @@
 
 namespace App\Modules\Kurikulum\Services;
 
-use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use Illuminate\Support\Collection;
 
 /**
- * Tab 4 — "Hasil Analisis Asesmen CPL per Mahasiswa": IPK kumulatif prodi,
- * dihitung dari SELURUH KelasMkMahasiswa yang pernah dikontrak tiap
- * mahasiswa (bukan satu MK/kelas saja seperti seluruh layanan Penilaian
- * lain di app ini).
+ * Tab 4 — "Hasil Analisis Asesmen CPL per Mahasiswa": IPK dan capaian CPL
+ * kumulatif yang dihitung HANYA dari penawaran MK (mk_units) milik kurikulum
+ * yang sedang dikerjakan — bukan lintas seluruh kelas prodi.
  */
 class IpkKumulatifService
 {
     public function __construct(private readonly PenilaianMatrixService $matrix) {}
 
     /**
-     * Interpretasi (di luar cakupan "IPK kumulatif prodi" yang dikonfirmasi
-     * user): "Nilai Angka"/"Nilai Huruf" pada baris = rerata nilai_angka
-     * mahasiswa itu HANYA dari kelas yang SUDAH dinilai (kelas yang
-     * nilai_angka-nya masih null diabaikan, bukan dianggap 0) — dipakai
-     * murni sebagai ringkasan tampilan. "IPK" dihitung terpisah: SKS-weighted
-     * dari huruf ASLI tiap kelas yang sudah dinilai (bukan dari huruf
-     * rata-rata), pembagi hanya SKS kelas yang sudah dinilai — konvensi IPK
-     * standar (kelas yang belum dinilai tidak ikut menurunkan IPK).
+     * Interpretasi: "Nilai Angka"/"Nilai Huruf" = rerata nilai_angka mahasiswa
+     * HANYA dari kelas kurikulum ini yang SUDAH dinilai (nilai_angka null
+     * diabaikan). "IPK" = SKS-weighted dari huruf asli tiap kelas yang sudah
+     * dinilai pada kurikulum yang sama; kelas kurikulum lain tidak ikut.
      *
      * @return list<array{
      *     mahasiswa_id: string, nim: string, nama: string,
@@ -35,10 +30,10 @@ class IpkKumulatifService
      *     bobot_huruf: float, ipk: float,
      * }>
      */
-    public function rosterProdi(AcademicUnit $prodi): array
+    public function rosterKurikulum(Kurikulum $kurikulum): array
     {
         $mahasiswaList = Mahasiswa::query()
-            ->where('academic_unit_id', $prodi->id)
+            ->where('academic_unit_id', $kurikulum->academic_unit_id)
             ->orderBy('nim')
             ->get();
 
@@ -48,6 +43,7 @@ class IpkKumulatifService
 
         $enrollmentsByMahasiswa = KelasMkMahasiswa::query()
             ->whereIn('mahasiswa_id', $mahasiswaList->pluck('id'))
+            ->whereHas('kelasMk.mkUnit', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
             ->with('kelasMk.mkUnit.mk')
             ->get()
             ->groupBy('mahasiswa_id');
@@ -101,15 +97,18 @@ class IpkKumulatifService
     }
 
     /**
-     * Capaian CPL satu mahasiswa lintas SEMUA mata kuliah yang pernah
-     * diambil (dipakai modal "Grafik" pada roster) — beda dari
-     * EvaluasiCplService::ketercapaianCplPerKelas() yang di-scope satu kelas.
+     * Capaian CPL satu mahasiswa pada kurikulum yang dikerjakan — hanya
+     * hasil_cpl_mk dari penawaran MK kurikulum itu (dan CPL kurikulum itu).
+     * Dipakai modal "Grafik" pada roster.
      *
      * @return list<array{cpl_kode: string, cpl_deskripsi: string, nilai_rata_rata: float}>
      */
-    public function capaianCplMahasiswa(string $mahasiswaId): array
+    public function capaianCplMahasiswa(string $mahasiswaId, Kurikulum $kurikulum): array
     {
-        $kmmIds = KelasMkMahasiswa::query()->where('mahasiswa_id', $mahasiswaId)->pluck('id');
+        $kmmIds = KelasMkMahasiswa::query()
+            ->where('mahasiswa_id', $mahasiswaId)
+            ->whereHas('kelasMk.mkUnit', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
+            ->pluck('id');
 
         if ($kmmIds->isEmpty()) {
             return [];
@@ -118,6 +117,8 @@ class IpkKumulatifService
         return HasilCplMk::query()
             ->whereIn('kelas_mk_mahasiswa_id', $kmmIds)
             ->whereNotNull('nilai_akhir')
+            ->whereHas('mkUnit', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
+            ->whereHas('cpl', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
             ->with('cpl')
             ->get()
             ->filter(fn (HasilCplMk $hasil): bool => $hasil->cpl !== null)

@@ -1,6 +1,6 @@
 @if (empty($capaian))
     <p style="font-size:13px;opacity:.7;">
-        Mahasiswa ini belum memiliki hasil penilaian pada mata kuliah manapun.
+        Mahasiswa ini belum memiliki hasil penilaian pada mata kuliah kurikulum yang dikerjakan.
     </p>
 @else
     <div>
