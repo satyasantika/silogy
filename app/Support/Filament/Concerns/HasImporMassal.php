@@ -24,6 +24,8 @@ use Illuminate\Support\HtmlString;
  */
 trait HasImporMassal
 {
+    use ReadsMountedActionData;
+
     /**
      * Salinan langsung nilai textarea "rows" saat ini, disinkronkan lewat
      * afterStateUpdated() pada Textarea (BUKAN lewat Get()/Set() — itu
@@ -352,25 +354,7 @@ trait HasImporMassal
             return (string) $raw;
         }
 
-        return (string) ($this->importMassalDataModalTerkini()['rows'] ?? '');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function importMassalDataModalTerkini(): array
-    {
-        if (! property_exists($this, 'mountedActions')) {
-            return [];
-        }
-
-        $mounted = $this->mountedActions ?? [];
-
-        if ($mounted === []) {
-            return [];
-        }
-
-        return $mounted[array_key_last($mounted)]['data'] ?? [];
+        return (string) ($this->mountedActionDataTerkini()['rows'] ?? '');
     }
 
     /**
@@ -382,13 +366,33 @@ trait HasImporMassal
      */
     protected function importMassalContextTerkini(): array
     {
-        $data = $this->importMassalDataModalTerkini();
+        return $this->importMassalContextDariData($this->mountedActionDataTerkini());
+    }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function importMassalContextDariData(array $data): array
+    {
         $context = [];
         foreach ($this->importContextKeys() as $key) {
             $context[$key] = $data[$key] ?? null;
         }
 
+        return $this->normalisasiImportContext($context);
+    }
+
+    /**
+     * Kesempatan memaksa nilai konteks dari sisi server — dipakai bila
+     * sasaran impor ditentukan sesi (mis. kurikulum yang dikerjakan) dan
+     * bukan oleh field pada modal.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    protected function normalisasiImportContext(array $context): array
+    {
         return $context;
     }
 
@@ -451,7 +455,7 @@ trait HasImporMassal
             $context[$key] = $get($key);
         }
 
-        return $context;
+        return $this->normalisasiImportContext($context);
     }
 
     /**
@@ -607,8 +611,6 @@ trait HasImporMassal
 
     protected function makeImporMassalAction(): Action
     {
-        $contextKeys = $this->importContextKeys();
-
         $contextFromGet = fn (Get $get): array => $this->importMassalContextDariGet($get);
 
         $duplikatOptions = ['lewati' => 'Batal diinputkan (lewati duplikat)'];
@@ -683,11 +685,8 @@ trait HasImporMassal
                     ->required()
                     ->visible(fn (Get $get): bool => $this->importMassalAdaDuplikat($get)),
             ])
-            ->action(function (array $data) use ($contextKeys): void {
-                $context = [];
-                foreach ($contextKeys as $key) {
-                    $context[$key] = $data[$key] ?? null;
-                }
+            ->action(function (array $data): void {
+                $context = $this->importMassalContextDariData($data);
 
                 $this->runImport(
                     $this->importMassalRowsLive !== '' ? $this->importMassalRowsLive : (string) ($data['rows'] ?? ''),
