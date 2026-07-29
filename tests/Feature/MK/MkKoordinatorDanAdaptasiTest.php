@@ -8,6 +8,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\CreateKelasMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\CreateMkUnit;
@@ -144,6 +145,145 @@ it('adaptasi mk massal mengunduh mk dari universitas fakultas dan prodi sekaligu
         ]);
 
     expect(MkUnit::query()->where('academic_unit_id', $this->prodi->id)->count())->toBe(3);
+});
+
+it('adaptasi mk massal memakai prodi kurikulum yang dikerjakan tanpa memilih unit penawaran', function () {
+    $kurikulumUniv = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Unit Otomatis',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Unit Otomatis',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    Mk::factory()->forKurikulum($kurikulumUniv)->create(['nama' => 'Bahasa Indonesia']);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    Livewire::test(ListMkUnits::class)
+        ->callAction('adaptasiMkMassal', [
+            'kurikulum_univ_id' => $kurikulumUniv->id,
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    $penawaran = MkUnit::query()->where('kurikulum_id', $kurikulumProdi->id)->get();
+
+    expect($penawaran)->toHaveCount(1)
+        ->and($penawaran->first()->academic_unit_id)->toBe($this->prodi->id);
+});
+
+it('modal adaptasi menonaktifkan pilihan kurikulum universitas dan fakultas yang belum ada', function () {
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Tanpa Induk',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    $halaman = Livewire::test(ListMkUnits::class)->mountAction('adaptasiMkMassal');
+
+    $halaman
+        ->assertMountedActionModalSee('Kurikulum yang dikerjakan')
+        ->assertMountedActionModalSee($kurikulumProdi->nama)
+        ->assertMountedActionModalSee($this->prodi->nama)
+        ->assertMountedActionModalSee('Belum ada kurikulum pada universitas induk prodi ini')
+        ->assertMountedActionModalSee('Belum ada kurikulum pada fakultas induk prodi ini');
+
+    // getMountedActionSchema() protected; ikat closure ke halaman agar bisa
+    // memeriksa state disabled field tanpa menebak markup select Filament.
+    $fields = (fn (): array => $this->getMountedActionSchema()->getFlatFields())
+        ->call($halaman->instance());
+
+    expect($fields['kurikulum_univ_id']->isDisabled())->toBeTrue()
+        ->and($fields['kurikulum_fakultas_id']->isDisabled())->toBeTrue()
+        ->and($fields['kurikulum_prodi_id']->isDisabled())->toBeFalse();
+});
+
+it('tombol adaptasi dan pilihan duplikat tersembunyi sampai pratinjau memuat mk', function () {
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Tanpa MK',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    Livewire::test(ListMkUnits::class)
+        ->mountAction('adaptasiMkMassal')
+        ->assertMountedActionModalDontSee('Adaptasi sekarang')
+        ->assertMountedActionModalDontSee('Tindakan untuk data duplikat')
+        ->assertMountedActionModalSee('Tidak ada mata kuliah aktif pada kurikulum sumber');
+});
+
+it('pratinjau adaptasi membaca mk sumber dan menampilkan tombol adaptasi', function () {
+    $kurikulumUniv = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Pratinjau',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Pratinjau',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    Mk::factory()->forKurikulum($kurikulumUniv)->create(['nama' => 'Pendidikan Kewarganegaraan']);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    Livewire::test(ListMkUnits::class)
+        ->mountAction('adaptasiMkMassal')
+        ->assertMountedActionModalSee('Pendidikan Kewarganegaraan')
+        ->assertMountedActionModalSee('Adaptasi sekarang')
+        ->assertMountedActionModalDontSee('Tindakan untuk data duplikat');
+});
+
+it('pilihan tindakan duplikat muncul bila mk sumber sudah pernah ditawarkan', function () {
+    $kurikulumUniv = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Duplikat',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Duplikat',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $mkUniv = Mk::factory()->forKurikulum($kurikulumUniv)->create(['nama' => 'Filsafat Ilmu']);
+
+    MkUnit::factory()->forMk($mkUniv)->forAcademicUnit($this->prodi)->create([
+        'kurikulum_id' => $kurikulumProdi->id,
+        'kode' => 'FI-101',
+    ]);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    Livewire::test(ListMkUnits::class)
+        ->mountAction('adaptasiMkMassal')
+        ->assertMountedActionModalSee('Tindakan untuk data duplikat')
+        ->assertMountedActionModalSee('Nasib duplikat mengikuti pilihan di bawah')
+        ->assertMountedActionModalSee('Adaptasi sekarang');
 });
 
 it('tim kurikulum prodi dapat mengadaptasi mk universitas dengan kode dan semester sendiri', function () {
