@@ -52,6 +52,11 @@ class CplResource extends Resource
 
     protected static ?string $slug = 'cpls';
 
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return 'CPL yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.';
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {

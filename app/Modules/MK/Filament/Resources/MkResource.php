@@ -52,6 +52,11 @@ class MkResource extends Resource
 
     protected static ?string $slug = 'mks';
 
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return 'Mata kuliah yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.';
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {

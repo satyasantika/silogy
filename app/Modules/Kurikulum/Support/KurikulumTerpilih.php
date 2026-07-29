@@ -181,12 +181,16 @@ class KurikulumTerpilih
 
     /**
      * Banner konteks kurikulum terpilih (Livewire) — tombol Ganti membuka
-     * modal penggantian tanpa meninggalkan halaman.
+     * modal penggantian tanpa meninggalkan halaman. $catatan mengisi baris di
+     * bawah garis pemisah banner dengan keterangan khas halaman pemanggil.
      */
-    public static function bannerHtml(): HtmlString
+    public static function bannerHtml(?string $catatan = null): HtmlString
     {
         return new HtmlString(
-            Blade::render('@livewire(\'silogy.kurikulum-terpilih-banner\')'),
+            Blade::render(
+                '@livewire(\'silogy.kurikulum-terpilih-banner\', [\'catatan\' => $catatan])',
+                ['catatan' => $catatan],
+            ),
         );
     }
 

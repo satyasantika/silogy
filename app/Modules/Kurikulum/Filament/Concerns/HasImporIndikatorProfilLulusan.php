@@ -2,9 +2,12 @@
 
 namespace App\Modules\Kurikulum\Filament\Concerns;
 
+use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Models\ProfilIndikator;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Support\Filament\Concerns\HasImporMassal;
+use Filament\Forms\Components\Field;
+use Filament\Schemas\Components\Component;
 
 /**
  * Impor massal indikator profil lulusan via copy-paste pada halaman edit profil.
@@ -24,6 +27,18 @@ trait HasImporIndikatorProfilLulusan
     {
         return [
             ['key' => 'nama', 'label' => 'nama indikator', 'wajib' => true],
+        ];
+    }
+
+    /**
+     * @return array<int, Component|Field>
+     */
+    protected function importContextComponents(): array
+    {
+        return [
+            BannerKurikulumDikerjakan::placeholder(
+                'Indikator ditambahkan ke profil lulusan yang sedang diedit pada kurikulum prodi ini.',
+            ),
         ];
     }
 

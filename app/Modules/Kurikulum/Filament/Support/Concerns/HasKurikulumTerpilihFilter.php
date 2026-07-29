@@ -5,9 +5,11 @@ namespace App\Modules\Kurikulum\Filament\Support\Concerns;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\Column;
 use Filament\Tables\Columns\Layout\Component as LayoutComponent;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\BaseFilter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,7 +37,7 @@ trait HasKurikulumTerpilihFilter
     /**
      * Filter kurikulum + filter tambahan (mis. semester/MK pada Kelas MK).
      *
-     * @param  array<int, \Filament\Tables\Filters\BaseFilter>  $extraFilters
+     * @param  array<int, BaseFilter>  $extraFilters
      * @param  callable(Builder<Model>, Kurikulum): Builder<Model>  $applyScope
      */
     protected static function applyKurikulumTerpilihTableWithExtraFilters(
@@ -56,7 +58,7 @@ trait HasKurikulumTerpilihFilter
     /**
      * Terapkan filter Kurikulum + layout card grid seragam (Profil, CPL, BoK, dll.).
      *
-     * @param  array<int, LayoutComponent|\Filament\Tables\Columns\Column>  $cardSchema
+     * @param  array<int, LayoutComponent|Column>  $cardSchema
      * @param  callable(Builder<Model>, Kurikulum): Builder<Model>  $applyScope
      * @param  array<string, int>  $contentGrid
      */
@@ -94,7 +96,7 @@ trait HasKurikulumTerpilihFilter
     protected static function decorateKurikulumTerpilihTable(Table $table, callable $applyScope): Table
     {
         return $table
-            ->description(fn (): HtmlString => KurikulumTerpilih::bannerHtml())
+            ->description(fn (): HtmlString => KurikulumTerpilih::bannerHtml(static::kurikulumBannerCatatan()))
             ->modifyQueryUsing(function (Builder $query) use ($applyScope): Builder {
                 $kurikulum = KurikulumTerpilih::current();
 
@@ -108,6 +110,15 @@ trait HasKurikulumTerpilihFilter
 
                 return $applyScope($query, $kurikulum);
             });
+    }
+
+    /**
+     * Keterangan di bawah garis pemisah banner: menjelaskan data apa pada
+     * halaman ini yang mengikuti kurikulum tersebut.
+     */
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return null;
     }
 
     /**

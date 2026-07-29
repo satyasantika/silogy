@@ -60,6 +60,11 @@ class MkUnitResource extends Resource
 
     protected static ?string $slug = 'mk-units';
 
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return 'Penawaran MK yang tampil, diadaptasi, maupun diperbarui massal mengikuti kurikulum prodi ini.';
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {

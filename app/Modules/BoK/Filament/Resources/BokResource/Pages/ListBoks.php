@@ -6,10 +6,13 @@ use App\Modules\BoK\Filament\Resources\BokResource;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
+use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 
 class ListBoks extends ListRecords
@@ -30,6 +33,19 @@ class ListBoks extends ListRecords
     protected function importModalHeading(): string
     {
         return 'Impor bahan kajian (BoK) massal';
+    }
+
+    /**
+     * @return array<int, Component|Field>
+     */
+    protected function importContextComponents(): array
+    {
+        return [
+            BannerKurikulumDikerjakan::placeholder(
+                'Seluruh baris akan diimpor sebagai bahan kajian (BoK) pada kurikulum ini.',
+                wajibProdi: false,
+            ),
+        ];
     }
 
     protected function importColumns(): array

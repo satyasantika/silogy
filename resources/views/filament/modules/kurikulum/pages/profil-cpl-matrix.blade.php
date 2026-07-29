@@ -1,5 +1,7 @@
 <x-filament-panels::page>
-    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner')
+    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner', [
+        'catatan' => 'Pemetaan profil lulusan ke CPL yang dicentang di bawah tersimpan pada kurikulum ini.',
+    ])
 
     @if (! $kurikulum)
         <x-filament::section icon="heroicon-o-exclamation-triangle" heading="Belum ada kurikulum terpilih">

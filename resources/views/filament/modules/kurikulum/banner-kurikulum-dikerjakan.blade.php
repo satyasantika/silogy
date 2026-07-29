@@ -1,5 +1,12 @@
-{{-- Gaya ditulis inline supaya banner tetap tampil utuh di dalam modal aksi,
-     tanpa bergantung pada kelas Tailwind yang belum tentu ikut terkompilasi. --}}
+{{-- Gaya ditulis inline supaya banner tetap tampil utuh baik di halaman
+     maupun di dalam modal aksi, tanpa bergantung pada kelas Tailwind yang
+     belum tentu ikut terkompilasi.
+
+     $aksi berisi tombol Ganti/Pilih kurikulum bila banner dipakai di halaman;
+     pada modal slot itu dibiarkan kosong. --}}
+@php($aksi = $aksi ?? null)
+@php($arahan = $arahan ?? null)
+
 @if ($kurikulum)
     <div style="border-radius:14px;padding:14px 16px;color:#fff;background:linear-gradient(120deg,#1d4ed8 0%,#4338ca 55%,#6d28d9 100%);box-shadow:0 10px 24px -16px rgba(30,64,175,.9);">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
@@ -19,13 +26,16 @@
                 @endif
             </div>
 
-            <div style="flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;">
+            <div style="flex:0 0 auto;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
                 <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(255,255,255,.2);">
                     Tahun {{ $kurikulum->tahun }}
                 </span>
                 <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:{{ $kurikulum->is_active ? 'rgba(34,197,94,.95)' : 'rgba(255,255,255,.2)' }};">
                     {{ $kurikulum->is_active ? 'Aktif' : 'Nonaktif' }}
                 </span>
+                @if ($aksi)
+                    <div class="silogy-kurikulum-banner-ganti" style="margin-inline-start:4px;">{{ $aksi }}</div>
+                @endif
             </div>
         </div>
 
@@ -43,10 +53,13 @@
             </div>
             <div style="flex:1 1 220px;min-width:0;font-size:13px;line-height:1.55;">
                 <div style="font-weight:700;">{{ $peringatan }}</div>
-                <div style="opacity:.9;">
-                    Pilih kurikulum prodi lewat banner &ldquo;Kurikulum terpilih&rdquo; di atas tabel, lalu buka kembali modal ini.
-                </div>
+                @if ($arahan)
+                    <div style="opacity:.9;">{{ $arahan }}</div>
+                @endif
             </div>
+            @if ($aksi)
+                <div class="silogy-kurikulum-banner-ganti" style="flex:0 0 auto;">{{ $aksi }}</div>
+            @endif
         </div>
     </div>
 @endif

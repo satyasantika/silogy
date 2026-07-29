@@ -5,11 +5,14 @@ namespace App\Modules\CPL\Filament\Resources\CplResource\Pages;
 use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplProfilLulusan;
+use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Component;
 use Illuminate\Support\Str;
 
 class ListCpls extends ListRecords
@@ -30,6 +33,19 @@ class ListCpls extends ListRecords
     protected function importModalHeading(): string
     {
         return 'Impor CPL massal';
+    }
+
+    /**
+     * @return array<int, Component|Field>
+     */
+    protected function importContextComponents(): array
+    {
+        return [
+            BannerKurikulumDikerjakan::placeholder(
+                'Seluruh baris akan diimpor sebagai CPL pada kurikulum ini.',
+                wajibProdi: false,
+            ),
+        ];
     }
 
     protected function importColumns(): array
@@ -59,7 +75,7 @@ class ListCpls extends ListRecords
     protected function importInstructionsExtra(): array
     {
         return [
-            'Satu baris = satu CPL pada kurikulum yang sedang dikerjakan (lihat banner di atas halaman).',
+            'Satu baris = satu CPL pada kurikulum yang sedang dikerjakan (lihat banner di atas).',
             'Domain opsional: kognitif, afektif, dan/atau psikomotorik; lebih dari satu dipisah koma (,), mis. kognitif,afektif.',
         ];
     }
@@ -121,7 +137,7 @@ class ListCpls extends ListRecords
         $kurikulumId = $this->kurikulumIdDariKonteks();
 
         if (blank($unitId) || blank($kurikulumId)) {
-            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu lewat banner di atas halaman.'];
+            return ['status' => 'invalid', 'keterangan' => 'Pilih kurikulum akademik terlebih dahulu lewat banner kurikulum.'];
         }
 
         if ($data['domain'] !== '' && $this->parseDomainImport($data['domain']) === null) {

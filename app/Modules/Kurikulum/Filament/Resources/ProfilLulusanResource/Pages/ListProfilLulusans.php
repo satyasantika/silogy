@@ -4,10 +4,13 @@ namespace App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages;
 
 use App\Modules\Kurikulum\Filament\Concerns\HasImporProfilLulusanMassal;
 use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource;
+use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Component;
 
 class ListProfilLulusans extends ListRecords
 {
@@ -36,9 +39,16 @@ class ListProfilLulusans extends ListRecords
         return 'Impor profil lulusan massal';
     }
 
-    protected function importHelperNote(): string
+    /**
+     * @return array<int, Component|Field>
+     */
+    protected function importContextComponents(): array
     {
-        return 'Seluruh baris diimpor ke kurikulum prodi yang sedang dikerjakan (lihat banner di atas halaman).';
+        return [
+            BannerKurikulumDikerjakan::placeholder(
+                'Seluruh baris akan diimpor sebagai profil lulusan pada kurikulum prodi ini.',
+            ),
+        ];
     }
 
     protected function kurikulumIdUntukImporProfil(array $context): ?string

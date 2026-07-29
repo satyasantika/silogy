@@ -83,7 +83,7 @@ it('banner kurikulum terpilih merender komponen livewire modal ganti', function 
 
     expect($html)->not->toContain(KurikulumResource::getUrl('index'))
         ->and(
-            str_contains($html, 'wire:') || str_contains($html, 'Kurikulum terpilih'),
+            str_contains($html, 'wire:') || str_contains($html, 'Kurikulum yang dikerjakan'),
         )->toBeTrue();
 });
 

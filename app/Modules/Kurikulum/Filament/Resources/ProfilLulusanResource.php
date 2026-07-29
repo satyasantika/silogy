@@ -53,6 +53,11 @@ class ProfilLulusanResource extends Resource
 
     protected static ?string $slug = 'profil-lulusan';
 
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return 'Profil lulusan yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum prodi ini.';
+    }
+
     public static function bisaKelola(): bool
     {
         $user = auth()->user();

@@ -46,6 +46,11 @@ class MataKuliahKoordinatorResource extends Resource
 
     protected static ?string $slug = 'mata-kuliah-koordinator';
 
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return 'Mata kuliah yang Anda koordinasikan pada kurikulum ini.';
+    }
+
     protected static ?string $recordTitleAttribute = 'nama';
 
     public static function shouldRegisterNavigation(): bool

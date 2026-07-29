@@ -9,11 +9,14 @@ use Illuminate\Support\HtmlString;
 
 /**
  * Banner identitas kurikulum yang sedang dikerjakan untuk dipasang di dalam
- * modal aksi massal. Menggantikan select kurikulum: aksi selalu mengikuti
- * kurikulum terpilih di sesi, jadi banner ini yang menegaskan sasarannya.
+ * modal aksi. Menggantikan select kurikulum: aksi selalu mengikuti kurikulum
+ * terpilih di sesi, jadi banner ini yang menegaskan sasarannya. Varian
+ * berikonnya untuk halaman ada di Livewire KurikulumTerpilihBanner.
  */
 class BannerKurikulumDikerjakan
 {
+    public const VIEW = 'filament.modules.kurikulum.banner-kurikulum-dikerjakan';
+
     public static function placeholder(
         ?string $catatan = null,
         bool $wajibProdi = true,
@@ -26,18 +29,14 @@ class BannerKurikulumDikerjakan
 
     public static function html(?string $catatan = null, bool $wajibProdi = true): HtmlString
     {
-        $kurikulum = KurikulumTerpilih::current();
-        $bukanProdi = $wajibProdi && $kurikulum !== null && ! ($kurikulum->academicUnit?->isProdi() ?? false);
+        $kurikulum = static::kurikulumUntukBanner($wajibProdi);
 
-        return new HtmlString(view('filament.modules.kurikulum.banner-kurikulum-dikerjakan', [
-            'kurikulum' => $bukanProdi ? null : $kurikulum,
-            'hierarki' => $kurikulum?->academicUnit !== null
-                ? KurikulumTerpilih::unitHierarchyLabel($kurikulum->academicUnit)
-                : null,
+        return new HtmlString(view(static::VIEW, [
+            'kurikulum' => $kurikulum,
+            'hierarki' => static::hierarkiUnit(),
             'catatan' => $catatan,
-            'peringatan' => $bukanProdi
-                ? 'Kurikulum yang dikerjakan bukan kurikulum prodi.'
-                : 'Belum ada kurikulum yang dikerjakan.',
+            'peringatan' => static::peringatan($wajibProdi),
+            'arahan' => 'Pilih kurikulum lewat banner di halaman daftar, lalu buka kembali modal ini.',
         ])->render());
     }
 
@@ -50,5 +49,26 @@ class BannerKurikulumDikerjakan
         $kurikulum = KurikulumTerpilih::current();
 
         return ($kurikulum?->academicUnit?->isProdi() ?? false) ? $kurikulum : null;
+    }
+
+    public static function kurikulumUntukBanner(bool $wajibProdi): ?Kurikulum
+    {
+        return $wajibProdi ? static::kurikulumProdi() : KurikulumTerpilih::current();
+    }
+
+    public static function hierarkiUnit(): ?string
+    {
+        $unit = KurikulumTerpilih::current()?->academicUnit;
+
+        return $unit !== null ? KurikulumTerpilih::unitHierarchyLabel($unit) : null;
+    }
+
+    public static function peringatan(bool $wajibProdi): string
+    {
+        $adaKurikulum = KurikulumTerpilih::current() !== null;
+
+        return $adaKurikulum && $wajibProdi
+            ? 'Kurikulum yang dikerjakan bukan kurikulum prodi.'
+            : 'Belum ada kurikulum yang dikerjakan.';
     }
 }

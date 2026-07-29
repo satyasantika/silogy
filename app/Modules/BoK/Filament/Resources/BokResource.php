@@ -51,6 +51,11 @@ class BokResource extends Resource
 
     protected static ?string $slug = 'boks';
 
+    protected static function kurikulumBannerCatatan(): ?string
+    {
+        return 'Bahan kajian (BoK) yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.';
+    }
+
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
@@ -124,7 +129,7 @@ class BokResource extends Resource
                                 static::uniqueKodePerKurikulumRule(
                                     'bok',
                                     $record?->id,
-                                    $record?->kurikulum_id ?? \App\Modules\Kurikulum\Support\KurikulumTerpilih::currentId() ?? $get('kurikulum_id'),
+                                    $record?->kurikulum_id ?? KurikulumTerpilih::currentId() ?? $get('kurikulum_id'),
                                 ),
                             ]),
 
