@@ -10,11 +10,8 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Wizard;
-use Filament\Schemas\Components\Wizard\Step;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
@@ -29,16 +26,23 @@ trait HasImporMassal
 {
     /**
      * Salinan langsung nilai textarea "rows" saat ini, disinkronkan lewat
-     * afterStateUpdated() pada Textarea (BUKAN lewat Get()/Set() lintas
-     * step Wizard — itu terbukti rapuh karena Get::__invoke() sengaja
-     * skip menelusuri anak-kontainer milik komponen yang sedang
-     * dievaluasi, sehingga pemanggilan dari afterValidation() milik Step
-     * 1 untuk membaca anaknya sendiri ('rows') bisa jatuh ke fallback
-     * yang tidak selalu menemukan state form dengan benar — lihat
-     * makeImporMassalAction()). Harus public supaya ikut
+     * afterStateUpdated() pada Textarea (BUKAN lewat Get()/Set() — itu
+     * terbukti rapuh karena Get::__invoke() sengaja skip menelusuri
+     * anak-kontainer milik komponen yang sedang dievaluasi, sehingga
+     * pembacaan state dari dalam hook komponen lain bisa jatuh ke
+     * fallback yang tidak selalu menemukan state form dengan benar —
+     * lihat makeImporMassalAction()). Harus public supaya ikut
      * disimpan/dipulihkan Livewire antar request.
      */
     public string $importMassalRowsLive = '';
+
+    /**
+     * Memo hasil parseImportRaw() dalam satu request (protected agar tidak
+     * ikut disinkronkan Livewire).
+     *
+     * @var array<string, list<array<string, mixed>>>
+     */
+    protected array $importMassalParseCache = [];
 
     /**
      * Definisi kolom sesuai urutan tempel.
@@ -322,11 +326,132 @@ trait HasImporMassal
 
     protected function importColumnsHelperText(): string
     {
+        $penutup = 'Pratinjau muncul otomatis di bawah kotak tempel; tombol impor menyertainya begitu data terbaca.';
+
         if ($this->importExampleRows() !== []) {
-            return 'Tempel baris data di bawah petunjuk (lihat contoh pada placeholder kotak di bawah). Pratinjau muncul otomatis di bawah kotak tempel.';
+            return 'Tempel baris data di bawah petunjuk (lihat contoh pada placeholder kotak di bawah). '.$penutup;
         }
 
-        return 'Tempel baris data di bawah petunjuk. Pratinjau muncul otomatis di bawah kotak tempel.';
+        return 'Tempel baris data di bawah petunjuk. '.$penutup;
+    }
+
+    /**
+     * Isi kotak tempel terkini. Property live dipakai lebih dulu, lalu state
+     * form modal (mountedActions.{i}.data.rows) sebagai jaring aman: dengan
+     * itu tombol "Impor sekarang" dan pilihan duplikat tetap dapat muncul
+     * meski sinkronisasi live belum sempat berjalan (mis. dipanggil lewat
+     * callAction pada test atau submit sebelum debounce selesai).
+     */
+    protected function importMassalRawTerkini(?Get $get = null): string
+    {
+        if ($this->importMassalRowsLive !== '') {
+            return $this->importMassalRowsLive;
+        }
+
+        if ($get !== null && filled($raw = $get('rows'))) {
+            return (string) $raw;
+        }
+
+        return (string) ($this->importMassalDataModalTerkini()['rows'] ?? '');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function importMassalDataModalTerkini(): array
+    {
+        if (! property_exists($this, 'mountedActions')) {
+            return [];
+        }
+
+        $mounted = $this->mountedActions ?? [];
+
+        if ($mounted === []) {
+            return [];
+        }
+
+        return $mounted[array_key_last($mounted)]['data'] ?? [];
+    }
+
+    /**
+     * Konteks impor di luar schema (mis. saat menilai visibilitas tombol
+     * submit modal) — dibaca dari state form modal karena Get() hanya
+     * tersedia di dalam schema.
+     *
+     * @return array<string, mixed>
+     */
+    protected function importMassalContextTerkini(): array
+    {
+        $data = $this->importMassalDataModalTerkini();
+
+        $context = [];
+        foreach ($this->importContextKeys() as $key) {
+            $context[$key] = $data[$key] ?? null;
+        }
+
+        return $context;
+    }
+
+    /**
+     * Hasil parsing untuk render (pratinjau, visibilitas radio duplikat, dan
+     * visibilitas tombol submit) dihitung sekali per kombinasi data+konteks:
+     * parseImportRaw() menembak query validasi per baris, sedangkan satu
+     * render bisa membutuhkannya beberapa kali.
+     *
+     * @param  array<string, mixed>  $context
+     * @return list<array{line: int, data: array<string, string>, status: string, keterangan: string, existing_id: ?string}>
+     */
+    protected function importMassalRowsTerparse(string $raw, array $context = []): array
+    {
+        $kunci = md5($raw.'|'.serialize($context));
+
+        return $this->importMassalParseCache[$kunci] ??= $this->parseImportRaw($raw, $context);
+    }
+
+    /** Pratinjau berhasil dibaca: minimal satu baris terbaca dari kotak tempel. */
+    protected function importMassalPratinjauSiap(?Get $get = null): bool
+    {
+        $raw = $this->importMassalRawTerkini($get);
+
+        if (trim($raw) === '') {
+            return false;
+        }
+
+        $context = $get !== null
+            ? $this->importMassalContextDariGet($get)
+            : $this->importMassalContextTerkini();
+
+        return $this->importMassalRowsTerparse($raw, $context) !== [];
+    }
+
+    /** Ada baris duplikat pada pratinjau sehingga penanganannya perlu diputuskan. */
+    protected function importMassalAdaDuplikat(?Get $get = null): bool
+    {
+        $raw = $this->importMassalRawTerkini($get);
+
+        if (trim($raw) === '') {
+            return false;
+        }
+
+        $context = $get !== null
+            ? $this->importMassalContextDariGet($get)
+            : $this->importMassalContextTerkini();
+
+        return collect($this->importMassalRowsTerparse($raw, $context))
+            ->contains('status', 'duplikat');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function importMassalContextDariGet(Get $get): array
+    {
+        $context = [];
+        foreach ($this->importContextKeys() as $key) {
+            $context[$key] = $get($key);
+        }
+
+        return $context;
     }
 
     /**
@@ -415,7 +540,7 @@ trait HasImporMassal
      */
     public function renderImportPreview(string $raw, array $context = [], ?string $emptyMessage = null): HtmlString
     {
-        $rows = $this->parseImportRaw($raw, $context);
+        $rows = $this->importMassalRowsTerparse($raw, $context);
 
         if ($rows === []) {
             $pesan = $emptyMessage
@@ -455,11 +580,15 @@ trait HasImporMassal
             .'<span style="color:#16a34a;font-weight:600;">%d baru</span> · '
             .'<span style="color:#d97706;font-weight:600;">%d duplikat</span> · '
             .'<span style="color:#dc2626;font-weight:600;">%d invalid</span>. '
-            .'Baris invalid tidak akan diimpor; nasib baris duplikat mengikuti pilihan di bawah.</p>',
+            .'Baris invalid tidak akan diimpor.%s</p>',
             count($rows),
             $jumlah['baru'],
             $jumlah['duplikat'],
             $jumlah['invalid'],
+            // Pilihan penanganan duplikat hanya dirender bila ada duplikat.
+            $jumlah['duplikat'] > 0
+                ? ' Nasib baris duplikat mengikuti pilihan di bawah.'
+                : '',
         );
 
         $header = '<th style="padding:4px 8px;">Baris</th>';
@@ -480,14 +609,7 @@ trait HasImporMassal
     {
         $contextKeys = $this->importContextKeys();
 
-        $contextFromGet = function (Get $get) use ($contextKeys): array {
-            $context = [];
-            foreach ($contextKeys as $key) {
-                $context[$key] = $get($key);
-            }
-
-            return $context;
-        };
+        $contextFromGet = fn (Get $get): array => $this->importMassalContextDariGet($get);
 
         $duplikatOptions = ['lewati' => 'Batal diinputkan (lewati duplikat)'];
 
@@ -501,68 +623,65 @@ trait HasImporMassal
             ->color('gray')
             ->modalHeading($this->importModalHeading())
             ->modalWidth(Width::SixExtraLarge)
-            ->modalSubmitAction(false)
+            ->modalSubmitActionLabel('Impor sekarang')
+            // Tombol impor baru muncul setelah pratinjau berhasil dibaca,
+            // supaya tidak ada impor yang dijalankan tanpa melihat hasil
+            // parsing lebih dulu.
+            ->modalSubmitAction(fn (Action $action): Action|bool => $this->importMassalPratinjauSiap()
+                ? $action
+                : false)
+            // Satu modal tanpa langkah: petunjuk, kotak tempel, pratinjau,
+            // dan pilihan penanganan duplikat terlihat sekaligus bersama
+            // tombol "Impor sekarang" di kaki modal.
             ->schema([
-                Wizard::make([
-                    Step::make('Tempel data')
-                        ->icon(Heroicon::OutlinedClipboard)
-                        ->schema([
-                            ...$this->importContextComponents(),
-                            Placeholder::make('import_petunjuk')
-                                ->hiddenLabel()
-                                ->content(fn (Get $get): HtmlString => $this->renderImportGuideBox($contextFromGet($get))),
-                            Textarea::make('rows')
-                                ->label('Data yang ditempel')
-                                ->required()
-                                ->rows(10)
-                                ->live(debounce: 400)
-                                ->afterStateUpdated(function (?string $state): void {
-                                    // Sengaja TIDAK lewat Get()/Set() cross-step — lihat
-                                    // catatan pada properti $importMassalRowsLive. $state
-                                    // adalah nilai textarea terbaru, dikirim langsung
-                                    // sebagai parameter closure, jadi tidak butuh
-                                    // pencarian path form sama sekali.
-                                    $this->importMassalRowsLive = (string) $state;
+                ...$this->importContextComponents(),
+                Placeholder::make('import_petunjuk')
+                    ->hiddenLabel()
+                    ->content(fn (Get $get): HtmlString => $this->renderImportGuideBox($contextFromGet($get))),
+                Textarea::make('rows')
+                    ->label('Data yang ditempel')
+                    ->required()
+                    ->rows(10)
+                    ->live(debounce: 400)
+                    ->afterStateUpdated(function (?string $state): void {
+                        // Sengaja TIDAK lewat Get()/Set() — lihat catatan pada
+                        // properti $importMassalRowsLive. $state adalah nilai
+                        // textarea terbaru, dikirim langsung sebagai parameter
+                        // closure, jadi tidak butuh pencarian path form.
+                        $this->importMassalRowsLive = (string) $state;
 
-                                    // Filament v4 PartialsComponentHook memakai partial key
-                                    // berbeda antara request mountAction pertama kali
-                                    // ('action-modals') dan request update berikutnya pada
-                                    // action yang sama ('action-modals.{index}'). DOM
-                                    // browser masih membawa wire:partial dari key lama,
-                                    // sehingga partials.js gagal menemukan elemen match dan
-                                    // diam-diam membuang HTML preview yang baru dihitung
-                                    // (tanpa error/console warning). Paksa full render agar
-                                    // morph memakai jalur Livewire standar, bukan sistem
-                                    // partial custom Filament yang kena bug key-mismatch itu.
-                                    if (method_exists($this, 'forceRender')) {
-                                        $this->forceRender();
-                                    }
-                                })
-                                ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get)))
-                                ->helperText($this->importColumnsHelperText()),
-                            // Pratinjau di langkah yang sama, dibaca dari property
-                            // (bukan Get('rows')) agar konsisten dengan step 2.
-                            Placeholder::make('preview_live')
-                                ->hiddenLabel()
-                                ->content(fn (Get $get): HtmlString => $this->renderImportPreview(
-                                    $this->importMassalRowsLive,
-                                    $contextFromGet($get),
-                                    emptyMessage: 'Pratinjau akan muncul di sini setelah data ditempel.',
-                                )),
-                        ]),
-                    Step::make('Konfirmasi')
-                        ->icon(Heroicon::OutlinedEye)
-                        ->schema([
-                            Radio::make('mode_duplikat')
-                                ->label('Tindakan untuk data duplikat')
-                                ->options($duplikatOptions)
-                                ->default('lewati')
-                                ->required(),
-                        ]),
-                ])
-                    ->submitAction(new HtmlString(Blade::render(
-                        '<x-filament::button type="submit" icon="heroicon-m-arrow-down-tray">Impor sekarang</x-filament::button>'
-                    ))),
+                        // Filament v4 PartialsComponentHook memakai partial key
+                        // berbeda antara request mountAction pertama kali
+                        // ('action-modals') dan request update berikutnya pada
+                        // action yang sama ('action-modals.{index}'). DOM
+                        // browser masih membawa wire:partial dari key lama,
+                        // sehingga partials.js gagal menemukan elemen match dan
+                        // diam-diam membuang HTML preview yang baru dihitung
+                        // (tanpa error/console warning). Paksa full render agar
+                        // morph memakai jalur Livewire standar, bukan sistem
+                        // partial custom Filament yang kena bug key-mismatch itu.
+                        if (method_exists($this, 'forceRender')) {
+                            $this->forceRender();
+                        }
+                    })
+                    ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get)))
+                    ->helperText($this->importColumnsHelperText()),
+                Placeholder::make('preview_live')
+                    ->hiddenLabel()
+                    ->content(fn (Get $get): HtmlString => $this->renderImportPreview(
+                        $this->importMassalRawTerkini($get),
+                        $contextFromGet($get),
+                        emptyMessage: 'Pratinjau akan muncul di sini setelah data ditempel, '
+                            .'berikut tombol impornya.',
+                    )),
+                // Hanya relevan bila pratinjau memang menemukan duplikat;
+                // tanpa duplikat, runImport() tetap memakai default 'lewati'.
+                Radio::make('mode_duplikat')
+                    ->label('Tindakan untuk data duplikat')
+                    ->options($duplikatOptions)
+                    ->default('lewati')
+                    ->required()
+                    ->visible(fn (Get $get): bool => $this->importMassalAdaDuplikat($get)),
             ])
             ->action(function (array $data) use ($contextKeys): void {
                 $context = [];

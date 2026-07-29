@@ -813,10 +813,65 @@ it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', functi
         ->setActionData([
             'rows' => $raw,
         ])
+        // Satu modal: pratinjau dan tombol impor sekaligus, tanpa langkah
+        // "Konfirmasi" terpisah. Data ini seluruhnya baru, jadi pilihan
+        // penanganan duplikat tidak perlu ditampilkan.
         ->assertMountedActionModalSee('Pendidik Matematika')
-        ->goToNextWizardStep()
-        ->assertMountedActionModalSee('Tindakan untuk data duplikat')
+        ->assertMountedActionModalSee('Impor sekarang')
+        ->assertMountedActionModalDontSee('Tindakan untuk data duplikat')
         ->assertMountedActionModalDontSee('Belum ada data yang dapat dibaca');
+});
+
+it('modal impor menyembunyikan tombol impor sampai pratinjau terbaca', function () {
+    $this->actingAs(User::where('username', 'timkur')->firstOrFail());
+
+    $kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Tombol Impor',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    KurikulumTerpilih::set($kurikulum->id);
+
+    $halaman = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+        ->mountAction('bulkImport');
+
+    $halaman
+        ->assertMountedActionModalDontSee('Impor sekarang')
+        ->assertMountedActionModalSee('Pratinjau akan muncul di sini setelah data ditempel');
+
+    $halaman
+        ->setActionData(['rows' => "1\tPendidik Kimia\tDeskripsi singkat"])
+        ->assertMountedActionModalSee('Impor sekarang');
+});
+
+it('pilihan penanganan duplikat hanya muncul saat pratinjau menemukan duplikat', function () {
+    $this->actingAs(User::where('username', 'timkur')->firstOrFail());
+
+    $kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Opsi Duplikat',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    KurikulumTerpilih::set($kurikulum->id);
+
+    ProfilLulusan::query()->create([
+        'kurikulum_id' => $kurikulum->id,
+        'kode' => 'PL-1',
+        'nama' => 'Pendidik Matematika',
+        'deskripsi' => 'Profil lama yang akan bentrok dengan tempelan',
+        'urutan' => 1,
+    ]);
+
+    Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+        ->mountAction('bulkImport')
+        ->setActionData(['rows' => "1\tPendidik Matematika\tProfil yang sudah ada"])
+        ->assertMountedActionModalSee('Tindakan untuk data duplikat')
+        ->assertMountedActionModalSee('Nasib baris duplikat mengikuti pilihan di bawah')
+        ->assertMountedActionModalSee('Impor sekarang');
 });
 
 it('impor profil lulusan mewajibkan nama dan mendeteksi jumlah indikator', function () {
