@@ -163,22 +163,26 @@ class AnalisisMkProdi extends Page implements HasTable
      * search/pagination bawaan untuk ~100+ mahasiswa. Ringkasan IPK
      * dihitung SEKALI per render tabel (bukan per baris) lewat
      * IpkKumulatifService::rosterKurikulum(), disimpan ke variabel lokal
-     * yang di-closure-kan ke tiap kolom — menghindari N+1. SKS, nilai,
+     * yang di-closure-kan ke tiap kolom — menghindari N+1. Hanya mahasiswa
+     * yang mengontrak penawaran MK kurikulum ini yang tampil; SKS, nilai,
      * IPK, dan grafik CPL modal hanya menghitung penawaran MK kurikulum ini.
      */
     public function table(Table $table): Table
     {
         $kurikulum = $this->getKurikulumProperty();
-        $prodi = $kurikulum?->academicUnit;
 
         $roster = $kurikulum !== null
             ? collect(app(IpkKumulatifService::class)->rosterKurikulum($kurikulum))->keyBy('mahasiswa_id')
             : new Collection;
 
+        // Tabel hanya menampilkan mahasiswa yang mengontrak MK pada kurikulum
+        // terpilih (bukan seluruh mahasiswa prodi).
+        $mahasiswaIds = $roster->keys()->all();
+
         return $table
             ->query(
-                $prodi !== null
-                    ? Mahasiswa::query()->where('academic_unit_id', $prodi->id)
+                $mahasiswaIds !== []
+                    ? Mahasiswa::query()->whereIn('id', $mahasiswaIds)
                     : Mahasiswa::query()->whereRaw('1 = 0'),
             )
             ->columns([

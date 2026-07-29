@@ -19,10 +19,11 @@ class IpkKumulatifService
     public function __construct(private readonly PenilaianMatrixService $matrix) {}
 
     /**
-     * Interpretasi: "Nilai Angka"/"Nilai Huruf" = rerata nilai_angka mahasiswa
-     * HANYA dari kelas kurikulum ini yang SUDAH dinilai (nilai_angka null
-     * diabaikan). "IPK" = SKS-weighted dari huruf asli tiap kelas yang sudah
-     * dinilai pada kurikulum yang sama; kelas kurikulum lain tidak ikut.
+     * Hanya mahasiswa yang pernah mengontrak kelas pada penawaran MK
+     * kurikulum ini. Interpretasi: "Nilai Angka"/"Nilai Huruf" = rerata
+     * nilai_angka dari kelas kurikulum ini yang SUDAH dinilai (nilai_angka
+     * null diabaikan). "IPK" = SKS-weighted dari huruf asli tiap kelas yang
+     * sudah dinilai pada kurikulum yang sama; kelas kurikulum lain tidak ikut.
      *
      * @return list<array{
      *     mahasiswa_id: string, nim: string, nama: string,
@@ -32,27 +33,27 @@ class IpkKumulatifService
      */
     public function rosterKurikulum(Kurikulum $kurikulum): array
     {
-        $mahasiswaList = Mahasiswa::query()
-            ->where('academic_unit_id', $kurikulum->academic_unit_id)
-            ->orderBy('nim')
-            ->get();
-
-        if ($mahasiswaList->isEmpty()) {
-            return [];
-        }
-
         $enrollmentsByMahasiswa = KelasMkMahasiswa::query()
-            ->whereIn('mahasiswa_id', $mahasiswaList->pluck('id'))
             ->whereHas('kelasMk.mkUnit', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
-            ->with('kelasMk.mkUnit.mk')
+            ->with(['mahasiswa', 'kelasMk.mkUnit.mk'])
             ->get()
             ->groupBy('mahasiswa_id');
 
-        return $mahasiswaList
-            ->map(fn (Mahasiswa $mahasiswa): array => $this->ringkasanSatuMahasiswa(
-                $mahasiswa,
-                $enrollmentsByMahasiswa->get($mahasiswa->id, new Collection),
-            ))
+        if ($enrollmentsByMahasiswa->isEmpty()) {
+            return [];
+        }
+
+        return $enrollmentsByMahasiswa
+            ->map(function (Collection $enrollments): ?array {
+                /** @var Mahasiswa|null $mahasiswa */
+                $mahasiswa = $enrollments->first()?->mahasiswa;
+
+                return $mahasiswa !== null
+                    ? $this->ringkasanSatuMahasiswa($mahasiswa, $enrollments)
+                    : null;
+            })
+            ->filter()
+            ->sortBy('nim')
             ->values()
             ->all();
     }

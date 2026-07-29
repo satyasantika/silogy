@@ -74,7 +74,7 @@
                 <x-filament::section
                     icon="heroicon-o-chart-bar"
                     heading="Hasil Analisis Asesmen CPL per Mahasiswa"
-                    description="Informasi pencapaian CPL setiap mahasiswa pada kurikulum yang dikerjakan"
+                    description="Mahasiswa yang mengontrak mata kuliah pada kurikulum yang dikerjakan, beserta IPK dan capaian CPL-nya"
                 >
                     {{ $this->table }}
                 </x-filament::section>

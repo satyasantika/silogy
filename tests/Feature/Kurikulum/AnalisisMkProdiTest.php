@@ -365,6 +365,84 @@ it('roster IPK kumulatif menghitung SKS dikontrak, nilai rerata, dan IPK ber-SKS
         ->assertSee('3.32', escape: false);
 });
 
+it('roster IPK hanya menampilkan mahasiswa yang mengontrak MK pada kurikulum terpilih', function () {
+    $this->seed(SemesterSeeder::class);
+    $this->actingAs($this->kaprodi);
+
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+
+    $mahasiswaKontrak = Mahasiswa::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nim' => '242151100010',
+        'nama' => 'Mahasiswa Kontrak Kurikulum',
+    ]);
+    $mahasiswaTanpaKontrak = Mahasiswa::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nim' => '242151100011',
+        'nama' => 'Mahasiswa Tanpa Kontrak',
+    ]);
+
+    $kurikulumLain = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Lain Roster',
+        'tahun' => 2019,
+        'is_active' => false,
+    ]);
+
+    $mahasiswaHanyaKurikulumLain = Mahasiswa::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nim' => '242151100012',
+        'nama' => 'Mahasiswa Kurikulum Lain',
+    ]);
+
+    $mkAktif = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'sks_teori' => 2, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 2,
+    ]);
+    $mkUnitAktif = MkUnit::factory()->forMk($mkAktif)->forKurikulum($this->kurikulum)->create(['kode' => 'ROSTER-AKTIF']);
+    $kelasAktif = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitAktif->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+    KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelasAktif->id,
+        'mahasiswa_id' => $mahasiswaKontrak->id,
+        'nilai_angka' => 85,
+        'nilai_huruf' => 'A',
+    ]);
+
+    $mkLain = Mk::factory()->forKurikulum($kurikulumLain)->create([
+        'sks_teori' => 3, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 3,
+    ]);
+    $mkUnitLain = MkUnit::factory()->forMk($mkLain)->forKurikulum($kurikulumLain)->create(['kode' => 'ROSTER-LAIN']);
+    $kelasLain = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitLain->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+    KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelasLain->id,
+        'mahasiswa_id' => $mahasiswaHanyaKurikulumLain->id,
+        'nilai_angka' => 70,
+        'nilai_huruf' => 'B',
+    ]);
+
+    $roster = collect(app(IpkKumulatifService::class)->rosterKurikulum($this->kurikulum));
+
+    expect($roster)->toHaveCount(1)
+        ->and($roster->first()['mahasiswa_id'])->toBe($mahasiswaKontrak->id)
+        ->and($roster->firstWhere('mahasiswa_id', $mahasiswaTanpaKontrak->id))->toBeNull()
+        ->and($roster->firstWhere('mahasiswa_id', $mahasiswaHanyaKurikulumLain->id))->toBeNull();
+
+    Livewire::test(AnalisisMkProdi::class)
+        ->assertSee('242151100010', escape: false)
+        ->assertSee('Mahasiswa yang mengontrak mata kuliah pada kurikulum yang dikerjakan', escape: false)
+        ->assertDontSee('242151100011', escape: false)
+        ->assertDontSee('242151100012', escape: false);
+});
+
 it('roster IPK dan grafik CPL mahasiswa mengabaikan kelas dari kurikulum lain', function () {
     $this->seed(SemesterSeeder::class);
     $this->actingAs($this->kaprodi);
