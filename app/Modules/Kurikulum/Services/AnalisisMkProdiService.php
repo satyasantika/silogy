@@ -6,22 +6,58 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
 use Illuminate\Support\Collection;
 
 /**
- * Data prodi-wide untuk halaman "Analisis MK Prodi" — berbeda dari seluruh
- * layanan Penilaian lain di app ini (yang selalu per satu KelasMk), service
- * ini melihat SATU KURIKULUM (satu prodi) sekaligus: semua CPL yang
- * dibebankan pada prodi itu dan semua MK yang membebaninya.
+ * Data untuk halaman "Analisis MK Prodi" — berbeda dari seluruh layanan
+ * Penilaian lain di app ini (yang selalu per satu KelasMk), service ini
+ * melihat SATU KURIKULUM sekaligus: semua CPL yang dibebankan kurikulum itu
+ * dan semua MK yang membebaninya.
+ *
+ * Kurikulum fakultas/universitas tidak pernah punya mk_units/KelasMk sendiri
+ * (lihat mkUnitIdsUntukKurikulum()) — penawaran & nilai mahasiswa selalu
+ * tercatat di mk_units milik prodi turunan yang MENGADAPTASI MK kurikulum
+ * itu. Jadi untuk kurikulum non-prodi, mk_unit_ids adalah ROLLUP lintas
+ * semua prodi turunan yang mengadaptasi, bukan milik kurikulum itu sendiri.
  */
 class AnalisisMkProdiService
 {
     /**
+     * Kumpulan mk_units yang relevan untuk kurikulum ini:
+     * - Prodi: mk_units miliknya sendiri (kurikulum_id = $kurikulum->id).
+     * - Fakultas/universitas: mk_units milik SEMUA prodi turunan yang
+     *   mk_id-nya diadaptasi dari Mk milik kurikulum ini (is_active saja,
+     *   supaya rollup hanya menghitung penawaran yang sedang berjalan).
+     *
+     * @return Collection<int, string>
+     */
+    public function mkUnitIdsUntukKurikulum(Kurikulum $kurikulum): Collection
+    {
+        if ($kurikulum->academicUnit?->isProdi()) {
+            return MkUnit::query()->where('kurikulum_id', $kurikulum->id)->pluck('id');
+        }
+
+        $mkIdsSumber = Mk::query()->where('kurikulum_id', $kurikulum->id)->pluck('id');
+
+        if ($mkIdsSumber->isEmpty()) {
+            return collect();
+        }
+
+        return MkUnit::query()
+            ->where('is_active', true)
+            ->whereIn('mk_id', $mkIdsSumber)
+            ->whereHas('academicUnit', fn ($query) => $query->where('type', 'study_program'))
+            ->pluck('id');
+    }
+
+    /**
      * Tab 1 — "Pemetaan Rencana Asesmen CPL": murni data kurikulum
      * (CplMk.bobot), tidak bergantung pada nilai mahasiswa sama sekali.
      *
+     * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      * @return list<array{
      *     cpl_id: string,
      *     cpl_kode: string,
@@ -29,8 +65,10 @@ class AnalisisMkProdiService
      *     mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float}>,
      * }>
      */
-    public function pemetaanCplMk(Kurikulum $kurikulum): array
+    public function pemetaanCplMk(Kurikulum $kurikulum, ?Collection $mkUnitIds = null): array
     {
+        $mkUnitIds ??= $this->mkUnitIdsUntukKurikulum($kurikulum);
+
         // Tidak pakai Kurikulum::cplMks() — whereColumn() di dalamnya
         // mengasumsikan tabel "kurikulum" sudah ter-join di query luar
         // (subquery-nya gagal bila diakses langsung dari instance model).
@@ -44,7 +82,7 @@ class AnalisisMkProdiService
             return [];
         }
 
-        $kodeMkUnitByMkId = $this->kodeMkUnitByMkId($kurikulum, $cplMks->pluck('mk_id')->unique());
+        $kodeMkUnitByMkId = $this->kodeMkUnitByMkId($mkUnitIds, $cplMks->pluck('mk_id')->unique());
 
         return $cplMks
             ->groupBy(fn (CplMk $pivot): string => $pivot->cplBok->cpl->kode)
@@ -90,12 +128,12 @@ class AnalisisMkProdiService
      * Catatan performa: ini menghitung ulang SEMUA kelas prodi (bukan satu
      * kelas seperti EvaluasiCplService biasa dipakai) — bisa lambat untuk
      * prodi besar, diterima untuk saat ini (lihat plan).
+     *
+     * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      */
-    public function sinkronkanKalkulasiProdi(Kurikulum $kurikulum): void
+    public function sinkronkanKalkulasiProdi(Kurikulum $kurikulum, ?Collection $mkUnitIds = null): void
     {
-        $mkUnitIds = MkUnit::query()
-            ->where('kurikulum_id', $kurikulum->id)
-            ->pluck('id');
+        $mkUnitIds ??= $this->mkUnitIdsUntukKurikulum($kurikulum);
 
         if ($mkUnitIds->isEmpty()) {
             return;
@@ -127,20 +165,26 @@ class AnalisisMkProdiService
      *         }>,
      *     }>,
      * }
+     *
+     * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      */
-    public function hasilAnalisisPerAngkatan(Kurikulum $kurikulum): array
+    public function hasilAnalisisPerAngkatan(Kurikulum $kurikulum, ?Collection $mkUnitIds = null): array
     {
-        $pemetaan = $this->pemetaanCplMk($kurikulum);
+        $mkUnitIds ??= $this->mkUnitIdsUntukKurikulum($kurikulum);
+
+        $pemetaan = $this->pemetaanCplMk($kurikulum, $mkUnitIds);
 
         if ($pemetaan === []) {
             return ['angkatan_list' => [], 'pemetaan' => []];
         }
 
-        $mkIds = collect($pemetaan)->pluck('mk_rows')->flatten(1)->pluck('mk_id')->unique()->values();
-
+        // Difilter lewat mk_unit_id (bukan mk_id saja) supaya kelas milik
+        // kurikulum/prodi LAIN yang kebetulan memakai mk_id sama (mis. MK
+        // yang diadaptasi ke beberapa prodi turunan) tidak ikut terhitung
+        // di luar rollup mk_unit_ids yang sudah diresolusi di atas.
         $hasilRows = HasilCplMk::query()
             ->whereNotNull('nilai_akhir')
-            ->whereHas('mkUnit', fn ($query) => $query->whereIn('mk_id', $mkIds))
+            ->whereHas('mkUnit', fn ($query) => $query->whereIn('id', $mkUnitIds))
             ->with(['mkUnit', 'kelasMkMahasiswa.mahasiswa'])
             ->get()
             ->filter(fn (HasilCplMk $hasil): bool => filled($hasil->kelasMkMahasiswa?->mahasiswa?->angkatan));
@@ -233,21 +277,55 @@ class AnalisisMkProdiService
     }
 
     /**
-     * Kode MkUnit (mis. "KU21511001") untuk tiap MK pada prodi kurikulum ini —
+     * Kode MkUnit (mis. "KU21511001") untuk tiap MK pada mk_unit_ids ini —
      * dipakai murni sebagai label kode; MkUnit yang aktif diprioritaskan,
-     * fallback ke penawaran manapun bila tidak ada yang aktif.
+     * fallback ke penawaran manapun bila tidak ada yang aktif. Pada rollup
+     * fakultas/universitas, satu mk_id bisa dimiliki lebih dari satu
+     * mk_unit (prodi berbeda mengadaptasi dengan kode masing-masing) —
+     * semua kode unik ditampilkan digabung koma.
      *
+     * @param  Collection<int, string>  $mkUnitIds
      * @param  Collection<int, string>  $mkIds
      * @return array<string, string>
      */
-    protected function kodeMkUnitByMkId(Kurikulum $kurikulum, Collection $mkIds): array
+    protected function kodeMkUnitByMkId(Collection $mkUnitIds, Collection $mkIds): array
     {
         return MkUnit::query()
             ->whereIn('mk_id', $mkIds)
-            ->where('kurikulum_id', $kurikulum->id)
+            ->whereIn('id', $mkUnitIds)
             ->get()
             ->groupBy('mk_id')
-            ->map(fn (Collection $units): string => ($units->firstWhere('is_active', true) ?? $units->first())->kode)
+            ->map(function (Collection $units): string {
+                $aktif = $units->where('is_active', true);
+                $dipakai = $aktif->isNotEmpty() ? $aktif : $units;
+
+                return $dipakai->pluck('kode')->unique()->sort()->implode(', ');
+            })
             ->all();
+    }
+
+    /**
+     * Rincian "prodi mana pakai kode apa" untuk satu MK — dipakai modal
+     * "Lihat kode per prodi" pada halaman Analisis MK fakultas/universitas
+     * (lihat tabel-pemetaan-cpl-mk.blade.php). Dibatasi ke $mkUnitIds yang
+     * sama dengan himpunan rollup kurikulum yang dikerjakan saat ini, supaya
+     * hanya prodi yang benar-benar bagian dari kurikulum itu yang tampil.
+     *
+     * @param  Collection<int, string>  $mkUnitIds
+     * @return Collection<int, array{prodi: string, kode: string}>
+     */
+    public function kodePerProdiUntukMk(string $mkId, Collection $mkUnitIds): Collection
+    {
+        return MkUnit::query()
+            ->where('mk_id', $mkId)
+            ->whereIn('id', $mkUnitIds)
+            ->with('academicUnit')
+            ->get()
+            ->map(fn (MkUnit $unit): array => [
+                'prodi' => $unit->academicUnit?->nama ?? '—',
+                'kode' => $unit->kode,
+            ])
+            ->sortBy('prodi')
+            ->values();
     }
 }

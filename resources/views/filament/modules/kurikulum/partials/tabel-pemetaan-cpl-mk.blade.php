@@ -8,7 +8,9 @@
             <thead>
                 <tr style="background:rgba(128,128,128,.08);text-align:left;">
                     <th style="padding:8px;width:40%;">Capaian Pembelajaran Lulusan</th>
-                    <th style="padding:8px;">Nama Mata Kuliah (Kode)</th>
+                    <th style="padding:8px;">
+                        {{ $this->analisisUnitType() === 'study_program' ? 'Nama Mata Kuliah (Kode)' : 'Mata Kuliah' }}
+                    </th>
                     <th style="padding:8px;text-align:center;">SKS</th>
                     <th style="padding:8px;text-align:end;">Kontribusi MK</th>
                 </tr>
@@ -25,7 +27,20 @@
                                     </div>
                                 </td>
                             @endif
-                            <td style="padding:8px;">{{ $mkRow['nama'] }} ({{ $mkRow['kode'] }})</td>
+                            <td style="padding:8px;">
+                                @if ($this->analisisUnitType() === 'study_program')
+                                    {{ $mkRow['nama'] }} ({{ $mkRow['kode'] }})
+                                @else
+                                    {{ $mkRow['nama'] }}
+                                    <button
+                                        type="button"
+                                        wire:click="mountAction('kodePerProdi', { mkId: '{{ $mkRow['mk_id'] }}', nama: '{{ addslashes($mkRow['nama']) }}' })"
+                                        style="margin-left:6px;font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid rgba(37,99,235,.4);color:#1d4ed8;background:transparent;cursor:pointer;"
+                                    >
+                                        Lihat per prodi
+                                    </button>
+                                @endif
+                            </td>
                             <td style="padding:8px;text-align:center;">
                                 <span style="display:inline-block;padding:1px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#e0e7ff;color:#3730a3;">
                                     {{ $mkRow['sks'] }}

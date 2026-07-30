@@ -1,22 +1,18 @@
 <x-filament-panels::page>
-    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner', [
-        'catatan' => 'Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini.',
-    ])
-
     @php
         $kurikulum = $this->kurikulum;
     @endphp
 
+    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner', [
+        'catatan' => $this->analisisUnitType() === 'study_program'
+            ? 'Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini.'
+            : 'Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah adalah gabungan (rollup) dari seluruh prodi yang mengadaptasi MK kurikulum ini.',
+    ])
+
     @if (! $kurikulum)
         <div style="margin-top:16px;">
             <x-filament::section icon="heroicon-o-information-circle" heading="Belum ada kurikulum terpilih">
-                Pilih kurikulum di daftar kurikulum terlebih dahulu, lalu buka kembali halaman ini.
-            </x-filament::section>
-        </div>
-    @elseif (! ($kurikulum->academicUnit?->isProdi() ?? false))
-        <div style="margin-top:16px;">
-            <x-filament::section icon="heroicon-o-information-circle" heading="Kurikulum bukan program studi">
-                Analisis MK Prodi hanya tersedia untuk kurikulum tingkat program studi.
+                Pilih atau kerjakan kurikulum level yang sesuai di daftar kurikulum terlebih dahulu, lalu buka kembali halaman ini.
             </x-filament::section>
         </div>
     @else

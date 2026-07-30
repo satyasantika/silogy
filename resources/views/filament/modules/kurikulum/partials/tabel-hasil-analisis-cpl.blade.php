@@ -49,7 +49,16 @@
                                     </div>
                                 </td>
                             @endif
-                            <td style="padding:8px;text-align:left;">{{ $mkRow['nama'] }} ({{ $mkRow['kode'] }})</td>
+                            <td style="padding:8px;text-align:left;">
+                                @if ($this->analisisUnitType() === 'study_program')
+                                    {{ $mkRow['nama'] }} ({{ $mkRow['kode'] }})
+                                @else
+                                    {{ $mkRow['nama'] }}
+                                    <span style="display:inline-block;margin-left:6px;padding:1px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#e0e7ff;color:#3730a3;">
+                                        {{ $mkRow['sks'] }} SKS
+                                    </span>
+                                @endif
+                            </td>
                             @if (empty($angkatanList))
                                 <td style="padding:8px;text-align:center;">—</td>
                             @else

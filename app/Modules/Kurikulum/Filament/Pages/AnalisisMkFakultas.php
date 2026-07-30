@@ -9,12 +9,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Contracts\HasTable;
 
 /**
- * Laporan CPL untuk Pimpinan/Tim Kurikulum prodi — mengikuti kurikulum
- * terpilih di session (sama seperti CPL/BoK/MK/interaksi). Hanya aktif
- * saat kurikulum yang dikerjakan berada di level program studi; lihat
- * AnalisisMkFakultas/AnalisisMkUniversitas untuk level lain.
+ * Laporan CPL untuk Pimpinan/Tim Kurikulum fakultas — mengikuti kurikulum
+ * terpilih di session. Hanya aktif saat kurikulum yang dikerjakan berada
+ * di level fakultas; datanya rollup lintas semua prodi yang mengadaptasi
+ * MK kurikulum fakultas ini (lihat AnalisisMkProdiService::mkUnitIdsUntukKurikulum()).
  */
-class AnalisisMkProdi extends Page implements HasActions, HasTable
+class AnalisisMkFakultas extends Page implements HasActions, HasTable
 {
     use HasAnalisisMkForUnitType;
 
@@ -24,14 +24,14 @@ class AnalisisMkProdi extends Page implements HasActions, HasTable
 
     protected static string|\UnitEnum|null $navigationGroup = 'Laporan';
 
-    protected static ?string $navigationLabel = 'Analisis MK';
+    protected static ?string $navigationLabel = 'Analisis MK Fakultas';
 
-    protected static ?string $title = 'Analisis MK';
+    protected static ?string $title = 'Analisis MK Fakultas';
 
-    protected static ?string $slug = 'laporan/analisis-mk-prodi';
+    protected static ?string $slug = 'laporan/analisis-mk-fakultas';
 
     public static function analisisUnitType(): string
     {
-        return 'study_program';
+        return 'faculty';
     }
 }
