@@ -11,9 +11,37 @@ use Illuminate\Support\Str;
 
 class ListAcademicUnits extends ListRecords
 {
-    use HasImporMassal;
+    use HasImporMassal {
+        HasImporMassal::parseImportRaw as private traitParseImportRaw;
+    }
 
     protected static string $resource = AcademicUnitResource::class;
+
+    /**
+     * kode => type unit yang di-resolve "baru" pada baris SEBELUMNYA di
+     * tempelan yang sama — supaya baris berikutnya bisa berinduk ke unit
+     * yang baru dibuat di baris lebih awal, bukan cuma unit yang sudah ada
+     * di database sebelum impor ini berjalan.
+     *
+     * Direset eksplisit di setiap pemanggilan parseImportRaw() (lihat
+     * override di bawah) — bukan cuma mengandalkan properti protected
+     * "kosong per request Livewire baru", karena satu request BISA memicu
+     * parseImportRaw() lebih dari sekali (mis. sekali untuk cek visibilitas
+     * tombol submit modal via importMassalPratinjauSiap(), sekali lagi di
+     * dalam runImport()) — tanpa reset eksplisit, pendaftaran dari pass
+     * pertama bisa "bocor" ke pass kedua dan meloloskan referensi mundur
+     * (baris berinduk ke baris SESUDAHNYA) yang seharusnya tetap invalid.
+     *
+     * @var array<string, string>
+     */
+    protected array $importUnitBaruDalamBatch = [];
+
+    public function parseImportRaw(string $raw, array $context = []): array
+    {
+        $this->importUnitBaruDalamBatch = [];
+
+        return $this->traitParseImportRaw($raw, $context);
+    }
 
     protected function getHeaderActions(): array
     {
@@ -34,6 +62,7 @@ class ListAcademicUnits extends ListRecords
         return [
             ['key' => 'jenis', 'label' => 'jenis', 'wajib' => true],
             ['key' => 'kode', 'label' => 'kode', 'wajib' => true],
+            ['key' => 'jenjang', 'label' => 'jenjang', 'wajib' => false],
             ['key' => 'nama', 'label' => 'nama', 'wajib' => true],
             ['key' => 'kode_induk', 'label' => 'kode unit induk', 'wajib' => false],
             ['key' => 'singkatan', 'label' => 'singkatan', 'wajib' => false],
@@ -44,7 +73,9 @@ class ListAcademicUnits extends ListRecords
     protected function importHelperNote(): string
     {
         return 'Jenis: universitas, fakultas, jurusan, atau prodi. Kode unit induk wajib untuk selain universitas '
-            .'(prodi boleh berinduk ke jurusan atau langsung fakultas). Status: draft/aktif/nonaktif (default aktif).';
+            .'(prodi boleh berinduk ke jurusan atau langsung fakultas) — boleh merujuk unit yang baru dibuat di '
+            .'baris lebih awal pada tempelan yang sama. Jenjang (D3/D4/S1/S2/S3/Profesi) wajib diisi khusus untuk '
+            .'jenis prodi, kosongkan untuk jenis lain. Status: draft/aktif/nonaktif (default aktif).';
     }
 
     /**
@@ -53,8 +84,8 @@ class ListAcademicUnits extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            "fakultas\tFT\tFakultas Teknik\tUNSIL\tFT\taktif",
-            "prodi\tPTI\tProdi Pendidikan Informatika\tFT\t\taktif",
+            "fakultas\t10\t\tFakultas Agama Islam\tUNSIL\tFAI\taktif",
+            "prodi\t1002\tS1\tEkonomi Syariah\t10\tS1-eksyar\taktif",
         ];
     }
 
@@ -72,6 +103,19 @@ class ListAcademicUnits extends ListRecords
             return ['status' => 'invalid', 'keterangan' => 'Status harus draft, aktif, atau nonaktif.'];
         }
 
+        if ($type === 'study_program') {
+            if ($data['jenjang'] === '') {
+                return ['status' => 'invalid', 'keterangan' => 'Jenjang wajib diisi untuk unit berjenis prodi.'];
+            }
+
+            if ($this->normalizeJenjang($data['jenjang']) === null) {
+                return [
+                    'status' => 'invalid',
+                    'keterangan' => 'Jenjang harus salah satu dari: '.implode(', ', array_keys(AcademicUnitResource::jenjangOptions())).'.',
+                ];
+            }
+        }
+
         $parentTypes = AcademicUnitResource::parentTypesFor($type);
 
         if ($parentTypes !== [] && $data['kode_induk'] === '') {
@@ -80,12 +124,13 @@ class ListAcademicUnits extends ListRecords
 
         if ($parentTypes !== []) {
             $parent = AcademicUnit::query()->where('code', $data['kode_induk'])->first();
+            $parentType = $parent?->type ?? ($this->importUnitBaruDalamBatch[$data['kode_induk']] ?? null);
 
-            if (! $parent) {
+            if ($parentType === null) {
                 return ['status' => 'invalid', 'keterangan' => "Unit induk dengan kode '{$data['kode_induk']}' tidak ditemukan."];
             }
 
-            if (! in_array($parent->type, $parentTypes, true)) {
+            if (! in_array($parentType, $parentTypes, true)) {
                 return ['status' => 'invalid', 'keterangan' => 'Jenis unit induk tidak sesuai (harus '.implode(' atau ', $parentTypes).').'];
             }
         }
@@ -101,6 +146,10 @@ class ListAcademicUnits extends ListRecords
             ];
         }
 
+        // Catat unit ini supaya baris SESUDAHNYA pada tempelan yang sama
+        // bisa berinduk ke sini walau belum tersimpan di database.
+        $this->importUnitBaruDalamBatch[$data['kode']] = $type;
+
         return ['status' => 'baru', 'keterangan' => '', 'dedup' => mb_strtolower($data['kode'])];
     }
 
@@ -115,6 +164,7 @@ class ListAcademicUnits extends ListRecords
             'type' => $type,
             'parent_id' => $parent?->id,
             'code' => $data['kode'],
+            'jenjang' => $this->normalizeJenjang($data['jenjang']),
             'nama' => $data['nama'],
             'singkatan' => $data['singkatan'] ?: null,
             'status' => $data['status'] === '' ? 'aktif' : Str::lower($data['status']),
@@ -131,6 +181,7 @@ class ListAcademicUnits extends ListRecords
 
         $unit->update([
             'nama' => $data['nama'],
+            'jenjang' => $this->normalizeJenjang($data['jenjang']),
             'singkatan' => $data['singkatan'] ?: $unit->singkatan,
             'status' => $data['status'] === '' ? $unit->status : Str::lower($data['status']),
         ]);
@@ -145,5 +196,16 @@ class ListAcademicUnits extends ListRecords
             'prodi', 'program studi', 'study_program' => 'study_program',
             default => null,
         };
+    }
+
+    protected function normalizeJenjang(string $jenjang): ?string
+    {
+        if ($jenjang === '') {
+            return null;
+        }
+
+        return collect(AcademicUnitResource::jenjangOptions())
+            ->keys()
+            ->first(fn (string $option): bool => Str::lower($option) === Str::lower(trim($jenjang)));
     }
 }

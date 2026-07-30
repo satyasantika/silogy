@@ -330,6 +330,10 @@ class AcademicUnitResource extends Resource
                     ->searchable()
                     ->placeholder('—'),
 
+                TextColumn::make('jenjang')
+                    ->label('Jenjang')
+                    ->placeholder('—'),
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()

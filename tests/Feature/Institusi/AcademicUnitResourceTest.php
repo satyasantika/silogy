@@ -69,6 +69,20 @@ it('dapat membuat program studi langsung di bawah fakultas tanpa jurusan', funct
         ->and($prodi->parent->isFaculty())->toBeTrue();
 });
 
+it('tabel menampilkan kolom jenjang untuk unit berjenis prodi', function () {
+    $fakultas = AcademicUnit::where('type', 'faculty')->first();
+
+    $prodi = AcademicUnit::factory()->studyProgram($fakultas)->create([
+        'code' => 'PSJENJANG',
+        'nama' => 'Prodi Uji Jenjang',
+        'jenjang' => 'S2',
+    ]);
+
+    Livewire::test(ListAcademicUnits::class)
+        ->assertTableColumnStateSet('jenjang', 'S2', $prodi)
+        ->assertSee('S2');
+});
+
 it('program studi tetap dapat berinduk ke jurusan', function () {
     $jurusan = AcademicUnit::where('type', 'department')->first();
 

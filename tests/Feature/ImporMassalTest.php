@@ -99,9 +99,9 @@ it('impor unit akademik: baru dibuat, duplikat kode terdeteksi', function () {
     $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
 
     $rows = implode("\n", [
-        'fakultas|FT2|Fakultas Teknik|UNSIL|FT|aktif',
-        'prodi|PTI|Prodi Pendidikan Informatika|21||aktif',
-        'fakultas|21|Duplikat FKIP|UNSIL||aktif',
+        'fakultas|FT2||Fakultas Teknik|UNSIL|FT|aktif',
+        'prodi|PTI|S1|Prodi Pendidikan Informatika|21||aktif',
+        'fakultas|21||Duplikat FKIP|UNSIL||aktif',
     ]);
 
     Livewire::test(ListAcademicUnits::class)
@@ -115,7 +115,90 @@ it('impor unit akademik: baru dibuat, duplikat kode terdeteksi', function () {
         ->and($ft->parent->code)->toBe('UNSIL')
         ->and($pti)->not->toBeNull()
         ->and($pti->parent->code)->toBe('21')
+        ->and($pti->jenjang)->toBe('S1')
         ->and(AcademicUnit::query()->where('nama', 'Duplikat FKIP')->exists())->toBeFalse();
+});
+
+it('impor unit akademik: prodi dapat berinduk ke fakultas yang baru dibuat di baris lebih awal pada tempelan yang sama', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    $rows = implode("\n", [
+        'fakultas|10||Fakultas Agama Islam|UNSIL|FAI|aktif',
+        'prodi|1002|S1|Ekonomi Syariah|10|S1-eksyar|aktif',
+    ]);
+
+    Livewire::test(ListAcademicUnits::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati']);
+
+    $fai = AcademicUnit::query()->where('code', '10')->first();
+    $eksyar = AcademicUnit::query()->where('code', '1002')->first();
+
+    expect($fai)->not->toBeNull()
+        ->and($fai->type)->toBe('faculty')
+        ->and($eksyar)->not->toBeNull()
+        ->and($eksyar->type)->toBe('study_program')
+        ->and($eksyar->jenjang)->toBe('S1')
+        ->and($eksyar->parent_id)->toBe($fai->id);
+});
+
+it('impor unit akademik: prodi TIDAK dapat berinduk ke fakultas yang baru didefinisikan di baris SESUDAHNYA', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    $rows = implode("\n", [
+        'prodi|1002|S1|Ekonomi Syariah|10|S1-eksyar|aktif',
+        'fakultas|10||Fakultas Agama Islam|UNSIL|FAI|aktif',
+    ]);
+
+    Livewire::test(ListAcademicUnits::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati']);
+
+    expect(AcademicUnit::query()->where('code', '1002')->exists())->toBeFalse()
+        ->and(AcademicUnit::query()->where('code', '10')->exists())->toBeTrue();
+});
+
+it('impor unit akademik: jenjang wajib dan divalidasi khusus untuk prodi', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    $rows = implode("\n", [
+        'prodi|PTIB|B|Prodi Tanpa Jenjang|21||aktif',
+        'prodi|PTIS|S9|Prodi Jenjang Salah|21||aktif',
+        'prodi|PTIC|s1|Prodi Jenjang Kecil|21||aktif',
+        'fakultas|FTC||Fakultas Tanpa Jenjang|UNSIL|FTC|aktif',
+    ]);
+
+    Livewire::test(ListAcademicUnits::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati']);
+
+    expect(AcademicUnit::query()->where('code', 'PTIB')->exists())->toBeFalse()
+        ->and(AcademicUnit::query()->where('code', 'PTIS')->exists())->toBeFalse();
+
+    $ptic = AcademicUnit::query()->where('code', 'PTIC')->first();
+    $ftc = AcademicUnit::query()->where('code', 'FTC')->first();
+
+    expect($ptic)->not->toBeNull()
+        ->and($ptic->jenjang)->toBe('S1')
+        ->and($ftc)->not->toBeNull()
+        ->and($ftc->jenjang)->toBeNull();
+});
+
+it('impor unit akademik: mode timpa memperbarui jenjang prodi existing', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    $prodi = AcademicUnit::factory()->studyProgram($this->fakultas)->create([
+        'code' => 'PTIL',
+        'nama' => 'Prodi Lama',
+        'jenjang' => 'S1',
+    ]);
+
+    $rows = "prodi|PTIL|S2|Prodi Lama Diperbarui|{$this->fakultas->code}||aktif";
+
+    Livewire::test(ListAcademicUnits::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'timpa']);
+
+    $prodi->refresh();
+
+    expect($prodi->nama)->toBe('Prodi Lama Diperbarui')
+        ->and($prodi->jenjang)->toBe('S2');
 });
 
 it('impor mahasiswa ke prodi terpilih dengan duplikat nim dilewati', function () {
