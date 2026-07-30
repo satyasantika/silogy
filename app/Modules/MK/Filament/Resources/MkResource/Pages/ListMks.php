@@ -7,6 +7,7 @@ use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
+use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Models\Mk;
@@ -15,11 +16,16 @@ use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\RenderHook;
+use Filament\Schemas\Schema;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Str;
 
 class ListMks extends ListRecords
 {
     use HasImporMassal;
+    use HasKurikulumPipelineNav;
 
     protected static string $resource = MkResource::class;
 
@@ -30,6 +36,23 @@ class ListMks extends ListRecords
                 ->visible(fn (): bool => MkResource::canCreate()),
             CreateAction::make(),
         ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getTabsContentComponent(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+                EmbeddedTable::make(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+                ...$this->kurikulumPipelineNavComponents(),
+            ]);
+    }
+
+    protected function kurikulumPipelineStepKey(): string
+    {
+        return 'mk';
     }
 
     protected function importModalHeading(): string
