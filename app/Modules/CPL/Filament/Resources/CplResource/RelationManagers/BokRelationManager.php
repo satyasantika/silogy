@@ -34,7 +34,7 @@ class BokRelationManager extends RelationManager
                         /** @var Cpl $cpl */
                         $cpl = $this->getOwnerRecord();
 
-                        return $query->where('academic_unit_id', $cpl->academic_unit_id);
+                        return $query->where('kurikulum_id', $cpl->kurikulum_id);
                     })
                     ->preloadRecordSelect()
                     ->schema([

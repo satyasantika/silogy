@@ -80,18 +80,31 @@ class CplResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = static::scopeEloquentByTimKurikulumUnits(
-            parent::getEloquentQuery()->with('academicUnit'),
-        );
+        $query = parent::getEloquentQuery()->with('academicUnit');
 
         if (auth()->user()?->hasRole('Super Admin')) {
             return $query;
         }
 
-        $adaptasi = static::scopedTimKurikulumUnitIds()
-            ->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($unitId));
+        $unitIds = static::scopedTimKurikulumUnitIds();
+        $adaptasi = $unitIds->flatMap(fn (string $unitId) => CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($unitId));
 
-        return $adaptasi->isEmpty() ? $query : $query->orWhereIn('id', $adaptasi);
+        if ($adaptasi->isEmpty()) {
+            return static::scopeEloquentByTimKurikulumUnits($query);
+        }
+
+        // Dikelompokkan dalam satu where() supaya filter kurikulum_id yang
+        // ditambahkan belakangan (lihat table()) benar-benar AND terhadap
+        // keseluruhan kondisi ini — sebelumnya orWhereIn() top-level di sini
+        // membuat AND lanjutan hanya mengikat ke klausa OR terakhir (bug
+        // precedence SQL: AND mengikat lebih erat dari OR), sehingga
+        // academic_unit_id IN (...) meloloskan CPL dari kurikulum manapun
+        // pada unit yang sama.
+        return $query->where(
+            fn (Builder $scoped): Builder => $scoped
+                ->whereIn('academic_unit_id', $unitIds)
+                ->orWhereIn('id', $adaptasi),
+        );
     }
 
     public static function form(Schema $schema): Schema

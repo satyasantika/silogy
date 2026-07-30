@@ -114,7 +114,8 @@ trait HasImporUpdateMkUnitMassal
     {
         $service = app(MkUnitUpdateMassalService::class);
         $unitId = $service->unitIdDariKonteks($context);
-        $mkUnit = $service->cariPenawaran((string) $unitId, $data['nama']);
+        $kurikulumId = (string) ($context['import_kurikulum_id'] ?? '');
+        $mkUnit = $service->cariPenawaran((string) $unitId, $kurikulumId, $data['nama']);
 
         if ($mkUnit) {
             $service->perbaruiPenawaran($mkUnit, $data);

@@ -33,7 +33,7 @@ class CplMkRelationManager extends BaseKurikulumRelationManager
                         $kurikulum = $this->getOwnerRecord();
 
                         return CplBok::query()
-                            ->whereHas('cpl', fn ($q) => $q->where('academic_unit_id', $kurikulum->academic_unit_id))
+                            ->whereHas('cpl', fn ($q) => $q->where('kurikulum_id', $kurikulum->id))
                             ->with(['cpl', 'bok'])
                             ->get()
                             ->mapWithKeys(fn (CplBok $cb): array => [
@@ -51,7 +51,7 @@ class CplMkRelationManager extends BaseKurikulumRelationManager
                         $kurikulum = $this->getOwnerRecord();
 
                         return Mk::query()
-                            ->where('academic_unit_id', $kurikulum->academic_unit_id)
+                            ->where('kurikulum_id', $kurikulum->id)
                             ->pluck('nama', 'id')
                             ->all();
                     })

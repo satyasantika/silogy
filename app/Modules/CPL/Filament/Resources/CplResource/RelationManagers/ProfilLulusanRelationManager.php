@@ -42,13 +42,7 @@ class ProfilLulusanRelationManager extends RelationManager
                         /** @var Cpl $cpl */
                         $cpl = $this->getOwnerRecord();
 
-                        return $query->whereHas(
-                            'kurikulum',
-                            fn (Builder $kurikulumQuery): Builder => $kurikulumQuery->where(
-                                'academic_unit_id',
-                                $cpl->academic_unit_id,
-                            ),
-                        );
+                        return $query->where('kurikulum_id', $cpl->kurikulum_id);
                     })
                     ->preloadRecordSelect(),
             ])

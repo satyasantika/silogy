@@ -15,6 +15,7 @@ use App\Modules\Kurikulum\Filament\Pages\CplBokMatrix;
 use App\Modules\Kurikulum\Filament\Pages\CplMkMatrix;
 use App\Modules\Kurikulum\Filament\Pages\ProfilCplMatrix;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
+use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\CreateKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\ListKurikulums;
 use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -176,6 +177,67 @@ it('kurikulum baru di prodi yang sama tidak menampilkan cpl kurikulum lama', fun
         ->assertCanNotSeeTableRecords([$cplLama]);
 
     expect(KurikulumResource::ketersediaanMenu($kurikulumBaru)['cpl'])->toBeFalse();
+});
+
+it('membuat kurikulum baru langsung menjadikannya kurikulum yang dikerjakan, tanpa perlu klik kerjakan manual', function () {
+    $dosenTimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosenTimkur);
+
+    // User sedang mengerjakan kurikulum prodi (lama) sebelum membuat kurikulum baru.
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+    expect(KurikulumTerpilih::currentId())->toBe($this->kurikulumProdi->id);
+
+    Livewire::test(CreateKurikulum::class)
+        ->fillForm([
+            'academic_unit_id' => $this->univ->id,
+            'nama' => 'Kurikulum Universitas Baru',
+            'tahun' => 2027,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $kurikulumBaru = Kurikulum::query()->where('nama', 'Kurikulum Universitas Baru')->firstOrFail();
+
+    expect(KurikulumTerpilih::currentId())->toBe($kurikulumBaru->id);
+
+    // CPL milik kurikulum lama tidak ikut tampil pada kurikulum baru yang kosong.
+    $cplLama = Cpl::factory()->forKurikulum($this->kurikulumProdi)->create(['kode' => 'CPL-SEBELUM-BARU']);
+
+    Livewire::test(ListCpls::class)
+        ->loadTable()
+        ->assertCanNotSeeTableRecords([$cplLama])
+        ->assertCountTableRecords(0);
+});
+
+it('default() memilih kurikulum is_active terbaru bila lebih dari satu aktif pada unit yang sama', function () {
+    $dosenTimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosenTimkur);
+
+    // Paksa unit terpilih ke Universitas supaya default() menempuh cabang
+    // where('academic_unit_id', $unitId) yang baru saja diberi orderBy —
+    // tanpa ini, kurikulum prodi/fakultas dari beforeEach() akan menang
+    // lewat tie-break kedalaman unit sebelum sempat membandingkan dua
+    // kandidat universitas di bawah.
+    \App\Modules\Institusi\Support\AcademicUnitTerpilih::set($this->univ->id);
+
+    $kurikulumLamaAktif = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Univ Aktif Lama',
+        'tahun' => 2020,
+        'is_active' => true,
+        'created_at' => now()->subDays(10),
+    ]);
+
+    $kurikulumBaruAktif = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Univ Aktif Baru',
+        'tahun' => 2027,
+        'is_active' => true,
+        'created_at' => now(),
+    ]);
+
+    expect(KurikulumTerpilih::default($dosenTimkur)?->id)->toBe($kurikulumBaruAktif->id)
+        ->and($kurikulumLamaAktif->id)->not->toBe($kurikulumBaruAktif->id);
 });
 
 it('banner kurikulum terpilih menampilkan hierarki unit', function () {

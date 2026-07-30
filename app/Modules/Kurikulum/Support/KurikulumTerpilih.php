@@ -78,6 +78,7 @@ class KurikulumTerpilih
                 ->with('academicUnit')
                 ->where('academic_unit_id', $unitId)
                 ->where('is_active', true)
+                ->orderByDesc('created_at')
                 ->first();
 
             if ($kandidat) {
@@ -88,6 +89,7 @@ class KurikulumTerpilih
         $kandidat = static::scopedQuery($user)
             ->with('academicUnit')
             ->where('is_active', true)
+            ->orderByDesc('created_at')
             ->get()
             ->sortBy(function (Kurikulum $kurikulum): int {
                 $posisi = array_search($kurikulum->academicUnit?->type, self::URUTAN_UNIT_TERENDAH, true);
@@ -217,7 +219,7 @@ class KurikulumTerpilih
     /**
      * @return Collection<int, string>
      */
-    protected static function scopedUnitIds(User $user): Collection
+    public static function scopedUnitIds(User $user): Collection
     {
         // Tim kurikulum + Admin (unit penugasan) via scopedTimKurikulumUnitIdsFor.
         $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user);

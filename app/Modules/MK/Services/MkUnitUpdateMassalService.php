@@ -15,8 +15,9 @@ class MkUnitUpdateMassalService
     public function resolveBaris(array $data, array $context): array
     {
         $unitId = $this->unitIdDariKonteks($context);
+        $kurikulumId = $context['import_kurikulum_id'] ?? null;
 
-        if (blank($unitId)) {
+        if (blank($unitId) || blank($kurikulumId)) {
             return [
                 'status' => 'invalid',
                 'keterangan' => 'Kurikulum prodi yang dikerjakan belum ditetapkan.',
@@ -43,6 +44,7 @@ class MkUnitUpdateMassalService
 
         $mkUnit = MkUnit::query()
             ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->whereHas('mk', fn ($query) => $query->whereRaw('LOWER(TRIM(nama)) = ?', [$namaNormal]))
             ->first();
 
@@ -74,6 +76,7 @@ class MkUnitUpdateMassalService
 
         $kodeBentrok = MkUnit::query()
             ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->where('kode', $kode)
             ->whereKeyNot($mkUnit->id)
             ->exists();
@@ -118,12 +121,13 @@ class MkUnitUpdateMassalService
         ]);
     }
 
-    public function cariPenawaran(string $unitId, string $nama): ?MkUnit
+    public function cariPenawaran(string $unitId, string $kurikulumId, string $nama): ?MkUnit
     {
         $namaNormal = mb_strtolower(trim($nama));
 
         return MkUnit::query()
             ->where('academic_unit_id', $unitId)
+            ->where('kurikulum_id', $kurikulumId)
             ->whereHas('mk', fn ($query) => $query->whereRaw('LOWER(TRIM(nama)) = ?', [$namaNormal]))
             ->first();
     }
