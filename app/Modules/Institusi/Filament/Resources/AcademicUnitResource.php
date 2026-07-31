@@ -33,7 +33,9 @@ class AcademicUnitResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Institusi';
+    // Menu Super Admin (satu-satunya role yang bisa melihat resource ini)
+    // tampil datar tanpa header grup — lihat shouldRegisterNavigation().
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 1;
 

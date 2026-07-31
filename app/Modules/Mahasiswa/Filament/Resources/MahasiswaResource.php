@@ -33,8 +33,6 @@ class MahasiswaResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Mahasiswa';
-
     protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'mahasiswa';
@@ -44,6 +42,13 @@ class MahasiswaResource extends Resource
     protected static ?string $recordTitleAttribute = 'nama';
 
     protected static ?string $slug = 'mahasiswas';
+
+    // Super Admin melihat menu ini datar (tanpa grup); role lain tetap
+    // di bawah grup Mahasiswa seperti biasa.
+    public static function getNavigationGroup(): ?string
+    {
+        return auth()->user()?->hasRole('Super Admin') ? null : 'Mahasiswa';
+    }
 
     /**
      * @return array<string, string>

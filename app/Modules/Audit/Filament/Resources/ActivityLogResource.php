@@ -34,8 +34,6 @@ class ActivityLogResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Audit';
-
     protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'log aktivitas';
@@ -45,6 +43,13 @@ class ActivityLogResource extends Resource
     protected static ?string $slug = 'activity-logs';
 
     protected static ?string $navigationLabel = 'Log Aktivitas';
+
+    // Super Admin melihat menu ini datar (tanpa grup); role lain tetap
+    // di bawah grup Audit seperti biasa.
+    public static function getNavigationGroup(): ?string
+    {
+        return auth()->user()?->hasRole('Super Admin') ? null : 'Audit';
+    }
 
     public static function form(Schema $schema): Schema
     {

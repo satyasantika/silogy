@@ -41,8 +41,6 @@ class UserResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Autentikasi';
-
     protected static ?int $navigationSort = 1;
 
     protected static ?string $modelLabel = 'pengguna';
@@ -52,6 +50,13 @@ class UserResource extends Resource
     protected static ?string $recordTitleAttribute = 'full_name';
 
     protected static ?string $slug = 'users';
+
+    // Super Admin melihat menu ini datar (tanpa grup); role lain tetap
+    // di bawah grup Autentikasi seperti biasa.
+    public static function getNavigationGroup(): ?string
+    {
+        return auth()->user()?->hasRole('Super Admin') ? null : 'Autentikasi';
+    }
 
     public static function form(Schema $schema): Schema
     {
