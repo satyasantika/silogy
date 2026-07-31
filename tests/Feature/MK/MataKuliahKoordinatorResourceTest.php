@@ -11,6 +11,7 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Services\MataKuliahKoordinatorService;
+use App\Modules\MK\Support\MkTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
@@ -47,18 +48,27 @@ it('koordinator mk melihat menu mata kuliah di kategori mata kuliah bukan penawa
 });
 
 it('halaman mata kuliah koordinator menampilkan card mk pada kurikulum terpilih', function () {
-    $mkKorma = Mk::factory()->create([
-        'academic_unit_id' => $this->prodi->id,
+    $mkKorma = Mk::factory()->forKurikulum($this->kurikulum)->create([
         'nama' => 'Algoritma Koordinator',
         'koordinator_mk_id' => $this->korma->id,
+        'sks_teori' => 3,
+        'sks_praktik' => 0,
+        'sks_lapangan' => 0,
+        'sks' => 3,
     ]);
-    MkUnit::factory()->forMk($mkKorma)->forAcademicUnit($this->prodi)->create(['kode' => 'KOR701']);
+    MkUnit::factory()->forMk($mkKorma)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'KOR701',
+        'semester_ke' => 3,
+        'is_active' => true,
+    ]);
 
-    $mkLain = Mk::factory()->create([
-        'academic_unit_id' => $this->prodi->id,
+    $mkLain = Mk::factory()->forKurikulum($this->kurikulum)->create([
         'nama' => 'MK Orang Lain',
     ]);
-    MkUnit::factory()->forMk($mkLain)->forAcademicUnit($this->prodi)->create(['kode' => 'KOR702']);
+    MkUnit::factory()->forMk($mkLain)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'KOR702',
+        'is_active' => true,
+    ]);
 
     Cpmk::query()->create([
         'mk_id' => $mkKorma->id,
@@ -73,11 +83,40 @@ it('halaman mata kuliah koordinator menampilkan card mk pada kurikulum terpilih'
         ->loadTable()
         ->assertSee('Algoritma Koordinator', escape: false)
         ->assertSee('KOR701', escape: false)
+        ->assertSee('3 SKS', escape: false)
+        ->assertSee('Semester ke-3', escape: false)
         ->assertSee('CPMK · Ada', escape: false)
         ->assertSee('Sub-CPMK · Belum', escape: false)
         ->assertSee('Asesmen · Belum', escape: false)
+        ->assertSee('Kerjakan', escape: false)
         ->assertDontSee('CPL↔CPMK', escape: false)
         ->assertDontSee('MK Orang Lain', escape: false);
+});
+
+it('aksi kerjakan pada card menetapkan mk terpilih dan menampilkan Sedang dikerjakan', function () {
+    $mk = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'nama' => 'Struktur Data Koordinator',
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+    MkUnit::factory()->forMk($mk)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'KOR801',
+        'semester_ke' => 4,
+        'is_active' => true,
+    ]);
+
+    KurikulumTerpilih::set($this->kurikulum->id);
+    $this->actingAs($this->korma);
+
+    expect(MkTerpilih::currentId())->toBeNull();
+
+    Livewire::test(ListMataKuliahKoordinators::class)
+        ->loadTable()
+        ->assertSee('Kerjakan', escape: false)
+        ->callTableAction('kerjakan', $mk)
+        ->assertSee('Sedang dikerjakan', escape: false);
+
+    expect(MkTerpilih::currentId())->toBe($mk->id)
+        ->and(MataKuliahKoordinatorService::isMkSedangDikerjakan($mk))->toBeTrue();
 });
 
 it('service ketersediaan penilaian mendeteksi cpmk subcpmk dan asesmen', function () {

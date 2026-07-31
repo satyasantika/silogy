@@ -7,7 +7,9 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use Illuminate\Support\HtmlString;
 
@@ -47,15 +49,70 @@ class MataKuliahKoordinatorService
         ];
     }
 
-    public static function labelPenawaranPadaKurikulum(Mk $mk, Kurikulum $kurikulum): string
+    public static function penawaranPadaKurikulum(Mk $mk, Kurikulum $kurikulum): ?MkUnit
     {
         $mk->loadMissing('mkUnits');
 
-        $kode = $mk->mkUnits
-            ->firstWhere('academic_unit_id', $kurikulum->academic_unit_id)
-            ?->kode;
+        return $mk->mkUnits
+            ->first(fn (MkUnit $unit): bool => $unit->kurikulum_id === $kurikulum->id
+                && $unit->is_active);
+    }
+
+    public static function labelPenawaranPadaKurikulum(Mk $mk, Kurikulum $kurikulum): string
+    {
+        $kode = static::penawaranPadaKurikulum($mk, $kurikulum)?->kode;
 
         return filled($kode) ? (string) $kode : '—';
+    }
+
+    public static function isMkSedangDikerjakan(Mk $mk): bool
+    {
+        return MkTerpilih::currentId() === $mk->id;
+    }
+
+    /**
+     * Header card: kode penawaran kiri, pill SKS kanan (sejajar pola kurikulum).
+     */
+    public static function headerCardHtml(Mk $mk, ?Kurikulum $kurikulum): HtmlString
+    {
+        $kode = $kurikulum instanceof Kurikulum
+            ? static::labelPenawaranPadaKurikulum($mk, $kurikulum)
+            : '—';
+        $sks = (int) $mk->total_sks;
+
+        return new HtmlString(
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;">'
+            .'<div style="min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">'
+            .'<span style="font-weight:700;font-size:14px;color:inherit;">'.e($kode).'</span>'
+            .'</div>'
+            .'<span style="flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;'
+            .'font-size:11px;font-weight:600;line-height:1.4;background:#eff6ff;color:#1d4ed8;'
+            .'border:1px solid #bfdbfe;">'.e((string) $sks).' SKS</span>'
+            .'</div>'
+        );
+    }
+
+    /**
+     * Meta: baris semester sendiri, lalu badge menu sejajar kiri di bawahnya.
+     */
+    public static function metaPenawaranHtml(Mk $mk, ?Kurikulum $kurikulum, User $user): HtmlString
+    {
+        $penawaran = $kurikulum instanceof Kurikulum
+            ? static::penawaranPadaKurikulum($mk, $kurikulum)
+            : null;
+        $semesterKe = $penawaran?->semester_ke;
+        $semesterLabel = $semesterKe !== null
+            ? 'Semester ke-'.$semesterKe
+            : 'Semester —';
+
+        return new HtmlString(
+            '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;margin:0;padding:0;">'
+            .'<div style="font-size:12px;line-height:1.4;color:#6b7280;margin:0;padding:0;">'
+            .e($semesterLabel)
+            .'</div>'
+            .static::ketersediaanPenilaianHtml($mk, $user)->toHtml()
+            .'</div>'
+        );
     }
 
     public static function ketersediaanPenilaianHtml(Mk $mk, User $user): HtmlString
@@ -88,6 +145,7 @@ class MataKuliahKoordinatorService
                 $status = $ada ? 'Ada' : 'Belum';
 
                 return '<a href="'.e($url).'" '
+                    .'onclick="event.stopPropagation()" '
                     .'style="display:inline-flex;align-items:center;padding:3px 8px;'
                     .'border-radius:6px;font-size:11px;font-weight:600;line-height:1.4;text-decoration:none;'
                     .'background:'.$background.';color:'.$color.';border:1px solid '.$border.';">'
@@ -97,7 +155,7 @@ class MataKuliahKoordinatorService
             ->implode('');
 
         return new HtmlString(
-            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;padding-top:6px;">'
+            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:0;padding:0;">'
             .$badges
             .'</div>'
         );
