@@ -29,14 +29,6 @@
     .dark .silogy-panel-footer a:hover {
         color: #80d980;
     }
-
-    @media (min-width: 768px) {
-        .silogy-panel-footer { padding-inline: 1.5rem; }
-    }
-
-    @media (min-width: 1024px) {
-        .silogy-panel-footer { padding-inline: 2rem; }
-    }
 </style>
 <footer class="silogy-panel-footer">
     &copy; {{ date('Y') }} SILOGY. All rights reserved.

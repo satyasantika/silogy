@@ -127,6 +127,8 @@
 
     .fi-body .fi-main {
         color: #212529 !important;
+        /* Kunci gutter seperti mobile — jangan naik di md/lg (px-6/px-8) */
+        padding-inline: 1rem !important;
     }
 
     .dark .fi-body {

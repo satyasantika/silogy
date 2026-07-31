@@ -22,6 +22,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -53,6 +54,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode(condition: true, isForced: false)
             ->sidebarCollapsibleOnDesktop()
+            ->maxContentWidth(Width::Full)
             ->userMenuItems([
                 Action::make('gantiPeranUnit')
                     ->label('Ganti peran & unit')
