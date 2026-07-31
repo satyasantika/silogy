@@ -905,6 +905,29 @@ it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', functi
         ->assertMountedActionModalDontSee('Belum ada data yang dapat dibaca');
 });
 
+it('mengosongkan preview impor massal saat modal ditutup', function () {
+    $this->actingAs(User::where('username', 'timkur')->firstOrFail());
+
+    $kurikulum = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kurikulum Reset Preview',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    KurikulumTerpilih::set($kurikulum->id);
+
+    $halaman = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+        ->mountAction('bulkImport')
+        ->set('importMassalRowsLive', "1\tPendidik Fisika\tDeskripsi singkat");
+
+    expect($halaman->get('importMassalRowsLive'))->toContain('Pendidik Fisika');
+
+    $halaman->call('unmountAction');
+
+    expect($halaman->get('importMassalRowsLive'))->toBe('');
+});
+
 it('modal impor menyembunyikan tombol impor sampai pratinjau terbaca', function () {
     $this->actingAs(User::where('username', 'timkur')->firstOrFail());
 

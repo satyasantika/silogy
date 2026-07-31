@@ -10,6 +10,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ use Illuminate\Support\HtmlString;
  */
 trait HasImporMassal
 {
+    use ClearsImporModalPreviewOnUnmount;
     use ReadsMountedActionData;
 
     /**
@@ -626,6 +628,17 @@ trait HasImporMassal
             ->modalHeading($this->importModalHeading())
             ->modalWidth(Width::SixExtraLarge)
             ->modalSubmitActionLabel('Impor sekarang')
+            // Kosongkan pratinjau saat modal dibuka (jaring aman bila unmount
+            // terlewat) DAN saat ditutup (lihat ClearsImporModalPreviewOnUnmount).
+            // Tetap panggil $schema->fill() supaya default field tidak hilang
+            // — lihat CanBeMounted::getMountUsing().
+            ->mountUsing(function (Schema $schema): void {
+                $this->kosongkanPreviewImporModal();
+                $schema->fill();
+            })
+            ->after(function (): void {
+                $this->kosongkanPreviewImporModal();
+            })
             // Tombol impor baru muncul setelah pratinjau berhasil dibaca,
             // supaya tidak ada impor yang dijalankan tanpa melihat hasil
             // parsing lebih dulu.
