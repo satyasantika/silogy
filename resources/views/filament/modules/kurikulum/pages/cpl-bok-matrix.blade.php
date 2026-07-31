@@ -23,7 +23,7 @@
                         <tr style="text-align:left;border-bottom:2px solid rgba(128,128,128,.35);">
                             <th style="padding:8px;">CPL \ BoK</th>
                             @foreach ($boks as $bok)
-                                <th style="padding:8px;text-align:center;" title="{{ $bok->nama }}{{ $bokAsalMap[$bok->id] ? ' — adaptasi dari '.($bok->academicUnit->nama ?? '—') : '' }}">
+                                <th style="padding:8px;text-align:center;" title="{{ $bok->nama }}{{ $bokAsalMap[$bok->id] ? ' — adaptasi dari '.($bok->academicUnit->nama_lengkap ?? '—') : '' }}">
                                     {{ $bokKodeMap[$bok->id] }}
                                     @if ($bokAsalMap[$bok->id])
                                         <sup style="color:#b45309;">†</sup>
@@ -35,7 +35,7 @@
                     <tbody>
                         @foreach ($cpls as $cpl)
                             <tr style="border-bottom:1px solid rgba(128,128,128,.2);">
-                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ $cplAsalMap[$cpl->id] ? ' — adaptasi dari '.($cpl->academicUnit->nama ?? '—') : '' }}">
+                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ $cplAsalMap[$cpl->id] ? ' — adaptasi dari '.($cpl->academicUnit->nama_lengkap ?? '—') : '' }}">
                                     <strong>{{ $cplKodeMap[$cpl->id] }}</strong>
                                     @if ($cplAsalMap[$cpl->id])
                                         <sup style="color:#b45309;">†</sup>

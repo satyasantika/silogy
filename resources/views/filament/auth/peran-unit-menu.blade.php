@@ -5,7 +5,7 @@
 @php
     use App\Modules\Institusi\Models\AcademicUnit;
 
-    $unitNama = $unitAktifId ? AcademicUnit::find($unitAktifId)?->nama : null;
+    $unitNama = $unitAktifId ? AcademicUnit::find($unitAktifId)?->nama_lengkap : null;
 @endphp
 
 <div

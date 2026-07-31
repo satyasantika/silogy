@@ -13,7 +13,7 @@
             wire:key="analisis-preview-{{ $item->id }}"
         >
             <div class="mb-2 flex items-center justify-between gap-2">
-                <span class="font-medium">{{ $item->academicUnit?->nama }}</span>
+                <span class="font-medium">{{ $item->academicUnit?->nama_lengkap }}</span>
                 <x-filament::badge :color="\App\Modules\AI\Support\AnalisisAiStatus::colorFor($item)">
                     {{ \App\Modules\AI\Support\AnalisisAiStatus::labelFor($item) }}
                 </x-filament::badge>

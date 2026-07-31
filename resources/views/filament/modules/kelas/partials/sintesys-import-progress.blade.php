@@ -1,6 +1,6 @@
 @if ($import !== null)
     @php
-        $konteks = ($import->academicUnit?->nama ?? $import->kode_prodi).' · '.$import->tahun_akademik;
+        $konteks = ($import->academicUnit?->nama_lengkap ?? $import->kode_prodi).' · '.$import->tahun_akademik;
         $kapan = $import->created_at->diffForHumans();
         $gagal = $import->status === 'failed';
     @endphp

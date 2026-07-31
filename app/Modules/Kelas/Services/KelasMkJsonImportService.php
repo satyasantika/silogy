@@ -249,7 +249,7 @@ class KelasMkJsonImportService
 
         return [
             'semester_kode' => $semester->kode,
-            'academic_unit_nama' => $academicUnit->nama,
+            'academic_unit_nama' => $academicUnit->nama_lengkap,
             'kelas_dibuat' => $kelasDibuat,
             'kelas_diperbarui' => $kelasDiperbarui,
             'peserta_terdaftar' => $pesertaTerdaftar,

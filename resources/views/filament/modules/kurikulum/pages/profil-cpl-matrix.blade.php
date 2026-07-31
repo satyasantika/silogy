@@ -32,7 +32,7 @@
                     <tbody>
                         @foreach ($cpls as $cpl)
                             <tr style="border-bottom:1px solid rgba(128,128,128,.2);">
-                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ ($cplAsalMap[$cpl->id] ?? false) ? ' — adaptasi dari '.($cpl->academicUnit->nama ?? '—') : '' }}">
+                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ ($cplAsalMap[$cpl->id] ?? false) ? ' — adaptasi dari '.($cpl->academicUnit->nama_lengkap ?? '—') : '' }}">
                                     <strong>{{ $cplKodeMap[$cpl->id] ?? $cpl->kode }}</strong>
                                     @if ($cplAsalMap[$cpl->id] ?? false)
                                         <sup style="color:#b45309;">†</sup>

@@ -8,7 +8,7 @@
     $roles = $user instanceof User ? ActiveRole::ownedRoleNames($user) : [];
     $peranAktif = $user instanceof User ? PeranUnitFormFields::defaultRole($user) : null;
     $unitAktifId = $user instanceof User ? PeranUnitFormFields::defaultUnitId($user) : null;
-    $unitAktifNama = $unitAktifId ? AcademicUnit::find($unitAktifId)?->nama : null;
+    $unitAktifNama = $unitAktifId ? AcademicUnit::find($unitAktifId)?->nama_lengkap : null;
     $bisaGanti = $user instanceof User
         && (count($roles) > 1 || ($peranAktif !== null && PeranUnitFormFields::unitCountForRole($user, $peranAktif) > 1));
     $tanpaPeran = $user instanceof User && count($roles) === 0;

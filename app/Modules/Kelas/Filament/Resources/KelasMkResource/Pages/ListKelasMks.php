@@ -140,14 +140,14 @@ class ListKelasMks extends ListRecords
                         '<p style="font-size:13px;color:#991b1b;">Gagal mengambil data dari Sintesys untuk tahun akademik <strong>%s</strong> '
                         .'· program studi <strong>%s</strong>: %s</p>',
                         e($semester->nama),
-                        e($academicUnit->nama),
+                        e($academicUnit->nama_lengkap),
                         e((string) $preview['pesan']),
                     ),
                     'kosong' => sprintf(
                         '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari Sintesys untuk tahun akademik '
                         .'<strong>%s</strong> · program studi <strong>%s</strong>. Tidak ada yang bisa diimpor.</p>',
                         e($semester->nama),
-                        e($academicUnit->nama),
+                        e($academicUnit->nama_lengkap),
                     ),
                     default => sprintf(
                         '<p style="font-size:13px;color:#166534;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
@@ -155,7 +155,7 @@ class ListKelasMks extends ListRecords
                         $preview['jumlah_kelas'],
                         $preview['jumlah_peserta'],
                         e($semester->nama),
-                        e($academicUnit->nama),
+                        e($academicUnit->nama_lengkap),
                     ),
                 };
 

@@ -19,7 +19,7 @@
                 <x-filament::badge :color="$this->statusColor($analisis)">
                     {{ $this->statusLabel($analisis) }}
                 </x-filament::badge>
-                <span>{{ $analisis->academicUnit?->nama }} · {{ $analisis->semester?->nama }}</span>
+                <span>{{ $analisis->academicUnit?->nama_lengkap }} · {{ $analisis->semester?->nama }}</span>
                 <span class="text-gray-400">· {{ $analisis->created_at?->diffForHumans() }}</span>
                 @if ($analisis->model_ai)
                     <span class="text-gray-400">· {{ $analisis->model_ai }}</span>
