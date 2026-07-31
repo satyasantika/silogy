@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\AktivitasTerbaruWidget;
+use App\Filament\Widgets\SuperAdminKpiWidget;
 use App\Filament\Widgets\WelcomeWidget;
 use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\Kalender\Models\Semester;
@@ -73,6 +75,8 @@ class Dashboard extends BaseDashboard
                 Grid::make(1)
                     ->schema(fn (): array => $this->getWidgetsSchemaComponents(array_values(array_filter([
                         WelcomeWidget::class,
+                        SuperAdminKpiWidget::class,
+                        AktivitasTerbaruWidget::class,
                         // Kurikulum yang dikerjakan cukup diwakili KPI
                         // KurikulumKpiWidget pada mode Tim Kurikulum.
                         static::isDashboardTimKurikulum() ? null : KurikulumTerpilihWidget::class,
