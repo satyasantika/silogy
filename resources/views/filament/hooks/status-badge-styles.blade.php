@@ -86,4 +86,68 @@
         color: #f8f9fa;
         border-color: rgba(34, 197, 94, .35);
     }
+
+    /*
+     * Kolom Dikontrak (/mks): pasangan metrik kontrak — angka tabular
+     * menonjol, label unit kecil. Hijau institusi untuk kelas, emas redup
+     * untuk mahasiswa (bukan pill primary generik).
+     */
+    .silogy-dikontrak {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .silogy-dikontrak-chip {
+        display: inline-flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 3.25rem;
+        padding: 4px 9px 5px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        line-height: 1.1;
+        text-align: start;
+    }
+
+    .silogy-dikontrak-n {
+        font-size: 14px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+    }
+
+    .silogy-dikontrak-l {
+        margin-top: 2px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        opacity: 0.72;
+    }
+
+    .silogy-dikontrak-kelas {
+        background: color-mix(in srgb, #0b3914 8%, #ffffff);
+        border-color: color-mix(in srgb, #0b3914 18%, transparent);
+        color: #0b3914;
+    }
+
+    .silogy-dikontrak-mhs {
+        background: color-mix(in srgb, #c9a227 14%, #ffffff);
+        border-color: color-mix(in srgb, #a8841a 22%, transparent);
+        color: #6b5310;
+    }
+
+    .dark .silogy-dikontrak-kelas {
+        background: rgba(34, 197, 94, 0.12);
+        border-color: rgba(74, 222, 128, 0.28);
+        color: #86efac;
+    }
+
+    .dark .silogy-dikontrak-mhs {
+        background: rgba(255, 215, 0, 0.1);
+        border-color: rgba(255, 215, 0, 0.22);
+        color: #fde68a;
+    }
 </style>

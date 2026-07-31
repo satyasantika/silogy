@@ -13,10 +13,10 @@ use App\Modules\MK\Filament\Resources\MkResource\Pages\CreateMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Support\SemesterKontrakPenawaran;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -30,9 +30,13 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\HtmlString;
 
 class MkResource extends Resource
 {
@@ -230,6 +234,9 @@ class MkResource extends Resource
     {
         return static::applyKurikulumTerpilihTable(
             $table
+                ->extraAttributes([
+                    'class' => 'silogy-mk-semester-toolbar',
+                ])
                 ->columns([
                     TextColumn::make('nama')->label('Nama')->searchable()->sortable(),
                     TextColumn::make('sks')->label('SKS')->sortable(),
@@ -254,19 +261,172 @@ class MkResource extends Resource
                         })
                         ->disabled(fn (Mk $record): bool => Gate::denies('update', $record))
                         ->rules(['nullable', 'uuid']),
+                    TextColumn::make('dikontrak')
+                        ->label('Dikontrak')
+                        ->html()
+                        ->getStateUsing(fn (Mk $record): HtmlString => static::dikontrakBadgeHtml($record))
+                        ->sortable(query: function (Builder $query, string $direction): Builder {
+                            return $query->orderBy('jumlah_mahasiswa', $direction);
+                        }),
                     IconColumn::make('is_active')->label('Aktif')->boolean(),
                 ])
-                ->recordActions([
-                    EditAction::make(),
+                ->filters([
+                    static::semesterKontrakPenawaranFilter(),
                 ])
+                ->filtersLayout(FiltersLayout::AboveContent)
+                ->filtersFormColumns(1)
+                ->deferFilters(false)
+                ->recordActions([])
                 ->toolbarActions([
                     BulkActionGroup::make([
                         DeleteBulkAction::make(),
                     ]),
                 ]),
-            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                ->where('kurikulum_id', $kurikulum->id),
+            fn (Builder $query, Kurikulum $kurikulum): Builder => static::withJumlahKelasDanMahasiswa(
+                $query->where('kurikulum_id', $kurikulum->id),
+            ),
         );
+    }
+
+    /**
+     * Badge ringkas total kelas & mahasiswa kontrak (via penawaran MK).
+     */
+    protected static function dikontrakBadgeHtml(Mk $record): HtmlString
+    {
+        $kelas = (int) ($record->jumlah_kelas ?? 0);
+        $mahasiswa = (int) ($record->jumlah_mahasiswa ?? 0);
+
+        if ($kelas === 0 && $mahasiswa === 0) {
+            return new HtmlString('<span class="silogy-dikontrak-empty" aria-hidden="true">—</span>');
+        }
+
+        $chip = static function (int $nilai, string $label, string $varian): string {
+            return sprintf(
+                '<span class="silogy-dikontrak-chip silogy-dikontrak-%s" title="%s %s">'
+                .'<span class="silogy-dikontrak-n">%d</span>'
+                .'<span class="silogy-dikontrak-l">%s</span>'
+                .'</span>',
+                e($varian),
+                e((string) $nilai),
+                e($label),
+                $nilai,
+                e($label),
+            );
+        };
+
+        return new HtmlString(
+            '<span class="silogy-dikontrak">'
+            .$chip($kelas, 'kelas', 'kelas')
+            .$chip($mahasiswa, 'mahasiswa', 'mhs')
+            .'</span>'
+        );
+    }
+
+    /**
+     * Hitung kelas & mahasiswa lewat seluruh penawaran MK (mk_units) untuk
+     * mk.id — lintas prodi/kurikulum — pada semester kontrak penawaran terpilih.
+     * Tidak memfilter baris Mk.
+     *
+     * @param  Builder<Mk>  $query
+     * @return Builder<Mk>
+     */
+    protected static function withJumlahKelasDanMahasiswa(Builder $query): Builder
+    {
+        $semesterId = SemesterKontrakPenawaran::currentId();
+
+        return $query->addSelect([
+            'jumlah_kelas' => DB::table('kelas_mk')
+                ->join('mk_units', 'mk_units.id', '=', 'kelas_mk.mk_unit_id')
+                ->whereColumn('mk_units.mk_id', 'mk.id')
+                ->when(
+                    filled($semesterId),
+                    fn ($builder) => $builder->where('kelas_mk.semester_id', $semesterId),
+                    fn ($builder) => $builder->whereRaw('0 = 1'),
+                )
+                ->selectRaw('count(*)'),
+            'jumlah_mahasiswa' => DB::table('kelas_mk_mahasiswa')
+                ->join('kelas_mk', 'kelas_mk.id', '=', 'kelas_mk_mahasiswa.kelas_mk_id')
+                ->join('mk_units', 'mk_units.id', '=', 'kelas_mk.mk_unit_id')
+                ->whereColumn('mk_units.mk_id', 'mk.id')
+                ->when(
+                    filled($semesterId),
+                    fn ($builder) => $builder->where('kelas_mk.semester_id', $semesterId),
+                    fn ($builder) => $builder->whereRaw('0 = 1'),
+                )
+                ->selectRaw('count(*)'),
+        ]);
+    }
+
+    protected static function semesterKontrakPenawaranFilter(): SelectFilter
+    {
+        return SelectFilter::make('semester_kontrak_penawaran')
+            ->label('Semester')
+            ->default(fn (): ?string => SemesterKontrakPenawaran::currentId())
+            ->selectablePlaceholder(false)
+            ->columnSpanFull()
+            ->schema([
+                Select::make('value')
+                    ->label('Semester')
+                    ->hiddenLabel()
+                    ->prefix('Semester')
+                    ->options(fn (): array => SemesterKontrakPenawaran::options())
+                    ->default(fn (): ?string => SemesterKontrakPenawaran::currentId())
+                    ->selectablePlaceholder(false)
+                    ->native(true)
+                    ->searchable(false)
+                    ->live()
+                    ->afterStateHydrated(function (Select $component, $state): void {
+                        $resolved = static::resolveSemesterKontrakFilterState($state);
+
+                        if (blank($resolved)) {
+                            return;
+                        }
+
+                        $component->state($resolved);
+                        SemesterKontrakPenawaran::set($resolved);
+                    })
+                    ->afterStateUpdated(function (Select $component, $state): void {
+                        $resolved = static::resolveSemesterKontrakFilterState($state);
+
+                        if (blank($resolved)) {
+                            return;
+                        }
+
+                        if ($resolved !== $state) {
+                            $component->state($resolved);
+                        }
+
+                        SemesterKontrakPenawaran::set($resolved);
+                    }),
+            ])
+            ->query(function (Builder $query, array $data): Builder {
+                $semesterId = static::resolveSemesterKontrakFilterState($data['value'] ?? null);
+
+                if (filled($semesterId)) {
+                    SemesterKontrakPenawaran::set($semesterId);
+                }
+
+                // Filter hanya menyimpan session; baris Mk tetap ditampilkan.
+                return $query;
+            })
+            ->indicateUsing(fn (): array => []);
+    }
+
+    protected static function resolveSemesterKontrakFilterState(mixed $state = null): ?string
+    {
+        $options = SemesterKontrakPenawaran::options();
+
+        if ($options === []) {
+            return null;
+        }
+
+        $candidate = filled($state) ? (string) $state : SemesterKontrakPenawaran::currentId();
+
+        if (filled($candidate) && array_key_exists($candidate, $options)) {
+            return $candidate;
+        }
+
+        return SemesterKontrakPenawaran::defaultId();
     }
 
     public static function getRelations(): array
