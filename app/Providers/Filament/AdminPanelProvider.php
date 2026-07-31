@@ -49,7 +49,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('auto')
             ->favicon(asset('favicon.ico'))
             ->colors([
-                'primary' => Color::hex('#1e3a5f'),
+                'primary' => Color::hex('#009900'),
             ])
             ->darkMode(condition: true, isForced: false)
             ->sidebarCollapsibleOnDesktop()
@@ -104,7 +104,13 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => view('filament.hooks.sidebar-user-menu-styles')->render()
                     .view('filament.hooks.brand-logo-styles')->render()
                     .view('filament.hooks.kurikulum-cards-styles')->render()
-                    .view('filament.hooks.keluar-modal-styles')->render(),
+                    .view('filament.hooks.keluar-modal-styles')->render()
+                    .view('filament.hooks.unsil-theme-styles')->render()
+                    .view('filament.hooks.status-badge-styles')->render(),
+            )
+            ->renderHook(
+                PanelsRenderHook::FOOTER,
+                fn (): string => view('filament.hooks.footer')->render(),
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverResources(
@@ -203,7 +209,8 @@ class AdminPanelProvider extends PanelProvider
                 WelcomeWidget::class,
             ])
             ->plugins([
-                FilamentShieldPlugin::make(),
+                // Peran hanya untuk Super Admin — tampil datar tanpa header grup.
+                FilamentShieldPlugin::make()->navigationGroup(null),
             ])
             ->middleware([
                 EncryptCookies::class,

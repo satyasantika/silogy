@@ -14,7 +14,7 @@
 >
     <div
         class="silogy-sidebar-user-row"
-        style="display:flex;align-items:center;gap:8px;padding:4px 0;"
+        style="display:flex;align-items:center;gap:8px;padding:4px 0;min-width:0;width:100%;"
         x-bind:class="{ 'silogy-sidebar-user-row--collapsed': ! $store.sidebar.isOpen }"
     >
         <div
@@ -34,7 +34,7 @@
                         <x-filament-panels::avatar.user size="md" :user="$user" loading="lazy" />
 
                         <span class="fi-user-menu-trigger-text" style="min-width:0;text-align:start;">
-                            <span style="display:block;font-weight:600;font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <span class="silogy-sidebar-user-name" style="display:block;font-weight:600;font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                 {{ $user ? filament()->getUserName($user) : '' }}
                             </span>
                             @if (count($roles) === 0)
@@ -45,18 +45,14 @@
                                 <span class="silogy-sidebar-user-meta" style="display:block;font-size:.7rem;opacity:.75;min-width:0;">
                                     <span
                                         class="silogy-sidebar-user-peran"
-                                        style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                                        @if (filled($peranAktif))
-                                            x-tooltip="{ content: @js($peranAktif), theme: $store.theme }"
-                                        @endif
+                                        style="display:block;white-space:normal;overflow-wrap:break-word;"
                                     >
                                         {{ $peranAktif }}
                                     </span>
                                     @if (filled($unitNama))
                                         <span
                                             class="silogy-sidebar-user-unit"
-                                            style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                                            x-tooltip="{ content: @js($unitNama), theme: $store.theme }"
+                                            style="display:block;white-space:normal;overflow-wrap:break-word;"
                                         >
                                             {{ $unitNama }}
                                         </span>
