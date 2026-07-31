@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
@@ -188,7 +189,7 @@ class MkResource extends Resource
     public static function koordinatorMkOptions(): array
     {
         return User::query()
-            ->role('Dosen Pengampu')
+            ->whereIn('id', ActiveRole::userIdsWithRoleName('Dosen Pengampu'))
             ->with(['academicUnits' => fn ($query) => $query->orderBy('nama')])
             ->orderBy('full_name')
             ->get()

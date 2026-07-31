@@ -138,6 +138,25 @@ class ActiveRole
         return in_array($role, self::ownedRoleNames($user), true);
     }
 
+    /**
+     * ID user yang memiliki role tertentu, langsung dari pivot DB — aman
+     * dipakai untuk membangun query User::whereIn('id', ...) tanpa lewat
+     * scope Spatie ->role()/whereHas('roles', ...), yang ikut relasi
+     * roles() ter-override (lihat User::roles()) sehingga bisa salah
+     * mengecualikan user yang sedang login dari daftarnya sendiri saat
+     * role aktifnya bukan role yang dicari.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public static function userIdsWithRoleName(string $role): \Illuminate\Support\Collection
+    {
+        return DB::table('model_has_roles')
+            ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->where('roles.name', $role)
+            ->where('model_has_roles.model_type', (new User)->getMorphClass())
+            ->pluck('model_has_roles.model_uuid');
+    }
+
     protected static function userOwnsRole(User $user, string $role): bool
     {
         return self::userOwnsRoleName($user, $role);
