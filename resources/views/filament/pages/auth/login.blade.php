@@ -9,34 +9,38 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <style>
-    /* ── TOKENS ── */
+    /* ── TOKENS — Hijau Unsil ── */
     :root {
-        --g300: #86efac; --g400: #4ade80;
-        --g500: #22c55e; --g600: #16a34a;
-        --g700: #15803d; --g800: #166534; --g900: #14532d;
-        --ink: #060d1a; --dark2: #0c1628;
-        --bd-d: rgba(255,255,255,.09); --bd-d2: rgba(255,255,255,.14);
-        --tw: #f0f6ff; --tws: #8ba3c0; --twss: #546880;
+        --g300: #80d980; --g400: #4dcc4d;
+        --g500: #009900; --g600: #008500;
+        --g700: #007000; --g800: #0a4d14; --g900: #0b3914;
+        --ink: #0b3914; --dark2: #123f1a;
+
+        /* Left panel (clean/modern — terang) */
+        --lp-left-bg: #f8f9fa;
+        --bd-d: rgba(33,37,41,.08); --bd-d2: rgba(33,37,41,.14);
+        --tw: #212529; --tws: #6c757d; --twss: #8a97a3;
 
         /* Right panel (light by default) */
         --rp-bg:           #ffffff;
-        --rp-text:         #182435;
-        --rp-muted:        #6b7a8d;
-        --rp-border:       #e8edf3;
-        --rp-input-bg:     #f5f7fb;
-        --rp-input-border: #e8edf3;
-        --rp-input-text:   #182435;
-        --rp-label:        #182435;
-        --rp-eyebrow-line: linear-gradient(90deg, #e8edf3, transparent);
-        --rp-back-color:   #6b7a8d;
-        --rp-back-hover:   #15803d;
-        --rp-sub-link:     #16a34a;
-        --rp-sub-link-hover: #22c55e;
+        --rp-text:         #212529;
+        --rp-muted:        #6c757d;
+        --rp-border:       #e9ecef;
+        --rp-input-bg:     #f8f9fa;
+        --rp-input-border: #e9ecef;
+        --rp-input-text:   #212529;
+        --rp-label:        #212529;
+        --rp-eyebrow-line: linear-gradient(90deg, #e9ecef, transparent);
+        --rp-back-color:   #6c757d;
+        --rp-back-hover:   #007000;
+        --rp-sub-link:     #008500;
+        --rp-sub-link-hover: #009900;
     }
 
     /* Auto dark */
     @media (prefers-color-scheme: dark) {
         :root:not([data-theme="light"]) {
+            --lp-left-bg:      #0a1220;
             --rp-bg:           #0d1627;
             --rp-text:         #f0f6ff;
             --rp-muted:        #8ba3c0;
@@ -47,13 +51,14 @@
             --rp-label:        #e2e8f0;
             --rp-eyebrow-line: linear-gradient(90deg,rgba(255,255,255,.1),transparent);
             --rp-back-color:   #8ba3c0;
-            --rp-back-hover:   #4ade80;
-            --rp-sub-link:     #4ade80;
-            --rp-sub-link-hover: #86efac;
+            --rp-back-hover:   #4dcc4d;
+            --rp-sub-link:     #4dcc4d;
+            --rp-sub-link-hover: #80d980;
         }
     }
     /* Force dark */
     [data-theme="dark"] {
+        --lp-left-bg:      #0a1220;
         --rp-bg:           #0d1627;
         --rp-text:         #f0f6ff;
         --rp-muted:        #8ba3c0;
@@ -64,25 +69,26 @@
         --rp-label:        #e2e8f0;
         --rp-eyebrow-line: linear-gradient(90deg,rgba(255,255,255,.1),transparent);
         --rp-back-color:   #8ba3c0;
-        --rp-back-hover:   #4ade80;
-        --rp-sub-link:     #4ade80;
-        --rp-sub-link-hover: #86efac;
+        --rp-back-hover:   #4dcc4d;
+        --rp-sub-link:     #4dcc4d;
+        --rp-sub-link-hover: #80d980;
     }
     /* Force light */
     [data-theme="light"] {
+        --lp-left-bg:      #f8f9fa;
         --rp-bg:           #ffffff;
-        --rp-text:         #182435;
-        --rp-muted:        #6b7a8d;
-        --rp-border:       #e8edf3;
-        --rp-input-bg:     #f5f7fb;
-        --rp-input-border: #e8edf3;
-        --rp-input-text:   #182435;
-        --rp-label:        #182435;
-        --rp-eyebrow-line: linear-gradient(90deg, #e8edf3, transparent);
-        --rp-back-color:   #6b7a8d;
-        --rp-back-hover:   #15803d;
-        --rp-sub-link:     #16a34a;
-        --rp-sub-link-hover: #22c55e;
+        --rp-text:         #212529;
+        --rp-muted:        #6c757d;
+        --rp-border:       #e9ecef;
+        --rp-input-bg:     #f8f9fa;
+        --rp-input-border: #e9ecef;
+        --rp-input-text:   #212529;
+        --rp-label:        #212529;
+        --rp-eyebrow-line: linear-gradient(90deg, #e9ecef, transparent);
+        --rp-back-color:   #6c757d;
+        --rp-back-hover:   #007000;
+        --rp-sub-link:     #008500;
+        --rp-sub-link-hover: #009900;
     }
 
     /* ── FILAMENT RESET ── */
@@ -112,23 +118,25 @@
         overflow: hidden;
     }
 
-    /* ── LEFT PANEL (always dark) ── */
+    /* ── LEFT PANEL (clean/modern — ikut light/dark toggle) ── */
     .lp-left {
         position: relative; overflow: hidden;
-        background: linear-gradient(162deg, var(--ink) 0%, var(--dark2) 50%, #091a10 100%);
+        background: var(--lp-left-bg);
+        border-inline-end: 1px solid var(--rp-border);
         display: flex; flex-direction: column; padding: 3rem 3.5rem;
+        transition: background .2s, border-color .2s;
     }
     .lp-left::before {
         content: ''; position: absolute; inset: 0; pointer-events: none;
         background:
-            radial-gradient(ellipse at 80% 100%, rgba(22,163,74,.22) 0%, transparent 55%),
-            radial-gradient(ellipse at 20% 0%,   rgba(74,222,128,.07) 0%, transparent 45%);
+            radial-gradient(ellipse at 80% 100%, rgba(0,153,0,.06) 0%, transparent 55%),
+            radial-gradient(ellipse at 20% 0%,   rgba(255,215,0,.04) 0%, transparent 45%);
     }
     .lp-left::after {
         content: ''; position: absolute; inset: 0; pointer-events: none;
         background-image:
-            linear-gradient(rgba(74,222,128,.035) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(74,222,128,.035) 1px, transparent 1px);
+            linear-gradient(rgba(0,153,0,.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,153,0,.04) 1px, transparent 1px);
         background-size: 52px 52px;
         mask-image: radial-gradient(ellipse at 40% 60%, black 20%, transparent 70%);
         -webkit-mask-image: radial-gradient(ellipse at 40% 60%, black 20%, transparent 70%);
@@ -161,8 +169,8 @@
     .lp-eyebrow {
         display: inline-flex; align-items: center; gap: .4rem;
         font-size: .7rem; font-family: 'Nunito', sans-serif; font-weight: 900;
-        text-transform: uppercase; letter-spacing: .1em; color: var(--g400);
-        background: rgba(22,163,74,.12); border: 1px solid rgba(74,222,128,.25);
+        text-transform: uppercase; letter-spacing: .1em; color: var(--g700);
+        background: rgba(0,153,0,.08); border: 1px solid rgba(0,153,0,.2);
         border-radius: 999px; padding: .26rem .85rem; margin-bottom: 1.5rem;
     }
     .lp-h1 {
@@ -183,13 +191,13 @@
     .lp-benefits { display: flex; flex-direction: column; gap: .65rem; margin-bottom: auto; }
     .lp-bi {
         display: flex; align-items: flex-start; gap: .75rem;
-        background: rgba(255,255,255,.04); border: 1px solid var(--bd-d);
+        background: rgba(0,0,0,.025); border: 1px solid var(--bd-d);
         border-radius: 12px; padding: .85rem 1rem;
     }
     .lp-bi-icon {
         width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
-        background: rgba(22,163,74,.15); border: 1px solid rgba(74,222,128,.2);
-        display: grid; place-items: center; color: var(--g400); font-size: .85rem;
+        background: rgba(0,133,0,.12); border: 1px solid rgba(0,153,0,.2);
+        display: grid; place-items: center; color: var(--g700); font-size: .85rem;
     }
     .lp-bi-text { font-size: .84rem; color: var(--tw); line-height: 1.55; }
     .lp-bi-text span { color: var(--tws); display: block; font-size: .78rem; margin-top: .1rem; }
@@ -200,8 +208,8 @@
         border-top: 1px solid var(--bd-d);
         color: var(--twss); font-size: .77rem; line-height: 1.65;
     }
-    .lp-left-foot a { color: var(--g500); transition: .14s; }
-    .lp-left-foot a:hover { color: var(--g400); }
+    .lp-left-foot a { color: var(--g600); transition: .14s; }
+    .lp-left-foot a:hover { color: var(--g800); }
 
     /* ── RIGHT PANEL ── */
     .lp-right {
@@ -268,7 +276,7 @@
         transition: border-color .16s, box-shadow .16s, background .16s, color .2s;
         box-sizing: border-box;
     }
-    .lp-input:focus { background: var(--rp-bg); border-color: var(--g600); box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+    .lp-input:focus { background: var(--rp-bg); border-color: var(--g600); box-shadow: 0 0 0 3px rgba(0,133,0,.12); }
     .lp-input.is-invalid { border-color: #ef4444; }
     .lp-input.is-invalid:focus { box-shadow: 0 0 0 3px rgba(239,68,68,.1); }
     .lp-input::placeholder { color: var(--rp-muted); opacity: .6; }
@@ -291,10 +299,10 @@
         font-family: 'Nunito', sans-serif; font-weight: 900; font-size: .97rem;
         background: linear-gradient(135deg, var(--g700) 0%, var(--g500) 100%);
         color: #fff; cursor: pointer; margin-top: 1.5rem;
-        box-shadow: 0 8px 28px rgba(22,163,74,.4), inset 0 1px 0 rgba(255,255,255,.18);
+        box-shadow: 0 8px 28px rgba(0,133,0,.4), inset 0 1px 0 rgba(255,255,255,.18);
         transition: all .18s ease;
     }
-    .lp-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 14px 36px rgba(22,163,74,.5); }
+    .lp-btn:hover:not(:disabled) { background: #FFD700; color: #000; transform: translateY(-2px); box-shadow: 0 14px 36px rgba(255,215,0,.4); }
     .lp-btn:active { transform: translateY(0); }
     .lp-btn:disabled { opacity: .7; cursor: not-allowed; transform: none; }
 
@@ -372,8 +380,8 @@
         </div>
 
         <div class="lp-left-foot">
-            &copy; {{ date('Y') }} SILOGY &mdash; Universitas Siliwangi<br>
-            Lembaga Penjaminan Mutu dan Pengembangan Pembelajaran &middot;
+            &copy; {{ date('Y') }} SILOGY. All rights reserved.<br>
+            LPMPP Universitas Siliwangi &middot;
             <a href="https://lpmpp.unsil.ac.id" target="_blank">lpmpp.unsil.ac.id</a>
         </div>
     </div>
