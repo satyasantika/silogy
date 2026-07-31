@@ -46,7 +46,7 @@
         @endif
     </div>
 @else
-    <div style="border-radius:14px;padding:14px 16px;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;">
+    <div class="silogy-tone-warning" style="border-radius:14px;padding:14px 16px;border:1px solid #fcd34d;">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:rgba(180,83,9,.12);">
                 @svg('heroicon-o-exclamation-triangle', ['style' => 'width:22px;height:22px;'])

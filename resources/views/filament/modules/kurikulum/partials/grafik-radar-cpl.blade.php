@@ -12,7 +12,7 @@
                 </div>
 
                 @if (! $cplData['ada_data'])
-                    <div style="padding:10px 12px;border-radius:8px;font-size:12px;background:#fef3c7;color:#92400e;">
+                    <div class="silogy-tone-warning" style="padding:10px 12px;border-radius:8px;font-size:12px;">
                         Grafik belum dapat ditampilkan karena mata kuliah pada CPL ini belum dinilai.
                     </div>
                 @else

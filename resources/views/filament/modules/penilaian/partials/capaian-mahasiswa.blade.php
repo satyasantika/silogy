@@ -20,7 +20,7 @@
                 Nilai: {{ $mahasiswa['nilai_angka'] !== null ? rtrim(rtrim(number_format($mahasiswa['nilai_angka'], 2, '.', ''), '0'), '.') : '—' }}
             </span>
             @if ($mahasiswa['nilai_huruf'])
-                <span style="display:inline-block;margin-top:2px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:{{ $warnaHuruf['bg'] }};color:{{ $warnaHuruf['fg'] }};">
+                <span class="silogy-badge {{ $warnaHuruf['class'] }}" style="margin-top:2px;">
                     {{ $mahasiswa['nilai_huruf'] }}
                 </span>
             @endif
@@ -28,7 +28,7 @@
     </div>
 
     @if (! $penilaianTersedia)
-        <div style="padding:10px 14px;border-radius:8px;background:#fef3c7;color:#92400e;font-size:13px;margin-bottom:16px;">
+        <div class="silogy-tone-warning" style="padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;">
             Grafik belum dapat ditampilkan karena penilaian mata kuliah mahasiswa ini belum tersedia.
         </div>
     @else
@@ -90,15 +90,15 @@
                             </td>
                             <td style="padding:6px 8px;text-align:center;">
                                 @if ($cplRow['rata_rata'] === null)
-                                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;background:rgba(128,128,128,.15);color:#6b7280;">
+                                    <span class="silogy-badge silogy-tone-neutral" style="font-size:10px;">
                                         Belum ada data
                                     </span>
                                 @elseif ($cplRow['tercapai'])
-                                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;background:#dcfce7;color:#166534;">
+                                    <span class="silogy-badge silogy-tone-success" style="font-size:10px;">
                                         Tercapai
                                     </span>
                                 @else
-                                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;background:#fee2e2;color:#b91c1c;">
+                                    <span class="silogy-badge silogy-tone-danger" style="font-size:10px;">
                                         Tidak Tercapai
                                     </span>
                                 @endif

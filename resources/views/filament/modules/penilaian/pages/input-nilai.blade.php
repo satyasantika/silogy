@@ -145,7 +145,7 @@
                                                 style="position:sticky;top:0;z-index:2;padding:8px 6px;text-align:center;white-space:nowrap;min-width:110px;vertical-align:top;"
                                                 title="{{ $column['label'] }}"
                                             >
-                                                <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#e0e7ff;color:#3730a3;margin-bottom:4px;">
+                                                <span class="silogy-badge silogy-tone-indigo" style="font-size:10px;margin-bottom:4px;">
                                                     {{ rtrim(rtrim(number_format($column['bobot'], 2, '.', ''), '0'), '.') }}%
                                                 </span>
                                                 <span style="display:block;font-weight:700;font-size:12px;">{{ $column['asesmen'] }}</span>
@@ -156,7 +156,7 @@
                                                         </span>
                                                     @endif
                                                     @if ($column['cpl'])
-                                                        <span style="display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:600;background:#fde68a;color:#92400e;">
+                                                        <span class="silogy-badge silogy-tone-warning" style="padding:1px 6px;border-radius:6px;font-size:9px;">
                                                             {{ $column['cpl'] }}
                                                         </span>
                                                     @endif
@@ -182,7 +182,7 @@
                                                         @php
                                                             $warnaHuruf = $this->warnaNilaiHuruf($row['nilai_huruf']);
                                                         @endphp
-                                                        <span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;background:{{ $warnaHuruf['bg'] }};color:{{ $warnaHuruf['fg'] }};">
+                                                        <span class="silogy-badge {{ $warnaHuruf['class'] }}" style="padding:1px 7px;border-radius:6px;font-size:10px;">
                                                             {{ $row['nilai_huruf'] }}
                                                         </span>
                                                     @endif
@@ -285,7 +285,7 @@
                     }
 
                     .dark .input-nilai-sticky-foot {
-                        background: #1e3a5f;
+                        background: #0b3914;
                     }
 
                     .dark .input-nilai-sticky-topcol {

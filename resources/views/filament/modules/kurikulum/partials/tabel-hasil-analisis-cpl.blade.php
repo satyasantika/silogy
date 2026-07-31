@@ -54,7 +54,7 @@
                                     {{ $mkRow['nama'] }} ({{ $mkRow['kode'] }})
                                 @else
                                     {{ $mkRow['nama'] }}
-                                    <span style="display:inline-block;margin-left:6px;padding:1px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#e0e7ff;color:#3730a3;">
+                                    <span class="silogy-badge silogy-tone-indigo" style="margin-left:6px;">
                                         {{ $mkRow['sks'] }} SKS
                                     </span>
                                 @endif
@@ -82,7 +82,7 @@
                                 <td rowspan="{{ count($baris['mk_rows']) }}" style="padding:8px;text-align:center;">
                                     @php($ketercapaian = $baris['ketercapaian'])
                                     @if ($ketercapaian === null || $ketercapaian['rata_rata'] === null)
-                                        <div style="display:inline-block;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;">
+                                        <div class="silogy-tone-warning" style="display:inline-block;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;">
                                             Menunggu selesai penilaian
                                         </div>
                                     @else
@@ -96,11 +96,11 @@
                                             </div>
                                             <div style="margin-top:4px;">
                                                 @if ($ketercapaian['tercapai'])
-                                                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;background:#dcfce7;color:#166534;">
+                                                    <span class="silogy-badge silogy-tone-success" style="font-size:10px;">
                                                         CPL tercapai
                                                     </span>
                                                 @else
-                                                    <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;background:#fee2e2;color:#b91c1c;">
+                                                    <span class="silogy-badge silogy-tone-danger" style="font-size:10px;">
                                                         CPL tidak tercapai
                                                     </span>
                                                 @endif

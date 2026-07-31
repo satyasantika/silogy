@@ -40,7 +40,7 @@
                         style="position:sticky;top:33px;z-index:2;padding:8px 6px;white-space:nowrap;min-width:120px;vertical-align:top;"
                         title="{{ $kolom['label'] }}"
                     >
-                        <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;background:#e0e7ff;color:#3730a3;margin-bottom:4px;">
+                        <span class="silogy-badge silogy-tone-indigo" style="font-size:10px;margin-bottom:4px;">
                             {{ rtrim(rtrim(number_format($kolom['bobot'], 2, '.', ''), '0'), '.') }}%
                         </span>
                         <span style="display:block;font-weight:700;font-size:12px;">{{ $kolom['label'] }}</span>
@@ -81,7 +81,7 @@
                     <td style="padding:6px;text-align:center;">
                         @if ($row['nilai_huruf'])
                             @php($warnaHurufBaris = $this->warnaNilaiHuruf($row['nilai_huruf']))
-                            <span style="display:inline-block;padding:1px 9px;border-radius:6px;font-size:11px;font-weight:700;background:{{ $warnaHurufBaris['bg'] }};color:{{ $warnaHurufBaris['fg'] }};">
+                            <span class="silogy-badge {{ $warnaHurufBaris['class'] }}" style="padding:1px 9px;border-radius:6px;font-size:11px;">
                                 {{ $row['nilai_huruf'] }}
                             </span>
                         @else
@@ -114,7 +114,7 @@
                 <td style="padding:6px;text-align:center;">
                     @if ($this->hurufRataRataKelas)
                         @php($warnaHurufRataRata = $this->warnaNilaiHuruf($this->hurufRataRataKelas))
-                        <span style="display:inline-block;padding:1px 9px;border-radius:6px;font-size:11px;font-weight:700;background:{{ $warnaHurufRataRata['bg'] }};color:{{ $warnaHurufRataRata['fg'] }};">
+                        <span class="silogy-badge {{ $warnaHurufRataRata['class'] }}" style="padding:1px 9px;border-radius:6px;font-size:11px;">
                             {{ $this->hurufRataRataKelas }}
                         </span>
                     @else

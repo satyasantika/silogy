@@ -319,19 +319,22 @@ class PenilaianMatrixService
     }
 
     /**
-     * Warna badge nilai huruf (mis. A/A-, B+/B, C, D/E) untuk ditampilkan
-     * berdampingan dengan nilai akhir mahasiswa pada baris tabel.
+     * Kelas warna badge nilai huruf (mis. A/A-, B+/B, C, D/E) untuk
+     * ditampilkan berdampingan dengan nilai akhir mahasiswa pada baris
+     * tabel. Kelas `silogy-badge`/`silogy-tone-*` didefinisikan di
+     * resources/views/filament/hooks/status-badge-styles.blade.php
+     * (punya varian gelap, tidak seperti hex mentah sebelumnya).
      *
-     * @return array{bg: string, fg: string}
+     * @return array{class: string}
      */
     public function warnaNilaiHuruf(?string $huruf): array
     {
         return match (true) {
-            $huruf === null || $huruf === '' => ['bg' => 'rgba(128,128,128,.15)', 'fg' => '#6b7280'],
-            str_starts_with($huruf, 'A') => ['bg' => '#dcfce7', 'fg' => '#166534'],
-            str_starts_with($huruf, 'B') => ['bg' => '#dbeafe', 'fg' => '#1d4ed8'],
-            str_starts_with($huruf, 'C') => ['bg' => '#fef3c7', 'fg' => '#92400e'],
-            default => ['bg' => '#fee2e2', 'fg' => '#b91c1c'],
+            $huruf === null || $huruf === '' => ['class' => 'silogy-tone-neutral'],
+            str_starts_with($huruf, 'A') => ['class' => 'silogy-tone-success'],
+            str_starts_with($huruf, 'B') => ['class' => 'silogy-tone-info'],
+            str_starts_with($huruf, 'C') => ['class' => 'silogy-tone-warning'],
+            default => ['class' => 'silogy-tone-danger'],
         };
     }
 

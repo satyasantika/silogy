@@ -14,8 +14,9 @@
             <button
                 type="button"
                 @click="subTab = '{{ $subTabKey }}'"
+                :class="subTab === '{{ $subTabKey }}' ? 'silogy-tone-info' : ''"
                 :style="subTab === '{{ $subTabKey }}'
-                    ? 'padding:6px 14px;border-radius:999px;font-weight:600;font-size:12px;cursor:pointer;border:1px solid #2563eb;background:#dbeafe;color:#1d4ed8;'
+                    ? 'padding:6px 14px;border-radius:999px;font-weight:600;font-size:12px;cursor:pointer;border:1px solid #2563eb;'
                     : 'padding:6px 14px;border-radius:999px;font-weight:600;font-size:12px;cursor:pointer;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;'"
             >
                 {{ $subTabLabel }}
@@ -114,7 +115,7 @@
                                     <td style="padding:8px;text-align:center;">
                                         @if ($row['nilai_huruf'])
                                             @php($warnaHurufBaris = $this->warnaNilaiHuruf($row['nilai_huruf']))
-                                            <span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:{{ $warnaHurufBaris['bg'] }};color:{{ $warnaHurufBaris['fg'] }};">
+                                            <span class="silogy-badge {{ $warnaHurufBaris['class'] }}" style="padding:1px 8px;">
                                                 {{ $row['nilai_huruf'] }}
                                             </span>
                                         @else
@@ -280,7 +281,7 @@
         }
 
         .dark .portofolio-sticky-foot {
-            background: #1e3a5f;
+            background: #0b3914;
         }
 
         .dark .portofolio-sticky-topcol {

@@ -42,7 +42,7 @@
                                 @endif
                             </td>
                             <td style="padding:8px;text-align:center;">
-                                <span style="display:inline-block;padding:1px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#e0e7ff;color:#3730a3;">
+                                <span class="silogy-badge silogy-tone-indigo">
                                     {{ $mkRow['sks'] }}
                                 </span>
                             </td>

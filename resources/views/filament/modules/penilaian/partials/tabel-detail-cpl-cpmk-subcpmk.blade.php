@@ -74,15 +74,15 @@
                                     dari target {{ $baris['cpl_target'] }}%
                                 </span>
                                 @if ($baris['cpl_rata_rata'] === null)
-                                    <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(128,128,128,.15);color:#6b7280;">
+                                    <span class="silogy-badge silogy-tone-neutral" style="font-size:11px;">
                                         Belum ada data
                                     </span>
                                 @elseif ($baris['cpl_tercapai'])
-                                    <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#dcfce7;color:#166534;">
+                                    <span class="silogy-badge silogy-tone-success" style="font-size:11px;">
                                         Tercapai
                                     </span>
                                 @else
-                                    <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;">
+                                    <span class="silogy-badge silogy-tone-danger" style="font-size:11px;">
                                         Tidak Tercapai
                                     </span>
                                 @endif
@@ -99,7 +99,7 @@
                                 Persentase ketercapaian MK terhadap perkiraan sumbangan ke CPL
                             </div>
                             <div style="display:flex;flex-wrap:wrap;gap:10px;">
-                                <div style="border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:8px 16px;background:#fff;text-align:right;">
+                                <div class="silogy-stat-card" style="text-align:right;">
                                     <div style="font-size:10px;font-weight:600;text-transform:uppercase;opacity:.7;">
                                         Target Kelulusan CPL
                                     </div>
@@ -107,7 +107,7 @@
                                         {{ $target !== null ? rtrim(rtrim(number_format($target, 2, '.', ''), '0'), '.').'%' : '—' }}
                                     </div>
                                 </div>
-                                <div style="border:1px solid rgba(37,99,235,.3);border-radius:10px;padding:8px 16px;background:#fff;text-align:right;">
+                                <div class="silogy-stat-card" style="text-align:right;">
                                     <div style="font-size:10px;font-weight:600;text-transform:uppercase;opacity:.7;">
                                         Rata-rata Ketercapaian
                                     </div>

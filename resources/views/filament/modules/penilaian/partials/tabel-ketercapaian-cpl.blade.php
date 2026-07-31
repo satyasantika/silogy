@@ -31,15 +31,15 @@
                         </td>
                         <td style="padding:8px;text-align:center;">
                             @if ($cplRow['rata_rata'] === null)
-                                <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(128,128,128,.15);color:#6b7280;">
+                                <span class="silogy-badge silogy-tone-neutral" style="font-size:11px;">
                                     Belum ada data
                                 </span>
                             @elseif ($cplRow['tercapai'])
-                                <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#dcfce7;color:#166534;">
+                                <span class="silogy-badge silogy-tone-success" style="font-size:11px;">
                                     Tercapai
                                 </span>
                             @else
-                                <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;">
+                                <span class="silogy-badge silogy-tone-danger" style="font-size:11px;">
                                     Tidak Tercapai
                                 </span>
                             @endif

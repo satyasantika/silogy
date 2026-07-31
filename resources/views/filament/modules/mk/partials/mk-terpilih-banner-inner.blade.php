@@ -8,7 +8,7 @@
 @endphp
 
 @if (! $mk)
-    <div style="padding:12px 14px;border-radius:8px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;line-height:1.55;">
+    <div class="silogy-tone-warning" style="padding:12px 14px;border-radius:8px;border:1px solid #fcd34d;font-size:13px;line-height:1.55;">
         <div>Belum ada mata kuliah terpilih.</div>
         <div style="margin-top:4px;">
             <a href="{{ $gantiUrl }}" style="font-weight:600;color:#b45309;text-decoration:underline;">Pilih dari halaman Mata Kuliah</a>
@@ -22,7 +22,7 @@
         $prodiLabel = $kurikulum?->academicUnit?->nama ?? '—';
     @endphp
 
-    <div style="padding:12px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;font-size:13px;line-height:1.5;">
+    <div class="silogy-tone-info" style="padding:12px 14px;border-radius:8px;border:1px solid #bfdbfe;font-size:13px;line-height:1.5;">
         <div class="mk-terpilih-banner-grid">
             <div class="mk-terpilih-banner-col">
                 <div class="mk-terpilih-banner-label">Mata Kuliah</div>
