@@ -8,7 +8,7 @@
 @php($arahan = $arahan ?? null)
 
 @if ($kurikulum)
-    <div style="border-radius:14px;padding:14px 16px;color:#fff;background:linear-gradient(120deg,#1d4ed8 0%,#4338ca 55%,#6d28d9 100%);box-shadow:0 10px 24px -16px rgba(30,64,175,.9);">
+    <div style="border-radius:14px;padding:14px 16px;color:#fff;background:linear-gradient(120deg,#007000 0%,#009900 55%,#0b3914 100%);box-shadow:0 10px 24px -16px rgba(11,57,20,.85);">
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
             <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.18);">
                 @svg('heroicon-o-academic-cap', ['style' => 'width:24px;height:24px;'])
@@ -30,7 +30,7 @@
                 <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:rgba(255,255,255,.2);">
                     Tahun {{ $kurikulum->tahun }}
                 </span>
-                <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;background:{{ $kurikulum->is_active ? 'rgba(34,197,94,.95)' : 'rgba(255,255,255,.2)' }};">
+                <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;background:{{ $kurikulum->is_active ? '#ffd700' : 'rgba(255,255,255,.2)' }};color:{{ $kurikulum->is_active ? '#000' : '#fff' }};">
                     {{ $kurikulum->is_active ? 'Aktif' : 'Nonaktif' }}
                 </span>
                 @if ($aksi)
