@@ -308,7 +308,6 @@ class SubcpmkResource extends Resource
                         TextColumn::make('kode')
                             ->label('Kode')
                             ->searchable()
-                            ->sortable()
                             ->weight(FontWeight::Bold),
 
                         TextColumn::make('taksonomi')
@@ -350,9 +349,13 @@ class SubcpmkResource extends Resource
             ])
             ->contentGrid(['md' => 2, 'xl' => 3])
             ->paginated(false)
+            ->extraAttributes([
+                'class' => 'silogy-mk-semester-toolbar',
+            ])
             ->filters([
                 static::semesterTerpilihFilter(
                     fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
+                    ['indikator' => false, 'labelTersembunyi' => true],
                 ),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)

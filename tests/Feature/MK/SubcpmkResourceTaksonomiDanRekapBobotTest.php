@@ -65,6 +65,20 @@ beforeEach(function () {
     MkTerpilih::set($this->mk->id);
 });
 
+it('toolbar subcpmk: filter semester tanpa indikator filter aktif dan tanpa urutkan menurut', function () {
+    Subcpmk::query()->create([
+        'mk_cpmk_id' => $this->mkCpmk->id,
+        'semester_id' => $this->semester->id,
+        'kode' => 'SubCPMK04.1',
+        'deskripsi' => 'Uji toolbar',
+    ]);
+
+    Livewire::test(ListSubcpmks::class)->loadTable()
+        ->assertSee('Semester', escape: false)
+        ->assertDontSee('Filter aktif', escape: false)
+        ->assertDontSee('Urutkan menurut', escape: false);
+});
+
 it('menampilkan badge taksonomi bloom pada tabel subcpmk', function () {
     Subcpmk::query()->create([
         'mk_cpmk_id' => $this->mkCpmk->id,

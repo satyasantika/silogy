@@ -190,14 +190,12 @@ class KomponenPenilaianResource extends Resource
                         TextColumn::make('kode')
                             ->label('Kode')
                             ->searchable()
-                            ->sortable()
                             ->placeholder('—')
                             ->weight(FontWeight::Bold),
 
                         TextColumn::make('bobot')
                             ->label('Bobot (%)')
                             ->suffix('%')
-                            ->sortable()
                             ->icon('heroicon-o-pencil-square')
                             ->iconPosition(IconPosition::After)
                             ->disabledClick(fn (KomponenPenilaian $record): bool => ! Auth::user()?->can('update', $record))
@@ -207,13 +205,11 @@ class KomponenPenilaianResource extends Resource
                     TextColumn::make('nama')
                         ->label('Nama penugasan')
                         ->searchable()
-                        ->sortable()
                         ->wrap()
                         ->weight(FontWeight::Bold),
 
                     TextColumn::make('evaluasi.nama')
                         ->label('Komponen')
-                        ->sortable()
                         ->size('sm')
                         ->color('gray'),
 
@@ -240,9 +236,13 @@ class KomponenPenilaianResource extends Resource
             ])
             ->contentGrid(['md' => 2, 'xl' => 3])
             ->paginated(false)
+            ->extraAttributes([
+                'class' => 'silogy-mk-semester-toolbar',
+            ])
             ->filters([
                 static::semesterTerpilihFilter(
                     fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
+                    ['indikator' => false, 'labelTersembunyi' => true],
                 ),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)

@@ -51,10 +51,14 @@ trait HasSemesterTerpilihFilter
 
     /**
      * @param  callable(Builder<Model>, string): Builder<Model>  $applyScope
+     * @param  array{indikator?: bool, labelTersembunyi?: bool}  $opsi
      */
-    protected static function semesterTerpilihFilter(callable $applyScope): SelectFilter
+    protected static function semesterTerpilihFilter(callable $applyScope, array $opsi = []): SelectFilter
     {
-        return SelectFilter::make('semester_terpilih')
+        $tampilkanIndikator = $opsi['indikator'] ?? true;
+        $labelTersembunyi = $opsi['labelTersembunyi'] ?? false;
+
+        $filter = SelectFilter::make('semester_terpilih')
             ->label('Semester')
             ->visible(fn (): bool => static::usesSemesterTerpilihFilter())
             ->default(fn (): ?string => SemesterTerpilih::currentId())
@@ -63,6 +67,8 @@ trait HasSemesterTerpilihFilter
             ->schema([
                 Select::make('value')
                     ->label('Semester')
+                    ->hiddenLabel($labelTersembunyi)
+                    ->prefix($labelTersembunyi ? 'Semester' : null)
                     ->options(fn (): array => SemesterTerpilih::options())
                     ->default(fn (): ?string => SemesterTerpilih::currentId())
                     ->selectablePlaceholder(false)
@@ -92,16 +98,21 @@ trait HasSemesterTerpilihFilter
                 SemesterTerpilih::set($mkId, $semesterId);
 
                 return $applyScope($query, $semesterId);
-            })
-            ->indicateUsing(function (array $data): ?string {
-                $semesterId = static::resolveSemesterFilterState(MkTerpilih::currentId(), $data['value'] ?? null);
-
-                if (blank($semesterId)) {
-                    return null;
-                }
-
-                return 'Semester: '.SemesterTerpilih::label($semesterId);
             });
+
+        if (! $tampilkanIndikator) {
+            return $filter->indicateUsing(fn (): array => []);
+        }
+
+        return $filter->indicateUsing(function (array $data): ?string {
+            $semesterId = static::resolveSemesterFilterState(MkTerpilih::currentId(), $data['value'] ?? null);
+
+            if (blank($semesterId)) {
+                return null;
+            }
+
+            return 'Semester: '.SemesterTerpilih::label($semesterId);
+        });
     }
 
     protected static function resolveSemesterFilterState(?string $mkId, mixed $state = null): ?string
