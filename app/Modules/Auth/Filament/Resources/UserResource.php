@@ -298,9 +298,7 @@ class UserResource extends Resource
                             ->success()
                             ->send();
                     }),
-                EditAction::make()
-                    ->iconButton()
-                    ->tooltip('Ubah'),
+                EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

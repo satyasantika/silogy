@@ -169,16 +169,34 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Icon bawaan agar semua tombol aksi Filament (termasuk header action
-     * yang default-nya tanpa icon) selalu tampil ber-icon.
+     * Icon & tampilan bawaan aksi Filament:
+     * - Ubah / Hapus: icon-only (konsisten ikon outlined + warna)
+     * - aksi lain: tetap ber-icon agar header action tidak polos
      */
     protected function configureFilamentActionIcons(): void
     {
         CreateAction::configureUsing(fn (CreateAction $action) => $action->icon(Heroicon::Plus));
-        EditAction::configureUsing(fn (EditAction $action) => $action->icon(Heroicon::PencilSquare));
-        DeleteAction::configureUsing(fn (DeleteAction $action) => $action->icon(Heroicon::Trash));
-        ViewAction::configureUsing(fn (ViewAction $action) => $action->icon(Heroicon::Eye));
-        AttachAction::configureUsing(fn (AttachAction $action) => $action->icon(Heroicon::Link));
+
+        EditAction::configureUsing(function (EditAction $action): void {
+            $action
+                ->label('Ubah')
+                ->icon(Heroicon::OutlinedPencilSquare)
+                ->iconButton()
+                ->color('gray')
+                ->tooltip('Ubah');
+        });
+
+        DeleteAction::configureUsing(function (DeleteAction $action): void {
+            $action
+                ->label('Hapus')
+                ->icon(Heroicon::OutlinedTrash)
+                ->iconButton()
+                ->color('danger')
+                ->tooltip('Hapus');
+        });
+
+        ViewAction::configureUsing(fn (ViewAction $action) => $action->icon(Heroicon::OutlinedEye));
+        AttachAction::configureUsing(fn (AttachAction $action) => $action->icon(Heroicon::OutlinedLink));
 
         // Tombol submit/batal pada footer modal (konfirmasi, form action, dsb.)
         // tidak ber-icon secara bawaan — pasang icon representatif untuk semuanya.

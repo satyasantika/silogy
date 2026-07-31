@@ -353,10 +353,6 @@ class KurikulumResource extends Resource
                             ->send();
                     }),
                 EditAction::make()
-                    ->label('')
-                    ->iconButton()
-                    ->tooltip('Ubah')
-                    ->icon(Heroicon::OutlinedPencilSquare)
                     ->extraAttributes([
                         'class' => 'silogy-kurikulum-edit-action',
                         'style' => 'margin-inline-start:auto;',

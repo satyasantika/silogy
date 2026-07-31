@@ -21,9 +21,7 @@ class EditUser extends BaseEditRecord
                 ->record($this->getRecord())
                 // Closure — lihat catatan di UserResource.php pada action yang sama.
                 ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart()),
-            DeleteAction::make()
-                ->iconButton()
-                ->tooltip('Hapus'),
+            DeleteAction::make(),
         ];
     }
 
