@@ -3,32 +3,26 @@
 namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
-use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
-use App\Modules\Kurikulum\Models\Kurikulum;
-use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MataKuliahKoordinatorResource\Pages\ListMataKuliahKoordinators;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Policies\MataKuliahKoordinatorPolicy;
 use App\Modules\MK\Services\MataKuliahKoordinatorService;
 use App\Modules\MK\Support\MkTerpilih;
-use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class MataKuliahKoordinatorResource extends Resource
 {
     use HasKoordinatorMkScope;
-    use HasKurikulumTerpilihFilter;
 
     protected static ?string $model = Mk::class;
 
@@ -48,11 +42,6 @@ class MataKuliahKoordinatorResource extends Resource
 
     protected static ?string $slug = 'mata-kuliah-koordinator';
 
-    protected static function kurikulumBannerCatatan(): ?string
-    {
-        return 'Mata kuliah yang Anda koordinasikan pada kurikulum ini.';
-    }
-
     protected static ?string $recordTitleAttribute = 'nama';
 
     public static function shouldRegisterNavigation(): bool
@@ -71,20 +60,6 @@ class MataKuliahKoordinatorResource extends Resource
         return $user instanceof User && app(MataKuliahKoordinatorPolicy::class)->viewAny($user);
     }
 
-    /**
-     * @return Collection<int, string>
-     */
-    protected static function kurikulumTerpilihFilterUnitIds(): ?Collection
-    {
-        $user = Auth::user();
-
-        if ($user instanceof User) {
-            return PenawaranMkScope::unitIdsDariPenawaran($user);
-        }
-
-        return collect();
-    }
-
     public static function getEloquentQuery(): Builder
     {
         $user = Auth::user();
@@ -100,86 +75,76 @@ class MataKuliahKoordinatorResource extends Resource
         }
 
         return parent::getEloquentQuery()
-            ->with(['academicUnit', 'mkUnits'])
+            ->with(['academicUnit', 'kurikulum.academicUnit', 'mkUnits.kurikulum.academicUnit'])
             ->whereIn('id', $mkIds);
     }
 
     public static function table(Table $table): Table
     {
-        return static::applyKurikulumTerpilihCardTable(
-            $table
-                ->selectable(false)
-                ->recordUrl(null)
-                ->recordAction('kerjakan')
-                ->recordActions([
-                    Action::make('kerjakan')
-                        ->label(fn (Mk $record): string => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
-                            ? 'Sedang dikerjakan'
-                            : 'Kerjakan')
-                        ->icon(Heroicon::OutlinedCheckCircle)
-                        ->color(fn (Mk $record): string => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
-                            ? 'primary'
-                            : 'success')
-                        ->disabled(fn (Mk $record): bool => MataKuliahKoordinatorService::isMkSedangDikerjakan($record))
-                        ->action(function (Mk $record): void {
-                            MkTerpilih::set($record->id);
+        return $table
+            ->selectable(false)
+            ->recordUrl(null)
+            ->recordAction('kerjakan')
+            ->recordClasses(fn (Mk $record): array => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
+                ? ['silogy-mk-card-sedang-dikerjakan']
+                : ['silogy-mk-card-belum-dikerjakan'])
+            ->recordActions([
+                Action::make('kerjakan')
+                    ->label(fn (Mk $record): string => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
+                        ? 'Sedang dikerjakan'
+                        : 'Kerjakan')
+                    ->icon(fn (Mk $record): Heroicon => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
+                        ? Heroicon::OutlinedCheckBadge
+                        : Heroicon::OutlinedPlayCircle)
+                    ->color(fn (Mk $record): string => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
+                        ? 'gray'
+                        : 'success')
+                    ->disabled(fn (Mk $record): bool => MataKuliahKoordinatorService::isMkSedangDikerjakan($record))
+                    ->extraAttributes(fn (Mk $record): array => [
+                        'class' => MataKuliahKoordinatorService::isMkSedangDikerjakan($record)
+                            ? 'silogy-mk-aksi-sedang-dikerjakan'
+                            : 'silogy-mk-aksi-kerjakan',
+                    ])
+                    ->action(function (Mk $record): void {
+                        MkTerpilih::set($record->id);
 
-                            Notification::make()
-                                ->title('Mata kuliah sedang dikerjakan diganti')
-                                ->body($record->nama)
-                                ->success()
-                                ->send();
+                        Notification::make()
+                            ->title('Mata kuliah sedang dikerjakan diganti')
+                            ->body($record->nama)
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->extraAttributes([
+                'class' => 'silogy-mk-koordinator-cards',
+            ])
+            ->columns([
+                Stack::make([
+                    TextColumn::make('judul_card')
+                        ->label('Mata kuliah')
+                        ->state(fn (Mk $record): string => MataKuliahKoordinatorService::judulCardHtml($record)->toHtml())
+                        ->html()
+                        ->searchable(query: function (Builder $query, string $search): Builder {
+                            return $query->where('nama', 'like', "%{$search}%");
                         }),
-                ])
-                ->extraAttributes([
-                    'class' => 'silogy-mk-koordinator-cards',
-                ]),
-            [
-                TextColumn::make('header_card')
-                    ->label('')
-                    ->state(fn (Mk $record): string => MataKuliahKoordinatorService::headerCardHtml(
-                        $record,
-                        KurikulumTerpilih::current(),
-                    )->toHtml())
-                    ->html(),
 
-                TextColumn::make('nama')
-                    ->label('Mata kuliah')
-                    ->searchable()
-                    ->sortable()
-                    ->weight(FontWeight::Medium),
+                    TextColumn::make('meta_penawaran')
+                        ->label('')
+                        ->state(function (Mk $record): string {
+                            $user = Auth::user();
 
-                TextColumn::make('meta_penawaran')
-                    ->label('')
-                    ->state(function (Mk $record): string {
-                        $user = Auth::user();
+                            if (! $user instanceof User) {
+                                return '';
+                            }
 
-                        if (! $user instanceof User) {
-                            return '';
-                        }
-
-                        return MataKuliahKoordinatorService::metaPenawaranHtml(
-                            $record,
-                            KurikulumTerpilih::current(),
-                            $user,
-                        )->toHtml();
-                    })
-                    ->html(),
-
-                TextColumn::make('academicUnit.nama_lengkap')
-                    ->label('Unit pemilik MK')
-                    ->size('sm')
-                    ->color('gray')
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ],
-            fn (Builder $query, Kurikulum $kurikulum): Builder => $query->whereHas(
-                'mkUnits',
-                fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
-                    ->where('kurikulum_id', $kurikulum->id)
-                    ->where('is_active', true),
-            ),
-            withKurikulumFilter: true,
-        );
+                            return MataKuliahKoordinatorService::metaPenawaranHtml($record, $user)->toHtml();
+                        })
+                        ->html(),
+                ])->space(1),
+            ])
+            ->contentGrid(['md' => 2, 'xl' => 3])
+            ->paginated([6, 12, 24])
+            ->defaultPaginationPageOption(12);
     }
 
     public static function getPages(): array

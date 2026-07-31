@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
@@ -47,7 +48,7 @@ it('koordinator mk melihat menu mata kuliah di kategori mata kuliah bukan penawa
         ->and(MkUnitResource::shouldRegisterNavigation())->toBeFalse();
 });
 
-it('halaman mata kuliah koordinator menampilkan card mk pada kurikulum terpilih', function () {
+it('halaman mata kuliah koordinator menampilkan card mk dengan info kurikulum', function () {
     $mkKorma = Mk::factory()->forKurikulum($this->kurikulum)->create([
         'nama' => 'Algoritma Koordinator',
         'koordinator_mk_id' => $this->korma->id,
@@ -76,19 +77,25 @@ it('halaman mata kuliah koordinator menampilkan card mk pada kurikulum terpilih'
         'deskripsi' => 'Mahasiswa mampu merancang algoritma.',
     ]);
 
-    KurikulumTerpilih::set($this->kurikulum->id);
     $this->actingAs($this->korma);
+
+    [, $namaUnitCard] = AcademicUnitResource::jenisDanNamaUntukCard($this->prodi);
 
     Livewire::test(ListMataKuliahKoordinators::class)
         ->loadTable()
+        ->assertDontSee('Kurikulum yang dikerjakan', escape: false)
+        ->assertSee('Kurikulum Korma MK', escape: false)
+        ->assertSee('Program Studi', escape: false)
+        ->assertSee($namaUnitCard, escape: false)
         ->assertSee('Algoritma Koordinator', escape: false)
-        ->assertSee('KOR701', escape: false)
         ->assertSee('3 SKS', escape: false)
-        ->assertSee('Semester ke-3', escape: false)
         ->assertSee('CPMK · Ada', escape: false)
         ->assertSee('Sub-CPMK · Belum', escape: false)
         ->assertSee('Asesmen · Belum', escape: false)
         ->assertSee('Kerjakan', escape: false)
+        ->assertDontSee('KOR701', escape: false)
+        ->assertDontSee('Semester ke-3', escape: false)
+        ->assertDontSee('Belum dikerjakan', escape: false)
         ->assertDontSee('CPL↔CPMK', escape: false)
         ->assertDontSee('MK Orang Lain', escape: false);
 });
@@ -104,6 +111,16 @@ it('aksi kerjakan pada card menetapkan mk terpilih dan menampilkan Sedang dikerj
         'is_active' => true,
     ]);
 
+    $mkLain = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'nama' => 'Basis Data Koordinator',
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+    MkUnit::factory()->forMk($mkLain)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'KOR802',
+        'semester_ke' => 5,
+        'is_active' => true,
+    ]);
+
     KurikulumTerpilih::set($this->kurikulum->id);
     $this->actingAs($this->korma);
 
@@ -112,11 +129,42 @@ it('aksi kerjakan pada card menetapkan mk terpilih dan menampilkan Sedang dikerj
     Livewire::test(ListMataKuliahKoordinators::class)
         ->loadTable()
         ->assertSee('Kerjakan', escape: false)
+        ->assertDontSee('Sedang dikerjakan', escape: false)
+        ->assertDontSee('Belum dikerjakan', escape: false)
         ->callTableAction('kerjakan', $mk)
-        ->assertSee('Sedang dikerjakan', escape: false);
+        ->assertSee('Sedang dikerjakan', escape: false)
+        ->assertSee('Kerjakan', escape: false)
+        ->assertDontSee('Belum dikerjakan', escape: false);
 
     expect(MkTerpilih::currentId())->toBe($mk->id)
-        ->and(MataKuliahKoordinatorService::isMkSedangDikerjakan($mk))->toBeTrue();
+        ->and(MataKuliahKoordinatorService::isMkSedangDikerjakan($mk))->toBeTrue()
+        ->and(MataKuliahKoordinatorService::isMkSedangDikerjakan($mkLain))->toBeFalse();
+});
+
+it('mk yang dikoordinasikan tanpa penawaran tetap tampil di card dengan kurikulum pemilik', function () {
+    $mkTanpaPenawaran = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'nama' => 'MK Tanpa Penawaran Koordinator',
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $this->actingAs($this->korma);
+
+    [, $namaUnitCard] = AcademicUnitResource::jenisDanNamaUntukCard($this->prodi);
+
+    expect(MataKuliahKoordinatorResource::scopedKoordinatorMkIds($this->korma))
+        ->toContain($mkTanpaPenawaran->id)
+        ->and(MataKuliahKoordinatorService::labelKurikulumPadaCard($mkTanpaPenawaran))
+        ->toBe('Kurikulum Korma MK · 2026')
+        ->and(MataKuliahKoordinatorService::labelUnitPadaCard($mkTanpaPenawaran))
+        ->toBe('Program Studi · '.$namaUnitCard);
+
+    Livewire::test(ListMataKuliahKoordinators::class)
+        ->loadTable()
+        ->assertSee('MK Tanpa Penawaran Koordinator', escape: false)
+        ->assertSee('Kurikulum Korma MK', escape: false)
+        ->assertSee('Program Studi', escape: false)
+        ->assertSee('Kerjakan', escape: false)
+        ->assertDontSee('Belum dikerjakan', escape: false);
 });
 
 it('service ketersediaan penilaian mendeteksi cpmk subcpmk dan asesmen', function () {
@@ -136,4 +184,62 @@ it('service ketersediaan penilaian mendeteksi cpmk subcpmk dan asesmen', functio
     expect($ketersediaan['cpmk'])->toBeTrue()
         ->and($ketersediaan['subcpmk'])->toBeFalse()
         ->and($ketersediaan['asesmen'])->toBeFalse();
+});
+
+it('label unit pada card koordinator hanya untuk prodi dan jurusan', function () {
+    $fakultas = AcademicUnit::query()->where('type', 'faculty')->firstOrFail();
+    $universitas = AcademicUnit::query()->where('type', 'university')->firstOrFail();
+    $jurusan = AcademicUnit::query()->where('type', 'department')->firstOrFail();
+
+    $kurikulumFak = Kurikulum::query()->create([
+        'academic_unit_id' => $fakultas->id,
+        'nama' => 'Kurikulum Fakultas Label Card',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    $mkFak = Mk::factory()->forKurikulum($kurikulumFak)->create([
+        'academic_unit_id' => $fakultas->id,
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $kurikulumUniv = Kurikulum::query()->create([
+        'academic_unit_id' => $universitas->id,
+        'nama' => 'Kurikulum Universitas Label Card',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    $mkUniv = Mk::factory()->forKurikulum($kurikulumUniv)->create([
+        'academic_unit_id' => $universitas->id,
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $kurikulumJur = Kurikulum::query()->create([
+        'academic_unit_id' => $jurusan->id,
+        'nama' => 'Kurikulum Jurusan Label Card',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    $mkJur = Mk::factory()->forKurikulum($kurikulumJur)->create([
+        'academic_unit_id' => $jurusan->id,
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    [, $namaProdi] = AcademicUnitResource::jenisDanNamaUntukCard($this->prodi);
+    [, $namaJurusan] = AcademicUnitResource::jenisDanNamaUntukCard($jurusan);
+    $mkProdi = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    expect(MataKuliahKoordinatorService::labelUnitPadaCard($mkProdi))
+        ->toBe('Program Studi · '.$namaProdi)
+        ->and(MataKuliahKoordinatorService::labelUnitPadaCard($mkJur))
+        ->toBe('Jurusan · '.$namaJurusan)
+        ->and(MataKuliahKoordinatorService::labelUnitPadaCard($mkFak))
+        ->toBe($fakultas->nama)
+        ->and(MataKuliahKoordinatorService::unitBarisUntukCard($mkFak)['label'])
+        ->toBeNull()
+        ->and(MataKuliahKoordinatorService::labelUnitPadaCard($mkUniv))
+        ->toBe($universitas->nama)
+        ->and(MataKuliahKoordinatorService::unitBarisUntukCard($mkUniv)['label'])
+        ->toBeNull();
 });

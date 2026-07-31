@@ -3,8 +3,11 @@
 namespace App\Modules\MK\Services;
 
 use App\Models\User;
+use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
@@ -58,6 +61,45 @@ class MataKuliahKoordinatorService
                 && $unit->is_active);
     }
 
+    /**
+     * Penawaran untuk ditampilkan di card: utamakan kurikulum terpilih
+     * (aktif), lalu penawaran aktif lain, lalu penawaran nonaktif bila ada.
+     * MK tanpa penawaran tetap tampil (meta kosong / placeholder).
+     */
+    public static function penawaranUntukCard(Mk $mk): ?MkUnit
+    {
+        $mk->loadMissing(['mkUnits.kurikulum.academicUnit']);
+
+        if ($mk->mkUnits->isEmpty()) {
+            return null;
+        }
+
+        $terpilih = KurikulumTerpilih::current();
+
+        if ($terpilih instanceof Kurikulum) {
+            $padaTerpilihAktif = $mk->mkUnits->first(
+                fn (MkUnit $unit): bool => $unit->kurikulum_id === $terpilih->id && $unit->is_active,
+            );
+
+            if ($padaTerpilihAktif instanceof MkUnit) {
+                return $padaTerpilihAktif;
+            }
+        }
+
+        $aktif = $mk->mkUnits
+            ->filter(fn (MkUnit $unit): bool => $unit->is_active)
+            ->sortBy(fn (MkUnit $unit): int => (int) ($unit->semester_ke ?? 99))
+            ->first();
+
+        if ($aktif instanceof MkUnit) {
+            return $aktif;
+        }
+
+        return $mk->mkUnits
+            ->sortBy(fn (MkUnit $unit): int => (int) ($unit->semester_ke ?? 99))
+            ->first();
+    }
+
     public static function labelPenawaranPadaKurikulum(Mk $mk, Kurikulum $kurikulum): string
     {
         $kode = static::penawaranPadaKurikulum($mk, $kurikulum)?->kode;
@@ -65,26 +107,97 @@ class MataKuliahKoordinatorService
         return filled($kode) ? (string) $kode : '—';
     }
 
-    public static function isMkSedangDikerjakan(Mk $mk): bool
+    public static function labelKurikulumPadaCard(Mk $mk): string
     {
-        return MkTerpilih::currentId() === $mk->id;
+        $kurikulum = static::kurikulumUntukCard($mk);
+
+        if (! $kurikulum instanceof Kurikulum) {
+            return 'Kurikulum —';
+        }
+
+        $tahun = filled($kurikulum->tahun) ? ' · '.$kurikulum->tahun : '';
+
+        return $kurikulum->nama.$tahun;
     }
 
     /**
-     * Header card: kode penawaran kiri, pill SKS kanan (sejajar pola kurikulum).
+     * Unit akademik pada card: utamakan unit kurikulum penawaran/pemilik,
+     * lalu unit pemilik MK.
      */
-    public static function headerCardHtml(Mk $mk, ?Kurikulum $kurikulum): HtmlString
+    public static function unitUntukCard(Mk $mk): ?AcademicUnit
     {
-        $kode = $kurikulum instanceof Kurikulum
-            ? static::labelPenawaranPadaKurikulum($mk, $kurikulum)
-            : '—';
+        $kurikulum = static::kurikulumUntukCard($mk);
+
+        if ($kurikulum instanceof Kurikulum) {
+            $kurikulum->loadMissing('academicUnit');
+
+            if ($kurikulum->academicUnit instanceof AcademicUnit) {
+                return $kurikulum->academicUnit;
+            }
+        }
+
+        $mk->loadMissing('academicUnit');
+
+        return $mk->academicUnit;
+    }
+
+    /**
+     * Baris unit pada card koordinator.
+     * Prodi/jurusan: "Program Studi · …" / "Jurusan · …".
+     * Fakultas/universitas: nama unit saja (tanpa label jenis).
+     *
+     * @return array{label: string|null, nama: string}
+     */
+    public static function unitBarisUntukCard(Mk $mk): array
+    {
+        $unit = static::unitUntukCard($mk);
+
+        if (! $unit instanceof AcademicUnit) {
+            return ['label' => null, 'nama' => '—'];
+        }
+
+        if (in_array($unit->type, ['study_program', 'department'], true)) {
+            [$typeLabel, $nama] = AcademicUnitResource::jenisDanNamaUntukCard($unit);
+
+            return ['label' => $typeLabel, 'nama' => $nama];
+        }
+
+        $nama = trim((string) ($unit->nama_lengkap ?: $unit->nama));
+
+        return ['label' => null, 'nama' => $nama !== '' ? $nama : '—'];
+    }
+
+    public static function labelUnitPadaCard(Mk $mk): string
+    {
+        $baris = static::unitBarisUntukCard($mk);
+
+        if ($baris['label'] === null) {
+            return $baris['nama'];
+        }
+
+        return $baris['label'].' · '.$baris['nama'];
+    }
+
+    public static function isMkSedangDikerjakan(Mk $mk): bool
+    {
+        // Bandingkan session langsung agar status card sinkron dengan aksi Kerjakan.
+        $id = session()->get(MkTerpilih::SESSION_KEY);
+
+        return filled($id) && (string) $id === (string) $mk->id;
+    }
+
+    /**
+     * Judul card: nama MK + pill SKS sejajar (satu baris).
+     */
+    public static function judulCardHtml(Mk $mk): HtmlString
+    {
         $sks = (int) $mk->total_sks;
 
         return new HtmlString(
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;">'
-            .'<div style="min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">'
-            .'<span style="font-weight:700;font-size:14px;color:inherit;">'.e($kode).'</span>'
-            .'</div>'
+            .'<span style="min-width:0;font-weight:500;font-size:14px;line-height:1.4;color:inherit;">'
+            .e($mk->nama)
+            .'</span>'
             .'<span style="flex-shrink:0;display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;'
             .'font-size:11px;font-weight:600;line-height:1.4;background:#eff6ff;color:#1d4ed8;'
             .'border:1px solid #bfdbfe;">'.e((string) $sks).' SKS</span>'
@@ -93,26 +206,41 @@ class MataKuliahKoordinatorService
     }
 
     /**
-     * Meta: baris semester sendiri, lalu badge menu sejajar kiri di bawahnya.
+     * Meta: kurikulum, lalu baris unit, lalu badge menu.
      */
-    public static function metaPenawaranHtml(Mk $mk, ?Kurikulum $kurikulum, User $user): HtmlString
+    public static function metaPenawaranHtml(Mk $mk, User $user): HtmlString
     {
-        $penawaran = $kurikulum instanceof Kurikulum
-            ? static::penawaranPadaKurikulum($mk, $kurikulum)
-            : null;
-        $semesterKe = $penawaran?->semester_ke;
-        $semesterLabel = $semesterKe !== null
-            ? 'Semester ke-'.$semesterKe
-            : 'Semester —';
+        $kurikulumLabel = static::labelKurikulumPadaCard($mk);
+        $baris = static::unitBarisUntukCard($mk);
+        $unitHtml = $baris['label'] === null
+            ? e($baris['nama'])
+            : '<span style="font-weight:600;color:#374151;">'.e($baris['label']).'</span>'
+                .' · '.e($baris['nama']);
 
         return new HtmlString(
             '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;margin:0;padding:0;">'
+            .'<div style="font-size:12px;line-height:1.4;font-weight:600;color:#374151;margin:0;padding:0;">'
+            .e($kurikulumLabel)
+            .'</div>'
             .'<div style="font-size:12px;line-height:1.4;color:#6b7280;margin:0;padding:0;">'
-            .e($semesterLabel)
+            .$unitHtml
             .'</div>'
             .static::ketersediaanPenilaianHtml($mk, $user)->toHtml()
             .'</div>'
         );
+    }
+
+    protected static function kurikulumUntukCard(Mk $mk): ?Kurikulum
+    {
+        $kurikulum = static::penawaranUntukCard($mk)?->kurikulum;
+
+        if ($kurikulum instanceof Kurikulum) {
+            return $kurikulum;
+        }
+
+        $mk->loadMissing('kurikulum');
+
+        return $mk->kurikulum;
     }
 
     public static function ketersediaanPenilaianHtml(Mk $mk, User $user): HtmlString
