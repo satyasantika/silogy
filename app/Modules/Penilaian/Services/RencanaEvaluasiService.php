@@ -4,10 +4,8 @@ namespace App\Modules\Penilaian\Services;
 
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalender\Support\SemesterTerpilih;
-use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class RencanaEvaluasiService
@@ -41,18 +39,6 @@ class RencanaEvaluasiService
     {
         if (blank($mkId) || blank($semesterId)) {
             return null;
-        }
-
-        $adaKelas = KelasMk::query()
-            ->where('semester_id', $semesterId)
-            ->whereHas(
-                'mkUnit',
-                fn (Builder $query): Builder => $query->where('mk_id', $mkId),
-            )
-            ->exists();
-
-        if (! $adaKelas) {
-            return $this->buildKosong();
         }
 
         $komponensByEvaluasi = KomponenPenilaian::query()
@@ -130,54 +116,6 @@ class RencanaEvaluasiService
         }
 
         return Semester::query()->where('status_aktif', true)->value('id');
-    }
-
-    /**
-     * @return array{
-     *     groups: list<array{
-     *         label: string,
-     *         bobot_persen: float,
-     *         rows: list<array{
-     *             evaluasi_nama: string,
-     *             asesmen: list<array{kode: string, nama: string, bobot: float}>,
-     *             bobot_total: float,
-     *             cpl_kodes: list<string>,
-     *             cpmk_kodes: list<string>
-     *         }>
-     *     }>,
-     *     total_bobot: float
-     * }
-     */
-    private function buildKosong(): array
-    {
-        $groups = [];
-
-        foreach (self::GRUP_KATEGORI as $grupLabel => $kategoris) {
-            $rows = Evaluasi::query()
-                ->whereIn('kategori', $kategoris)
-                ->orderBy('kode')
-                ->get()
-                ->map(fn (Evaluasi $evaluasi): array => [
-                    'evaluasi_nama' => $evaluasi->nama,
-                    'asesmen' => [],
-                    'bobot_total' => 0.0,
-                    'cpl_kodes' => [],
-                    'cpmk_kodes' => [],
-                ])
-                ->values()
-                ->all();
-
-            $groups[] = [
-                'label' => $grupLabel,
-                'bobot_persen' => 0.0,
-                'rows' => $rows,
-            ];
-        }
-
-        return [
-            'groups' => $groups,
-            'total_bobot' => 0.0,
-        ];
     }
 
     /**

@@ -113,6 +113,26 @@ it('menyusun rencana evaluasi per grup kategori evaluasi', function () {
         ->and($rencana['total_bobot'])->toBe(8.0);
 });
 
+it('tetap menghitung total bobot walau belum ada kelas MK', function () {
+    KelasMk::query()->delete();
+
+    $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
+
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $evaluasiQuiz->id,
+        'kode' => 'Asesmen01',
+        'nama' => 'Kuis',
+        'bobot' => 8,
+    ]);
+
+    $rencana = app(RencanaEvaluasiService::class)->build($this->mk->id, $this->semester->id);
+
+    expect($rencana)->not->toBeNull()
+        ->and($rencana['total_bobot'])->toBe(8.0);
+});
+
 it('format bobot rencana evaluasi', function () {
     $service = app(RencanaEvaluasiService::class);
 

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Penilaian\Services;
 
-use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 
@@ -56,13 +55,6 @@ class AsesmenImporService
      */
     public static function resolveBaris(array $data, string $mkId, string $semesterId): array
     {
-        if (PenawaranMkScope::kelasMkUntukMkSemester($mkId, $semesterId)->isEmpty()) {
-            return [
-                'status' => 'invalid',
-                'keterangan' => 'Belum ada kelas MK untuk mata kuliah dan semester ini.',
-            ];
-        }
-
         $kodeAsesmen = trim($data['kode_asesmen']);
         $kodeSubcpmk = trim($data['kode_subcpmk'] ?? '');
         $dedup = $kodeSubcpmk !== ''

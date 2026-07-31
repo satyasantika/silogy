@@ -2,7 +2,6 @@
 
 namespace App\Modules\Penilaian\Services;
 
-use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Support\BobotNormalizer;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +18,6 @@ class NormalisasiBobotKomponenService
      */
     public function normalisasi(string $mkId, string $semesterId): array
     {
-        if (PenawaranMkScope::kelasMkUntukMkSemester($mkId, $semesterId)->isEmpty()) {
-            return ['status' => 'kosong', 'jumlah_asesmen' => 0, 'total_sebelum' => 0.0];
-        }
-
         $perKode = KomponenPenilaian::query()
             ->where('mk_id', $mkId)
             ->where('semester_id', $semesterId)
