@@ -495,6 +495,26 @@
         border-color: rgba(147, 197, 253, 0.35);
     }
 
+    .silogy-penilaian-card__units {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .silogy-penilaian-card__unit {
+        font-size: 0.75rem;
+        line-height: 1.35;
+        color: #6b7280;
+        min-width: 0;
+    }
+
+    .dark .silogy-penilaian-card__unit {
+        color: rgb(161 161 170);
+    }
+
     .silogy-penilaian-card__kelas-list {
         display: flex;
         flex-wrap: wrap;

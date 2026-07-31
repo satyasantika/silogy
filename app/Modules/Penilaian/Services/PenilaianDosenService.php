@@ -3,6 +3,8 @@
 namespace App\Modules\Penilaian\Services;
 
 use App\Models\User;
+use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\Mk;
@@ -60,7 +62,7 @@ class PenilaianDosenService
                 filled($semesterId),
                 fn ($query) => $query->where('semester_id', $semesterId),
             )
-            ->with('mkUnit')
+            ->with('mkUnit.academicUnit')
             ->withCount('kelasMkMahasiswas')
             ->orderBy('kode_kelas')
             ->get();
@@ -82,12 +84,47 @@ class PenilaianDosenService
     }
 
     /**
-     * Judul card: nama MK, lalu kode penawaran, lalu SKS (urutan tetap).
+     * Label unit penawaran (prodi/jurusan/fakultas/univ) dari kelas diampu.
+     * Pola sama dengan card koordinator: prodi/jurusan pakai "Jenis · Nama",
+     * fakultas/universitas hanya nama unit.
+     *
+     * @return list<string>
+     */
+    public static function labelUnitPenawaranUntukMk(Mk $mk, User $dosen, ?string $semesterId): array
+    {
+        return static::kelasUntukMk($mk, $dosen, $semesterId)
+            ->map(fn (KelasMk $kelas): ?AcademicUnit => $kelas->mkUnit?->academicUnit)
+            ->filter(fn (mixed $unit): bool => $unit instanceof AcademicUnit)
+            ->unique('id')
+            ->values()
+            ->map(function (AcademicUnit $unit): string {
+                if (in_array($unit->type, ['study_program', 'department'], true)) {
+                    [$typeLabel, $nama] = AcademicUnitResource::jenisDanNamaUntukCard($unit);
+
+                    return $typeLabel.' · '.$nama;
+                }
+
+                $nama = trim((string) ($unit->nama_lengkap ?: $unit->nama));
+
+                return $nama !== '' ? $nama : '—';
+            })
+            ->all();
+    }
+
+    /**
+     * Judul card: nama MK, kode + SKS, lalu unit penawaran (prodi, dll.).
      */
     public static function judulCardHtml(Mk $mk, User $dosen, ?string $semesterId): HtmlString
     {
         $kode = static::kodePenawaranUntukMk($mk, $dosen, $semesterId);
         $sks = (int) $mk->total_sks;
+        $unitLabels = static::labelUnitPenawaranUntukMk($mk, $dosen, $semesterId);
+
+        $unitHtml = $unitLabels === []
+            ? '<span class="silogy-penilaian-card__unit">—</span>'
+            : collect($unitLabels)
+                ->map(fn (string $label): string => '<span class="silogy-penilaian-card__unit">'.e($label).'</span>')
+                ->implode('');
 
         return new HtmlString(
             '<div class="silogy-penilaian-card__judul">'
@@ -96,6 +133,7 @@ class PenilaianDosenService
             .'<span class="silogy-penilaian-card__kode">'.e($kode).'</span>'
             .'<span class="silogy-penilaian-card__sks">'.e((string) $sks).' SKS</span>'
             .'</span>'
+            .'<span class="silogy-penilaian-card__units">'.$unitHtml.'</span>'
             .'</div>'
         );
     }

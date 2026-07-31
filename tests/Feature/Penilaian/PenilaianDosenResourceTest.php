@@ -5,6 +5,7 @@ use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
+use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
@@ -162,15 +163,38 @@ it('menampilkan kode penawaran setelah nama lalu sks, serta badge kelas ringkas'
     $this->actingAs($this->dosen);
     PenilaianSemesterTerpilih::set($this->semesterAktif->id);
 
+    [, $namaProdi] = AcademicUnitResource::jenisDanNamaUntukCard($this->prodi);
+
     Livewire::test(ListPenilaianDosens::class)->loadTable()
         ->assertSee('Struktur Data', escape: false)
         ->assertSee($kodeMk, escape: false)
         ->assertSee('3 SKS', escape: false)
+        ->assertSee('Program Studi · '.$namaProdi, escape: false)
         ->assertSeeHtml('silogy-penilaian-card__kode')
         ->assertSeeHtml('silogy-penilaian-card__sks')
+        ->assertSeeHtml('silogy-penilaian-card__unit')
         ->assertSee('2 mhs · rata-rata 85', escape: false)
         ->assertSee('1 mhs · Belum dinilai', escape: false)
         ->assertDontSee('Kelas A ·', escape: false);
+});
+
+it('mengurutkan card berdasarkan nama mata kuliah tanpa pagination', function () {
+    $mkZ = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Zoologi Terapan']);
+    $mkA = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Algoritma Dasar']);
+    buatKelasPenilaianDosen($this->dosen, $mkZ, 'A', $this->semesterAktif->id, 1);
+    buatKelasPenilaianDosen($this->dosen, $mkA, 'A', $this->semesterAktif->id, 1);
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    $html = Livewire::test(ListPenilaianDosens::class)->loadTable()->html();
+    $posA = strpos($html, 'Algoritma Dasar');
+    $posZ = strpos($html, 'Zoologi Terapan');
+
+    expect($posA)->not->toBeFalse()
+        ->and($posZ)->not->toBeFalse()
+        ->and($posA)->toBeLessThan($posZ)
+        ->and($html)->not->toContain('fi-pagination');
 });
 
 it('menyembunyikan mk pada semester lain dan menampilkannya saat filter diganti', function () {
