@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages;
 
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
+use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
@@ -22,10 +23,12 @@ use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\VerticalAlignment;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\HtmlString;
 
@@ -33,6 +36,7 @@ class ListKomponenPenilaians extends ListRecords
 {
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
+    use HasMkPipelineNav;
 
     protected static string $resource = KomponenPenilaianResource::class;
 
@@ -51,30 +55,46 @@ class ListKomponenPenilaians extends ListRecords
             ->components([
                 $this->getTabsContentComponent(),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
-                View::make('filament.modules.penilaian.partials.total-bobot-banner')
-                    ->viewData(fn (): array => [
-                        'ringkasan' => $this->getTotalBobotRingkasan(),
-                    ])
-                    ->visible(fn (): bool => $this->getTotalBobotRingkasan() !== null),
                 EmbeddedTable::make(),
-                Actions::make([$this->normalisasiBobotAction()])
-                    ->alignment(Alignment::Start)
-                    ->key('normalisasi-bobot-actions'),
+                // Banner kiri + Normalisasi Bobot kanan; tombol hanya bila total belum 100%.
+                Flex::make([
+                    View::make('filament.modules.penilaian.partials.bobot-dan-normalisasi')
+                        ->viewData(fn (): array => [
+                            'ringkasan' => $this->getTotalBobotRingkasan(),
+                        ]),
+                    Actions::make([
+                        $this->normalisasiBobotAction(),
+                    ])
+                        ->alignment(Alignment::End)
+                        ->verticalAlignment(VerticalAlignment::Center),
+                ])
+                    ->from('sm')
+                    ->verticalAlignment(VerticalAlignment::Center)
+                    ->extraAttributes(['style' => 'margin-top:16px;gap:12px;'])
+                    ->visible(fn (): bool => $this->adaKomponenPenilaianSemester()
+                        && $this->getTotalBobotRingkasan() !== null),
                 View::make('filament.modules.penilaian.partials.rencana-evaluasi-table')
                     ->viewData(fn (): array => [
                         'rencana' => $this->getRencanaEvaluasi(),
                     ])
-                    ->visible(fn (): bool => $this->getRencanaEvaluasi() !== null),
+                    ->visible(fn (): bool => $this->adaKomponenPenilaianSemester()),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+                ...$this->mkPipelineNavComponents(),
             ]);
     }
 
-    protected function normalisasiBobotAction(): Action
+    protected function mkPipelineStepKey(): string
+    {
+        return 'asesmen';
+    }
+
+    public function normalisasiBobotAction(): Action
     {
         return Action::make('normalisasiBobot')
             ->label('Normalisasi Bobot')
             ->icon('heroicon-o-scale')
             ->color('warning')
+            ->button()
             ->requiresConfirmation()
             ->modalHeading('Normalisasi bobot komponen')
             ->modalDescription(
@@ -83,9 +103,8 @@ class ListKomponenPenilaians extends ListRecords
                 .'tepat 100%. Tindakan ini mengubah nilai bobot yang sudah tersimpan.',
             )
             ->modalSubmitActionLabel('Normalisasi')
-            ->visible(fn (): bool => KomponenPenilaianResource::canCreate()
-                && ($ringkasan = $this->getTotalBobotRingkasan()) !== null
-                && ! $ringkasan['sudah_pas'])
+            // Tampil hanya saat ada komponen dan total bobot belum tepat 100%.
+            ->visible(fn (): bool => $this->bolehNormalisasiBobot())
             ->action(function (): void {
                 $mkId = MkTerpilih::currentId();
                 $service = app(RencanaEvaluasiService::class);
@@ -140,6 +159,45 @@ class ListKomponenPenilaians extends ListRecords
         $service = app(RencanaEvaluasiService::class);
 
         return $service->build($mkId, $service->resolveSemesterId($mkId));
+    }
+
+    /**
+     * Card Tabel Rencana Evaluasi hanya tampil bila sudah ada komponen
+     * penilaian pada MK + semester terpilih.
+     */
+    protected function adaKomponenPenilaianSemester(): bool
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return false;
+        }
+
+        $semesterId = app(RencanaEvaluasiService::class)->resolveSemesterId($mkId);
+
+        if (blank($semesterId)) {
+            return false;
+        }
+
+        return KomponenPenilaian::query()
+            ->where('mk_id', $mkId)
+            ->where('semester_id', $semesterId)
+            ->exists();
+    }
+
+    protected function bolehNormalisasiBobot(): bool
+    {
+        if (! KomponenPenilaianResource::canCreate()) {
+            return false;
+        }
+
+        if (! $this->adaKomponenPenilaianSemester()) {
+            return false;
+        }
+
+        $ringkasan = $this->getTotalBobotRingkasan();
+
+        return $ringkasan !== null && ! $ringkasan['sudah_pas'];
     }
 
     /**

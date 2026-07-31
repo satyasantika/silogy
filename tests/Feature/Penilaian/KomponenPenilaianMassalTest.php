@@ -36,7 +36,10 @@ beforeEach(function () {
     $this->superadmin = User::where('username', 'superadmin')->first();
     $this->semester = Semester::query()->where('status_aktif', true)->first();
 
-    $this->mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    $this->mk = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
     $this->mkUnit = MkUnit::factory()->forMk($this->mk)->forAcademicUnit($this->prodi)->create(['kode' => 'IF101']);
 
     $this->kelasA = KelasMk::query()->create([
@@ -61,6 +64,25 @@ beforeEach(function () {
     KurikulumTerpilih::set($this->kurikulum->id);
 
     $this->evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+});
+
+it('toolbar asesmen: filter semester tanpa indikator filter aktif dan tanpa urutkan menurut', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'ASES-01',
+        'nama' => 'Kuis 1',
+        'bobot' => 100,
+    ]);
+
+    Livewire::test(ListKomponenPenilaians::class)->loadTable()
+        ->assertSee('Semester', escape: false)
+        ->assertDontSee('Filter aktif', escape: false)
+        ->assertDontSee('Urutkan menurut', escape: false);
 });
 
 it('membuat asesmen baru menghasilkan satu baris untuk mk dan semester terpilih, bukan satu per kelas', function () {
@@ -134,6 +156,70 @@ it('total bobot dihitung dari satu baris per kode, bukan dijumlah per kelas', fu
 
     Livewire::test(EditKomponenPenilaian::class, ['record' => $utsA->getRouteKey()])
         ->assertSee('Total bobot komponen pada mata kuliah dan semester ini: 69.00% dari 100% (kurang 31.00%).', escape: false);
+});
+
+it('tombol Normalisasi Bobot tampil bila total bobot belum 100%', function () {
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 0,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(ListKomponenPenilaians::class)->loadTable()
+        ->assertSee('Total bobot komponen pada mata kuliah dan semester ini: 0% dari 100% (kurang 100%).', escape: false)
+        ->assertSee('Normalisasi Bobot', escape: false)
+        ->assertActionVisible('normalisasiBobot');
+});
+
+it('tombol Normalisasi Bobot disembunyikan bila total bobot sudah 100%', function () {
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(ListKomponenPenilaians::class)->loadTable()
+        ->assertSee('sudah pas 100%', escape: false)
+        ->assertActionHidden('normalisasiBobot');
+});
+
+it('banner bobot dan card rencana evaluasi tidak tampil jika komponen semester belum diisi', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(ListKomponenPenilaians::class)->loadTable()
+        ->assertDontSee('Total bobot komponen pada mata kuliah dan semester ini', escape: false)
+        ->assertDontSee('Tabel Rencana Evaluasi', escape: false)
+        ->assertDontSee('Normalisasi Bobot', escape: false);
+});
+
+it('card Tabel Rencana Evaluasi tampil setelah komponen penilaian semester diisi', function () {
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(ListKomponenPenilaians::class)->loadTable()
+        ->assertSee('Tabel Rencana Evaluasi', escape: false);
 });
 
 it('mengimpor satu baris asesmen menghasilkan satu komponen yang dipakai bersama semua kelas mk (regresi 4x duplikat)', function () {
