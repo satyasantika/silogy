@@ -6,15 +6,13 @@ use App\Models\User;
 use App\Modules\Kalkulasi\Filament\Support\Concerns\CanAccessDashboardWidgets;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Services\DashboardDosenPengampuService;
-use App\Modules\Penilaian\Support\MkDiampuTerpilih;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 /**
- * KPI pembuka dashboard Dosen Pengampu: banyaknya MK yang diampu dan MK
- * yang sedang dikerjakan (MkDiampuTerpilih), masing-masing menjadi jalan
- * pintas ke halaman Penilaian.
+ * KPI pembuka dashboard Dosen Pengampu: banyaknya MK dan kelas yang diampu,
+ * masing-masing menjadi jalan pintas ke halaman Pengampu MK.
  */
 class DosenPengampuKpiWidget extends StatsOverviewWidget
 {
@@ -47,21 +45,23 @@ class DosenPengampuKpiWidget extends StatsOverviewWidget
             return [];
         }
 
-        $jumlah = app(DashboardDosenPengampuService::class)->jumlahMkDiampu($user);
-        $mk = MkDiampuTerpilih::current();
+        $service = app(DashboardDosenPengampuService::class);
+        $jumlahMk = $service->jumlahMkDiampu($user);
+        $jumlahKelas = $service->jumlahKelasDiampu($user);
+        $url = PenilaianDosenResource::getUrl('index');
 
         return [
-            Stat::make('MK Diampu', (string) $jumlah)
-                ->description($jumlah > 0 ? 'Kelola penilaian mata kuliah Anda' : 'Belum ada MK yang diampu')
+            Stat::make('MK Diampu', (string) $jumlahMk)
+                ->description($jumlahMk > 0 ? 'Kelola penilaian mata kuliah Anda' : 'Belum ada MK yang diampu')
                 ->descriptionIcon(Heroicon::OutlinedRectangleStack)
-                ->color($jumlah > 0 ? 'primary' : 'warning')
-                ->url(PenilaianDosenResource::getUrl('index')),
+                ->color($jumlahMk > 0 ? 'primary' : 'warning')
+                ->url($url),
 
-            Stat::make('MK Sedang Dikerjakan', $mk?->nama ?? 'Belum dipilih')
-                ->description($mk === null ? 'Pilih lewat widget di bawah' : 'Kelola penilaian mahasiswa')
+            Stat::make('Kelas Diampu', (string) $jumlahKelas)
+                ->description($jumlahKelas > 0 ? 'Kelas yang Anda ajar semester berjalan' : 'Belum ada kelas yang diampu')
                 ->descriptionIcon(Heroicon::OutlinedIdentification)
-                ->color($mk === null ? 'warning' : 'success')
-                ->url(PenilaianDosenResource::getUrl('index')),
+                ->color($jumlahKelas > 0 ? 'success' : 'warning')
+                ->url($url),
         ];
     }
 }

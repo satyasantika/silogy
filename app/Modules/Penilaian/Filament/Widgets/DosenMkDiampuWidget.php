@@ -29,8 +29,10 @@ class DosenMkDiampuWidget extends Widget
 
     public static function canView(): bool
     {
-        return static::canViewDashboardWidgets()
-            && static::isDashboardDosenPengampu();
+        // Widget pemilih "MK sedang dikerjakan" tidak lagi dipakai di dashboard;
+        // tetap ada di codebase agar tidak mematahkan referensi lama, tetapi
+        // tidak pernah ditampilkan.
+        return false;
     }
 
     public function mount(): void

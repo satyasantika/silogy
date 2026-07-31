@@ -85,6 +85,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Kurikulum'),
                 NavigationGroup::make('Mata Kuliah'),
                 NavigationGroup::make('Penilaian'),
+                NavigationGroup::make('Pengampu MK'),
                 NavigationGroup::make('Interaksi'),
                 NavigationGroup::make('AI Analisis'),
                 NavigationGroup::make('Laporan'),

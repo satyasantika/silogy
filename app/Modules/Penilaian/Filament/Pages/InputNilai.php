@@ -30,7 +30,7 @@ class InputNilai extends Page
 
     protected static ?string $navigationLabel = 'Input Nilai';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Penilaian';
+    protected static string|\UnitEnum|null $navigationGroup = 'Pengampu MK';
 
     protected static ?int $navigationSort = 2;
 

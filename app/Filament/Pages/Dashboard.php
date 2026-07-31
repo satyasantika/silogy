@@ -20,7 +20,6 @@ use App\Modules\MK\Filament\Widgets\KoordinatorMkAksesWidget;
 use App\Modules\MK\Filament\Widgets\KoordinatorMkCapaianTertinggiTable;
 use App\Modules\MK\Filament\Widgets\KoordinatorMkCplTertinggiChartWidget;
 use App\Modules\MK\Filament\Widgets\KoordinatorMkKpiWidget;
-use App\Modules\Penilaian\Filament\Widgets\DosenMkDiampuWidget;
 use App\Modules\Penilaian\Filament\Widgets\DosenPengampuCapaianTertinggiTable;
 use App\Modules\Penilaian\Filament\Widgets\DosenPengampuCplTertinggiChartWidget;
 use App\Modules\Penilaian\Filament\Widgets\DosenPengampuKpiWidget;
@@ -112,7 +111,6 @@ class Dashboard extends BaseDashboard
                         // dashboard barunya masing-masing.
                         static::isDashboardKoordinatorMk() ? null : KoordinatorMkAksesWidget::class,
                         static::isDashboardDosenPengampu() ? null : RekapMkDosenWidget::class,
-                        static::isDashboardDosenPengampu() ? DosenMkDiampuWidget::class : null,
                     ])))),
                 ...(static::canViewDashboardCplWidgets() ? [$this->getFiltersFormContentComponent()] : []),
                 $this->getWidgetsContentComponent(),

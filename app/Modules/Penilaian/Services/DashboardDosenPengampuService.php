@@ -23,6 +23,12 @@ class DashboardDosenPengampuService
         return static::scopedDiampuMkIds($user)->count();
     }
 
+    /** Jumlah kelas MK yang diampu user (satu MK bisa punya beberapa kelas). */
+    public function jumlahKelasDiampu(User $user): int
+    {
+        return static::scopedDiampuKelasMkIds($user)->count();
+    }
+
     /**
      * CPL dengan rerata capaian tertinggi, dari kelas yang diampu user.
      *
