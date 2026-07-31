@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Support;
 
 use App\Models\User;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\MataKuliahKoordinatorResource;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
@@ -11,6 +12,7 @@ use App\Modules\MK\Services\MataKuliahKoordinatorService;
 use App\Modules\Penilaian\Filament\Pages\LaporanKoordinator;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
+use App\Modules\Penilaian\Models\KomponenPenilaian;
 
 /**
  * Alur back/next koordinator MK — pola sama dengan KurikulumPipeline
@@ -53,6 +55,11 @@ final class MkPipeline
                 'label' => 'Mahasiswa',
                 'url' => fn (): string => PesertaKelasResource::getUrl('index'),
                 'canAccess' => fn (): bool => PesertaKelasResource::canAccess(),
+                // Mahasiswa & Laporan saling bertaut, bukan mengikuti urutan
+                // linear array: back dari Mahasiswa kembali ke Asesmen
+                // (bukan ke Laporan), next dari Mahasiswa ke Laporan.
+                'prevKey' => 'asesmen',
+                'nextKey' => 'laporan',
             ],
         ];
     }
@@ -92,8 +99,15 @@ final class MkPipeline
             return ['prev' => null, 'next' => null];
         }
 
-        $prevStep = $steps[$index - 1] ?? null;
-        $nextStep = $steps[$index + 1] ?? null;
+        $step = $steps[$index];
+
+        $prevStep = isset($step['prevKey'])
+            ? collect($steps)->firstWhere('key', $step['prevKey'])
+            : ($steps[$index - 1] ?? null);
+
+        $nextStep = isset($step['nextKey'])
+            ? collect($steps)->firstWhere('key', $step['nextKey'])
+            : ($steps[$index + 1] ?? null);
 
         $prev = $prevStep !== null
             ? ['label' => $prevStep['label'], 'url' => ($prevStep['url'])()]
@@ -109,5 +123,23 @@ final class MkPipeline
         }
 
         return ['prev' => $prev, 'next' => $next];
+    }
+
+    /**
+     * Ketersediaan komponen penilaian pada MK + SEMESTER TERPILIH (beda dari
+     * hasData('asesmen', ...) yang MK-wide) — dipakai khusus untuk
+     * menampilkan tombol Laporan/Mahasiswa pada langkah Asesmen, supaya
+     * keduanya benar-benar mengikuti semester yang sedang dipilih.
+     */
+    public static function hasAsesmenDataUntukSemesterTerpilih(Mk $mk, User $user): bool
+    {
+        $semesterId = SemesterTerpilih::berlakuUntukUser($user)
+            ? SemesterTerpilih::currentId($mk->id)
+            : null;
+
+        return KomponenPenilaian::query()
+            ->where('mk_id', $mk->id)
+            ->when(filled($semesterId), fn ($query) => $query->where('semester_id', $semesterId))
+            ->exists();
     }
 }

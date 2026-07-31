@@ -2,15 +2,23 @@
 
 namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages;
 
+use App\Models\User;
+use App\Modules\Kalender\Support\SemesterTerpilih;
+use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
-use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
+use App\Modules\MK\Filament\Support\Concerns\HasSalinAntarSemesterMassal;
+use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Support\MkPipeline;
 use App\Modules\MK\Support\MkTerpilih;
-use App\Modules\MK\Support\PenawaranMkScope;
+use App\Modules\Penilaian\Filament\Pages\LaporanKoordinator;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
+use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Services\AsesmenImporService;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
+use App\Modules\Penilaian\Services\KomponenPenilaianSalinSemesterService;
 use App\Modules\Penilaian\Services\NormalisasiBobotKomponenService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
@@ -29,6 +37,7 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\VerticalAlignment;
+use Filament\Support\Icons\Heroicon;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\HtmlString;
 
@@ -36,7 +45,7 @@ class ListKomponenPenilaians extends ListRecords
 {
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
-    use HasMkPipelineNav;
+    use HasSalinAntarSemesterMassal;
 
     protected static string $resource = KomponenPenilaianResource::class;
 
@@ -44,9 +53,89 @@ class ListKomponenPenilaians extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
+                ->visible(fn (): bool => KomponenPenilaianResource::canCreate() && $this->adaKomponenPenilaianSemester()),
             CreateAction::make(),
         ];
+    }
+
+    protected function getTableEmptyStateActions(): array
+    {
+        return [
+            $this->makeImporMassalAction()
+                ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
+            $this->makeIsiSubcpmkDuluAction(),
+            $this->makeSalinAntarSemesterAction(),
+        ];
+    }
+
+    /**
+     * Muncul menggantikan "Import dari Semester Lain" ketika Sub-CPMK
+     * semester tujuan belum diisi — pemetaan Sub-CPMK pada komponen
+     * penilaian yang disalin baru bisa terpasang kalau Sub-CPMK-nya sudah
+     * ada dulu di semester itu (lihat KomponenPenilaianSalinSemesterService).
+     */
+    protected function makeIsiSubcpmkDuluAction(): Action
+    {
+        return Action::make('isiSubcpmkDulu')
+            ->label('Isi dulu Sub-CPMK')
+            ->icon(Heroicon::OutlinedExclamationTriangle)
+            ->color('warning')
+            ->url(fn (): string => SubcpmkResource::getUrl('index'))
+            ->visible(fn (): bool => $this->salinAntarSemesterMkId() !== null
+                && $this->salinAntarSemesterTargetSemesterId() !== null
+                && $this->salinAntarSemesterOpsiSumber() !== []
+                && ! $this->salinAntarSemesterPrasyaratTerpenuhi());
+    }
+
+    protected function salinAntarSemesterPrasyaratTerpenuhi(): bool
+    {
+        $mkId = MkTerpilih::currentId();
+        $semesterId = $this->salinAntarSemesterTargetSemesterId();
+
+        if (blank($mkId) || blank($semesterId)) {
+            return false;
+        }
+
+        return Subcpmk::query()
+            ->where('semester_id', $semesterId)
+            ->whereHas('mkCpmk.cpmk', fn ($query) => $query->where('mk_id', $mkId))
+            ->exists();
+    }
+
+    protected function salinAntarSemesterEntitasLabel(): string
+    {
+        return 'komponen penilaian';
+    }
+
+    protected function salinAntarSemesterMkId(): ?string
+    {
+        return MkTerpilih::currentId();
+    }
+
+    protected function salinAntarSemesterTargetSemesterId(): ?string
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return null;
+        }
+
+        return SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
+    }
+
+    protected function salinAntarSemesterResolveBaris(string $sumberSemesterId, string $mkId, string $targetSemesterId): array
+    {
+        return app(KomponenPenilaianSalinSemesterService::class)->resolveBaris($sumberSemesterId, $mkId, $targetSemesterId);
+    }
+
+    protected function salinAntarSemesterJalankan(array $rows, string $modeDuplikat, string $mkId, string $targetSemesterId): array
+    {
+        return app(KomponenPenilaianSalinSemesterService::class)->jalankan($rows, $modeDuplikat, $mkId, $targetSemesterId);
+    }
+
+    protected function salinAntarSemesterSemesterIdsDenganData(string $mkId): array
+    {
+        return app(KomponenPenilaianSalinSemesterService::class)->semesterIdsDenganData($mkId);
     }
 
     public function content(Schema $schema): Schema
@@ -79,13 +168,65 @@ class ListKomponenPenilaians extends ListRecords
                     ])
                     ->visible(fn (): bool => $this->adaKomponenPenilaianSemester()),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
-                ...$this->mkPipelineNavComponents(),
+                ...$this->asesmenPipelineNavComponents(),
             ]);
     }
 
-    protected function mkPipelineStepKey(): string
+    /**
+     * Nav langkah Asesmen: back tetap ke Sub-CPMK, tapi next diganti dua
+     * tombol (Laporan & Mahasiswa) yang bisa dituju langsung begitu ada
+     * komponen penilaian pada semester terpilih — tidak seperti langkah
+     * pipeline lain, di sini tidak boleh cuma satu next tunggal.
+     *
+     * @return array<int, Component>
+     */
+    protected function asesmenPipelineNavComponents(): array
     {
-        return 'asesmen';
+        $prev = MkPipeline::navFor('asesmen')['prev'];
+
+        $backAction = Action::make('mkPipelineBack')
+            ->label(fn (): string => '« '.($prev['label'] ?? ''))
+            ->url(fn (): string => $prev['url'] ?? '#')
+            ->visible(fn (): bool => $prev !== null)
+            ->color('gray')
+            ->button();
+
+        $laporanAction = Action::make('mkPipelineLaporan')
+            ->label('Laporan »')
+            ->url(fn (): string => LaporanKoordinator::getUrl())
+            ->visible(fn (): bool => $this->bolehLanjutAsesmen() && LaporanKoordinator::canAccess())
+            ->color('primary')
+            ->button();
+
+        $mahasiswaAction = Action::make('mkPipelineMahasiswa')
+            ->label('Mahasiswa »')
+            ->url(fn (): string => PesertaKelasResource::getUrl('index'))
+            ->visible(fn (): bool => $this->bolehLanjutAsesmen() && PesertaKelasResource::canAccess())
+            ->color('primary')
+            ->button();
+
+        return [
+            Flex::make([
+                Actions::make([$backAction])->alignment(Alignment::Start),
+                Actions::make([$laporanAction, $mahasiswaAction])->alignment(Alignment::End),
+            ])
+                ->from('sm')
+                ->verticalAlignment(VerticalAlignment::Center)
+                ->extraAttributes(['style' => 'margin-top:16px;gap:12px;'])
+                ->key('mk-pipeline-nav'),
+        ];
+    }
+
+    protected function bolehLanjutAsesmen(): bool
+    {
+        $mk = MkTerpilih::current();
+        $user = auth()->user();
+
+        if (! $mk instanceof Mk || ! $user instanceof User) {
+            return false;
+        }
+
+        return MkPipeline::hasAsesmenDataUntukSemesterTerpilih($mk, $user);
     }
 
     public function normalisasiBobotAction(): Action
@@ -340,13 +481,6 @@ class ListKomponenPenilaians extends ListRecords
 
         if (! $validasiEvaluasi['valid']) {
             return ['status' => 'invalid', 'keterangan' => $validasiEvaluasi['keterangan']];
-        }
-
-        if (PenawaranMkScope::kelasMkUntukMkSemester(
-            (string) $context['import_mk_id'],
-            (string) $context['import_semester_id'],
-        )->isEmpty()) {
-            return ['status' => 'invalid', 'keterangan' => 'Belum ada kelas MK untuk mata kuliah dan semester ini.'];
         }
 
         $validasiSubcpmk = SubcpmkAsesmenPemetaanService::validasiKodeSubcpmk(

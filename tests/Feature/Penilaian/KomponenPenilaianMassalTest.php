@@ -226,8 +226,10 @@ it('mengimpor satu baris asesmen menghasilkan satu komponen yang dipakai bersama
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
+    // Header "Impor massal" hanya tampil bila sudah ada komponen; tabel kosong
+    // memakai empty-state action dengan nama yang sama.
     Livewire::test(ListKomponenPenilaians::class)
-        ->callAction('bulkImport', data: [
+        ->callAction(\Filament\Actions\Testing\TestAction::make('bulkImport')->table(), data: [
             'import_mk_id' => $this->mk->id,
             'import_semester_id' => $this->semester->id,
             'rows' => 'Asesmen01|Kuis Konseptual|100|Quiz|',
@@ -239,4 +241,51 @@ it('mengimpor satu baris asesmen menghasilkan satu komponen yang dipakai bersama
     expect($komponens)->toHaveCount(1)
         ->and($komponens->first()->mk_id)->toBe($this->mk->id)
         ->and($komponens->first()->semester_id)->toBe($this->semester->id);
+});
+
+it('mengosongkan preview import dari semester lain saat modal ditutup', function () {
+    $semesterSumber = Semester::query()->create([
+        'kode' => '20991',
+        'nama' => 'Semester Sumber Uji',
+        'tahun_mulai' => 2099,
+        'tahun_selesai' => 2100,
+        'jenis' => 'ganjil',
+        'status_aktif' => false,
+    ]);
+
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $semesterSumber->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'SUMBER-01',
+        'nama' => 'Kuis sumber',
+        'bobot' => 100,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    $halaman = Livewire::test(ListKomponenPenilaians::class)
+        ->set('salinAntarSemesterSumberLive', $semesterSumber->id);
+
+    expect($halaman->get('salinAntarSemesterSumberLive'))->toBe($semesterSumber->id);
+
+    $halaman
+        ->call('unmountAction')
+        ->assertSet('salinAntarSemesterSumberLive', null);
+});
+
+it('mengosongkan preview impor massal asesmen saat modal ditutup', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    $halaman = Livewire::test(ListKomponenPenilaians::class)
+        ->mountAction('bulkImport')
+        ->set('importMassalRowsLive', 'Asesmen01|Kuis Konseptual|50|Quiz|');
+
+    expect($halaman->get('importMassalRowsLive'))->toContain('Asesmen01');
+
+    $halaman->call('unmountAction');
+
+    expect($halaman->get('importMassalRowsLive'))->toBe('');
 });

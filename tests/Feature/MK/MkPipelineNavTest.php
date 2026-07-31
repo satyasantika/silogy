@@ -150,7 +150,7 @@ it('cpmk terisi: next ke sub-cpmk, dan sub-cpmk back ke cpmk', function () {
         ->assertDontSee('Asesmen »', escape: false);
 });
 
-it('next bertahap sampai mahasiswa, dan mahasiswa tidak punya next', function () {
+it('next bertahap sampai mahasiswa, dan mahasiswa saling bertaut dengan laporan', function () {
     $cpmk = buatCpmkDenganPemetaan();
     buatSubcpmk($cpmk);
     buatAsesmen();
@@ -168,13 +168,60 @@ it('next bertahap sampai mahasiswa, dan mahasiswa tidak punya next', function ()
     MkTerpilih::set($this->mk->id);
 
     Livewire::test(ListSubcpmks::class)->assertSee('Asesmen »', escape: false);
-    Livewire::test(ListKomponenPenilaians::class)->assertSee('Laporan »', escape: false);
+    // Asesmen: next tunggal diganti dua tombol (Laporan & Mahasiswa), sudah
+    // ada komponen penilaian untuk semester aktif (semester terpilih default).
+    Livewire::test(ListKomponenPenilaians::class)
+        ->assertSee('Laporan »', escape: false)
+        ->assertSee('Mahasiswa »', escape: false);
     Livewire::test(LaporanKoordinator::class)
         ->assertSee('« Asesmen', escape: false)
         ->assertSee('Mahasiswa »', escape: false);
+    // Mahasiswa: back melompat balik ke Asesmen (bukan ke Laporan), next ke Laporan.
     Livewire::test(ListPesertaKelas::class)
-        ->assertSee('« Laporan', escape: false)
+        ->assertSee('« Asesmen', escape: false)
+        ->assertSee('Laporan »', escape: false)
+        ->assertDontSee('« Laporan', escape: false);
+});
+
+it('asesmen: tombol Laporan/Mahasiswa hanya muncul bila ada komponen penilaian pada semester terpilih', function () {
+    $cpmk = buatCpmkDenganPemetaan();
+    buatSubcpmk($cpmk);
+
+    $semesterLain = Semester::query()->create([
+        'kode' => '20231',
+        'nama' => 'Ganjil 2023/2024',
+        'tahun_mulai' => 2023,
+        'tahun_selesai' => 2024,
+        'jenis' => 'ganjil',
+        'status_aktif' => false,
+    ]);
+
+    // Komponen penilaian dibuat untuk semester LAIN, bukan semester yang
+    // sedang dipilih ($this->semester, aktif) — tombol lanjutan tidak boleh
+    // muncul karena secara semester belum ada asesmen.
+    KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $semesterLain->id,
+        'evaluasi_id' => Evaluasi::query()->firstOrFail()->id,
+        'kode' => 'ASES-LAIN',
+        'nama' => 'Kuis semester lain',
+        'bobot' => 100,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(ListKomponenPenilaians::class)
+        ->assertDontSee('Laporan »', escape: false)
         ->assertDontSee('Mahasiswa »', escape: false);
+
+    // Begitu komponen penilaian ditambahkan untuk semester yang sedang
+    // dipilih, kedua tombol langsung muncul.
+    buatAsesmen();
+
+    Livewire::test(ListKomponenPenilaians::class)
+        ->assertSee('Laporan »', escape: false)
+        ->assertSee('Mahasiswa »', escape: false);
 });
 
 it('cpmk: tombol next ke sub-cpmk muncul setelah impor massal tanpa reload', function () {

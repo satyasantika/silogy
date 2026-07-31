@@ -85,6 +85,20 @@ trait HasSemesterTerpilihFilter
 
                         $component->state($resolved);
                         SemesterTerpilih::set($mkId, $resolved);
+                    })
+                    ->afterStateUpdated(function (Select $component, $state): void {
+                        $mkId = MkTerpilih::currentId();
+                        $resolved = static::resolveSemesterFilterState($mkId, $state);
+
+                        if (blank($resolved) || blank($mkId)) {
+                            return;
+                        }
+
+                        if ($resolved !== $state) {
+                            $component->state($resolved);
+                        }
+
+                        SemesterTerpilih::set($mkId, $resolved);
                     }),
             ])
             ->query(function (Builder $query, array $data) use ($applyScope): Builder {

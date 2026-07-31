@@ -2,13 +2,17 @@
 
 namespace App\Modules\MK\Filament\Resources\SubcpmkResource\Pages;
 
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
 use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
+use App\Modules\MK\Filament\Support\Concerns\HasSalinAntarSemesterMassal;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Services\SubcpmkKompetensiParser;
+use App\Modules\MK\Services\SubcpmkSalinSemesterService;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
@@ -24,6 +28,7 @@ class ListSubcpmks extends ListRecords
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
     use HasMkPipelineNav;
+    use HasSalinAntarSemesterMassal;
 
     protected static string $resource = SubcpmkResource::class;
 
@@ -31,9 +36,74 @@ class ListSubcpmks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => SubcpmkResource::canCreate()),
+                ->visible(fn (): bool => SubcpmkResource::canCreate() && $this->adaSubcpmkSemester()),
             CreateAction::make(),
         ];
+    }
+
+    protected function getTableEmptyStateActions(): array
+    {
+        return [
+            $this->makeImporMassalAction()
+                ->visible(fn (): bool => SubcpmkResource::canCreate()),
+            $this->makeSalinAntarSemesterAction(),
+        ];
+    }
+
+    protected function adaSubcpmkSemester(): bool
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return false;
+        }
+
+        $semesterId = SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
+
+        if (blank($semesterId)) {
+            return false;
+        }
+
+        return Subcpmk::query()
+            ->where('semester_id', $semesterId)
+            ->whereHas('mkCpmk.cpmk', fn ($query) => $query->where('mk_id', $mkId))
+            ->exists();
+    }
+
+    protected function salinAntarSemesterEntitasLabel(): string
+    {
+        return 'Sub-CPMK';
+    }
+
+    protected function salinAntarSemesterMkId(): ?string
+    {
+        return MkTerpilih::currentId();
+    }
+
+    protected function salinAntarSemesterTargetSemesterId(): ?string
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return null;
+        }
+
+        return SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
+    }
+
+    protected function salinAntarSemesterResolveBaris(string $sumberSemesterId, string $mkId, string $targetSemesterId): array
+    {
+        return app(SubcpmkSalinSemesterService::class)->resolveBaris($sumberSemesterId, $mkId, $targetSemesterId);
+    }
+
+    protected function salinAntarSemesterJalankan(array $rows, string $modeDuplikat, string $mkId, string $targetSemesterId): array
+    {
+        return app(SubcpmkSalinSemesterService::class)->jalankan($rows, $modeDuplikat, $mkId, $targetSemesterId);
+    }
+
+    protected function salinAntarSemesterSemesterIdsDenganData(string $mkId): array
+    {
+        return app(SubcpmkSalinSemesterService::class)->semesterIdsDenganData($mkId);
     }
 
     public function content(Schema $schema): Schema
