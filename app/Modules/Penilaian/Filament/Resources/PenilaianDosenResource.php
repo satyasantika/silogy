@@ -125,8 +125,8 @@ class PenilaianDosenResource extends Resource
                 ])->space(1),
             ])
             ->contentGrid(['md' => 2, 'xl' => 3])
-            ->paginated([6, 12, 24])
-            ->defaultPaginationPageOption(12)
+            ->defaultSort('nama')
+            ->paginated(false)
             ->columnManager(false)
             ->modifyQueryUsing(function (Builder $query) use ($user): Builder {
                 if (! $user instanceof User) {
