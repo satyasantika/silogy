@@ -92,7 +92,14 @@
             </x-filament::section>
             </div>
         @else
-            <div style="margin-top:16px;" x-data="{ tabUtama: 'penilaian' }">
+            <div
+                style="margin-top:16px;"
+                x-data="{
+                    tabUtama: (new URLSearchParams(window.location.search).get('tab') === 'laporan')
+                        ? 'laporan'
+                        : 'penilaian'
+                }"
+            >
                 <div style="display:flex;gap:6px;margin-bottom:12px;">
                     <button
                         type="button"

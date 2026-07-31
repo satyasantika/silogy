@@ -88,7 +88,10 @@ it('mendeteksi mk diampu pada penawaran fakultas dan universitas selain prodi', 
         ->and($service->jumlahKelasDiampu($this->dosen))->toBe(3);
 
     Livewire::test(ListPenilaianDosens::class)
-        ->assertCanSeeTableRecords([$mkProdi, $mkFak, $mkUniv]);
+        ->assertCanSeeTableRecords([$this->prodi, $this->fakultas, $this->univ])
+        ->assertSee('MK Prodi Dashboard', escape: false)
+        ->assertSee('MK Fakultas Dashboard', escape: false)
+        ->assertSee('MK Universitas Dashboard', escape: false);
 });
 
 it('kpi dashboard dosen menampilkan mk dan kelas diampu tanpa card mk sedang dikerjakan', function () {

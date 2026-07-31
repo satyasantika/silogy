@@ -3,7 +3,7 @@
 namespace App\Modules\Penilaian\Policies;
 
 use App\Models\User;
-use App\Modules\MK\Models\Mk;
+use App\Modules\Institusi\Models\AcademicUnit;
 
 class PenilaianDosenPolicy
 {
@@ -12,7 +12,7 @@ class PenilaianDosenPolicy
         return $user->hasRole('Dosen Pengampu') && $user->can('input_nilai');
     }
 
-    public function view(User $user, Mk $mk): bool
+    public function view(User $user, AcademicUnit $unit): bool
     {
         return $this->viewAny($user);
     }
@@ -22,12 +22,12 @@ class PenilaianDosenPolicy
         return false;
     }
 
-    public function update(User $user, Mk $mk): bool
+    public function update(User $user, AcademicUnit $unit): bool
     {
         return false;
     }
 
-    public function delete(User $user, Mk $mk): bool
+    public function delete(User $user, AcademicUnit $unit): bool
     {
         return false;
     }
@@ -37,12 +37,12 @@ class PenilaianDosenPolicy
         return false;
     }
 
-    public function restore(User $user, Mk $mk): bool
+    public function restore(User $user, AcademicUnit $unit): bool
     {
         return false;
     }
 
-    public function forceDelete(User $user, Mk $mk): bool
+    public function forceDelete(User $user, AcademicUnit $unit): bool
     {
         return false;
     }
@@ -57,7 +57,7 @@ class PenilaianDosenPolicy
         return false;
     }
 
-    public function replicate(User $user, Mk $mk): bool
+    public function replicate(User $user, AcademicUnit $unit): bool
     {
         return false;
     }

@@ -75,6 +75,16 @@ class AcademicUnit extends Model
     }
 
     /**
+     * Penawaran mata kuliah (mk_units) yang diampu unit ini.
+     *
+     * @return HasMany<MkUnit, $this>
+     */
+    public function mkUnits(): HasMany
+    {
+        return $this->hasMany(MkUnit::class);
+    }
+
+    /**
      * @param  Builder<AcademicUnit>  $query
      * @return Builder<AcademicUnit>
      */

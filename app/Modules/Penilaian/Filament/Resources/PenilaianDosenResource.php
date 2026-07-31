@@ -3,8 +3,7 @@
 namespace App\Modules\Penilaian\Filament\Resources;
 
 use App\Models\User;
-use App\Modules\MK\Models\Mk;
-use App\Modules\Penilaian\Filament\Pages\InputNilai;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource\Pages\ListPenilaianDosens;
 use App\Modules\Penilaian\Policies\PenilaianDosenPolicy;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
@@ -22,7 +21,7 @@ use Illuminate\Support\Facades\Auth;
 
 class PenilaianDosenResource extends Resource
 {
-    protected static ?string $model = Mk::class;
+    protected static ?string $model = AcademicUnit::class;
 
     protected static ?string $policy = PenilaianDosenPolicy::class;
 
@@ -63,7 +62,6 @@ class PenilaianDosenResource extends Resource
         }
 
         return parent::getEloquentQuery()
-            ->with('academicUnit')
             ->whereHas(
                 'mkUnits.kelasMks',
                 fn (Builder $kelasQuery): Builder => $kelasQuery->where('dosen_pengampu_id', $user->id),
@@ -79,21 +77,13 @@ class PenilaianDosenResource extends Resource
             ->extraAttributes([
                 'class' => 'silogy-mk-semester-toolbar silogy-penilaian-dosen',
             ])
-            ->recordUrl(fn (Mk $record): string => InputNilai::getUrl(['mk_id' => $record->id]))
+            ->recordUrl(null)
             ->columns([
                 Stack::make([
-                    TextColumn::make('judul_card')
-                        ->label('Mata kuliah')
-                        ->state(function (Mk $record) use ($user): string {
-                            if (! $user instanceof User) {
-                                return e($record->nama);
-                            }
-
-                            return PenilaianDosenService::judulCardHtml(
-                                $record,
-                                $user,
-                                PenilaianSemesterTerpilih::currentId(),
-                            )->toHtml();
+                    TextColumn::make('judul_unit')
+                        ->label('Program studi')
+                        ->state(function (AcademicUnit $record): string {
+                            return PenilaianDosenService::judulKartuUnitHtml($record)->toHtml();
                         })
                         ->html()
                         ->searchable(query: function (Builder $query, string $search): Builder {
@@ -101,21 +91,27 @@ class PenilaianDosenResource extends Resource
 
                             return $query->where(function (Builder $inner) use ($term): void {
                                 $inner->where('nama', 'like', $term)
+                                    ->orWhere('nama_lengkap', 'like', $term)
                                     ->orWhereHas(
                                         'mkUnits',
-                                        fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('kode', 'like', $term),
+                                        fn (Builder $mkUnitQuery): Builder => $mkUnitQuery
+                                            ->where('kode', 'like', $term)
+                                            ->orWhereHas(
+                                                'mk',
+                                                fn (Builder $mkQuery): Builder => $mkQuery->where('nama', 'like', $term),
+                                            ),
                                     );
                             });
                         }),
 
-                    TextColumn::make('ringkasan_kelas')
+                    TextColumn::make('tabel_kelas')
                         ->label('')
-                        ->state(function (Mk $record) use ($user): string {
+                        ->state(function (AcademicUnit $record) use ($user): string {
                             if (! $user instanceof User) {
                                 return '';
                             }
 
-                            return PenilaianDosenService::ringkasanKelasHtml(
+                            return PenilaianDosenService::tabelKelasUnitHtml(
                                 $record,
                                 $user,
                                 PenilaianSemesterTerpilih::currentId(),
@@ -124,7 +120,7 @@ class PenilaianDosenResource extends Resource
                         ->html(),
                 ])->space(1),
             ])
-            ->contentGrid(['md' => 2, 'xl' => 3])
+            ->contentGrid(['default' => 1])
             ->defaultSort('nama')
             ->paginated(false)
             ->columnManager(false)
@@ -151,8 +147,8 @@ class PenilaianDosenResource extends Resource
     }
 
     /**
-     * @param  Builder<Mk>  $query
-     * @return Builder<Mk>
+     * @param  Builder<AcademicUnit>  $query
+     * @return Builder<AcademicUnit>
      */
     protected static function scopeKeSemester(Builder $query, User $user, string $semesterId): Builder
     {
