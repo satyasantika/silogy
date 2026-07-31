@@ -21,6 +21,8 @@ use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\MK\Support\SemesterKontrakPenawaran;
 use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -40,6 +42,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Rules\Unique;
@@ -247,32 +250,7 @@ class MkUnitResource extends Resource
                 ->filtersFormColumns(1)
                 ->deferFilters(false)
                 ->recordActions([
-                    Action::make('tarikKontrak')
-                        ->label('Tarik data')
-                        ->icon(Heroicon::OutlinedArrowDownTray)
-                        ->color('primary')
-                        ->visible(fn (MkUnit $record): bool => auth()->user()?->can('update', $record) ?? false)
-                        ->action(function (MkUnit $record, $livewire): void {
-                            $semesterId = SemesterKontrakPenawaran::currentId();
-                            $semester = filled($semesterId)
-                                ? Semester::query()->find($semesterId)
-                                : null;
-
-                            if (! $semester instanceof Semester) {
-                                Notification::make()
-                                    ->title('Pilih semester terlebih dahulu')
-                                    ->warning()
-                                    ->send();
-
-                                return;
-                            }
-
-                            $service = app(MkUnitTarikKontrakService::class);
-                            $result = $service->tarik($record, $semester);
-                            $service->kirimNotifikasi($result);
-
-                            $livewire->resetTable();
-                        }),
+                    static::makeTarikKontrakAction(),
                 ]),
             fn (Builder $query, Kurikulum $kurikulum): Builder => static::withJumlahMahasiswaKontrak(
                 $query->where('kurikulum_id', $kurikulum->id),
@@ -374,6 +352,113 @@ class MkUnitResource extends Resource
         }
 
         return SemesterKontrakPenawaran::defaultId();
+    }
+
+    /**
+     * Aksi tarik kontrak dengan modal konfirmasi pratinjau (pola /peserta-kelas).
+     */
+    protected static function makeTarikKontrakAction(): Action
+    {
+        return Action::make('tarikKontrak')
+            ->label('Tarik data')
+            ->icon(Heroicon::OutlinedArrowDownTray)
+            ->color('primary')
+            ->modalHeading(function (?MkUnit $record): string {
+                $semesterId = SemesterKontrakPenawaran::currentId();
+                $semester = filled($semesterId) ? Semester::query()->find($semesterId) : null;
+                $service = app(MkUnitTarikKontrakService::class);
+                $labelSumber = $service->labelSumber($service->sumberUntukSemester($semester));
+                $kode = $record?->kode ?? 'penawaran';
+
+                return "Tarik kontrak dari {$labelSumber} — {$kode}";
+            })
+            ->modalSubmitActionLabel('Impor sekarang')
+            ->visible(fn (?MkUnit $record): bool => $record instanceof MkUnit
+                && (auth()->user()?->can('update', $record) ?? false))
+            ->schema(function (?MkUnit $record): array {
+                if (! $record instanceof MkUnit) {
+                    return [
+                        Placeholder::make('konteks_kosong')
+                            ->hiddenLabel()
+                            ->content(new HtmlString(
+                                '<p style="font-size:13px;color:#991b1b;">Penawaran MK tidak ditemukan.</p>',
+                            )),
+                        Hidden::make('preview_status')->default('validasi'),
+                        Hidden::make('payload_json')->default('[]'),
+                        Hidden::make('semester_id')->default(''),
+                    ];
+                }
+
+                $semesterId = SemesterKontrakPenawaran::currentId();
+                $semester = filled($semesterId) ? Semester::query()->find($semesterId) : null;
+
+                if (! $semester instanceof Semester) {
+                    return [
+                        Placeholder::make('konteks_kosong')
+                            ->hiddenLabel()
+                            ->content(new HtmlString(
+                                '<p style="font-size:13px;color:#991b1b;">Pilih semester terlebih dahulu lewat filter di atas tabel.</p>',
+                            )),
+                        Hidden::make('preview_status')->default('validasi'),
+                        Hidden::make('payload_json')->default('[]'),
+                        Hidden::make('semester_id')->default(''),
+                    ];
+                }
+
+                $service = app(MkUnitTarikKontrakService::class);
+                $sumber = $service->sumberUntukSemester($semester);
+                $preview = $service->preview($record, $semester, $sumber);
+
+                return [
+                    Placeholder::make('konteks_info')
+                        ->hiddenLabel()
+                        ->content(new HtmlString($service->ringkasanPreviewHtml($record, $semester, $preview))),
+                    Hidden::make('preview_status')->default($preview['status']),
+                    Hidden::make('payload_json')->default(fn (): string => json_encode($preview['payload'] ?? [])),
+                    Hidden::make('semester_id')->default($semester->id),
+                ];
+            })
+            ->action(function (?MkUnit $record, array $data, $livewire): void {
+                if (! $record instanceof MkUnit) {
+                    return;
+                }
+
+                $semester = filled($data['semester_id'] ?? null)
+                    ? Semester::query()->find($data['semester_id'])
+                    : null;
+
+                if (! $semester instanceof Semester) {
+                    Notification::make()
+                        ->title('Pilih semester terlebih dahulu')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $status = $data['preview_status'] ?? null;
+
+                if ($status !== 'ok') {
+                    $service = app(MkUnitTarikKontrakService::class);
+                    $labelSumber = $service->labelSumber($service->sumberUntukSemester($semester));
+
+                    Notification::make()
+                        ->title($status === 'kosong' ? 'Tidak ada data untuk diimpor' : "Gagal mengambil data dari {$labelSumber}")
+                        ->body('Buka kembali dialog tarik data untuk memeriksa ulang ketersediaan data.')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $payload = json_decode((string) ($data['payload_json'] ?? '[]'), true);
+
+                $service = app(MkUnitTarikKontrakService::class);
+                $result = $service->tarik($record, $semester, is_array($payload) ? $payload : null);
+                $service->kirimNotifikasi($result);
+
+                $livewire->resetTable();
+            });
     }
 
     public static function getPages(): array

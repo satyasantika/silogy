@@ -10,12 +10,17 @@ use App\Modules\MK\Filament\Resources\MkUnitResource;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Services\MkUnitTarikKontrakService;
 use App\Support\Filament\Pages\BaseEditRecord;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\HtmlString;
 
 class EditMkUnit extends BaseEditRecord
 {
@@ -97,31 +102,89 @@ class EditMkUnit extends BaseEditRecord
         $this->kelasDetailId = $ada ? $kelasId : null;
     }
 
-    public function tarikKontrakKelas(): void
+    /**
+     * Modal konfirmasi pratinjau sebelum impor (pola /peserta-kelas).
+     */
+    public function tarikKontrakKelasAction(): Action
     {
-        /** @var MkUnit $mkUnit */
-        $mkUnit = $this->getRecord();
+        return Action::make('tarikKontrakKelas')
+            ->label(fn (): string => $this->labelTombolTarikKontrak())
+            ->icon(Heroicon::OutlinedArrowDownTray)
+            ->color('primary')
+            ->modalHeading(fn (): string => $this->labelTombolTarikKontrak())
+            ->modalSubmitActionLabel('Impor sekarang')
+            ->schema(function (): array {
+                $semester = filled($this->semesterKontrakId)
+                    ? Semester::query()->find($this->semesterKontrakId)
+                    : null;
 
-        $semester = filled($this->semesterKontrakId)
-            ? Semester::query()->find($this->semesterKontrakId)
-            : null;
+                if (! $semester instanceof Semester) {
+                    return [
+                        Placeholder::make('konteks_kosong')
+                            ->hiddenLabel()
+                            ->content(new HtmlString(
+                                '<p style="font-size:13px;color:#991b1b;">Pilih semester terlebih dahulu sebelum menarik data kontrak.</p>',
+                            )),
+                        Hidden::make('preview_status')->default('validasi'),
+                        Hidden::make('payload_json')->default('[]'),
+                    ];
+                }
 
-        if (! $semester instanceof Semester) {
-            Notification::make()
-                ->title('Pilih semester terlebih dahulu')
-                ->warning()
-                ->send();
+                /** @var MkUnit $mkUnit */
+                $mkUnit = $this->getRecord();
+                $service = app(MkUnitTarikKontrakService::class);
+                $sumber = $service->sumberUntukSemester($semester);
+                $preview = $service->preview($mkUnit, $semester, $sumber);
 
-            return;
-        }
+                return [
+                    Placeholder::make('konteks_info')
+                        ->hiddenLabel()
+                        ->content(new HtmlString($service->ringkasanPreviewHtml($mkUnit, $semester, $preview))),
+                    Hidden::make('preview_status')->default($preview['status']),
+                    Hidden::make('payload_json')->default(fn (): string => json_encode($preview['payload'] ?? [])),
+                ];
+            })
+            ->action(function (array $data): void {
+                $semester = filled($this->semesterKontrakId)
+                    ? Semester::query()->find($this->semesterKontrakId)
+                    : null;
 
-        $service = app(MkUnitTarikKontrakService::class);
-        $result = $service->tarik($mkUnit, $semester);
-        $service->kirimNotifikasi($result);
+                if (! $semester instanceof Semester) {
+                    Notification::make()
+                        ->title('Pilih semester terlebih dahulu')
+                        ->warning()
+                        ->send();
 
-        if ($result['status'] === 'ok') {
-            $this->kelasDetailId = null;
-        }
+                    return;
+                }
+
+                $status = $data['preview_status'] ?? null;
+
+                if ($status !== 'ok') {
+                    $service = app(MkUnitTarikKontrakService::class);
+                    $labelSumber = $service->labelSumber($service->sumberUntukSemester($semester));
+
+                    Notification::make()
+                        ->title($status === 'kosong' ? 'Tidak ada data untuk diimpor' : "Gagal mengambil data dari {$labelSumber}")
+                        ->body('Buka kembali dialog tarik data untuk memeriksa ulang ketersediaan data.')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                /** @var MkUnit $mkUnit */
+                $mkUnit = $this->getRecord();
+                $payload = json_decode((string) ($data['payload_json'] ?? '[]'), true);
+
+                $service = app(MkUnitTarikKontrakService::class);
+                $result = $service->tarik($mkUnit, $semester, is_array($payload) ? $payload : null);
+                $service->kirimNotifikasi($result);
+
+                if ($result['status'] === 'ok') {
+                    $this->kelasDetailId = null;
+                }
+            });
     }
 
     /**

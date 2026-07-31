@@ -115,8 +115,11 @@ it('tarik data sintesys mengirim body tahun_akademik kode_prodi kode_matakuliah 
 
     $page = Livewire::test(EditMkUnit::class, ['record' => $this->mkUnit->id])
         ->set('semesterKontrakId', $this->semester->id)
-        ->call('tarikKontrakKelas')
-        ->assertHasNoErrors();
+        ->mountAction('tarikKontrakKelas')
+        ->assertMountedActionModalSee('siap diimpor')
+        ->assertMountedActionModalSee('Impor sekarang')
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
 
     Http::assertSent(function ($request): bool {
         $data = $request->data();
@@ -193,8 +196,10 @@ it('tarik kontrak semester simak memanggil endpoint simak bukan sintesys', funct
 
     Livewire::test(EditMkUnit::class, ['record' => $this->mkUnit->id])
         ->set('semesterKontrakId', $semesterSimak->id)
-        ->call('tarikKontrakKelas')
-        ->assertHasNoErrors();
+        ->mountAction('tarikKontrakKelas')
+        ->assertMountedActionModalSee('siap diimpor')
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
 
     Http::assertSent(fn ($request): bool => str_contains($request->url(), 'simak.test'));
     Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'sintesys.test'));

@@ -29,10 +29,10 @@
             <div style="flex:0 0 auto;">
                 <x-filament::button
                     color="primary"
-                    icon="heroicon-o-arrow-down-on-square-stack"
-                    wire:click="tarikKontrakKelas"
+                    icon="heroicon-o-arrow-down-tray"
+                    wire:click="mountAction('tarikKontrakKelas')"
                     wire:loading.attr="disabled"
-                    wire:target="tarikKontrakKelas"
+                    wire:target="mountAction('tarikKontrakKelas')"
                 >
                     {{ $labelTombolTarik }}
                 </x-filament::button>

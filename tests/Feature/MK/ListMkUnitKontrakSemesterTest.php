@@ -129,10 +129,18 @@ it('aksi tarik data di list memakai tahun akademik semester terpilih', function 
 
     SemesterKontrakPenawaran::set($this->semesterAktif->id);
 
-    Livewire::test(ListMkUnits::class)
+    $component = Livewire::test(ListMkUnits::class)
         ->loadTable()
-        ->callTableAction('tarikKontrak', $this->mkUnit)
-        ->assertHasNoErrors();
+        ->mountTableAction('tarikKontrak', $this->mkUnit);
+
+    $mountedData = $component->get('mountedTableActions')[0]['data']
+        ?? $component->get('mountedActions')[0]['data']
+        ?? null;
+
+    expect($mountedData)->not->toBeNull()
+        ->and($mountedData['preview_status'] ?? null)->toBe('ok');
+
+    $component->callMountedTableAction()->assertHasNoTableActionErrors();
 
     Http::assertSent(function ($request): bool {
         $data = $request->data();

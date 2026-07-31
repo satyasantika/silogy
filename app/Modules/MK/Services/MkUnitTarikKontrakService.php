@@ -41,6 +41,49 @@ class MkUnitTarikKontrakService
     }
 
     /**
+     * HTML ringkasan pratinjau untuk modal konfirmasi (pola /peserta-kelas).
+     *
+     * @param  array{status: string, pesan: ?string, jumlah_kelas: int, jumlah_peserta: int}  $preview
+     */
+    public function ringkasanPreviewHtml(MkUnit $mkUnit, Semester $semester, array $preview): string
+    {
+        $mkUnit->loadMissing('mk');
+        $sumber = $this->sumberUntukSemester($semester);
+        $labelSumber = $this->labelSumber($sumber);
+        $namaMk = $mkUnit->mk?->nama ?? '—';
+
+        return match ($preview['status']) {
+            'error' => sprintf(
+                '<p style="font-size:13px;color:#991b1b;">Gagal mengambil data dari %s untuk mata kuliah <strong>%s</strong> '
+                .'(%s) · tahun akademik <strong>%s</strong>: %s</p>',
+                e($labelSumber),
+                e($namaMk),
+                e((string) $mkUnit->kode),
+                e($semester->nama),
+                e((string) ($preview['pesan'] ?? 'Terjadi kesalahan.')),
+            ),
+            'kosong' => sprintf(
+                '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari %s untuk mata kuliah <strong>%s</strong> '
+                .'(%s) · tahun akademik <strong>%s</strong>. Tidak ada yang bisa diimpor.</p>',
+                e($labelSumber),
+                e($namaMk),
+                e((string) $mkUnit->kode),
+                e($semester->nama),
+            ),
+            default => sprintf(
+                '<p style="font-size:13px;color:#166534;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
+                .'siap diimpor dari %s untuk mata kuliah <strong>%s</strong> (%s) · tahun akademik <strong>%s</strong>.</p>',
+                (int) $preview['jumlah_kelas'],
+                (int) $preview['jumlah_peserta'],
+                e($labelSumber),
+                e($namaMk),
+                e((string) $mkUnit->kode),
+                e($semester->nama),
+            ),
+        };
+    }
+
+    /**
      * @return array{
      *     status: 'ok'|'kosong'|'error'|'validasi',
      *     judul: string,
@@ -54,7 +97,7 @@ class MkUnitTarikKontrakService
      *     }
      * }
      */
-    public function tarik(MkUnit $mkUnit, Semester $semester): array
+    public function tarik(MkUnit $mkUnit, Semester $semester, ?array $payload = null): array
     {
         $mkUnit->loadMissing(['academicUnit', 'mk']);
 
@@ -70,22 +113,35 @@ class MkUnitTarikKontrakService
             ];
         }
 
-        $preview = $this->preview($mkUnit, $semester, $sumber);
+        if ($payload === null) {
+            $preview = $this->preview($mkUnit, $semester, $sumber);
 
-        if ($preview['status'] !== 'ok') {
+            if ($preview['status'] !== 'ok') {
+                return [
+                    'status' => $preview['status'],
+                    'judul' => $preview['status'] === 'kosong'
+                        ? 'Tidak ada data kontrak pada semester ini'
+                        : "Gagal menarik data dari {$labelSumber}",
+                    'pesan' => (string) ($preview['pesan'] ?? 'Periksa koneksi atau coba semester lain.'),
+                    'hasil' => null,
+                ];
+            }
+
+            $payload = $preview['payload'] ?? [];
+        }
+
+        if (! is_array($payload) || $payload === []) {
             return [
-                'status' => $preview['status'],
-                'judul' => $preview['status'] === 'kosong'
-                    ? 'Tidak ada data kontrak pada semester ini'
-                    : "Gagal menarik data dari {$labelSumber}",
-                'pesan' => (string) ($preview['pesan'] ?? 'Periksa koneksi atau coba semester lain.'),
+                'status' => 'error',
+                'judul' => 'Data pratinjau sudah kedaluwarsa',
+                'pesan' => 'Buka kembali dialog tarik data untuk mengambil data terbaru.',
                 'hasil' => null,
             ];
         }
 
         try {
             $hasil = app(PesertaKelasSintesysImportService::class)
-                ->import($preview['payload'] ?? [], $mkUnit, $semester);
+                ->import($payload, $mkUnit, $semester);
         } catch (ValidationException $exception) {
             return [
                 'status' => 'error',
