@@ -3,16 +3,15 @@
 namespace App\Modules\MK\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Pages\CplCpmkMatrix;
 use App\Modules\MK\Filament\Pages\SubcpmkAsesmenMatrix;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Policies\MataKuliahKoordinatorPolicy;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
-use App\Modules\MK\Policies\MataKuliahKoordinatorPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -51,13 +50,9 @@ class MkMenuRedirectController extends Controller
             404,
         );
 
-        $kurikulum = KurikulumTerpilih::current();
-
-        abort_unless(
-            $kurikulum !== null && MkTerpilih::mkDitawarkanPadaKurikulum($mk, $kurikulum),
-            404,
-        );
-
+        // Badge card hanya membutuhkan otorisasi koordinator; penawaran aktif
+        // pada kurikulum terpilih tidak wajib (MK tanpa mk_units tetap bisa
+        // dikelola CPMK/Sub-CPMK). MkTerpilih::set menyelaraskan kurikulum.
         MkTerpilih::set($mk->id);
 
         if (Arr::has(self::MENU_RESOURCES, $menu)) {

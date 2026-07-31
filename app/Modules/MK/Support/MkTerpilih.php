@@ -8,6 +8,7 @@ use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MataKuliahKoordinatorResource;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Services\MataKuliahKoordinatorService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
@@ -37,17 +38,7 @@ class MkTerpilih
 
         $mk = static::scopedQuery($user)->with('mkUnits')->find($id);
 
-        if (! $mk instanceof Mk) {
-            return null;
-        }
-
-        $kurikulum = KurikulumTerpilih::current();
-
-        if ($kurikulum instanceof Kurikulum && ! static::mkDitawarkanPadaKurikulum($mk, $kurikulum)) {
-            return null;
-        }
-
-        return $mk;
+        return $mk instanceof Mk ? $mk : null;
     }
 
     public static function currentId(): ?string
@@ -69,8 +60,24 @@ class MkTerpilih
             return;
         }
 
-        if (static::scopedQuery($user)->whereKey($id)->exists()) {
-            session()->put(self::SESSION_KEY, $id);
+        if (! static::scopedQuery($user)->whereKey($id)->exists()) {
+            return;
+        }
+
+        session()->put(self::SESSION_KEY, $id);
+
+        // Selaraskan kurikulum terpilih ke konteks MK agar banner/scope konsisten.
+        $mk = Mk::query()->with(['mkUnits.kurikulum', 'kurikulum'])->find($id);
+
+        if (! $mk instanceof Mk) {
+            return;
+        }
+
+        $kurikulumId = MataKuliahKoordinatorService::penawaranUntukCard($mk)?->kurikulum_id
+            ?? $mk->kurikulum_id;
+
+        if (filled($kurikulumId)) {
+            KurikulumTerpilih::set($kurikulumId);
         }
     }
 
@@ -93,14 +100,17 @@ class MkTerpilih
     }
 
     /**
-     * Banner konteks MK terpilih untuk halaman CPMK, Sub-CPMK, Asesmen, dan matriks interaksi.
+     * Banner konteks MK yang dikerjakan — gaya selaras banner kurikulum
+     * di Profil, dengan nama mata kuliah sebagai fokus utama.
+     * Dipakai di CPMK, Sub-CPMK, Asesmen, Mahasiswa, Laporan, dan matriks.
      */
-    public static function bannerHtml(): HtmlString
+    public static function bannerHtml(?string $catatan = null): HtmlString
     {
         return new HtmlString(view('filament.modules.mk.partials.mk-terpilih-banner-inner', [
             'gantiUrl' => MataKuliahKoordinatorResource::getUrl('index'),
             'mk' => static::current(),
             'kurikulum' => KurikulumTerpilih::current(),
+            'catatan' => $catatan,
         ])->render());
     }
 

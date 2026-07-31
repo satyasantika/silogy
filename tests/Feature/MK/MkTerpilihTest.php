@@ -52,6 +52,24 @@ it('navigasi mk menyimpan mk terpilih dan mengarah ke halaman cpmk', function ()
     expect(MkTerpilih::currentId())->toBe($mk->id);
 });
 
+it('navigasi badge mk berhasil meski tanpa penawaran aktif pada kurikulum terpilih', function () {
+    $mk = Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'academic_unit_id' => $this->prodi->id,
+        'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    // Tanpa mk_units — sebelumnya controller meng-404 karena gate penawaran.
+    foreach (['cpmk', 'subcpmk', 'asesmen', 'mahasiswa'] as $menu) {
+        $this->get(route('silogy.mk-navigasi', [
+            'mk' => $mk->id,
+            'menu' => $menu,
+        ]))->assertRedirect();
+    }
+
+    expect(MkTerpilih::currentId())->toBe($mk->id)
+        ->and(KurikulumTerpilih::currentId())->toBe($this->kurikulum->id);
+});
+
 it('menu cpmk tersembunyi bila mk belum dipilih', function () {
     Mk::factory()->create([
         'academic_unit_id' => $this->prodi->id,
@@ -73,27 +91,37 @@ it('menu cpmk tampil setelah mk dipilih', function () {
     expect(CpmkResource::shouldRegisterNavigation())->toBeTrue();
 });
 
-it('mk terpilih tidak valid bila penawaran mk tidak aktif', function () {
-    $mk = Mk::factory()->create([
+it('mk terpilih tetap valid meski penawaran mk tidak aktif', function () {
+    $mk = Mk::factory()->forKurikulum($this->kurikulum)->create([
         'academic_unit_id' => $this->prodi->id,
         'koordinator_mk_id' => $this->korma->id,
     ]);
-    MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create(['kode' => 'NAV103']);
+    MkUnit::factory()->forMk($mk)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'NAV103',
+        'is_active' => true,
+    ]);
 
     MkTerpilih::set($mk->id);
 
     MkUnit::query()->where('mk_id', $mk->id)->update(['is_active' => false]);
 
-    expect(MkTerpilih::current())->toBeNull();
+    expect(MkTerpilih::currentId())->toBe($mk->id);
 });
 
-it('banner mk terpilih menampilkan kurikulum dan program studi pada baris terpisah', function () {
-    $mk = Mk::factory()->create([
+it('banner mk yang dikerjakan menempatkan nama mata kuliah sebagai fokus utama', function () {
+    $mk = Mk::factory()->forKurikulum($this->kurikulum)->create([
         'academic_unit_id' => $this->prodi->id,
         'nama' => 'Aplikasi Komputer Matematika',
         'koordinator_mk_id' => $this->korma->id,
+        'sks_teori' => 2,
+        'sks_praktik' => 1,
+        'sks_lapangan' => 0,
+        'sks' => 3,
     ]);
-    MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KP21514004']);
+    MkUnit::factory()->forMk($mk)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'KP21514004',
+        'is_active' => true,
+    ]);
 
     $this->actingAs($this->korma);
     MkTerpilih::set($mk->id);
@@ -101,13 +129,13 @@ it('banner mk terpilih menampilkan kurikulum dan program studi pada baris terpis
     $html = MkTerpilih::bannerHtml()->toHtml();
 
     expect($html)
+        ->toContain('Mata kuliah yang dikerjakan')
         ->toContain('Aplikasi Komputer Matematika (KP21514004)')
+        ->toContain('3 SKS')
         ->toContain('Ganti')
-        ->toContain('Mata Kuliah')
-        ->toContain('Kurikulum')
         ->toContain($this->kurikulum->nama)
         ->toContain('Program Studi')
-        ->toContain($this->prodi->nama);
+        ->not->toContain('Kurikulum yang dikerjakan');
 });
 
 it('cpmk hanya menampilkan data mk terpilih', function () {
