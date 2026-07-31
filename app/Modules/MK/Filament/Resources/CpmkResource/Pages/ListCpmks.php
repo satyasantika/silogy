@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Resources\CpmkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\CpmkResource;
+use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Services\CpmkCplPemetaanService;
@@ -13,10 +14,15 @@ use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\RenderHook;
+use Filament\Schemas\Schema;
+use Filament\View\PanelsRenderHook;
 
 class ListCpmks extends ListRecords
 {
     use HasImporMassal;
+    use HasMkPipelineNav;
 
     protected static string $resource = CpmkResource::class;
 
@@ -27,6 +33,23 @@ class ListCpmks extends ListRecords
                 ->visible(fn (): bool => CpmkResource::canCreate()),
             CreateAction::make(),
         ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getTabsContentComponent(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+                EmbeddedTable::make(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+                ...$this->mkPipelineNavComponents(),
+            ]);
+    }
+
+    protected function mkPipelineStepKey(): string
+    {
+        return 'cpmk';
     }
 
     protected function importModalHeading(): string

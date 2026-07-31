@@ -12,6 +12,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
+use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
@@ -24,7 +25,11 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\RenderHook;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\HtmlString;
@@ -34,6 +39,7 @@ class ListPesertaKelas extends ListRecords
 {
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
+    use HasMkPipelineNav;
 
     protected static string $resource = PesertaKelasResource::class;
 
@@ -44,6 +50,23 @@ class ListPesertaKelas extends ListRecords
                 ->visible(fn (): bool => $this->bolehKelolaPeserta()),
             $this->makeImporSintesysAction(),
         ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getTabsContentComponent(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+                EmbeddedTable::make(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+                ...$this->mkPipelineNavComponents(),
+            ]);
+    }
+
+    protected function mkPipelineStepKey(): string
+    {
+        return 'mahasiswa';
     }
 
     protected function bolehKelolaPeserta(): bool

@@ -88,4 +88,6 @@
             @endif
         @endif
     @endif
+
+    @include('filament.modules.mk.partials.mk-pipeline-nav', ['stepKey' => 'laporan'])
 </x-filament-panels::page>

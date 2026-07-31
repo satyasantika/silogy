@@ -4,6 +4,7 @@ namespace App\Modules\MK\Filament\Resources\SubcpmkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
+use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
@@ -13,11 +14,16 @@ use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\RenderHook;
+use Filament\Schemas\Schema;
+use Filament\View\PanelsRenderHook;
 
 class ListSubcpmks extends ListRecords
 {
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
+    use HasMkPipelineNav;
 
     protected static string $resource = SubcpmkResource::class;
 
@@ -28,6 +34,23 @@ class ListSubcpmks extends ListRecords
                 ->visible(fn (): bool => SubcpmkResource::canCreate()),
             CreateAction::make(),
         ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                $this->getTabsContentComponent(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+                EmbeddedTable::make(),
+                RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+                ...$this->mkPipelineNavComponents(),
+            ]);
+    }
+
+    protected function mkPipelineStepKey(): string
+    {
+        return 'subcpmk';
     }
 
     protected function importModalHeading(): string
