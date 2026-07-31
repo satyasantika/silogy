@@ -54,6 +54,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->darkMode(condition: true, isForced: false)
             ->sidebarCollapsibleOnDesktop()
+            // Rail minimize: 71px → gutter ikon menu 15px kiri/kanan (ikon lg 24px + p-2).
+            ->collapsedSidebarWidth('71px')
             ->maxContentWidth(Width::Full)
             ->userMenuItems([
                 Action::make('gantiPeranUnit')

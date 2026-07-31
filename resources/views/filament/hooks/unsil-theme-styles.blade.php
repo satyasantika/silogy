@@ -138,4 +138,31 @@
     .dark .fi-body .fi-main {
         color: #ffffff !important;
     }
+
+    /*
+     * Sidebar minimize (desktop): Filament set --collapsed-sidebar-width tapi
+     * theme tidak mengikat width. Kunci 71px + padding 15px agar ikon menu
+     * punya margin kiri/kanan konsisten (bukan shrink-to-fit + px-6 asimetris).
+     */
+    @media (min-width: 1024px) {
+        .fi-body-has-sidebar-collapsible-on-desktop .fi-main-sidebar:not(.fi-sidebar-open) {
+            width: var(--collapsed-sidebar-width, 71px) !important;
+            min-width: var(--collapsed-sidebar-width, 71px);
+            max-width: var(--collapsed-sidebar-width, 71px);
+        }
+
+        .fi-body-has-sidebar-collapsible-on-desktop .fi-main-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav {
+            padding-inline: 15px;
+            /* stable gutter membuat sisi kiri/kanan tidak simetris di rail sempit */
+            scrollbar-gutter: auto;
+        }
+
+        .fi-body-has-sidebar-collapsible-on-desktop .fi-main-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav-groups {
+            margin-inline: 0;
+        }
+
+        .fi-body-has-sidebar-collapsible-on-desktop .fi-main-sidebar:not(.fi-sidebar-open) .fi-sidebar-footer {
+            margin-inline: 15px;
+        }
+    }
 </style>
