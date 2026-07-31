@@ -17,6 +17,13 @@ use App\Modules\Kurikulum\Filament\Widgets\KurikulumKpiWidget;
 use App\Modules\Kurikulum\Filament\Widgets\KurikulumTerpilihWidget;
 use App\Modules\Kurikulum\Filament\Widgets\MkCapaianTertinggiTable;
 use App\Modules\MK\Filament\Widgets\KoordinatorMkAksesWidget;
+use App\Modules\MK\Filament\Widgets\KoordinatorMkCapaianTertinggiTable;
+use App\Modules\MK\Filament\Widgets\KoordinatorMkCplTertinggiChartWidget;
+use App\Modules\MK\Filament\Widgets\KoordinatorMkKpiWidget;
+use App\Modules\Penilaian\Filament\Widgets\DosenMkDiampuWidget;
+use App\Modules\Penilaian\Filament\Widgets\DosenPengampuCapaianTertinggiTable;
+use App\Modules\Penilaian\Filament\Widgets\DosenPengampuCplTertinggiChartWidget;
+use App\Modules\Penilaian\Filament\Widgets\DosenPengampuKpiWidget;
 use App\Modules\Penilaian\Filament\Widgets\RekapMkDosenWidget;
 use Filament\Forms\Components\Select;
 use Filament\Pages\Dashboard as BaseDashboard;
@@ -57,6 +64,27 @@ class Dashboard extends BaseDashboard
             ];
         }
 
+        // Koordinator MK bekerja per MK yang dikoordinasikan: KPI MK +
+        // peringkat capaian discope ke MK itu, menggantikan widget CPL
+        // ber-filter (lihat isDashboardKoordinatorMk()).
+        if (static::isDashboardKoordinatorMk()) {
+            return [
+                KoordinatorMkKpiWidget::class,
+                KoordinatorMkCplTertinggiChartWidget::class,
+                KoordinatorMkCapaianTertinggiTable::class,
+            ];
+        }
+
+        // Dosen Pengampu bekerja per kelas yang diampu: KPI MK + peringkat
+        // capaian discope ke kelas yang diajar (lihat isDashboardDosenPengampu()).
+        if (static::isDashboardDosenPengampu()) {
+            return [
+                DosenPengampuKpiWidget::class,
+                DosenPengampuCplTertinggiChartWidget::class,
+                DosenPengampuCapaianTertinggiTable::class,
+            ];
+        }
+
         return [
             AiInsightWidget::class,
             CplUnitChartWidget::class,
@@ -80,8 +108,11 @@ class Dashboard extends BaseDashboard
                         // Kurikulum yang dikerjakan cukup diwakili KPI
                         // KurikulumKpiWidget pada mode Tim Kurikulum.
                         static::isDashboardTimKurikulum() ? null : KurikulumTerpilihWidget::class,
-                        KoordinatorMkAksesWidget::class,
-                        RekapMkDosenWidget::class,
+                        // Jalan pintas lama digantikan KPI widget pada mode
+                        // dashboard barunya masing-masing.
+                        static::isDashboardKoordinatorMk() ? null : KoordinatorMkAksesWidget::class,
+                        static::isDashboardDosenPengampu() ? null : RekapMkDosenWidget::class,
+                        static::isDashboardDosenPengampu() ? DosenMkDiampuWidget::class : null,
                     ])))),
                 ...(static::canViewDashboardCplWidgets() ? [$this->getFiltersFormContentComponent()] : []),
                 $this->getWidgetsContentComponent(),
