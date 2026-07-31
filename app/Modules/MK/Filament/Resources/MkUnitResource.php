@@ -5,6 +5,7 @@ namespace App\Modules\MK\Filament\Resources;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -15,12 +16,15 @@ use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Policies\MkUnitPolicy;
+use App\Modules\MK\Services\MkUnitTarikKontrakService;
 use App\Modules\MK\Support\PenawaranMkScope;
+use App\Modules\MK\Support\SemesterKontrakPenawaran;
 use App\Support\Filament\DelegasiMenu;
-use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -29,10 +33,13 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\In;
 use Illuminate\Validation\Rules\Unique;
@@ -216,19 +223,157 @@ class MkUnitResource extends Resource
     {
         return static::applyKurikulumTerpilihTable(
             $table
+                ->extraAttributes([
+                    'class' => 'silogy-mk-semester-toolbar',
+                ])
                 ->columns([
                     TextColumn::make('mk.nama')->label('Mata kuliah')->searchable(),
                     TextColumn::make('kode')->label('Kode')->sortable(),
                     TextColumn::make('semester_ke')->label('Semester ke-')->sortable(),
+                    TextColumn::make('jumlah_mahasiswa_kontrak')
+                        ->label('Mahasiswa kontrak')
+                        ->numeric()
+                        ->alignEnd()
+                        ->default(0)
+                        ->sortable(query: function (Builder $query, string $direction): Builder {
+                            return $query->orderBy('jumlah_mahasiswa_kontrak', $direction);
+                        }),
                     IconColumn::make('is_active')->label('Aktif')->boolean(),
                 ])
+                ->filters([
+                    static::semesterKontrakPenawaranFilter(),
+                ])
+                ->filtersLayout(FiltersLayout::AboveContent)
+                ->filtersFormColumns(1)
+                ->deferFilters(false)
                 ->recordActions([
-                    EditAction::make()
-                        ->visible(fn (MkUnit $record): bool => auth()->user()?->can('update', $record) ?? false),
+                    Action::make('tarikKontrak')
+                        ->label('Tarik data')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->color('primary')
+                        ->visible(fn (MkUnit $record): bool => auth()->user()?->can('update', $record) ?? false)
+                        ->action(function (MkUnit $record, $livewire): void {
+                            $semesterId = SemesterKontrakPenawaran::currentId();
+                            $semester = filled($semesterId)
+                                ? Semester::query()->find($semesterId)
+                                : null;
+
+                            if (! $semester instanceof Semester) {
+                                Notification::make()
+                                    ->title('Pilih semester terlebih dahulu')
+                                    ->warning()
+                                    ->send();
+
+                                return;
+                            }
+
+                            $service = app(MkUnitTarikKontrakService::class);
+                            $result = $service->tarik($record, $semester);
+                            $service->kirimNotifikasi($result);
+
+                            $livewire->resetTable();
+                        }),
                 ]),
-            fn (Builder $query, Kurikulum $kurikulum): Builder => $query
-                ->where('kurikulum_id', $kurikulum->id),
+            fn (Builder $query, Kurikulum $kurikulum): Builder => static::withJumlahMahasiswaKontrak(
+                $query->where('kurikulum_id', $kurikulum->id),
+            ),
         );
+    }
+
+    /**
+     * Subquery jumlah mahasiswa kontrak pada semester penawaran terpilih.
+     * Tidak memfilter baris MkUnit — hanya menambah kolom hitungan.
+     *
+     * @param  Builder<MkUnit>  $query
+     * @return Builder<MkUnit>
+     */
+    protected static function withJumlahMahasiswaKontrak(Builder $query): Builder
+    {
+        $semesterId = SemesterKontrakPenawaran::currentId();
+
+        return $query->addSelect([
+            'jumlah_mahasiswa_kontrak' => DB::table('kelas_mk_mahasiswa')
+                ->join('kelas_mk', 'kelas_mk.id', '=', 'kelas_mk_mahasiswa.kelas_mk_id')
+                ->whereColumn('kelas_mk.mk_unit_id', 'mk_units.id')
+                ->when(
+                    filled($semesterId),
+                    fn ($builder) => $builder->where('kelas_mk.semester_id', $semesterId),
+                    fn ($builder) => $builder->whereRaw('0 = 1'),
+                )
+                ->selectRaw('count(*)'),
+        ]);
+    }
+
+    protected static function semesterKontrakPenawaranFilter(): SelectFilter
+    {
+        return SelectFilter::make('semester_kontrak_penawaran')
+            ->label('Semester')
+            ->default(fn (): ?string => SemesterKontrakPenawaran::currentId())
+            ->selectablePlaceholder(false)
+            ->columnSpanFull()
+            ->schema([
+                Select::make('value')
+                    ->label('Semester')
+                    ->hiddenLabel()
+                    ->prefix('Semester')
+                    ->options(fn (): array => SemesterKontrakPenawaran::options())
+                    ->default(fn (): ?string => SemesterKontrakPenawaran::currentId())
+                    ->selectablePlaceholder(false)
+                    ->native(true)
+                    ->searchable(false)
+                    ->live()
+                    ->afterStateHydrated(function (Select $component, $state): void {
+                        $resolved = static::resolveSemesterKontrakFilterState($state);
+
+                        if (blank($resolved)) {
+                            return;
+                        }
+
+                        $component->state($resolved);
+                        SemesterKontrakPenawaran::set($resolved);
+                    })
+                    ->afterStateUpdated(function (Select $component, $state): void {
+                        $resolved = static::resolveSemesterKontrakFilterState($state);
+
+                        if (blank($resolved)) {
+                            return;
+                        }
+
+                        if ($resolved !== $state) {
+                            $component->state($resolved);
+                        }
+
+                        SemesterKontrakPenawaran::set($resolved);
+                    }),
+            ])
+            ->query(function (Builder $query, array $data): Builder {
+                $semesterId = static::resolveSemesterKontrakFilterState($data['value'] ?? null);
+
+                if (filled($semesterId)) {
+                    SemesterKontrakPenawaran::set($semesterId);
+                }
+
+                // Filter hanya menyimpan session; baris MkUnit tetap ditampilkan.
+                return $query;
+            })
+            ->indicateUsing(fn (): array => []);
+    }
+
+    protected static function resolveSemesterKontrakFilterState(mixed $state = null): ?string
+    {
+        $options = SemesterKontrakPenawaran::options();
+
+        if ($options === []) {
+            return null;
+        }
+
+        $candidate = filled($state) ? (string) $state : SemesterKontrakPenawaran::currentId();
+
+        if (filled($candidate) && array_key_exists($candidate, $options)) {
+            return $candidate;
+        }
+
+        return SemesterKontrakPenawaran::defaultId();
     }
 
     public static function getPages(): array

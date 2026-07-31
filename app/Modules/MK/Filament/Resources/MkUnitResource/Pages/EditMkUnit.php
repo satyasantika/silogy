@@ -5,10 +5,10 @@ namespace App\Modules\MK\Filament\Resources\MkUnitResource\Pages;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
-use App\Modules\Kelas\Services\PesertaKelasSintesysImportService;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\MK\Filament\Resources\MkUnitResource;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Services\MkUnitTarikKontrakService;
 use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
@@ -16,19 +16,15 @@ use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Validation\ValidationException;
 
 class EditMkUnit extends BaseEditRecord
 {
     protected static string $resource = MkUnitResource::class;
 
     /**
-     * Semester kode ≥ nilai ini memakai Sintesys; sebelumnya memakai Simak
-     * (contoh: 20242 dan ke bawah → Simak, 20251 dan seterusnya → Sintesys).
+     * @see MkUnitTarikKontrakService::KODE_AWAL_SINTESYS
      */
-    public const KODE_AWAL_SINTESYS = '20251';
+    public const KODE_AWAL_SINTESYS = MkUnitTarikKontrakService::KODE_AWAL_SINTESYS;
 
     /** Semester kalender untuk tarik kontrak & rekap kelas. */
     public ?string $semesterKontrakId = null;
@@ -105,7 +101,6 @@ class EditMkUnit extends BaseEditRecord
     {
         /** @var MkUnit $mkUnit */
         $mkUnit = $this->getRecord();
-        $mkUnit->loadMissing(['academicUnit', 'mk']);
 
         $semester = filled($this->semesterKontrakId)
             ? Semester::query()->find($this->semesterKontrakId)
@@ -120,80 +115,13 @@ class EditMkUnit extends BaseEditRecord
             return;
         }
 
-        $sumber = $this->sumberTarikUntukSemester($semester);
-        $labelSumber = $this->labelSumberTarik($sumber);
+        $service = app(MkUnitTarikKontrakService::class);
+        $result = $service->tarik($mkUnit, $semester);
+        $service->kirimNotifikasi($result);
 
-        if (blank($mkUnit->kode) || blank($mkUnit->academicUnit?->code)) {
-            Notification::make()
-                ->title('Kode penawaran atau kode prodi belum lengkap')
-                ->body("Pastikan penawaran MK punya kode dan unit penawaran prodi sebelum menarik data dari {$labelSumber}.")
-                ->danger()
-                ->send();
-
-            return;
+        if ($result['status'] === 'ok') {
+            $this->kelasDetailId = null;
         }
-
-        $preview = $this->previewKontrakKelas($mkUnit, $semester, $sumber);
-
-        if ($preview['status'] !== 'ok') {
-            Notification::make()
-                ->title($preview['status'] === 'kosong'
-                    ? 'Tidak ada data kontrak pada semester ini'
-                    : "Gagal menarik data dari {$labelSumber}")
-                ->body($preview['pesan'] ?? 'Periksa koneksi atau coba semester lain.')
-                ->warning()
-                ->send();
-
-            return;
-        }
-
-        try {
-            $hasil = app(PesertaKelasSintesysImportService::class)
-                ->import($preview['payload'] ?? [], $mkUnit, $semester);
-        } catch (ValidationException $exception) {
-            Notification::make()
-                ->title('Impor gagal')
-                ->body(collect($exception->errors())->flatten()->join(' '))
-                ->danger()
-                ->persistent()
-                ->send();
-
-            return;
-        }
-
-        Cache::forget($this->cacheKeyKontrak($mkUnit, $semester, $sumber));
-
-        $this->kelasDetailId = null;
-
-        $total = $hasil['kelas_dibuat'] + $hasil['kelas_diperbarui']
-            + $hasil['peserta_terdaftar'] + $hasil['peserta_sudah_terdaftar'];
-        $totalGagal = count($hasil['errors']);
-
-        $ringkasan = sprintf(
-            'Kelas dibuat: %d · Kelas diperbarui: %d · Peserta terdaftar: %d · Gagal: %d',
-            $hasil['kelas_dibuat'],
-            $hasil['kelas_diperbarui'],
-            $hasil['peserta_terdaftar'] + $hasil['peserta_sudah_terdaftar'],
-            $totalGagal,
-        );
-
-        $detailGagal = $hasil['errors'] === []
-            ? ''
-            : "\n".implode("\n", array_slice($hasil['errors'], 0, 8)).(count($hasil['errors']) > 8 ? "\n…" : '');
-
-        $notification = Notification::make()
-            ->title(sprintf('Tarik kontrak selesai (%s) — %s · %s', $labelSumber, $mkUnit->kode, $semester->nama))
-            ->body($ringkasan.$detailGagal);
-
-        if ($total > 0 && $totalGagal === 0) {
-            $notification->success();
-        } elseif ($total > 0) {
-            $notification->warning()->persistent();
-        } else {
-            $notification->danger()->persistent();
-        }
-
-        $notification->send();
     }
 
     /**
@@ -203,18 +131,12 @@ class EditMkUnit extends BaseEditRecord
      */
     public function sumberTarikUntukSemester(?Semester $semester): string
     {
-        if (! $semester instanceof Semester || blank($semester->kode)) {
-            return 'sintesys';
-        }
-
-        return strcmp((string) $semester->kode, self::KODE_AWAL_SINTESYS) >= 0
-            ? 'sintesys'
-            : 'simak';
+        return app(MkUnitTarikKontrakService::class)->sumberUntukSemester($semester);
     }
 
     public function labelSumberTarik(string $sumber): string
     {
-        return $sumber === 'simak' ? 'Simak' : 'Sintesys';
+        return app(MkUnitTarikKontrakService::class)->labelSumber($sumber);
     }
 
     public function labelTombolTarikKontrak(): string
@@ -319,119 +241,5 @@ class EditMkUnit extends BaseEditRecord
                 'nama' => (string) ($pivot->mahasiswa?->nama ?? '—'),
             ])
             ->all();
-    }
-
-    /**
-     * @param  'sintesys'|'simak'  $sumber
-     * @return array{status: 'ok'|'kosong'|'error', pesan: ?string, payload: ?array<string, mixed>, jumlah_kelas: int, jumlah_peserta: int}
-     */
-    protected function previewKontrakKelas(MkUnit $mkUnit, Semester $semester, string $sumber): array
-    {
-        $cacheKey = $this->cacheKeyKontrak($mkUnit, $semester, $sumber);
-        $labelSumber = $this->labelSumberTarik($sumber);
-
-        return Cache::remember($cacheKey, now()->addMinutes(3), function () use ($mkUnit, $semester, $sumber, $labelSumber): array {
-            $endpoint = (string) config("services.{$sumber}.endpoint");
-            $token = (string) config("services.{$sumber}.token");
-
-            if ($endpoint === '' || $token === '') {
-                return [
-                    'status' => 'error',
-                    'pesan' => "Konfigurasi API {$labelSumber} (endpoint/token) belum diisi pada server.",
-                    'payload' => null,
-                    'jumlah_kelas' => 0,
-                    'jumlah_peserta' => 0,
-                ];
-            }
-
-            $mkUnit->loadMissing('academicUnit');
-
-            $body = [
-                'tahun_akademik' => is_numeric($semester->kode) ? (int) $semester->kode : $semester->kode,
-                'kode_prodi' => (string) $mkUnit->academicUnit?->code,
-                'kode_matakuliah' => $mkUnit->kode,
-            ];
-
-            try {
-                $response = Http::withToken($token)
-                    ->timeout(60)
-                    ->post($endpoint, $body);
-            } catch (\Throwable $exception) {
-                return [
-                    'status' => 'error',
-                    'pesan' => $exception->getMessage(),
-                    'payload' => null,
-                    'jumlah_kelas' => 0,
-                    'jumlah_peserta' => 0,
-                ];
-            }
-
-            if ($response->failed()) {
-                return [
-                    'status' => 'error',
-                    'pesan' => "Permintaan API {$labelSumber} gagal (HTTP {$response->status()}).",
-                    'payload' => null,
-                    'jumlah_kelas' => 0,
-                    'jumlah_peserta' => 0,
-                ];
-            }
-
-            $payload = $response->json();
-
-            if (! is_array($payload)) {
-                return [
-                    'status' => 'error',
-                    'pesan' => "Respons API {$labelSumber} bukan JSON yang valid.",
-                    'payload' => null,
-                    'jumlah_kelas' => 0,
-                    'jumlah_peserta' => 0,
-                ];
-            }
-
-            $data = $payload['data'] ?? null;
-            $jumlahKelas = is_array($data) ? count($data) : 0;
-            $jumlahPeserta = 0;
-
-            if (is_array($data)) {
-                foreach ($data as $item) {
-                    if (is_array($item) && is_array($item['peserta'] ?? null)) {
-                        $jumlahPeserta += count($item['peserta']);
-                    }
-                }
-            }
-
-            if ($jumlahKelas === 0) {
-                return [
-                    'status' => 'kosong',
-                    'pesan' => sprintf(
-                        'Tidak ada kontrak untuk %s pada tahun akademik %s.',
-                        $mkUnit->kode,
-                        $semester->kode,
-                    ),
-                    'payload' => $payload,
-                    'jumlah_kelas' => 0,
-                    'jumlah_peserta' => 0,
-                ];
-            }
-
-            return [
-                'status' => 'ok',
-                'pesan' => null,
-                'payload' => $payload,
-                'jumlah_kelas' => $jumlahKelas,
-                'jumlah_peserta' => $jumlahPeserta,
-            ];
-        });
-    }
-
-    protected function cacheKeyKontrak(MkUnit $mkUnit, Semester $semester, string $sumber): string
-    {
-        return sprintf(
-            'kontrak-preview-mk-unit:%s:%s:%s:%s',
-            $sumber,
-            auth()->id(),
-            $mkUnit->id,
-            $semester->id,
-        );
     }
 }
