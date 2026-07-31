@@ -322,7 +322,7 @@ class AnalisisMkProdiService
             ->with('academicUnit')
             ->get()
             ->map(fn (MkUnit $unit): array => [
-                'prodi' => $unit->academicUnit?->nama ?? '—',
+                'prodi' => $unit->academicUnit?->nama_lengkap ?? '—',
                 'kode' => $unit->kode,
             ])
             ->sortBy('prodi')

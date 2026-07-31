@@ -296,11 +296,12 @@ class KurikulumResource extends Resource
             ->filters([
                 SelectFilter::make('academic_unit_id')
                     ->label('Unit akademik')
-                    ->relationship(
-                        'academicUnit',
-                        'nama',
-                        fn (Builder $query): Builder => $query->whereIn('id', static::scopedKurikulumUnitIds()),
-                    ),
+                    ->options(fn (): array => AcademicUnit::query()
+                        ->whereIn('id', static::scopedKurikulumUnitIds())
+                        ->orderBy('nama')
+                        ->get()
+                        ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
+                        ->all()),
 
                 SelectFilter::make('academic_unit_type')
                     ->label('Jenis unit')
@@ -414,7 +415,7 @@ class KurikulumResource extends Resource
         $typeLabel = $unit
             ? (AcademicUnitResource::typeOptions()[$unit->type] ?? $unit->type)
             : '—';
-        $unitNama = $unit?->nama ?? '—';
+        $unitNama = $unit?->nama_lengkap ?? '—';
 
         return new HtmlString(
             '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;margin:0;padding:0;">'

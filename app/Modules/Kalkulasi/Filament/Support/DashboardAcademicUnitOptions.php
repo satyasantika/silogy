@@ -24,7 +24,8 @@ class DashboardAcademicUnitOptions
         if ($user->hasRole(['Super Admin', 'Auditor Mutu'])) {
             return AcademicUnit::query()
                 ->orderBy('nama')
-                ->pluck('nama', 'id')
+                ->get()
+                ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
                 ->all();
         }
 
@@ -41,7 +42,8 @@ class DashboardAcademicUnitOptions
         return AcademicUnit::query()
             ->whereIn('id', $ids->unique()->values())
             ->orderBy('nama')
-            ->pluck('nama', 'id')
+            ->get()
+            ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
             ->all();
     }
 }

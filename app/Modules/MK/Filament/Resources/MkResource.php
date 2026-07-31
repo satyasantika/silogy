@@ -220,7 +220,8 @@ class MkResource extends Resource
         return AcademicUnit::query()
             ->whereIn('id', $ids)
             ->orderBy('nama')
-            ->pluck('nama', 'id')
+            ->get()
+            ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
             ->all();
     }
 

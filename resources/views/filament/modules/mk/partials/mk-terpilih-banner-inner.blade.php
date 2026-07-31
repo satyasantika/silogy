@@ -19,7 +19,7 @@
         $kurikulum?->loadMissing('academicUnit');
         $mkLabel = MkTerpilih::label($mk, $kurikulum);
         $kurikulumLabel = $kurikulum?->nama ?? '—';
-        $prodiLabel = $kurikulum?->academicUnit?->nama ?? '—';
+        $prodiLabel = $kurikulum?->academicUnit?->nama_lengkap ?? '—';
     @endphp
 
     <div class="silogy-tone-info" style="padding:12px 14px;border-radius:8px;border:1px solid #bfdbfe;font-size:13px;line-height:1.5;">

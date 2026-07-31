@@ -146,7 +146,7 @@ class MkUnitResource extends Resource
             ->orderBy('nama')
             ->get()
             ->mapWithKeys(fn (Mk $mk): array => [
-                $mk->id => "{$mk->nama} — {$mk->academicUnit?->nama}",
+                $mk->id => "{$mk->nama} — {$mk->academicUnit?->nama_lengkap}",
             ])
             ->all();
     }

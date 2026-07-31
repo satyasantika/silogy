@@ -69,7 +69,7 @@ class MkUnitRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('academicUnit.nama')->label('Unit'),
+                TextColumn::make('academicUnit.nama_lengkap')->label('Unit'),
                 TextColumn::make('kode')->label('Kode'),
                 TextColumn::make('semester_ke')->label('Semester ke-'),
                 IconColumn::make('is_active')->label('Aktif')->boolean(),

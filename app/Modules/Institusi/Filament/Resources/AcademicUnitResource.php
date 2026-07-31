@@ -396,6 +396,6 @@ class AcademicUnitResource extends Resource
         $type = static::typeOptions()[$record->type] ?? $record->type;
         $code = $record->code ? " ({$record->code})" : '';
 
-        return "{$record->nama}{$code} — {$type}";
+        return "{$record->nama_lengkap}{$code} — {$type}";
     }
 }

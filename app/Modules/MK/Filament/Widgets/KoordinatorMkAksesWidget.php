@@ -52,7 +52,8 @@ class KoordinatorMkAksesWidget extends Widget
         $unitNama = AcademicUnit::query()
             ->whereIn('id', $unitIds)
             ->orderBy('nama')
-            ->pluck('nama');
+            ->get()
+            ->map(fn (AcademicUnit $unit): string => $unit->nama_lengkap);
 
         $jumlahKurikulum = $unitIds->isEmpty()
             ? 0

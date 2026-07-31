@@ -139,7 +139,7 @@ class MataKuliahKoordinatorResource extends Resource
                     ->size('sm')
                     ->color('gray'),
 
-                TextColumn::make('academicUnit.nama')
+                TextColumn::make('academicUnit.nama_lengkap')
                     ->label('Unit pemilik MK')
                     ->size('sm')
                     ->color('gray')

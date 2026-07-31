@@ -191,7 +191,7 @@ class UserResource extends Resource
                             ->collapsible()
                             ->itemLabel(
                                 fn (array $state): ?string => isset($state['academic_unit_id'])
-                                    ? AcademicUnit::find($state['academic_unit_id'])?->nama
+                                    ? AcademicUnit::find($state['academic_unit_id'])?->nama_lengkap
                                     : null
                             )
                             ->addActionLabel('Tambah penugasan unit')

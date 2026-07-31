@@ -193,7 +193,7 @@ class MahasiswaResource extends Resource
                     ->label('Angkatan')
                     ->sortable(),
 
-                TextColumn::make('academicUnit.nama')
+                TextColumn::make('academicUnit.nama_lengkap')
                     ->label('Program studi')
                     ->sortable(),
 
@@ -229,7 +229,8 @@ class MahasiswaResource extends Resource
                     ->options(fn (): array => AcademicUnit::query()
                         ->whereIn('id', $scopedProdiIds)
                         ->orderBy('nama')
-                        ->pluck('nama', 'id')
+                        ->get()
+                        ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
                         ->all())
                     ->visible($scopedProdiIds->count() > 1),
             ])

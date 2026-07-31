@@ -375,7 +375,7 @@ class AdaptasiMkMassalService
                 return "Kurikulum {$labelLevel[$type]} tidak sesuai dengan unit penawaran.";
             }
 
-            $unitNama = $kurikulum->academicUnit?->nama ?? '—';
+            $unitNama = $kurikulum->academicUnit?->nama_lengkap ?? '—';
             $labelSumber = "{$labelLevel[$type]} — {$unitNama}";
 
             $mks = Mk::query()

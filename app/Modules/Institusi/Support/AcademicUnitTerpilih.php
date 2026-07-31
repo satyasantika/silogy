@@ -85,7 +85,8 @@ class AcademicUnitTerpilih
         return AcademicUnit::query()
             ->whereIn('id', $unitIds)
             ->orderBy('nama')
-            ->pluck('nama', 'id')
+            ->get()
+            ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
             ->all();
     }
 }

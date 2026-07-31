@@ -93,10 +93,10 @@ class PilihPeranUnit extends Page
         $this->unitOptions = AcademicUnit::query()
             ->whereIn('id', $unitIds)
             ->orderBy('nama')
-            ->get(['id', 'nama', 'type'])
+            ->get(['id', 'nama', 'type', 'jenjang'])
             ->map(fn (AcademicUnit $unit): array => [
                 'id' => $unit->id,
-                'nama' => $unit->nama,
+                'nama' => $unit->nama_lengkap,
                 'type' => (string) $unit->type,
             ])
             ->all();
@@ -168,7 +168,7 @@ class PilihPeranUnit extends Page
             'user' => $user,
             'peranAktif' => ActiveRole::currentFor($user),
             'unitAktifNama' => $unitAktifId
-                ? AcademicUnit::query()->find($unitAktifId)?->nama
+                ? AcademicUnit::query()->find($unitAktifId)?->nama_lengkap
                 : null,
             'roles' => collect(ActiveRole::ownedRoleNames($user))
                 ->map(fn (string $role): array => [

@@ -96,7 +96,7 @@ class PenilaianDosenResource extends Resource
                             ->size('sm'),
                     ]),
 
-                    TextColumn::make('academicUnit.nama')
+                    TextColumn::make('academicUnit.nama_lengkap')
                         ->label('Unit pemilik MK')
                         ->size('sm')
                         ->color('gray')

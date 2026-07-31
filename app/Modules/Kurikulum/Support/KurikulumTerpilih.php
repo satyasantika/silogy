@@ -149,7 +149,7 @@ class KurikulumTerpilih
 
     public static function label(Kurikulum $kurikulum): string
     {
-        $unit = $kurikulum->academicUnit->nama ?? '—';
+        $unit = $kurikulum->academicUnit->nama_lengkap ?? '—';
         $aktif = $kurikulum->is_active ? ' · aktif' : '';
 
         return "{$kurikulum->nama} ({$unit}{$aktif})";
@@ -168,7 +168,7 @@ class KurikulumTerpilih
         $current = $unit;
 
         while ($current instanceof AcademicUnit) {
-            array_unshift($names, $current->nama);
+            array_unshift($names, $current->nama_lengkap);
 
             if ($current->parent_id === null) {
                 break;

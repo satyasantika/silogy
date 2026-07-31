@@ -118,4 +118,18 @@ class AcademicUnit extends Model
     {
         return $this->type === 'study_program';
     }
+
+    /**
+     * Nama prodi berikut jenjangnya (mis. "S1 Pendidikan Matematika") supaya
+     * prodi bernama sama di jenjang berbeda tidak tertukar. Unit non-prodi
+     * (atau prodi tanpa jenjang terisi) tetap tampil sebagai nama biasa.
+     */
+    public function getNamaLengkapAttribute(): string
+    {
+        if ($this->type === 'study_program' && filled($this->jenjang)) {
+            return "{$this->jenjang} {$this->nama}";
+        }
+
+        return $this->nama;
+    }
 }

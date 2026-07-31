@@ -251,7 +251,7 @@ trait HasAnalisisMkForUnitType
             ->columns([
                 TextColumn::make('nim')->label('NPM')->searchable()->sortable(),
                 TextColumn::make('nama')->label('Nama')->searchable()->sortable(),
-                TextColumn::make('academicUnit.nama')
+                TextColumn::make('academicUnit.nama_lengkap')
                     ->label('Prodi')
                     ->visible($tampilkanKolomProdi),
                 TextColumn::make('sks_dikontrak')

@@ -120,7 +120,7 @@ class BokResource extends Resource
 
                                 if ($isAsing($record)) {
                                     $record->loadMissing('academicUnit');
-                                    $options[$record->academic_unit_id] = $record->academicUnit?->nama ?? '—';
+                                    $options[$record->academic_unit_id] = $record->academicUnit?->nama_lengkap ?? '—';
                                 }
 
                                 return $options;
@@ -259,7 +259,7 @@ class BokResource extends Resource
 
                         $record->loadMissing('academicUnit');
 
-                        return 'Adaptasi dari '.($record->academicUnit->nama ?? '—');
+                        return 'Adaptasi dari '.($record->academicUnit->nama_lengkap ?? '—');
                     })
                     ->size('sm')
                     ->color('warning'),
