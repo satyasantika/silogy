@@ -293,6 +293,9 @@ class KurikulumResource extends Resource
             ->selectable(false)
             ->recordUrl(null)
             ->recordAction('kerjakan')
+            ->recordClasses(fn (Kurikulum $record): array => static::isKurikulumSedangDigunakan($record)
+                ? ['silogy-kurikulum-card-sedang-dikerjakan']
+                : ['silogy-kurikulum-card-belum-dikerjakan'])
             ->filters([
                 SelectFilter::make('academic_unit_id')
                     ->label('Unit akademik')
@@ -328,11 +331,18 @@ class KurikulumResource extends Resource
                     ->label(fn (Kurikulum $record): string => static::isKurikulumSedangDigunakan($record)
                         ? 'Sedang dikerjakan'
                         : 'Kerjakan')
-                    ->icon(Heroicon::OutlinedCheckCircle)
+                    ->icon(fn (Kurikulum $record): Heroicon => static::isKurikulumSedangDigunakan($record)
+                        ? Heroicon::OutlinedCheckBadge
+                        : Heroicon::OutlinedPlayCircle)
                     ->color(fn (Kurikulum $record): string => static::isKurikulumSedangDigunakan($record)
-                        ? 'primary'
+                        ? 'gray'
                         : 'success')
                     ->disabled(fn (Kurikulum $record): bool => static::isKurikulumSedangDigunakan($record))
+                    ->extraAttributes(fn (Kurikulum $record): array => [
+                        'class' => static::isKurikulumSedangDigunakan($record)
+                            ? 'silogy-kurikulum-aksi-sedang-dikerjakan'
+                            : 'silogy-kurikulum-aksi-kerjakan',
+                    ])
                     ->action(function (Kurikulum $record): void {
                         KurikulumTerpilih::set($record->id);
 
@@ -411,11 +421,7 @@ class KurikulumResource extends Resource
     public static function unitDanMenuHtml(Kurikulum $kurikulum): HtmlString
     {
         $kurikulum->loadMissing('academicUnit');
-        $unit = $kurikulum->academicUnit;
-        $typeLabel = $unit
-            ? (AcademicUnitResource::typeOptions()[$unit->type] ?? $unit->type)
-            : '—';
-        $unitNama = $unit?->nama_lengkap ?? '—';
+        [$typeLabel, $unitNama] = AcademicUnitResource::jenisDanNamaUntukCard($kurikulum->academicUnit);
 
         return new HtmlString(
             '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;margin:0;padding:0;">'

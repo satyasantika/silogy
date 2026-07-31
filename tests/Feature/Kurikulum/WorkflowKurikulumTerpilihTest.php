@@ -129,7 +129,10 @@ it('card kurikulum terpilih menampilkan Sedang dikerjakan dan aksi kerjakan meng
     Livewire::test(ListKurikulums::class)
         ->loadTable()
         ->assertSee('Sedang dikerjakan')
+        ->assertSee('Kerjakan')
         ->assertSee('Nonaktif')
+        ->assertSeeHtml('silogy-kurikulum-card-sedang-dikerjakan')
+        ->assertSeeHtml('silogy-kurikulum-aksi-sedang-dikerjakan')
         ->callTableAction('kerjakan', $kurikulumLain);
 
     expect(KurikulumTerpilih::currentId())->toBe($kurikulumLain->id);
