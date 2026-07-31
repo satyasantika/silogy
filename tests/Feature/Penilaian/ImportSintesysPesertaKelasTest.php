@@ -113,13 +113,16 @@ it('tarik dari sintesys mengirim kode_matakuliah pada request dan mengimpor pese
     ]);
 
     $component = Livewire::test(ListPesertaKelas::class)
-        ->mountAction('importSintesysPesertaKelas');
+        ->mountTableAction('importSintesysPesertaKelas');
 
-    $mountedData = $component->get('mountedActions')[0]['data'];
+    $mountedData = $component->get('mountedTableActions')[0]['data']
+        ?? $component->get('mountedActions')[0]['data']
+        ?? null;
 
-    expect($mountedData['preview_status'])->toBe('ok');
+    expect($mountedData)->not->toBeNull()
+        ->and($mountedData['preview_status'])->toBe('ok');
 
-    $component->callMountedAction()->assertHasNoActionErrors();
+    $component->callMountedTableAction()->assertHasNoActionErrors();
 
     Http::assertSentCount(1);
 
@@ -174,8 +177,8 @@ it('mengabaikan baris data sintesys yang kode_mk-nya bukan mk terpilih', functio
     ]);
 
     Livewire::test(ListPesertaKelas::class)
-        ->mountAction('importSintesysPesertaKelas')
-        ->callMountedAction()
+        ->mountTableAction('importSintesysPesertaKelas')
+        ->callMountedTableAction()
         ->assertHasNoActionErrors();
 
     expect(Mahasiswa::query()->where('nim', '259255111099')->exists())->toBeFalse()

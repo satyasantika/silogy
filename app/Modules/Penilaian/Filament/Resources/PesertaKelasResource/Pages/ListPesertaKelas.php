@@ -29,7 +29,9 @@ use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\HtmlString;
@@ -48,8 +50,16 @@ class ListPesertaKelas extends ListRecords
         return [
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => $this->bolehKelolaPeserta()),
-            $this->makeImporSintesysAction(),
         ];
+    }
+
+    public function table(Table $table): Table
+    {
+        return parent::table($table)
+            ->description(fn (): HtmlString => $this->deskripsiPesertaKelas())
+            ->headerActions([
+                $this->makeImporSintesysAction(),
+            ]);
     }
 
     public function content(Schema $schema): Schema
@@ -62,6 +72,78 @@ class ListPesertaKelas extends ListRecords
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
                 ...$this->mkPipelineNavComponents(),
             ]);
+    }
+
+    /**
+     * Banner MK terpilih + KPI bento di dalam card tabel (pola /subcpmk).
+     */
+    protected function deskripsiPesertaKelas(): HtmlString
+    {
+        return new HtmlString(view('filament.modules.penilaian.partials.peserta-kelas-deskripsi', [
+            'kpi' => $this->rekapKpiPesertaKelas(),
+        ])->render());
+    }
+
+    /**
+     * Ringkasan kelas & mahasiswa untuk KPI bento (semester terpilih + semua).
+     *
+     * @return array{
+     *     tampil_semester: bool,
+     *     semester_label: ?string,
+     *     semester_kelas: int,
+     *     semester_mahasiswa: int,
+     *     semua_kelas: int,
+     *     semua_mahasiswa: int
+     * }
+     */
+    public function rekapKpiPesertaKelas(): array
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return [
+                'tampil_semester' => false,
+                'semester_label' => null,
+                'semester_kelas' => 0,
+                'semester_mahasiswa' => 0,
+                'semua_kelas' => 0,
+                'semua_mahasiswa' => 0,
+            ];
+        }
+
+        $base = KelasMk::query()->whereHas(
+            'mkUnit',
+            fn (Builder $query): Builder => $query->where('mk_id', $mkId),
+        );
+
+        $semuaKelas = (clone $base)->count();
+        $semuaMahasiswa = KelasMkMahasiswa::query()
+            ->whereIn('kelas_mk_id', (clone $base)->select('kelas_mk.id'))
+            ->count();
+
+        $tampilSemester = SemesterTerpilih::berlakuUntukUser();
+        $semesterId = $tampilSemester ? SemesterTerpilih::currentId($mkId) : null;
+        $semesterKelas = 0;
+        $semesterMahasiswa = 0;
+        $semesterLabel = null;
+
+        if ($tampilSemester && filled($semesterId)) {
+            $semesterLabel = SemesterTerpilih::label($semesterId);
+            $semesterQuery = (clone $base)->where('semester_id', $semesterId);
+            $semesterKelas = (clone $semesterQuery)->count();
+            $semesterMahasiswa = KelasMkMahasiswa::query()
+                ->whereIn('kelas_mk_id', (clone $semesterQuery)->select('kelas_mk.id'))
+                ->count();
+        }
+
+        return [
+            'tampil_semester' => $tampilSemester && filled($semesterId),
+            'semester_label' => $semesterLabel,
+            'semester_kelas' => $semesterKelas,
+            'semester_mahasiswa' => $semesterMahasiswa,
+            'semua_kelas' => $semuaKelas,
+            'semua_mahasiswa' => $semuaMahasiswa,
+        ];
     }
 
     protected function mkPipelineStepKey(): string
@@ -254,8 +336,8 @@ class ListPesertaKelas extends ListRecords
     protected function makeImporSintesysAction(): Action
     {
         return Action::make('importSintesysPesertaKelas')
-            ->label('Tarik dari Sintesys')
-            ->icon(Heroicon::OutlinedArrowDownOnSquareStack)
+            ->label('Tarik data')
+            ->icon(Heroicon::OutlinedArrowDownTray)
             ->color('primary')
             ->modalHeading('Tarik peserta dari Sintesys untuk mata kuliah terpilih')
             ->modalSubmitActionLabel('Impor sekarang')

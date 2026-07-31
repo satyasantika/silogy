@@ -15,14 +15,11 @@ use App\Support\Filament\DelegasiMenu;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\Layout\Split;
-use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
 
 class PesertaKelasResource extends Resource
 {
@@ -62,7 +59,8 @@ class PesertaKelasResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['mkUnit.mk', 'semester']);
+            ->with(['mkUnit.mk', 'semester', 'dosenPengampu'])
+            ->withCount('mahasiswas');
 
         $user = Auth::user();
 
@@ -89,49 +87,49 @@ class PesertaKelasResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->description(fn (): HtmlString => MkTerpilih::bannerHtml())
-            ->columns([
-                Stack::make([
-                    Split::make([
-                        TextColumn::make('mkUnit.kode')
-                            ->label('Kode MK')
-                            ->weight(FontWeight::Bold),
-
-                        TextColumn::make('kode_kelas')
-                            ->label('Kelas')
-                            ->badge()
-                            ->color('gray'),
-                    ]),
-
-                    TextColumn::make('mkUnit.mk.nama')
-                        ->label('Mata kuliah')
-                        ->wrap()
-                        ->weight(FontWeight::Bold),
-
-                    TextColumn::make('mahasiswas_count')
-                        ->label('Jumlah peserta')
-                        ->counts('mahasiswas')
-                        ->suffix(' mahasiswa')
-                        ->size('sm')
-                        ->color('gray'),
-
-                    TextColumn::make('dosenPengampu.full_name')
-                        ->label('Dosen pengampu')
-                        ->placeholder('—')
-                        ->size('sm')
-                        ->color('gray'),
-                ])->space(2),
+            ->extraAttributes([
+                'class' => 'silogy-mk-semester-toolbar silogy-peserta-kelas',
             ])
-            ->contentGrid(['md' => 2, 'xl' => 3])
+            ->columns([
+                TextColumn::make('kode_kelas')
+                    ->label('Kelas')
+                    ->sortable()
+                    ->searchable()
+                    ->weight(FontWeight::Bold)
+                    ->badge()
+                    ->color('gray'),
+
+                TextColumn::make('dosenPengampu.full_name')
+                    ->label('Dosen pengampu')
+                    ->placeholder('—')
+                    ->wrap()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas(
+                            'dosenPengampu',
+                            fn (Builder $dosenQuery): Builder => $dosenQuery
+                                ->where('full_name', 'like', "%{$search}%")
+                                ->orWhere('username', 'like', "%{$search}%"),
+                        );
+                    }),
+
+                TextColumn::make('mahasiswas_count')
+                    ->label('Mahasiswa')
+                    ->sortable()
+                    ->alignEnd()
+                    ->numeric(),
+            ])
+            ->defaultSort('kode_kelas')
             ->paginated(false)
             ->filters([
                 static::semesterTerpilihFilter(
                     fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
+                    ['indikator' => false, 'labelTersembunyi' => true],
                 ),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormColumns(1)
             ->deferFilters(false)
+            ->hiddenFilterIndicators()
             ->modifyQueryUsing(function (Builder $query): Builder {
                 $mkId = MkTerpilih::currentId();
 
