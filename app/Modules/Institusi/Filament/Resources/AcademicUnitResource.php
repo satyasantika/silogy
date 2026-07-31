@@ -70,6 +70,42 @@ class AcademicUnitResource extends Resource
     }
 
     /**
+     * Label jenis + nama untuk card kurikulum/MK.
+     * Nama dibersihkan dari awalan jenis agar tidak redundan
+     * ("Fakultas · Fakultas …", "Program Studi · Program Studi …").
+     *
+     * @return array{0: string, 1: string}
+     */
+    public static function jenisDanNamaUntukCard(?AcademicUnit $unit): array
+    {
+        if (! $unit instanceof AcademicUnit) {
+            return ['Unit', '—'];
+        }
+
+        $typeLabel = static::typeOptions()[$unit->type] ?? $unit->type;
+        $nama = trim((string) $unit->nama);
+
+        foreach (static::typeOptions() as $label) {
+            $prefix = $label.' ';
+
+            if (str_starts_with($nama, $prefix)) {
+                $nama = trim(substr($nama, strlen($prefix)));
+                break;
+            }
+        }
+
+        if ($unit->isProdi() && filled($unit->jenjang)) {
+            $jenjang = (string) $unit->jenjang;
+
+            if ($nama === '' || ! preg_match('/^'.preg_quote($jenjang, '/').'(\s|$)/u', $nama)) {
+                $nama = trim($jenjang.' '.$nama);
+            }
+        }
+
+        return [$typeLabel, $nama !== '' ? $nama : '—'];
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function statusOptions(): array

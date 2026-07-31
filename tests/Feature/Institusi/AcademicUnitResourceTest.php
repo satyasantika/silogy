@@ -25,6 +25,19 @@ it('superadmin dapat mengakses resource unit akademik', function () {
         ->and(AcademicUnitResource::canViewAny())->toBeTrue();
 });
 
+it('jenisDanNamaUntukCard memberi label jenis untuk universitas fakultas dan prodi tanpa mengulang awalan nama', function () {
+    $univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
+    $fakultas = AcademicUnit::query()->where('type', 'faculty')->firstOrFail();
+    $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+
+    expect(AcademicUnitResource::jenisDanNamaUntukCard($univ))
+        ->toBe(['Universitas', 'Siliwangi'])
+        ->and(AcademicUnitResource::jenisDanNamaUntukCard($fakultas))
+        ->toBe(['Fakultas', 'Keguruan dan Ilmu Pendidikan'])
+        ->and(AcademicUnitResource::jenisDanNamaUntukCard($prodi))
+        ->toBe(['Program Studi', 'S1 Pendidikan Matematika']);
+});
+
 it('menampilkan 4 unit akademik hasil seed di tabel', function () {
     Livewire::test(ListAcademicUnits::class)
         ->assertCanSeeTableRecords(AcademicUnit::all())
