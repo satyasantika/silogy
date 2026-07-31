@@ -11,9 +11,7 @@ use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
-use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\Layout\Stack;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
@@ -21,7 +19,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\HtmlString;
 
 class PenilaianDosenResource extends Resource
 {
@@ -31,15 +28,15 @@ class PenilaianDosenResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Penilaian';
+    protected static string|\UnitEnum|null $navigationGroup = 'Pengampu MK';
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $navigationLabel = 'Penilaian';
+    protected static ?string $navigationLabel = 'Pengampu MK';
 
-    protected static ?string $modelLabel = 'penilaian';
+    protected static ?string $modelLabel = 'pengampu MK';
 
-    protected static ?string $pluralModelLabel = 'penilaian';
+    protected static ?string $pluralModelLabel = 'pengampu MK';
 
     protected static ?string $slug = 'penilaian';
 
@@ -79,43 +76,63 @@ class PenilaianDosenResource extends Resource
 
         return $table
             ->selectable(false)
-            ->description(fn (): HtmlString => static::semesterBannerHtml())
+            ->extraAttributes([
+                'class' => 'silogy-mk-semester-toolbar silogy-penilaian-dosen',
+            ])
             ->recordUrl(fn (Mk $record): string => InputNilai::getUrl(['mk_id' => $record->id]))
             ->columns([
                 Stack::make([
-                    Split::make([
-                        TextColumn::make('nama')
-                            ->label('Mata kuliah')
-                            ->searchable()
-                            ->sortable()
-                            ->weight(FontWeight::Bold),
+                    TextColumn::make('judul_card')
+                        ->label('Mata kuliah')
+                        ->state(function (Mk $record) use ($user): string {
+                            if (! $user instanceof User) {
+                                return e($record->nama);
+                            }
 
-                        TextColumn::make('total_sks')
-                            ->label('SKS')
-                            ->sortable()
-                            ->size('sm'),
-                    ]),
+                            return PenilaianDosenService::judulCardHtml(
+                                $record,
+                                $user,
+                                PenilaianSemesterTerpilih::currentId(),
+                            )->toHtml();
+                        })
+                        ->html()
+                        ->searchable(query: function (Builder $query, string $search): Builder {
+                            $term = '%'.$search.'%';
 
-                    TextColumn::make('academicUnit.nama_lengkap')
-                        ->label('Unit pemilik MK')
-                        ->size('sm')
-                        ->color('gray')
-                        ->toggleable(isToggledHiddenByDefault: true),
+                            return $query->where(function (Builder $inner) use ($term): void {
+                                $inner->where('nama', 'like', $term)
+                                    ->orWhereHas(
+                                        'mkUnits',
+                                        fn (Builder $mkUnitQuery): Builder => $mkUnitQuery->where('kode', 'like', $term),
+                                    );
+                            });
+                        }),
 
                     TextColumn::make('ringkasan_kelas')
                         ->label('')
-                        ->state(fn (Mk $record): HtmlString => PenilaianDosenService::ringkasanKelasHtml(
-                            $record,
-                            $user,
-                            PenilaianSemesterTerpilih::currentId(),
-                        ))
+                        ->state(function (Mk $record) use ($user): string {
+                            if (! $user instanceof User) {
+                                return '';
+                            }
+
+                            return PenilaianDosenService::ringkasanKelasHtml(
+                                $record,
+                                $user,
+                                PenilaianSemesterTerpilih::currentId(),
+                            )->toHtml();
+                        })
                         ->html(),
                 ])->space(1),
             ])
             ->contentGrid(['md' => 2, 'xl' => 3])
             ->paginated([6, 12, 24])
             ->defaultPaginationPageOption(12)
+            ->columnManager(false)
             ->modifyQueryUsing(function (Builder $query) use ($user): Builder {
+                if (! $user instanceof User) {
+                    return $query->whereRaw('1 = 0');
+                }
+
                 $semesterId = PenilaianSemesterTerpilih::currentId();
 
                 if (blank($semesterId)) {
@@ -129,7 +146,8 @@ class PenilaianDosenResource extends Resource
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->filtersFormColumns(1)
-            ->deferFilters(false);
+            ->deferFilters(false)
+            ->hiddenFilterIndicators();
     }
 
     /**
@@ -146,7 +164,7 @@ class PenilaianDosenResource extends Resource
         );
     }
 
-    protected static function semesterFilter(User $user): SelectFilter
+    protected static function semesterFilter(?User $user): SelectFilter
     {
         return SelectFilter::make('semester_terpilih')
             ->label('Semester')
@@ -156,6 +174,8 @@ class PenilaianDosenResource extends Resource
             ->schema([
                 Select::make('value')
                     ->label('Semester')
+                    ->hiddenLabel()
+                    ->prefix('Semester')
                     ->options(fn (): array => PenilaianSemesterTerpilih::options())
                     ->default(fn (): ?string => PenilaianSemesterTerpilih::currentId())
                     ->selectablePlaceholder(false)
@@ -174,6 +194,10 @@ class PenilaianDosenResource extends Resource
                     }),
             ])
             ->query(function (Builder $query, array $data) use ($user): Builder {
+                if (! $user instanceof User) {
+                    return $query->whereRaw('1 = 0');
+                }
+
                 $semesterId = static::resolveSemesterFilterState($data['value'] ?? null);
 
                 if (blank($semesterId)) {
@@ -184,15 +208,7 @@ class PenilaianDosenResource extends Resource
 
                 return static::scopeKeSemester($query, $user, $semesterId);
             })
-            ->indicateUsing(function (array $data): ?string {
-                $semesterId = static::resolveSemesterFilterState($data['value'] ?? null);
-
-                if (blank($semesterId)) {
-                    return null;
-                }
-
-                return 'Semester: '.PenilaianSemesterTerpilih::label($semesterId);
-            });
+            ->indicateUsing(fn (): array => []);
     }
 
     protected static function resolveSemesterFilterState(mixed $state = null): ?string
@@ -210,18 +226,6 @@ class PenilaianDosenResource extends Resource
         }
 
         return PenilaianSemesterTerpilih::defaultId();
-    }
-
-    protected static function semesterBannerHtml(): HtmlString
-    {
-        $label = PenilaianSemesterTerpilih::label();
-
-        return new HtmlString(
-            '<div style="padding:12px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;'
-            .'color:#1e3a8a;font-size:13px;line-height:1.55;">'
-            .'<span style="opacity:.88;">Semester terpilih:</span> <strong>'.e($label).'</strong>'
-            .'</div>'
-        );
     }
 
     public static function getPages(): array

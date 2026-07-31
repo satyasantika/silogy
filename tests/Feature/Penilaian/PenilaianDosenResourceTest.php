@@ -115,10 +115,37 @@ it('hanya dosen pengampu yang dapat mengakses halaman penilaian', function () {
     expect(PenilaianDosenResource::canAccess())->toBeFalse();
 });
 
-it('menampilkan kelas sebagai badge dengan rata-rata dan mahasiswa yang belum dinilai', function () {
-    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Struktur Data']);
+it('toolbar penilaian: semester kiri tanpa indikator filter dan tanpa urutkan menurut', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Toolbar Penilaian']);
+    buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 1);
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    Livewire::test(ListPenilaianDosens::class)->loadTable()
+        ->assertSee('Semester', escape: false)
+        ->assertSee('Tarik data', escape: false)
+        ->assertDontSee('Filter aktif', escape: false)
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertDontSee('Semester terpilih:', escape: false)
+        ->assertSeeHtml('silogy-mk-semester-toolbar')
+        ->assertSeeHtml('silogy-penilaian-dosen')
+        ->assertTableActionExists('importSintesysDosenPengampu');
+});
+
+it('menampilkan kode penawaran setelah nama lalu sks, serta badge kelas ringkas', function () {
+    $mk = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Struktur Data',
+        'sks_teori' => 2,
+        'sks_praktik' => 1,
+        'sks_lapangan' => 0,
+        'sks' => 3,
+    ]);
 
     $kelasA = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 2);
+    $kodeMk = $kelasA['kelas']->mkUnit->kode;
+
     NilaiMahasiswa::query()->create([
         'subcpmk_komponenpenilaian_id' => $kelasA['skp']->id,
         'kelas_mk_mahasiswa_id' => $kelasA['kmms'][0]->id,
@@ -135,10 +162,15 @@ it('menampilkan kelas sebagai badge dengan rata-rata dan mahasiswa yang belum di
     $this->actingAs($this->dosen);
     PenilaianSemesterTerpilih::set($this->semesterAktif->id);
 
-    Livewire::test(ListPenilaianDosens::class)
+    Livewire::test(ListPenilaianDosens::class)->loadTable()
         ->assertSee('Struktur Data', escape: false)
-        ->assertSee('Kelas A · 2 mhs · rata-rata 85', escape: false)
-        ->assertSee('Kelas B · 1 mhs · Belum dinilai', escape: false);
+        ->assertSee($kodeMk, escape: false)
+        ->assertSee('3 SKS', escape: false)
+        ->assertSeeHtml('silogy-penilaian-card__kode')
+        ->assertSeeHtml('silogy-penilaian-card__sks')
+        ->assertSee('2 mhs · rata-rata 85', escape: false)
+        ->assertSee('1 mhs · Belum dinilai', escape: false)
+        ->assertDontSee('Kelas A ·', escape: false);
 });
 
 it('menyembunyikan mk pada semester lain dan menampilkannya saat filter diganti', function () {

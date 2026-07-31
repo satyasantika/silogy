@@ -60,9 +60,44 @@ class PenilaianDosenService
                 filled($semesterId),
                 fn ($query) => $query->where('semester_id', $semesterId),
             )
+            ->with('mkUnit')
             ->withCount('kelasMkMahasiswas')
             ->orderBy('kode_kelas')
             ->get();
+    }
+
+    /**
+     * Kode penawaran (mk_units.kode) yang relevan untuk kelas diampu dosen
+     * pada MK + semester — bisa lebih dari satu bila penawaran berbeda.
+     */
+    public static function kodePenawaranUntukMk(Mk $mk, User $dosen, ?string $semesterId): string
+    {
+        $kodes = static::kelasUntukMk($mk, $dosen, $semesterId)
+            ->pluck('mkUnit.kode')
+            ->filter(fn (mixed $kode): bool => filled($kode))
+            ->unique()
+            ->values();
+
+        return $kodes->isEmpty() ? '—' : $kodes->implode(', ');
+    }
+
+    /**
+     * Judul card: nama MK, lalu kode penawaran, lalu SKS (urutan tetap).
+     */
+    public static function judulCardHtml(Mk $mk, User $dosen, ?string $semesterId): HtmlString
+    {
+        $kode = static::kodePenawaranUntukMk($mk, $dosen, $semesterId);
+        $sks = (int) $mk->total_sks;
+
+        return new HtmlString(
+            '<div class="silogy-penilaian-card__judul">'
+            .'<span class="silogy-penilaian-card__nama">'.e($mk->nama).'</span>'
+            .'<span class="silogy-penilaian-card__meta">'
+            .'<span class="silogy-penilaian-card__kode">'.e($kode).'</span>'
+            .'<span class="silogy-penilaian-card__sks">'.e((string) $sks).' SKS</span>'
+            .'</span>'
+            .'</div>'
+        );
     }
 
     /**
@@ -126,41 +161,32 @@ class PenilaianDosenService
 
         if ($kelasList->isEmpty()) {
             return new HtmlString(
-                '<div style="margin-top:4px;padding-top:6px;font-size:12px;color:#6b7280;">'
-                .'Tidak ada kelas pada semester ini.'
-                .'</div>'
+                '<div class="silogy-penilaian-card__kelas-empty">Tidak ada kelas pada semester ini.</div>'
             );
         }
 
         $badges = $kelasList
             ->map(function (KelasMk $kelas): string {
                 $ringkasan = static::ringkasanKelas($kelas);
-
                 $url = InputNilai::getUrl(['kelas_mk_id' => $kelas->id]);
-
                 $sudahDinilai = $ringkasan['sudah_dinilai'];
-
-                $background = $sudahDinilai ? '#dcfce7' : '#fef3c7';
-                $color = $sudahDinilai ? '#166534' : '#92400e';
-                $border = $sudahDinilai ? '#86efac' : '#fcd34d';
+                $statusClass = $sudahDinilai
+                    ? 'silogy-penilaian-card__kelas--ok'
+                    : 'silogy-penilaian-card__kelas--pending';
 
                 $keterangan = $sudahDinilai
                     ? sprintf('%d mhs · rata-rata %s', $ringkasan['jumlah_mahasiswa'], $ringkasan['rata_rata'])
                     : sprintf('%d mhs · Belum dinilai', $ringkasan['jumlah_mahasiswa']);
 
-                return '<a href="'.e($url).'" '
-                    .'style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;'
-                    .'border-radius:6px;font-size:11px;font-weight:600;line-height:1.4;text-decoration:none;'
-                    .'background:'.$background.';color:'.$color.';border:1px solid '.$border.';">'
-                    .'Kelas '.e($ringkasan['kode_kelas']).' · '.e($keterangan)
+                return '<a href="'.e($url).'" class="silogy-penilaian-card__kelas '.$statusClass.'">'
+                    .'<span class="silogy-penilaian-card__kelas-kode">'.e($ringkasan['kode_kelas']).'</span>'
+                    .'<span class="silogy-penilaian-card__kelas-meta">'.e($keterangan).'</span>'
                     .'</a>';
             })
             ->implode('');
 
         return new HtmlString(
-            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;padding-top:6px;">'
-            .$badges
-            .'</div>'
+            '<div class="silogy-penilaian-card__kelas-list">'.$badges.'</div>'
         );
     }
 }
