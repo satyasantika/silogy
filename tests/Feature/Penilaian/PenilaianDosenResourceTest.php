@@ -134,7 +134,7 @@ it('toolbar penilaian: semester kiri tanpa indikator filter dan tanpa urutkan me
         ->assertTableActionExists('importSintesysDosenPengampu');
 });
 
-it('menampilkan kode penawaran setelah nama lalu sks, serta badge kelas ringkas', function () {
+it('menampilkan card prodi berisi tabel kode, nama mk, kelas, mhs, status', function () {
     $mk = Mk::factory()->create([
         'academic_unit_id' => $this->prodi->id,
         'nama' => 'Struktur Data',
@@ -165,20 +165,113 @@ it('menampilkan kode penawaran setelah nama lalu sks, serta badge kelas ringkas'
 
     [, $namaProdi] = AcademicUnitResource::jenisDanNamaUntukCard($this->prodi);
 
-    Livewire::test(ListPenilaianDosens::class)->loadTable()
-        ->assertSee('Struktur Data', escape: false)
-        ->assertSee($kodeMk, escape: false)
-        ->assertSee('3 SKS', escape: false)
-        ->assertSee('Program Studi · '.$namaProdi, escape: false)
-        ->assertSeeHtml('silogy-penilaian-card__kode')
-        ->assertSeeHtml('silogy-penilaian-card__sks')
-        ->assertSeeHtml('silogy-penilaian-card__unit')
-        ->assertSee('2 mhs · rata-rata 85', escape: false)
-        ->assertSee('1 mhs · Belum dinilai', escape: false)
-        ->assertDontSee('Kelas A ·', escape: false);
+    $html = Livewire::test(ListPenilaianDosens::class)->loadTable()->html();
+
+    expect($html)
+        ->toContain('silogy-penilaian-kpi__bento')
+        ->toContain('silogy-penilaian-kpi__donut')
+        ->toContain('Progress penilaian')
+        ->toContain('Program Studi · '.$namaProdi)
+        ->toContain('silogy-penilaian-prodi__table')
+        ->toContain('silogy-penilaian-prodi__nama')
+        ->toContain('Struktur Data')
+        ->toContain($kodeMk)
+        ->toContain('Belum dinilai')
+        ->toContain('Nilai')
+        ->toContain('Edit nilai')
+        ->toContain('silogy-penilaian-prodi__status--pending')
+        ->toContain('silogy-penilaian-prodi__status--ok')
+        ->toContain('silogy-penilaian-prodi__laporan')
+        ->toContain('85')
+        ->not->toContain('3 SKS');
+
+    expect(
+        str_contains($html, 'tab=laporan')
+        || str_contains($html, 'tab&#61;laporan')
+    )->toBeTrue();
 });
 
-it('mengurutkan card berdasarkan nama mata kuliah tanpa pagination', function () {
+it('menampilkan status menunggu asesmen bila koordinator belum siap, tanpa badge Belum dinilai', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Menunggu Asesmen']);
+    $mkUnit = MkUnit::query()->firstOrCreate(
+        ['mk_id' => $mk->id, 'academic_unit_id' => $this->prodi->id],
+        MkUnit::factory()->make()->toArray(),
+    );
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id,
+        'semester_id' => $this->semesterAktif->id,
+        'kode_kelas' => 'Z',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    $html = Livewire::test(ListPenilaianDosens::class)->loadTable()->html();
+
+    expect($html)
+        ->toContain('MK Menunggu Asesmen')
+        ->toContain('Menunggu persiapan asesmen MK oleh koordinator')
+        ->toContain('silogy-penilaian-prodi__status--wait')
+        ->not->toContain('Belum dinilai');
+});
+
+it('service barisKelasUntukUnit menyertakan tautan input dan laporan', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Basis Data']);
+    $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 1);
+
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][0]->id,
+        'nilai' => 88,
+    ]);
+
+    $baris = PenilaianDosenService::barisKelasUntukUnit(
+        $this->prodi,
+        $this->dosen,
+        $this->semesterAktif->id,
+    )->first();
+
+    expect($baris)->not->toBeNull()
+        ->and($baris['sudah_dinilai'])->toBeTrue()
+        ->and($baris['asesmen_siap'])->toBeTrue()
+        ->and($baris['url_input'])->toContain('kelas_mk_id='.$kelas['kelas']->id)
+        ->and($baris['url_laporan'])->toContain('tab=laporan');
+});
+
+it('service rekapKpiPengampu menghitung prodi mk kelas dan progress', function () {
+    $mkSiap = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK KPI Siap']);
+    $kelasSiap = buatKelasPenilaianDosen($this->dosen, $mkSiap, 'A', $this->semesterAktif->id, 1);
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelasSiap['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelasSiap['kmms'][0]->id,
+        'nilai' => 90,
+    ]);
+
+    $mkTunggu = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK KPI Tunggu']);
+    $mkUnitTunggu = MkUnit::query()->firstOrCreate(
+        ['mk_id' => $mkTunggu->id, 'academic_unit_id' => $this->prodi->id],
+        MkUnit::factory()->make()->toArray(),
+    );
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitTunggu->id,
+        'semester_id' => $this->semesterAktif->id,
+        'kode_kelas' => 'B',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $kpi = PenilaianDosenService::rekapKpiPengampu($this->dosen, $this->semesterAktif->id);
+
+    expect($kpi['jumlah_prodi'])->toBe(1)
+        ->and($kpi['jumlah_mk'])->toBe(2)
+        ->and($kpi['jumlah_kelas'])->toBe(2)
+        ->and($kpi['kelas_siap'])->toBe(1)
+        ->and($kpi['kelas_dinilai'])->toBe(1)
+        ->and($kpi['kelas_menunggu_asesmen'])->toBe(1)
+        ->and($kpi['progress_persen'])->toBe(100);
+});
+
+it('mengelompokkan kelas lintas mk dalam satu card prodi tanpa pagination', function () {
     $mkZ = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Zoologi Terapan']);
     $mkA = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Algoritma Dasar']);
     buatKelasPenilaianDosen($this->dosen, $mkZ, 'A', $this->semesterAktif->id, 1);
@@ -187,13 +280,19 @@ it('mengurutkan card berdasarkan nama mata kuliah tanpa pagination', function ()
     $this->actingAs($this->dosen);
     PenilaianSemesterTerpilih::set($this->semesterAktif->id);
 
+    [, $namaProdi] = AcademicUnitResource::jenisDanNamaUntukCard($this->prodi);
+
     $html = Livewire::test(ListPenilaianDosens::class)->loadTable()->html();
+    $posJudul = strpos($html, 'Program Studi · '.$namaProdi);
     $posA = strpos($html, 'Algoritma Dasar');
     $posZ = strpos($html, 'Zoologi Terapan');
 
-    expect($posA)->not->toBeFalse()
+    expect($posJudul)->not->toBeFalse()
+        ->and($posA)->not->toBeFalse()
         ->and($posZ)->not->toBeFalse()
-        ->and($posA)->toBeLessThan($posZ)
+        ->and($posJudul)->toBeLessThan($posA)
+        ->and($posJudul)->toBeLessThan($posZ)
+        ->and(substr_count($html, 'silogy-penilaian-prodi__table-wrap'))->toBe(1)
         ->and($html)->not->toContain('fi-pagination');
 });
 

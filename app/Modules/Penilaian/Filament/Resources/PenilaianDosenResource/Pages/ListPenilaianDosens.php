@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Services\DosenPengampuSintesysImportService;
+use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
@@ -44,9 +45,26 @@ class ListPenilaianDosens extends ListRecords
     public function table(Table $table): Table
     {
         return parent::table($table)
+            ->description(fn (): HtmlString => $this->deskripsiKpiPengampu())
             ->headerActions([
                 $this->makeImporSintesysAction(),
             ]);
+    }
+
+    /**
+     * KPI bento di atas card prodi (semester terpilih).
+     */
+    protected function deskripsiKpiPengampu(): HtmlString
+    {
+        $dosen = auth()->user();
+
+        if (! $dosen instanceof User) {
+            return new HtmlString('');
+        }
+
+        return new HtmlString(view('filament.modules.penilaian.partials.penilaian-dosen-kpi',
+            PenilaianDosenService::rekapKpiPengampu($dosen, PenilaianSemesterTerpilih::currentId()),
+        )->render());
     }
 
     protected function makeImporSintesysAction(): Action
