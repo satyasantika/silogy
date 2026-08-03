@@ -12,6 +12,8 @@ use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource\Pages\ListPesertaKelas;
 use App\Modules\Penilaian\Policies\PesertaKelasPolicy;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -32,9 +34,15 @@ class PesertaKelasResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Penilaian';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Penilaian');
+    }
 
-    protected static ?int $navigationSort = 1;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('peserta-kelas', 1);
+    }
 
     protected static ?string $navigationLabel = 'Mahasiswa';
 

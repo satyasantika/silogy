@@ -11,6 +11,7 @@ use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\AI\Support\AnalisisAiUnitOptions;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
@@ -35,7 +36,10 @@ class RequestAnalisis extends Page
 
     protected static ?string $navigationLabel = 'Minta Analisis';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'AI Analisis';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('AI Analisis');
+    }
 
     protected static ?int $navigationSort = 1;
 

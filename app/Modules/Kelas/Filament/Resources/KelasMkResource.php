@@ -3,6 +3,7 @@
 namespace App\Modules\Kelas\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\CreateKelasMk;
@@ -17,6 +18,8 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\Select;
@@ -45,9 +48,15 @@ class KelasMkResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Kurikulum');
+    }
 
-    protected static ?int $navigationSort = 7;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('kelas-mk', 7);
+    }
 
     protected static ?string $navigationLabel = 'Kelas MK';
 
@@ -84,6 +93,16 @@ class KelasMkResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        $user = Auth::user();
+
+        // Menu "Kelas MK" disembunyikan untuk Koordinator Mata Kuliah —
+        // akses/policy-nya (KelasMkPolicy::viewAny()) SENGAJA tidak diubah,
+        // karena Korma tetap perlu bisa menetapkan dosen pengampu pada
+        // kelas yang dikoordinasikannya; ini murni soal visibilitas menu.
+        if ($user instanceof User && PeranUnitFormFields::defaultRole($user) === 'Koordinator Mata Kuliah') {
+            return false;
+        }
+
         return static::canAccess() && ! DelegasiMenu::sembunyikanDariSuperAdmin();
     }
 

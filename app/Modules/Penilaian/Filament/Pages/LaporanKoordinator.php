@@ -12,6 +12,8 @@ use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Pages\Concerns\HasLaporanKelasMk;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,9 +31,15 @@ class LaporanKoordinator extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Penilaian';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Penilaian');
+    }
 
-    protected static ?int $navigationSort = 1;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('laporan-koordinator', 1);
+    }
 
     protected static ?string $navigationLabel = 'Laporan';
 

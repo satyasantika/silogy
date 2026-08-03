@@ -18,6 +18,8 @@ use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Penilaian\Rules\BobotKomponenSama100Rule;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -51,9 +53,15 @@ class KomponenPenilaianResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Mata Kuliah';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Mata Kuliah');
+    }
 
-    protected static ?int $navigationSort = 4;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('komponen-penilaian', 4);
+    }
 
     protected static ?string $navigationLabel = 'Asesmen';
 

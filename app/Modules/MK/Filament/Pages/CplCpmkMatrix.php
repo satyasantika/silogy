@@ -10,6 +10,8 @@ use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -28,9 +30,15 @@ class CplCpmkMatrix extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Interaksi';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Interaksi');
+    }
 
-    protected static ?int $navigationSort = 4;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('cpl-cpmk', 4);
+    }
 
     protected static ?string $navigationLabel = 'CPL ↔ CPMK';
 

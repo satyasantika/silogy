@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Modules\Auth\Filament\Resources\PermissionResource\Pages\ListPermissions;
 use App\Modules\Auth\Support\DomainPermissionLabels;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
@@ -18,7 +19,10 @@ class PermissionResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Autentikasi';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Autentikasi');
+    }
 
     protected static ?int $navigationSort = 3;
 

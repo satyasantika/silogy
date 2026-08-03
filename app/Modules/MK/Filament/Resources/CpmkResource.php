@@ -13,6 +13,8 @@ use App\Modules\MK\Policies\CpmkPolicy;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -42,9 +44,15 @@ class CpmkResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Mata Kuliah';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Mata Kuliah');
+    }
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('cpmk', 2);
+    }
 
     protected static ?string $modelLabel = 'CPMK';
 

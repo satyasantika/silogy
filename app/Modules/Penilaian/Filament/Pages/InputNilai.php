@@ -10,6 +10,7 @@ use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Services\InputNilaiMatrixClipboardService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
+use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
@@ -30,7 +31,10 @@ class InputNilai extends Page
 
     protected static ?string $navigationLabel = 'Input Nilai';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Pengampu MK';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Pengampu MK');
+    }
 
     protected static ?int $navigationSort = 2;
 

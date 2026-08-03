@@ -9,6 +9,8 @@ use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 
@@ -27,9 +29,15 @@ class ProfilCplMatrix extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Interaksi';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Interaksi');
+    }
 
-    protected static ?int $navigationSort = 1;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('profil-cpl', 1);
+    }
 
     protected static ?string $navigationLabel = 'Profil ↔ CPL';
 

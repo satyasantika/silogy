@@ -30,11 +30,21 @@ class RoleSwitcher extends Component
             $roles = ActiveRole::ownedRoleNames($user);
 
             // User multi-role belum pernah memilih role aktif — default ke
-            // role pertama, karena switcher tidak lagi menawarkan opsi
-            // "semua peran" untuk dipilih ulang.
+            // role pertama untuk tampilan komponen ini SAJA, TANPA dipersist
+            // ke sesi lewat ActiveRole::set().
+            //
+            // Dulu dipersist di sini: begitu user mendapat role baru
+            // pertengahan sesi (mis. Dosen Pengampu diangkat jadi
+            // Koordinator Mata Kuliah oleh Tim Kurikulum), page load
+            // berikutnya langsung mengunci role aktifnya ke role lama
+            // (alfabetis pertama, "Dosen Pengampu") secara permanen — role
+            // baru jadi tidak pernah terjangkau tanpa admin turun tangan
+            // reset sesi. Nilai default ini tidak perlu dipersist:
+            // PeranUnitFormFields::defaultRole() (dipakai
+            // NavigationGroupPeran/NavigationSortPeran/dsb.) sudah
+            // menghitung fallback yang sama persis di setiap pemanggilan.
             if (count($roles) > 1) {
                 $this->activeRole = $roles[0];
-                ActiveRole::set($this->activeRole);
             }
         }
     }

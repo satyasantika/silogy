@@ -10,6 +10,7 @@ use App\Modules\MK\Policies\MataKuliahKoordinatorPolicy;
 use App\Modules\MK\Services\MataKuliahKoordinatorService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -30,7 +31,10 @@ class MataKuliahKoordinatorResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Mata Kuliah';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Mata Kuliah');
+    }
 
     protected static ?int $navigationSort = 1;
 

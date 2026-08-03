@@ -20,6 +20,8 @@ use App\Modules\MK\Services\MkUnitTarikKontrakService;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\MK\Support\SemesterKontrakPenawaran;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
@@ -58,9 +60,15 @@ class MkUnitResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedLink;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Kurikulum');
+    }
 
-    protected static ?int $navigationSort = 6;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('penawaran-mk', 6);
+    }
 
     protected static ?string $navigationLabel = 'Penawaran MK';
 

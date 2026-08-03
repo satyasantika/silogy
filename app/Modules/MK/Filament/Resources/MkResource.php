@@ -15,6 +15,8 @@ use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\SemesterKontrakPenawaran;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\Placeholder;
@@ -47,9 +49,15 @@ class MkResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Kurikulum');
+    }
 
-    protected static ?int $navigationSort = 5;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('mata-kuliah', 5);
+    }
 
     protected static ?string $modelLabel = 'mata kuliah';
 

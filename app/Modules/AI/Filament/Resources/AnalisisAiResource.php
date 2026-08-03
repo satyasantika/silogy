@@ -9,6 +9,7 @@ use App\Modules\AI\Policies\AnalisisAiPolicy;
 use App\Modules\AI\Support\AnalisisAiStatus;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Placeholder;
@@ -31,7 +32,10 @@ class AnalisisAiResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'AI Analisis';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('AI Analisis');
+    }
 
     protected static ?int $navigationSort = 2;
 

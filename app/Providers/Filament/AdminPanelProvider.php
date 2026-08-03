@@ -90,10 +90,10 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('Mata Kuliah'),
                 NavigationGroup::make('Penilaian'),
                 NavigationGroup::make('Pengampu MK'),
-                NavigationGroup::make('Interaksi'),
                 NavigationGroup::make('AI Analisis'),
-                NavigationGroup::make('Laporan'),
                 NavigationGroup::make('Audit'),
+                NavigationGroup::make('Interaksi'),
+                NavigationGroup::make('Laporan'),
             ])
             // RoleSwitcher headless: auto-set role aktif, tanpa ikon di nav.
             ->renderHook(

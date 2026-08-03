@@ -116,7 +116,7 @@ it('switcher headless: tidak merender UI peran karena ganti peran lewat menu ide
         ->assertDontSee('Peran aktif');
 });
 
-it('user multi-role yang belum pernah memilih otomatis mendapat role aktif pertama', function () {
+it('user multi-role yang belum pernah memilih mendapat role aktif pertama secara lokal, tanpa dipersist', function () {
     $this->actingAs(timkurSegar());
 
     expect(session()->has(ActiveRole::SESSION_KEY))->toBeFalse();
@@ -125,8 +125,12 @@ it('user multi-role yang belum pernah memilih otomatis mendapat role aktif perta
 
     // "Dosen Pengampu" lebih dulu secara alfabet dibanding "Tim Kurikulum"
     // (lihat ActiveRole::ownedRoleNames, diurutkan ->orderBy('roles.name')).
+    // Nilai ini TIDAK dipersist ke sesi (lihat RoleSwitcher::mount()) — bila
+    // dipersist, user yang baru diberi role kedua di tengah sesi (mis. Dosen
+    // Pengampu diangkat jadi Koordinator Mata Kuliah) akan terkunci ke role
+    // lamanya secara permanen pada page load berikutnya.
     expect($test->get('activeRole'))->toBe('Dosen Pengampu')
-        ->and(session(ActiveRole::SESSION_KEY))->toBe('Dosen Pengampu');
+        ->and(session()->has(ActiveRole::SESSION_KEY))->toBeFalse();
 });
 
 it('card Selamat Datang menampilkan peran aktif user', function () {

@@ -3,6 +3,8 @@
 namespace App\Modules\Kurikulum\Filament\Pages;
 
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasAnalisisMkForUnitType;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -22,7 +24,15 @@ class AnalisisMkFakultas extends Page implements HasActions, HasTable
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBarSquare;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Laporan';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Laporan');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('analisis-mk', null);
+    }
 
     protected static ?string $navigationLabel = 'Analisis MK Fakultas';
 

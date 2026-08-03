@@ -13,6 +13,8 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -39,9 +41,15 @@ class BokResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Kurikulum';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Kurikulum');
+    }
 
-    protected static ?int $navigationSort = 4;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('bok', 4);
+    }
 
     protected static ?string $modelLabel = 'BoK';
 

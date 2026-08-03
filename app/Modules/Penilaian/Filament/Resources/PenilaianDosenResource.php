@@ -8,6 +8,7 @@ use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource\Pages\ListPe
 use App\Modules\Penilaian\Policies\PenilaianDosenPolicy;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
+use App\Support\Filament\NavigationGroupPeran;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
@@ -27,7 +28,10 @@ class PenilaianDosenResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Pengampu MK';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Pengampu MK');
+    }
 
     protected static ?int $navigationSort = 1;
 

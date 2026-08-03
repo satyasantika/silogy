@@ -17,6 +17,8 @@ use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenClipboardService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
@@ -46,9 +48,15 @@ class SubcpmkAsesmenMatrix extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Interaksi';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Interaksi');
+    }
 
-    protected static ?int $navigationSort = 5;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('subcpmk-asesmen', 5);
+    }
 
     protected static ?string $navigationLabel = 'Sub-CPMK ↔ Asesmen';
 

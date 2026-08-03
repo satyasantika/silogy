@@ -19,6 +19,8 @@ use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Support\Filament\DelegasiMenu;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -52,9 +54,15 @@ class SubcpmkResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Mata Kuliah';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Mata Kuliah');
+    }
 
-    protected static ?int $navigationSort = 3;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('subcpmk', 3);
+    }
 
     protected static ?string $modelLabel = 'Sub-CPMK';
 

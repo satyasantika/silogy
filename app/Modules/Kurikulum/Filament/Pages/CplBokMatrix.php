@@ -8,6 +8,8 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -26,9 +28,15 @@ class CplBokMatrix extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Interaksi';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Interaksi');
+    }
 
-    protected static ?int $navigationSort = 2;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('cpl-bok', 2);
+    }
 
     protected static ?string $navigationLabel = 'CPL ↔ BoK';
 
