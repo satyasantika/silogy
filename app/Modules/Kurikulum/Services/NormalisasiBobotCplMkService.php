@@ -2,39 +2,40 @@
 
 namespace App\Modules\Kurikulum\Services;
 
-use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
+use App\Modules\MK\Models\Mk;
 use App\Modules\Penilaian\Support\BobotNormalizer;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Menormalisasi bobot interaksi CPL ↔ MK milik satu kolom CplBok, secara
+ * Menormalisasi bobot interaksi CPL ↔ MK milik satu baris MK, secara
  * proporsional dan dibulatkan ke 2 desimal, agar totalnya tepat 100%.
  *
- * Berbeda dari NormalisasiBobotSubcpmkService: baris CplMk yang MK-nya
- * bukan milik unit yang sedang melihat (mis. MK adaptasi dari
- * universitas/fakultas) bersifat terkunci/read-only — redistribusi hanya
- * menyentuh baris yang benar-benar bisa diedit unit tsb, dengan target
- * efektif (100 - total bobot baris terkunci).
+ * Hak edit ditentukan sepenuhnya oleh kepemilikan MK (lihat
+ * CplBokAdaptasiScope::canEditCplMkCell()) — bukan per kolom CplBok.
+ * Akibatnya seluruh baris CplMk milik satu panggilan normalisasi() ini
+ * SELALU seragam: bila MK bukan milik unit yang melihat (mis. MK
+ * adaptasi dari universitas/fakultas), semua barisnya terkunci/read-only
+ * sekaligus, tidak ada redistribusi parsial ke target tersisa seperti
+ * pada NormalisasiBobotSubcpmkService.
  */
 class NormalisasiBobotCplMkService
 {
     /**
      * @return array{status: 'kosong'|'sudah_pas'|'dinormalisasi'|'terkunci', jumlah: int, total_sebelum: float, total_terkunci: float}
      */
-    public function normalisasi(CplBok $cplBok, string $unitId): array
+    public function normalisasi(Mk $mk, string $unitId): array
     {
-        $rows = CplMk::query()->where('cpl_bok_id', $cplBok->id)->with('mk')->get();
+        $rows = CplMk::query()->where('mk_id', $mk->id)->get();
 
         if ($rows->isEmpty()) {
             return ['status' => 'kosong', 'jumlah' => 0, 'total_sebelum' => 0.0, 'total_terkunci' => 0.0];
         }
 
-        $editable = $rows->filter(
-            fn (CplMk $row): bool => CplBokAdaptasiScope::canEditCplMkCell($row->mk, $cplBok, $unitId),
-        );
-        $locked = $rows->reject(fn (CplMk $row): bool => $editable->contains($row));
+        $mkEditable = CplBokAdaptasiScope::canEditCplMkCell($mk, $unitId);
+        $editable = $mkEditable ? $rows : $rows->take(0);
+        $locked = $mkEditable ? $rows->take(0) : $rows;
 
         $totalTerkunci = (float) $locked->sum('bobot');
         $total = $totalTerkunci + (float) $editable->sum('bobot');

@@ -8,6 +8,8 @@ use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
 use App\Modules\Kurikulum\Services\NormalisasiBobotCplMkService;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\MK\Models\Mk;
+use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -16,10 +18,12 @@ use Filament\Support\Icons\Heroicon;
 /**
  * Matriks interaksi CPL ↔ MK: kolom CPL (via BoK), baris mata kuliah,
  * irisan berupa bobot kontribusi (pivot cpl_mk); total bobot dihitung
- * PER KOLOM (per CplBok, dijumlah lintas MK) — target invariannya tepat
+ * PER BARIS (per MK, dijumlah lintas CplBok) — target invariannya tepat
  * 100%. Turut menampilkan MK/CplBok milik unit lain yang tersingkap lewat
- * adaptasi MK — baris tetap read-only kecuali setidaknya satu sisinya
- * (MK atau CplBok) benar-benar milik unit ini.
+ * adaptasi MK — baris hanya bisa diedit bila MK-nya benar-benar milik
+ * unit ini (lihat CplBokAdaptasiScope::canEditCplMkCell()); MK
+ * fakultas/universitas yang teradaptasi selalu read-only di sini, walau
+ * kolom CPL-nya sendiri milik unit ini.
  */
 class CplMkMatrix extends Page
 {
@@ -29,9 +33,15 @@ class CplMkMatrix extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Interaksi';
+    public static function getNavigationGroup(): string|\UnitEnum|null
+    {
+        return NavigationGroupPeran::resolve('Interaksi');
+    }
 
-    protected static ?int $navigationSort = 3;
+    public static function getNavigationSort(): ?int
+    {
+        return NavigationSortPeran::resolve('cpl-mk', 3);
+    }
 
     protected static ?string $navigationLabel = 'CPL ↔ MK';
 
@@ -55,9 +65,8 @@ class CplMkMatrix extends Page
         }
 
         $mk = Mk::query()->findOrFail($mkId);
-        $cplBok = CplBok::query()->with(['cpl', 'bok'])->findOrFail($cplBokId);
 
-        if (! CplBokAdaptasiScope::canEditCplMkCell($mk, $cplBok, $unitId)) {
+        if (! CplBokAdaptasiScope::canEditCplMkCell($mk, $unitId)) {
             Notification::make()
                 ->title('Sel ini murni milik unit lain')
                 ->body('MK dan pasangan CPL/BoK ini sama-sama bukan milik unit Anda, sehingga tidak dapat diubah dari sini.')
@@ -85,9 +94,9 @@ class CplMkMatrix extends Page
     }
 
     /**
-     * Tombol "Normalisasi" per kolom CplBok — muncul bila total bobot MK
-     * yang berinteraksi dengan CplBok tsb belum tepat 100%. Hanya baris
-     * yang benar-benar bisa diedit unit ini yang diredistribusi; baris
+     * Tombol "Normalisasi" per baris MK — muncul bila total bobot CPL (via
+     * BoK) yang berinteraksi dengan MK tsb belum tepat 100%. Hanya sel
+     * yang benar-benar bisa diedit unit ini yang diredistribusi; sel
      * terkunci (MK/CplBok murni milik unit lain) tidak disentuh.
      */
     public function normalisasiBobotCplMkAction(): Action
@@ -100,26 +109,26 @@ class CplMkMatrix extends Page
             ->requiresConfirmation()
             ->modalHeading('Normalisasi bobot CPL ↔ MK')
             ->modalDescription(
-                'Bobot tiap MK yang berinteraksi dengan CPL (via BoK) ini akan disesuaikan secara '
-                .'proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat 100%. Baris MK '
+                'Bobot MK ini terhadap tiap CPL (via BoK) yang berinteraksi akan disesuaikan secara '
+                .'proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat 100%. CPL (via BoK) '
                 .'yang bukan milik unit Anda tidak akan disentuh.',
             )
             ->modalSubmitActionLabel('Normalisasi')
             ->action(function (array $arguments): void {
                 $unitId = $this->getKurikulum()?->academic_unit_id;
-                $cplBok = CplBok::query()->with(['cpl', 'bok'])->find($arguments['cplBokId'] ?? null);
+                $mk = Mk::query()->find($arguments['mkId'] ?? null);
 
-                if ($unitId === null || ! $cplBok instanceof CplBok) {
+                if ($unitId === null || ! $mk instanceof Mk) {
                     return;
                 }
 
-                $hasil = app(NormalisasiBobotCplMkService::class)->normalisasi($cplBok, $unitId);
+                $hasil = app(NormalisasiBobotCplMkService::class)->normalisasi($mk, $unitId);
 
                 match ($hasil['status']) {
                     'dinormalisasi' => Notification::make()
                         ->title('Bobot MK berhasil dinormalisasi')
                         ->body(sprintf(
-                            'Total sebelumnya %.2f%% untuk %d MK, kini totalnya tepat 100%%.',
+                            'Total sebelumnya %.2f%% untuk %d CPL, kini totalnya tepat 100%%.',
                             $hasil['total_sebelum'],
                             $hasil['jumlah'],
                         ))
@@ -132,11 +141,11 @@ class CplMkMatrix extends Page
                         ->send(),
                     'terkunci' => Notification::make()
                         ->title('Tidak ada ruang untuk menormalisasi')
-                        ->body('Bobot dari MK unit lain sudah mencapai/melebihi 100% — tidak ada ruang untuk menormalisasi bobot MK milik sendiri.')
+                        ->body('Bobot dari CPL (via BoK) unit lain sudah mencapai/melebihi 100% — tidak ada ruang untuk menormalisasi bobot milik unit sendiri.')
                         ->warning()
                         ->send(),
                     default => Notification::make()
-                        ->title('Belum ada MK untuk dinormalisasi')
+                        ->title('Belum ada CPL untuk dinormalisasi')
                         ->warning()
                         ->send(),
                 };
@@ -193,14 +202,16 @@ class CplMkMatrix extends Page
         ]);
 
         $totals = $pivotRows
-            ->groupBy('cpl_bok_id')
+            ->groupBy('mk_id')
             ->map(fn ($rows): float => (float) $rows->sum('bobot'));
 
         $cellEditable = collect();
 
         foreach ($mks as $mk) {
+            $mkEditable = CplBokAdaptasiScope::canEditCplMkCell($mk, $unitId);
+
             foreach ($cplBoks as $cplBok) {
-                $cellEditable[$mk->id.'/'.$cplBok->id] = CplBokAdaptasiScope::canEditCplMkCell($mk, $cplBok, $unitId);
+                $cellEditable[$mk->id.'/'.$cplBok->id] = $mkEditable;
             }
         }
 

@@ -19,8 +19,11 @@ use Illuminate\Support\Collection;
  * (mk_units milik kurikulum penawar) menuju CPL/BoK unit asal adalah
  * mk_units.mk_id -> cpl_mk.mk_id -> cpl_bok -> cpl/bok.
  *
- * Visibility daftar/matriks di-scope per kurikulum_id; hak edit tetap
- * berbasis kepemilikan academic_unit (minimal satu sisi milik unit saya).
+ * Visibility daftar/matriks di-scope per kurikulum_id. Hak edit pasangan
+ * CPL x BoK (canToggleCplBok/pairEditable) berbasis kepemilikan
+ * academic_unit dengan aturan "minimal satu sisi milik unit saya" — TAPI
+ * hak edit bobot CPL x MK (canEditCplMkCell) berbeda, lihat docblock
+ * method tsb.
  */
 class CplBokAdaptasiScope
 {
@@ -188,15 +191,18 @@ class CplBokAdaptasiScope
         return self::pairEditable($cpl->academic_unit_id, $bok->academic_unit_id, $viewingUnitId);
     }
 
-    public static function canEditCplMkCell(Mk $mk, CplBok $cplBok, string $viewingUnitId): bool
+    /**
+     * Bobot CPL ↔ MK hanya bisa diedit oleh unit yang benar-benar memiliki
+     * MK tsb — beda dari canToggleCplBok()/pairEditable() (dipakai
+     * matriks CPL ↔ BoK), yang mengizinkan edit bila SALAH SATU sisi
+     * (CPL/BoK) milik unit yang melihat. MK universitas/fakultas yang
+     * tersingkap lewat adaptasi TIDAK "diseting" oleh Tim Kurikulum
+     * Prodi — jadi walau kolom CPL/BoK tujuannya milik prodi, sel tetap
+     * terkunci/baca-saja bagi prodi.
+     */
+    public static function canEditCplMkCell(Mk $mk, string $viewingUnitId): bool
     {
-        if ($mk->academic_unit_id === $viewingUnitId) {
-            return true;
-        }
-
-        $cplBok->loadMissing(['cpl', 'bok']);
-
-        return self::canToggleCplBok($cplBok->cpl, $cplBok->bok, $viewingUnitId);
+        return $mk->academic_unit_id === $viewingUnitId;
     }
 
     public static function isVisiblePair(string $cplId, string $bokId, string $kurikulumId): bool

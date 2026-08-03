@@ -7,7 +7,6 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Services\NormalisasiBobotCplMkService;
 use App\Modules\MK\Models\Mk;
-use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,28 +19,31 @@ beforeEach(function () {
     $this->univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
 
-    $this->cplBok = CplBok::query()->create([
-        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
-        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
-    ]);
+    $this->mk = Mk::factory()->forAcademicUnit($this->prodi)->create();
 
     $this->service = new NormalisasiBobotCplMkService;
 });
 
 it('status kosong bila belum ada baris cpl_mk', function () {
-    $hasil = $this->service->normalisasi($this->cplBok, $this->prodi->id);
+    $hasil = $this->service->normalisasi($this->mk, $this->prodi->id);
 
     expect($hasil['status'])->toBe('kosong');
 });
 
-it('semua baris milik prodi dinormalisasi tepat ke 100', function () {
-    $mk1 = Mk::factory()->forAcademicUnit($this->prodi)->create();
-    $mk2 = Mk::factory()->forAcademicUnit($this->prodi)->create();
+it('semua baris milik prodi dinormalisasi tepat ke 100, walau kolom cplbok bukan milik prodi', function () {
+    $cplBokProdi = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+    ]);
+    $cplBokUniv = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->univ)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->univ)->create()->id,
+    ]);
 
-    $row1 = CplMk::query()->create(['cpl_bok_id' => $this->cplBok->id, 'mk_id' => $mk1->id, 'bobot' => 30]);
-    $row2 = CplMk::query()->create(['cpl_bok_id' => $this->cplBok->id, 'mk_id' => $mk2->id, 'bobot' => 30]);
+    $row1 = CplMk::query()->create(['cpl_bok_id' => $cplBokProdi->id, 'mk_id' => $this->mk->id, 'bobot' => 30]);
+    $row2 = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $this->mk->id, 'bobot' => 30]);
 
-    $hasil = $this->service->normalisasi($this->cplBok, $this->prodi->id);
+    $hasil = $this->service->normalisasi($this->mk, $this->prodi->id);
 
     expect($hasil['status'])->toBe('dinormalisasi')
         ->and($hasil['total_sebelum'])->toBe(60.0)
@@ -50,57 +52,54 @@ it('semua baris milik prodi dinormalisasi tepat ke 100', function () {
         ->and((float) $row1->fresh()->bobot)->toBe(50.0);
 });
 
-it('baris terkunci (mk unit lain) dibiarkan, hanya baris milik prodi diredistribusi ke sisa target', function () {
+it('mk milik unit lain terkunci sepenuhnya, walau salah satu kolom cplbok milik prodi', function () {
+    // canEditCplMkCell() kini murni berbasis kepemilikan MK — kolom CplBok
+    // tidak lagi berpengaruh, jadi seluruh baris MK unit lain ini terkunci
+    // sekaligus, tanpa redistribusi parsial.
+    $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
+
+    $cplBokProdi = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+    ]);
     $cplBokUniv = CplBok::query()->create([
         'cpl_id' => Cpl::factory()->forAcademicUnit($this->univ)->create()->id,
         'bok_id' => Bok::factory()->forAcademicUnit($this->univ)->create()->id,
     ]);
 
-    $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
-    $mkProdi1 = Mk::factory()->forAcademicUnit($this->prodi)->create();
-    $mkProdi2 = Mk::factory()->forAcademicUnit($this->prodi)->create();
+    $rowProdiSisi = CplMk::query()->create(['cpl_bok_id' => $cplBokProdi->id, 'mk_id' => $mkUniv->id, 'bobot' => 40]);
+    $rowUnivSisi = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkUniv->id, 'bobot' => 20]);
 
-    MkUnit::factory()->forAcademicUnit($this->prodi)->forMk($mkUniv)->create(['is_active' => true]);
-
-    $rowLocked = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkUniv->id, 'bobot' => 40]);
-    $rowEditable1 = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkProdi1->id, 'bobot' => 20]);
-    $rowEditable2 = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkProdi2->id, 'bobot' => 20]);
-
-    $hasil = $this->service->normalisasi($cplBokUniv, $this->prodi->id);
-
-    expect($hasil['status'])->toBe('dinormalisasi')
-        ->and($hasil['total_terkunci'])->toBe(40.0)
-        ->and((float) $rowLocked->fresh()->bobot)->toBe(40.0) // tidak disentuh
-        ->and((float) $rowEditable1->fresh()->bobot)->toBe(30.0)
-        ->and((float) $rowEditable2->fresh()->bobot)->toBe(30.0);
-});
-
-it('status terkunci bila baris terkunci saja sudah >= 100, tidak ada baris yang berubah', function () {
-    $cplBokUniv = CplBok::query()->create([
-        'cpl_id' => Cpl::factory()->forAcademicUnit($this->univ)->create()->id,
-        'bok_id' => Bok::factory()->forAcademicUnit($this->univ)->create()->id,
-    ]);
-
-    $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
-    $mkProdi = Mk::factory()->forAcademicUnit($this->prodi)->create();
-
-    MkUnit::factory()->forAcademicUnit($this->prodi)->forMk($mkUniv)->create(['is_active' => true]);
-
-    $rowLocked = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkUniv->id, 'bobot' => 100]);
-    $rowEditable = CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkProdi->id, 'bobot' => 20]);
-
-    $hasil = $this->service->normalisasi($cplBokUniv, $this->prodi->id);
+    $hasil = $this->service->normalisasi($mkUniv, $this->prodi->id);
 
     expect($hasil['status'])->toBe('terkunci')
-        ->and((float) $rowLocked->fresh()->bobot)->toBe(100.0)
-        ->and((float) $rowEditable->fresh()->bobot)->toBe(20.0);
+        ->and($hasil['total_terkunci'])->toBe(60.0)
+        ->and((float) $rowProdiSisi->fresh()->bobot)->toBe(40.0)
+        ->and((float) $rowUnivSisi->fresh()->bobot)->toBe(20.0);
+});
+
+it('status sudah_pas tetap berlaku untuk mk unit lain bila totalnya sudah tepat 100', function () {
+    $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
+
+    $cplBokProdi = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+    ]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBokProdi->id, 'mk_id' => $mkUniv->id, 'bobot' => 100]);
+
+    $hasil = $this->service->normalisasi($mkUniv, $this->prodi->id);
+
+    expect($hasil['status'])->toBe('sudah_pas');
 });
 
 it('status sudah_pas bila total sudah tepat 100', function () {
-    $mk = Mk::factory()->forAcademicUnit($this->prodi)->create();
-    CplMk::query()->create(['cpl_bok_id' => $this->cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $cplBok = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+    ]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
 
-    $hasil = $this->service->normalisasi($this->cplBok, $this->prodi->id);
+    $hasil = $this->service->normalisasi($this->mk, $this->prodi->id);
 
     expect($hasil['status'])->toBe('sudah_pas');
 });

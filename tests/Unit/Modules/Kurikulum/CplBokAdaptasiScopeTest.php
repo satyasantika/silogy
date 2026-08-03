@@ -95,13 +95,11 @@ it('canToggleCplBok true bila salah satu sisi milik unit yang melihat', function
         ->and(CplBokAdaptasiScope::canToggleCplBok($this->cplUniv, $this->bokUniv, $this->prodi->id))->toBeFalse();
 });
 
-it('canEditCplMkCell true bila mk atau cplBok milik unit yang melihat', function () {
-    MkUnit::factory()->forKurikulum($this->kurikulumProdi)->forMk($this->mkUniv)->create(['is_active' => true]);
-
+it('canEditCplMkCell true hanya bila mk milik unit yang melihat', function () {
     $mkProdi = Mk::factory()->forKurikulum($this->kurikulumProdi)->create();
 
-    expect(CplBokAdaptasiScope::canEditCplMkCell($mkProdi, $this->cplBokUniv, $this->prodi->id))->toBeTrue()
-        ->and(CplBokAdaptasiScope::canEditCplMkCell($this->mkUniv, $this->cplBokUniv, $this->prodi->id))->toBeFalse();
+    expect(CplBokAdaptasiScope::canEditCplMkCell($mkProdi, $this->prodi->id))->toBeTrue()
+        ->and(CplBokAdaptasiScope::canEditCplMkCell($this->mkUniv, $this->prodi->id))->toBeFalse();
 });
 
 it('displayKodeMapCpl memakai kode asli kecuali ada override milik unit', function () {
