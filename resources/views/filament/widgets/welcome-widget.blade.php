@@ -44,11 +44,10 @@
             @endif
         </div>
 
-        <form action="{{ filament()->getLogoutUrl() }}" method="post" class="fi-account-widget-logout-form">
-            @csrf
-            <x-filament::button color="gray" :icon="\Filament\Support\Icons\Heroicon::ArrowLeftEndOnRectangle" :icon-alias="\Filament\View\PanelsIconAlias::WIDGETS_ACCOUNT_LOGOUT_BUTTON" labeled-from="sm" tag="button" type="submit">
-                {{ __('filament-panels::widgets/account-widget.actions.logout.label') }}
-            </x-filament::button>
-        </form>
+        <div class="fi-account-widget-logout-form">
+            {{ $this->keluarAction() }}
+        </div>
     </x-filament::section>
+
+    <x-filament-actions::modals />
 </x-filament-widgets::widget>

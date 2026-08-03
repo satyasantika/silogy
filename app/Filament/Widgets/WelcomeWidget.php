@@ -2,7 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Modules\Auth\Filament\Actions\KeluarAction;
 use App\Modules\Auth\Filament\Concerns\HasGantiPeranUnitAction;
+use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
@@ -22,4 +24,9 @@ class WelcomeWidget extends AccountWidget implements HasActions, HasSchemas
     use InteractsWithSchemas;
 
     protected string $view = 'filament.widgets.welcome-widget';
+
+    public function keluarAction(): Action
+    {
+        return KeluarAction::make();
+    }
 }
