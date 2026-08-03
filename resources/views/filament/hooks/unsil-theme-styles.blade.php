@@ -33,6 +33,17 @@
         background-color: rgba(248, 249, 250, .35) !important;
     }
 
+    /*
+     * scrollbar-gutter:stable bawaan Filament mencadangkan ruang scrollbar di
+     * sisi kanan .fi-sidebar-nav walau tidak sedang scroll, membuat jarak
+     * menu ke edge kanan lebih lebar dari kiri - dan membuat nav lebih
+     * sempit dari footer (.fi-sidebar-footer pakai mx-4 biasa, tanpa
+     * gutter). auto menyamakan keduanya di semua breakpoint.
+     */
+    .fi-sidebar-nav {
+        scrollbar-gutter: auto;
+    }
+
     .fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover,
     .fi-sidebar-database-notifications-btn:hover {
         background-color: rgba(248, 249, 250, .08) !important;
@@ -153,8 +164,6 @@
 
         .fi-body-has-sidebar-collapsible-on-desktop .fi-main-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav {
             padding-inline: 15px;
-            /* stable gutter membuat sisi kiri/kanan tidak simetris di rail sempit */
-            scrollbar-gutter: auto;
         }
 
         .fi-body-has-sidebar-collapsible-on-desktop .fi-main-sidebar:not(.fi-sidebar-open) .fi-sidebar-nav-groups {
