@@ -223,6 +223,43 @@ it('menampilkan tabel pemetaan CPL-MK sesuai bobot CplMk, dikelompokkan per CPL 
         ->and($pemetaan[0]['mk_rows'][0]['kontribusi'])->toBe(9.3);
 });
 
+it('menampilkan CPL milik unit induk bila MK-nya diadaptasi lewat penawaran MK prodi', function () {
+    $this->actingAs($this->kaprodi);
+
+    $fakultas = AcademicUnit::query()->where('type', 'faculty')->firstOrFail();
+    $kurikulumFakultas = Kurikulum::query()->create([
+        'academic_unit_id' => $fakultas->id,
+        'nama' => 'Kurikulum Fakultas Uji Rollup',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    $cplFakultas = Cpl::factory()->forKurikulum($kurikulumFakultas)->create(['kode' => 'CPL-FAK-01']);
+    $bokFakultas = Bok::factory()->forKurikulum($kurikulumFakultas)->create();
+    $cplBokFakultas = CplBok::query()->create(['cpl_id' => $cplFakultas->id, 'bok_id' => $bokFakultas->id, 'bobot' => 100]);
+
+    $mkFakultas = Mk::factory()->forKurikulum($kurikulumFakultas)->create([
+        'nama' => 'MK Adaptasi Fakultas',
+        'sks_teori' => 2, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 2,
+    ]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBokFakultas->id, 'mk_id' => $mkFakultas->id, 'bobot' => 100]);
+
+    // Prodi ini "menawarkan" MK milik fakultas lewat mk_units miliknya sendiri.
+    MkUnit::factory()->forMk($mkFakultas)->forAcademicUnit($this->prodi)->create([
+        'kurikulum_id' => $this->kurikulum->id,
+        'kode' => 'ADAPT-FAK-01',
+        'is_active' => true,
+    ]);
+
+    $test = Livewire::test(AnalisisMkProdi::class)
+        ->assertSee('CPL-FAK-01', escape: false)
+        ->assertSee('MK Adaptasi Fakultas', escape: false);
+
+    $pemetaan = $test->get('pemetaanCplMk');
+
+    expect(collect($pemetaan)->pluck('cpl_kode'))->toContain('CPL-FAK-01');
+});
+
 it('menampilkan pesan kosong bila belum ada CPL yang dibebankan', function () {
     $this->actingAs($this->kaprodi);
     KurikulumTerpilih::set($this->kurikulum->id);

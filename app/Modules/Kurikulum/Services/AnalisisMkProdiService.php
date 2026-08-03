@@ -22,6 +22,14 @@ use Illuminate\Support\Collection;
  * tercatat di mk_units milik prodi turunan yang MENGADAPTASI MK kurikulum
  * itu. Jadi untuk kurikulum non-prodi, mk_unit_ids adalah ROLLUP lintas
  * semua prodi turunan yang mengadaptasi, bukan milik kurikulum itu sendiri.
+ *
+ * Adaptasi MK lintas unit TIDAK hanya terjadi di atas prodi: mk_units milik
+ * prodi sendiri pun boleh menunjuk ke Mk yang sebenarnya dimiliki unit
+ * induknya (fakultas/universitas) — lihat
+ * MkUnitResource::adaptableMkOptions(). Karena itu cakupan CPL pada
+ * pemetaanCplMk() HARUS mengikuti keanggotaan MK (mk_unit_ids -> mk_id),
+ * bukan kepemilikan CPL — MK adaptasi membebani CPL milik unit induknya,
+ * bukan CPL milik kurikulum yang sedang dikerjakan.
  */
 class AnalisisMkProdiService
 {
@@ -57,6 +65,14 @@ class AnalisisMkProdiService
      * Tab 1 — "Pemetaan Rencana Asesmen CPL": murni data kurikulum
      * (CplMk.bobot), tidak bergantung pada nilai mahasiswa sama sekali.
      *
+     * Dicakup lewat GABUNGAN dua kondisi: CPL milik kurikulum ini sendiri
+     * (supaya CPL yang belum ditawarkan MK manapun tetap tampil, mis. di
+     * halaman fakultas/universitas sebelum ada prodi turunan yang
+     * mengadaptasi) ATAU CPL yang dibebani lewat keanggotaan MK pada
+     * mk_unit_ids (penawaran MK kurikulum ini) — MK adaptasi (lihat
+     * docblock kelas) membebani CPL milik unit induknya, dan itu tetap
+     * harus tampil di sini walau CPL-nya bukan milik kurikulum ini.
+     *
      * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      * @return list<array{
      *     cpl_id: string,
@@ -69,11 +85,18 @@ class AnalisisMkProdiService
     {
         $mkUnitIds ??= $this->mkUnitIdsUntukKurikulum($kurikulum);
 
+        $mkIds = $mkUnitIds->isNotEmpty()
+            ? MkUnit::query()->whereIn('id', $mkUnitIds)->pluck('mk_id')->unique()
+            : collect();
+
         // Tidak pakai Kurikulum::cplMks() — whereColumn() di dalamnya
         // mengasumsikan tabel "kurikulum" sudah ter-join di query luar
         // (subquery-nya gagal bila diakses langsung dari instance model).
         $cplMks = CplMk::query()
-            ->whereHas('cplBok.cpl', fn ($query) => $query->where('kurikulum_id', $kurikulum->id))
+            ->where(function ($query) use ($kurikulum, $mkIds): void {
+                $query->whereHas('cplBok.cpl', fn ($q) => $q->where('kurikulum_id', $kurikulum->id))
+                    ->when($mkIds->isNotEmpty(), fn ($q) => $q->orWhereIn('mk_id', $mkIds));
+            })
             ->with(['cplBok.cpl', 'mk'])
             ->get()
             ->filter(fn (CplMk $pivot): bool => $pivot->cplBok?->cpl !== null && $pivot->mk !== null);
@@ -85,8 +108,11 @@ class AnalisisMkProdiService
         $kodeMkUnitByMkId = $this->kodeMkUnitByMkId($mkUnitIds, $cplMks->pluck('mk_id')->unique());
 
         return $cplMks
-            ->groupBy(fn (CplMk $pivot): string => $pivot->cplBok->cpl->kode)
-            ->map(function (Collection $pivots, string $cplKode) use ($kodeMkUnitByMkId): array {
+            // Dikelompokkan per id CPL (bukan kode) — MK adaptasi bisa
+            // membawa CPL dari kurikulum lain, jadi kode CPL tidak lagi
+            // pasti unik lintas hasil sekumpulan ini.
+            ->groupBy(fn (CplMk $pivot): string => $pivot->cplBok->cpl->id)
+            ->map(function (Collection $pivots) use ($kodeMkUnitByMkId): array {
                 $cpl = $pivots->first()->cplBok->cpl;
 
                 $mkRows = $pivots
@@ -108,7 +134,7 @@ class AnalisisMkProdiService
 
                 return [
                     'cpl_id' => $cpl->id,
-                    'cpl_kode' => $cplKode,
+                    'cpl_kode' => $cpl->kode,
                     'cpl_deskripsi' => $cpl->deskripsi,
                     'mk_rows' => $mkRows,
                 ];
@@ -151,6 +177,8 @@ class AnalisisMkProdiService
      * rerata nilai PER ANGKATAN mahasiswa (lintas semester manapun MK itu
      * pernah ditawarkan) dan ketercapaian CPL all-time.
      *
+     *
+     * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      * @return array{
      *     angkatan_list: list<string>,
      *     pemetaan: list<array{
@@ -165,8 +193,6 @@ class AnalisisMkProdiService
      *         }>,
      *     }>,
      * }
-     *
-     * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      */
     public function hasilAnalisisPerAngkatan(Kurikulum $kurikulum, ?Collection $mkUnitIds = null): array
     {
