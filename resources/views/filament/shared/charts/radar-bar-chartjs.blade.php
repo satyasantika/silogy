@@ -38,14 +38,19 @@
                     }],
                 },
                 options: {
-                    // Tinggi kanvas dihitung dari LEBAR kontainer dibagi
-                    // aspectRatio (bukan tinggi tetap di CSS) — lebih
-                    // tahan banting terhadap kanvas yang sempat dibuat
-                    // saat kontainernya masih tersembunyi (di dalam tab
-                    // atau modal yang belum aktif), karena hanya
-                    // butuh lebar yang benar untuk menghitung ulang
-                    // tinggi yang proporsional lewat resize().
-                    aspectRatio: 1.3,
+                    // Kotak plot 1:1; tinggi wrapper (aspect-ratio CSS)
+                    // mengikuti lebar kartu agar E1–E4 proporsional sama.
+                    // Padding memberi ruang label tanpa mengecilkan plot.
+                    aspectRatio: 1,
+                    maintainAspectRatio: true,
+                    layout: {
+                        padding: {
+                            top: 8,
+                            right: 12,
+                            bottom: 8,
+                            left: 12,
+                        },
+                    },
                     scales: {
                         r: {
                             min: 0,

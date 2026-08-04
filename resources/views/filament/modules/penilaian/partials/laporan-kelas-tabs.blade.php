@@ -204,7 +204,7 @@
             <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E1. Jaring Laba-laba Ketercapaian CPL</div>
-                    <div>
+                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
                         <canvas
                             wire:key="radar-cpl-{{ $kelasMkId }}"
                             x-data
@@ -214,7 +214,7 @@
                 </div>
                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E2. Jaring Laba-laba Ketercapaian CPMK</div>
-                    <div>
+                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
                         <canvas
                             wire:key="radar-cpmk-{{ $kelasMkId }}"
                             x-data
@@ -224,7 +224,7 @@
                 </div>
                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E3. Jaring Laba-laba Ketercapaian Sub-CPMK</div>
-                    <div>
+                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
                         <canvas
                             wire:key="radar-subcpmk-{{ $kelasMkId }}"
                             x-data
@@ -234,7 +234,7 @@
                 </div>
                 <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                     <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E4. Jaring Laba-laba Rata-rata Penugasan</div>
-                    <div>
+                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
                         <canvas
                             wire:key="radar-asesmen-{{ $kelasMkId }}"
                             x-data
