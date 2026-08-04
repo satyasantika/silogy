@@ -407,6 +407,14 @@ it('menyusun rincian CPL-CPMK-SubCPMK dengan rowspan dan PK x RN yang benar', fu
         ->and($baris['pk'])->toBe(100.0)
         ->and($baris['rn'])->toBe(75.0)
         ->and($baris['pk_x_rn'])->toBe(75.0);
+
+    // Evaluasi CPL v2: ketercapaian CPMK/Sub-CPMK ditampilkan sebagai badge
+    // berwarna (bukan teks abu "(ketercapaian: X%)").
+    $warnaCpmk = $test->instance()->warnaKetercapaian(75.0, $baris['cpl_target']);
+    expect($warnaCpmk['class'])->toBe('silogy-tone-success');
+
+    $test->assertDontSee('(ketercapaian:', escape: false)
+        ->assertSeeHtml('silogy-badge '.$warnaCpmk['class']);
 });
 
 it('menampilkan baris rekapitulasi ketercapaian MK terhadap CPL di penutup tabel Evaluasi CPL v2', function () {

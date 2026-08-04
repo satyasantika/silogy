@@ -37,9 +37,10 @@
                                 <strong>{{ $baris['cpmk_kode'] }}</strong>
                                 <div style="opacity:.75;margin-top:2px;">{{ $baris['cpmk_deskripsi'] }}</div>
                                 @if ($baris['cpmk_rata_rata'] !== null)
-                                    <div style="margin-top:4px;font-size:10px;opacity:.65;">
-                                        (ketercapaian: {{ rtrim(rtrim(number_format($baris['cpmk_rata_rata'], 2, '.', ''), '0'), '.') }}%)
-                                    </div>
+                                    @php($warnaCpmk = $this->warnaKetercapaian((float) $baris['cpmk_rata_rata'], $baris['cpl_target']))
+                                    <span class="silogy-badge {{ $warnaCpmk['class'] }}" style="margin-top:6px;font-size:11px;">
+                                        {{ rtrim(rtrim(number_format($baris['cpmk_rata_rata'], 2, '.', ''), '0'), '.') }}%
+                                    </span>
                                 @endif
                             </td>
                         @endif
@@ -48,9 +49,10 @@
                                 <strong>{{ $baris['subcpmk_kode'] }}</strong>
                                 <div style="opacity:.75;margin-top:2px;">{{ $baris['subcpmk_deskripsi'] }}</div>
                                 @if ($baris['subcpmk_rata_rata'] !== null)
-                                    <div style="margin-top:4px;font-size:10px;opacity:.65;">
-                                        (ketercapaian: {{ rtrim(rtrim(number_format($baris['subcpmk_rata_rata'], 2, '.', ''), '0'), '.') }}%)
-                                    </div>
+                                    @php($warnaSub = $this->warnaKetercapaian((float) $baris['subcpmk_rata_rata'], $baris['cpl_target']))
+                                    <span class="silogy-badge {{ $warnaSub['class'] }}" style="margin-top:6px;font-size:11px;">
+                                        {{ rtrim(rtrim(number_format($baris['subcpmk_rata_rata'], 2, '.', ''), '0'), '.') }}%
+                                    </span>
                                 @endif
                             </td>
                         @endif

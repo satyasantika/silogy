@@ -187,11 +187,35 @@ trait HasLaporanKelasMk
      * Warna badge nilai huruf (mis. A/A-, B+/B, C, D/E) untuk ditampilkan
      * berdampingan dengan nilai akhir mahasiswa pada baris tabel.
      *
-     * @return array{bg: string, fg: string}
+     * @return array{class: string}
      */
     public function warnaNilaiHuruf(?string $huruf): array
     {
         return app(PenilaianMatrixService::class)->warnaNilaiHuruf($huruf);
+    }
+
+    /**
+     * Tone badge ketercapaian CPMK/Sub-CPMK vs target kelulusan CPL.
+     *
+     * @return array{class: string}
+     */
+    public function warnaKetercapaian(?float $nilai, float|int|null $target): array
+    {
+        if ($nilai === null) {
+            return ['class' => 'silogy-tone-neutral'];
+        }
+
+        $batas = $target !== null ? (float) $target : 75.0;
+
+        if ($nilai >= $batas) {
+            return ['class' => 'silogy-tone-success'];
+        }
+
+        if ($nilai >= $batas * 0.75) {
+            return ['class' => 'silogy-tone-warning'];
+        }
+
+        return ['class' => 'silogy-tone-danger'];
     }
 
     /**
