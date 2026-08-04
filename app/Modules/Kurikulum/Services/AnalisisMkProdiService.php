@@ -9,6 +9,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
+use App\Modules\Penilaian\Support\BobotNormalizer;
 use Illuminate\Support\Collection;
 
 /**
@@ -73,12 +74,28 @@ class AnalisisMkProdiService
      * docblock kelas) membebani CPL milik unit induknya, dan itu tetap
      * harus tampil di sini walau CPL-nya bukan milik kurikulum ini.
      *
+     * 'kontribusi' adalah PORSI RELATIF tiap MK terhadap satu CPL, hasil
+     * normalisasi proporsional dari (bobot_mentah × SKS) sehingga totalnya
+     * per CPL tepat 100% — bukan angka mentah cpl_mk.bobot (tersedia
+     * terpisah sebagai 'bobot_mentah'). SKS dipakai karena beban akademik
+     * MK yang lebih besar (lebih banyak jam/SKS) wajar menyumbang lebih
+     * besar pada ketercapaian CPL. Normalisasi ini murni penyajian: cpl_mk
+     * tidak disentuh, karena invarian yang ditegakkan pada
+     * /interaksi/cpl-mk adalah PER BARIS MK (lihat
+     * NormalisasiBobotCplMkService), sehingga jumlah mentah per CPL bisa
+     * berapa saja.
+     *
+     * Catatan cakupan: pada kurikulum fakultas/universitas (rollup) dan MK
+     * adaptasi, himpunan MK yang tercakup bisa parsial — 100% di sini
+     * relatif terhadap MK yang masuk mk_unit_ids kurikulum yang sedang
+     * dikerjakan, bukan terhadap seluruh MK yang membebani CPL itu.
+     *
      * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      * @return list<array{
      *     cpl_id: string,
      *     cpl_kode: string,
      *     cpl_deskripsi: string,
-     *     mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float}>,
+     *     mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float, bobot_mentah: float}>,
      * }>
      */
     public function pemetaanCplMk(Kurikulum $kurikulum, ?Collection $mkUnitIds = null): array
@@ -115,7 +132,7 @@ class AnalisisMkProdiService
             ->map(function (Collection $pivots) use ($kodeMkUnitByMkId): array {
                 $cpl = $pivots->first()->cplBok->cpl;
 
-                $mkRows = $pivots
+                $mkRowsMentah = $pivots
                     ->groupBy('mk_id')
                     ->map(function (Collection $samaMk) use ($kodeMkUnitByMkId): array {
                         $mk = $samaMk->first()->mk;
@@ -125,11 +142,19 @@ class AnalisisMkProdiService
                             'nama' => $mk->nama,
                             'kode' => $kodeMkUnitByMkId[$mk->id] ?? '—',
                             'sks' => $mk->total_sks,
-                            'kontribusi' => round((float) $samaMk->sum('bobot'), 2),
+                            'bobot_mentah' => round((float) $samaMk->sum('bobot'), 2),
                         ];
                     })
                     ->sortBy('nama')
-                    ->values()
+                    ->values();
+
+                $kontribusiPerMk = $this->kontribusiPerCpl($mkRowsMentah);
+
+                $mkRows = $mkRowsMentah
+                    ->map(fn (array $mkRow): array => [
+                        ...$mkRow,
+                        'kontribusi' => $kontribusiPerMk[$mkRow['mk_id']] ?? 0.0,
+                    ])
                     ->all();
 
                 return [
@@ -142,6 +167,29 @@ class AnalisisMkProdiService
             ->sortBy('cpl_kode')
             ->values()
             ->all();
+    }
+
+    /**
+     * Porsi relatif tiap MK terhadap satu CPL: (bobot mentah × SKS) dibagi
+     * total (bobot mentah × SKS) seluruh MK penyumbang CPL itu, dibulatkan
+     * ke 2 desimal dengan sisa pembulatan dikoreksi pada MK berbobot
+     * terbesar sehingga totalnya tepat 100% (lihat
+     * BobotNormalizer::keSeratus()).
+     *
+     * Bila total bobot×SKS CPL itu 0 (atau negatif) — misalnya semua SKS
+     * 0 atau semua bobot 0 — tidak ada porsi yang bisa dihitung;
+     * dikembalikan kosong supaya pemanggil memakai 0.0.
+     *
+     * @param  Collection<int, array{mk_id: string, nama: string, kode: string, sks: int, bobot_mentah: float}>  $mkRows
+     * @return array<string, float>
+     */
+    protected function kontribusiPerCpl(Collection $mkRows): array
+    {
+        return BobotNormalizer::keSeratus(
+            $mkRows->mapWithKeys(fn (array $mkRow): array => [
+                $mkRow['mk_id'] => $mkRow['bobot_mentah'] * max(0, (int) $mkRow['sks']),
+            ]),
+        );
     }
 
     /**
@@ -175,8 +223,9 @@ class AnalisisMkProdiService
     /**
      * Tab 2 — "Hasil Analisis Asesmen CPL": sama seperti tab 1, ditambah
      * rerata nilai PER ANGKATAN mahasiswa (lintas semester manapun MK itu
-     * pernah ditawarkan) dan ketercapaian CPL all-time.
-     *
+     * pernah ditawarkan) dan ketercapaian CPL all-time yang dihitung
+     * TERTIMBANG memakai 'kontribusi' dari tab 1 (lihat
+     * ketercapaianCplAllTime()).
      *
      * @param  ?Collection<int, string>  $mkUnitIds  default: mkUnitIdsUntukKurikulum($kurikulum)
      * @return array{
@@ -187,7 +236,7 @@ class AnalisisMkProdiService
      *         cpl_deskripsi: string,
      *         ketercapaian: array{rata_rata: float|null, jumlah_mahasiswa: int, persentase_tercapai: float|null, tercapai: bool}|null,
      *         mk_rows: list<array{
-     *             mk_id: string, nama: string, kode: string, sks: int, kontribusi: float,
+     *             mk_id: string, nama: string, kode: string, sks: int, kontribusi: float, bobot_mentah: float,
      *             per_angkatan: array<string, array{rata_rata: float|null, n: int}>,
      *             rata_rata_keseluruhan: float|null,
      *         }>,
@@ -229,7 +278,17 @@ class AnalisisMkProdiService
             fn (HasilCplMk $hasil): string => $hasil->cpl_id.'|'.$hasil->mkUnit->mk_id,
         );
 
-        $ketercapaianPerCpl = $this->ketercapaianCplAllTime($kurikulum, $hasilRows);
+        // Peta bobot untuk ketercapaian tertimbang, diambil dari $pemetaan
+        // yang sudah dihitung di atas — tidak ada query tambahan.
+        $kontribusiPerCplMk = collect($pemetaan)
+            ->mapWithKeys(fn (array $cplGroup): array => [
+                $cplGroup['cpl_id'] => collect($cplGroup['mk_rows'])
+                    ->mapWithKeys(fn (array $mkRow): array => [$mkRow['mk_id'] => $mkRow['kontribusi']])
+                    ->all(),
+            ])
+            ->all();
+
+        $ketercapaianPerCpl = $this->ketercapaianCplAllTime($kurikulum, $hasilRows, $kontribusiPerCplMk);
 
         $pemetaanLengkap = collect($pemetaan)
             ->map(function (array $cplGroup) use ($angkatanList, $perMkAngkatan, $perMkKeseluruhan, $ketercapaianPerCpl): array {
@@ -274,19 +333,31 @@ class AnalisisMkProdiService
      * MK-MK prodi ini) — mirip CplUnitAggregator::agregatDariMkUnits() tapi
      * tanpa filter semester_id tunggal.
      *
+     * Nilai tiap mahasiswa dihitung TERTIMBANG memakai kontribusi MK ke CPL
+     * (lihat nilaiCplTertimbang()), jadi MK dengan bobot besar lebih
+     * menentukan ketercapaian. Konsekuensinya angka di halaman ini berbeda
+     * basis dari dashboard CPL yang memakai hasil_cpl_mk.nilai_berbobot
+     * (CplUnitAggregator::agregatDariMkUnits()) — penyelarasan keduanya di
+     * luar cakupan perubahan ini.
+     *
      * @param  Collection<int, HasilCplMk>  $hasilRows  hasil_cpl_mk yang sudah difilter utk MK-MK prodi ini
+     * @param  array<string, array<string, float>>  $kontribusiPerCplMk  cpl_id => (mk_id => kontribusi ternormalisasi)
      * @return array<string, array{rata_rata: float|null, jumlah_mahasiswa: int, persentase_tercapai: float|null, tercapai: bool}>
      */
-    protected function ketercapaianCplAllTime(Kurikulum $kurikulum, Collection $hasilRows): array
+    protected function ketercapaianCplAllTime(Kurikulum $kurikulum, Collection $hasilRows, array $kontribusiPerCplMk = []): array
     {
         $target = (int) ($kurikulum->target_capaian_lulusan ?? 75);
 
         return $hasilRows
             ->groupBy('cpl_id')
-            ->map(function (Collection $rows) use ($target): array {
+            ->map(function (Collection $rows, string $cplId) use ($target, $kontribusiPerCplMk): array {
+                $kontribusiPerMk = $kontribusiPerCplMk[$cplId] ?? [];
+
                 $perMahasiswa = $rows->groupBy(fn (HasilCplMk $hasil): string => (string) $hasil->kelasMkMahasiswa?->mahasiswa_id);
 
-                $rataRataPerMahasiswa = $perMahasiswa->map(fn (Collection $baris): float => (float) $baris->avg('nilai_akhir'));
+                $rataRataPerMahasiswa = $perMahasiswa->map(
+                    fn (Collection $baris): float => $this->nilaiCplTertimbang($baris, $kontribusiPerMk),
+                );
 
                 $jumlahMahasiswa = $rataRataPerMahasiswa->count();
                 $tercapaiCount = $rataRataPerMahasiswa->filter(fn (float $nilai): bool => $nilai >= $target)->count();
@@ -300,6 +371,46 @@ class AnalisisMkProdiService
                 ];
             })
             ->all();
+    }
+
+    /**
+     * Nilai satu mahasiswa untuk satu CPL: rata-rata TERTIMBANG dari rerata
+     * nilainya di tiap MK, dengan bobot berupa kontribusi MK ke CPL itu.
+     *
+     * Bobot dinormalisasi ulang ke MK yang BENAR-BENAR sudah ditempuh
+     * (pembagi = Σ bobot MK yang punya nilai, bukan 100) supaya mahasiswa
+     * angkatan baru yang belum menempuh seluruh MK penyumbang CPL tidak
+     * tertekan nilainya. Bila tidak ada MK berbobot yang ditempuh, jatuh
+     * kembali ke rata-rata sederhana agar hasilnya tidak hilang.
+     *
+     * @param  Collection<int, HasilCplMk>  $baris  hasil_cpl_mk satu mahasiswa pada satu CPL
+     * @param  array<string, float>  $kontribusiPerMk
+     */
+    protected function nilaiCplTertimbang(Collection $baris, array $kontribusiPerMk): float
+    {
+        $rerataPerMk = $baris
+            ->groupBy(fn (HasilCplMk $hasil): string => (string) $hasil->mkUnit?->mk_id)
+            ->map(fn (Collection $samaMk): float => (float) $samaMk->avg('nilai_akhir'));
+
+        $jumlahBerbobot = 0.0;
+        $totalBobot = 0.0;
+
+        foreach ($rerataPerMk as $mkId => $rerata) {
+            $bobot = (float) ($kontribusiPerMk[$mkId] ?? 0);
+
+            if ($bobot <= 0) {
+                continue;
+            }
+
+            $jumlahBerbobot += $rerata * $bobot;
+            $totalBobot += $bobot;
+        }
+
+        if ($totalBobot <= 0) {
+            return (float) $baris->avg('nilai_akhir');
+        }
+
+        return $jumlahBerbobot / $totalBobot;
     }
 
     /**

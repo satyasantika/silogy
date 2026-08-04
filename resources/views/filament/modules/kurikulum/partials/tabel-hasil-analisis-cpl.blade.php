@@ -20,7 +20,7 @@
                         <th colspan="{{ count($angkatanList) * 2 }}" style="padding:8px;">Rerata Nilai Angkatan dan Jumlah</th>
                     @endif
                     <th rowspan="3" style="padding:8px;vertical-align:middle;">Rerata Nilai</th>
-                    <th rowspan="3" style="padding:8px;vertical-align:middle;text-align:end;">Bobot Kontribusi MK ke CPL</th>
+                    <th rowspan="3" style="padding:8px;vertical-align:middle;text-align:end;">Kontribusi MK</th>
                     <th rowspan="3" style="padding:8px;vertical-align:middle;">Ketercapaian CPL</th>
                 </tr>
                 @if (! empty($angkatanList))
@@ -46,6 +46,9 @@
                                     <div style="display:flex;flex-direction:column;gap:2px;">
                                         <strong style="font-size:14px;color:#1d4ed8;">{{ $baris['cpl_kode'] }}</strong>
                                         <span style="font-size:12px;opacity:.75;">{{ $baris['cpl_deskripsi'] }}</span>
+                                        <span style="font-size:11px;opacity:.6;">
+                                            Σ kontribusi {{ count($baris['mk_rows']) }} MK = 100%
+                                        </span>
                                     </div>
                                 </td>
                             @endif
@@ -75,11 +78,18 @@
                             <td style="padding:8px;text-align:center;">
                                 {{ $mkRow['rata_rata_keseluruhan'] !== null ? rtrim(rtrim(number_format($mkRow['rata_rata_keseluruhan'], 2, '.', ''), '0'), '.') : '—' }}
                             </td>
-                            <td style="padding:8px;text-align:end;">
+                            <td
+                                style="padding:8px;text-align:end;"
+                                title="Bobot tersimpan pada matriks Interaksi CPL ↔ MK: {{ rtrim(rtrim(number_format($mkRow['bobot_mentah'], 2, '.', ''), '0'), '.') }}%"
+                            >
                                 {{ rtrim(rtrim(number_format($mkRow['kontribusi'], 2, '.', ''), '0'), '.') }}%
                             </td>
                             @if ($i === 0)
-                                <td rowspan="{{ count($baris['mk_rows']) }}" style="padding:8px;text-align:center;">
+                                <td
+                                    rowspan="{{ count($baris['mk_rows']) }}"
+                                    style="padding:8px;text-align:center;"
+                                    title="Rerata tertimbang: nilai tiap mahasiswa dihitung menurut bobot kontribusi MK ke CPL ini"
+                                >
                                     @php($ketercapaian = $baris['ketercapaian'])
                                     @if ($ketercapaian === null || $ketercapaian['rata_rata'] === null)
                                         <div class="silogy-tone-warning" style="display:inline-block;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;">

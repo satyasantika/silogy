@@ -24,6 +24,9 @@
                                     <div style="display:flex;flex-direction:column;gap:2px;">
                                         <strong style="font-size:14px;color:#1d4ed8;">{{ $baris['cpl_kode'] }}</strong>
                                         <span style="font-size:12px;opacity:.75;">{{ $baris['cpl_deskripsi'] }}</span>
+                                        <span style="font-size:11px;opacity:.6;">
+                                            Σ kontribusi {{ count($baris['mk_rows']) }} MK = 100%
+                                        </span>
                                     </div>
                                 </td>
                             @endif
@@ -46,7 +49,10 @@
                                     {{ $mkRow['sks'] }}
                                 </span>
                             </td>
-                            <td style="padding:8px;text-align:end;">
+                            <td
+                                style="padding:8px;text-align:end;"
+                                title="Bobot tersimpan pada matriks Interaksi CPL ↔ MK: {{ rtrim(rtrim(number_format($mkRow['bobot_mentah'], 2, '.', ''), '0'), '.') }}%"
+                            >
                                 {{ rtrim(rtrim(number_format($mkRow['kontribusi'], 2, '.', ''), '0'), '.') }}%
                             </td>
                         </tr>

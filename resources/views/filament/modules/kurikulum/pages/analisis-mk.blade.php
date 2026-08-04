@@ -40,7 +40,7 @@
                 <x-filament::section
                     icon="heroicon-o-squares-plus"
                     heading="Pemetaan Rencana Asesmen CPL"
-                    description="Pemetaan kontribusi mata kuliah terhadap capaian CPL"
+                    description="Pemetaan kontribusi mata kuliah terhadap capaian CPL (bobot × SKS, dinormalisasi per CPL = 100%)"
                 >
                     @include('filament.modules.kurikulum.partials.tabel-pemetaan-cpl-mk', ['pemetaan' => $this->pemetaanCplMk])
                 </x-filament::section>

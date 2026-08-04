@@ -39,7 +39,7 @@ trait HasAnalisisMkForUnitType
      *     pemetaan: list<array{
      *         cpl_id: string, cpl_kode: string, cpl_deskripsi: string,
      *         ketercapaian: array{rata_rata: float|null, jumlah_mahasiswa: int, persentase_tercapai: float|null, tercapai: bool}|null,
-     *         mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float, per_angkatan: array<string, array{rata_rata: float|null, n: int}>, rata_rata_keseluruhan: float|null}>,
+     *         mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float, bobot_mentah: float, per_angkatan: array<string, array{rata_rata: float|null, n: int}>, rata_rata_keseluruhan: float|null}>,
      *     }>,
      * }
      */
@@ -138,10 +138,15 @@ trait HasAnalisisMkForUnitType
     }
 
     /**
+     * Tab 1 — "Pemetaan Rencana Asesmen CPL". 'kontribusi' sudah berupa porsi
+     * relatif per CPL dari (bobot_mentah × SKS) (Σ tepat 100%), 'bobot_mentah'
+     * adalah angka apa adanya dari cpl_mk (lihat
+     * AnalisisMkProdiService::pemetaanCplMk()).
+     *
      * @return list<array{
      *     cpl_kode: string,
      *     cpl_deskripsi: string,
-     *     mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float}>,
+     *     mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float, bobot_mentah: float}>,
      * }>
      */
     public function getPemetaanCplMkProperty(): array

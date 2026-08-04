@@ -96,6 +96,82 @@ function siapkanFixtureDuaAngkatan(AcademicUnit $prodi, Kurikulum $kurikulum, Us
     return compact('kurikulum', 'cpl');
 }
 
+/**
+ * Satu MK penyumbang CPL yang sudah ada, lengkap dengan rantai
+ * CPMK → Sub-CPMK → komponen penilaian → nilai mahasiswa, supaya
+ * hasil_cpl_mk terisi lewat kalkulator sesungguhnya. Dipakai untuk menguji
+ * ketercapaian CPL tertimbang, yang butuh lebih dari satu MK per CPL dengan
+ * bobot/SKS berbeda.
+ *
+ * @param  array<string, int|float>  $nilaiPerMahasiswaId  mahasiswa_id => nilai
+ */
+function buatMkPenyumbangCpl(
+    AcademicUnit $prodi,
+    User $dosen,
+    CplBok $cplBok,
+    string $nama,
+    string $kodeMkUnit,
+    float $bobotCplMk,
+    array $nilaiPerMahasiswaId,
+    int $sks = 2,
+): Mk {
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+
+    $mk = Mk::factory()->create([
+        'academic_unit_id' => $prodi->id,
+        'nama' => $nama,
+        'sks_teori' => $sks,
+        'sks_praktik' => 0,
+        'sks_lapangan' => 0,
+        'sks' => $sks,
+    ]);
+    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create([
+        'kode' => $kodeMkUnit,
+        'is_active' => true,
+    ]);
+
+    $kelas = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id,
+        'semester_id' => $semester->id,
+        'kode_kelas' => 'A',
+        'dosen_pengampu_id' => $dosen->id,
+    ]);
+
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => $bobotCplMk]);
+    $cpmk = Cpmk::factory()->forMk($mk)->create();
+    $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['semester_id' => $semester->id]);
+
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id,
+        'semester_id' => $semester->id,
+        'evaluasi_id' => Evaluasi::query()->where('kode', 'quiz')->value('id'),
+        'kode' => 'Asesmen01',
+        'nama' => 'Kuis',
+        'bobot' => 100,
+    ]);
+    $skp = SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $subcpmk->id,
+        'komponen_penilaian_id' => $komponen->id,
+        'bobot' => 100,
+    ]);
+
+    foreach ($nilaiPerMahasiswaId as $mahasiswaId => $nilai) {
+        $kmm = KelasMkMahasiswa::query()->create([
+            'kelas_mk_id' => $kelas->id,
+            'mahasiswa_id' => $mahasiswaId,
+        ]);
+
+        NilaiMahasiswa::query()->create([
+            'subcpmk_komponenpenilaian_id' => $skp->id,
+            'kelas_mk_mahasiswa_id' => $kmm->id,
+            'nilai' => $nilai,
+        ]);
+    }
+
+    return $mk;
+}
+
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
@@ -167,7 +243,7 @@ it('analisis mengikuti kurikulum terpilih di session', function () {
         ->and($kurikulumAktif->is_active)->toBeTrue();
 });
 
-it('menampilkan tabel pemetaan CPL-MK sesuai bobot CplMk, dikelompokkan per CPL dengan rowspan', function () {
+it('menormalisasi kontribusi MK per CPL jadi tepat 100% dan tetap membawa bobot mentahnya', function () {
     $this->actingAs($this->kaprodi);
     KurikulumTerpilih::set($this->kurikulum->id);
 
@@ -206,12 +282,14 @@ it('menampilkan tabel pemetaan CPL-MK sesuai bobot CplMk, dikelompokkan per CPL 
     ]);
     CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mkPancasila->id, 'bobot' => 13.95]);
 
+    // Bobot mentah 9,30 + 13,95; SKS sama (2) → bobot×SKS 18,6 : 27,9 → porsi 40% : 60%.
     $test = Livewire::test(AnalisisMkProdi::class)
         ->assertSee('CPL01', escape: false)
         ->assertSee('Agama (KU21511001)', escape: false)
         ->assertSee('Pancasila (KU21512001)', escape: false)
-        ->assertSee('9.3%', escape: false)
-        ->assertSee('13.95%', escape: false);
+        ->assertSee('40%', escape: false)
+        ->assertSee('60%', escape: false)
+        ->assertSee('Bobot tersimpan pada matriks', escape: false);
 
     $pemetaan = $test->get('pemetaanCplMk');
 
@@ -220,7 +298,85 @@ it('menampilkan tabel pemetaan CPL-MK sesuai bobot CplMk, dikelompokkan per CPL 
         ->and($pemetaan[0]['mk_rows'])->toHaveCount(2)
         ->and($pemetaan[0]['mk_rows'][0]['nama'])->toBe('Agama')
         ->and($pemetaan[0]['mk_rows'][0]['sks'])->toBe(2)
-        ->and($pemetaan[0]['mk_rows'][0]['kontribusi'])->toBe(9.3);
+        ->and($pemetaan[0]['mk_rows'][0]['kontribusi'])->toBe(40.0)
+        ->and($pemetaan[0]['mk_rows'][0]['bobot_mentah'])->toBe(9.3)
+        ->and($pemetaan[0]['mk_rows'][1]['kontribusi'])->toBe(60.0)
+        ->and($pemetaan[0]['mk_rows'][1]['bobot_mentah'])->toBe(13.95)
+        ->and(collect($pemetaan[0]['mk_rows'])->sum('kontribusi'))->toBe(100.0);
+});
+
+it('membulatkan kontribusi ke 2 desimal dengan sisa dikoreksi agar total per CPL tetap 100%', function () {
+    $this->actingAs($this->kaprodi);
+    KurikulumTerpilih::set($this->kurikulum->id);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL07']);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+
+    // Tiga MK berbobot sama — 100/3 tidak habis dibagi, jadi salah satu MK
+    // harus menyerap sisa pembulatan (33,34) supaya totalnya tetap 100.
+    foreach (['Kalkulus', 'Fisika', 'Kimia'] as $urutan => $nama) {
+        $mk = Mk::factory()->create([
+            'academic_unit_id' => $this->prodi->id,
+            'nama' => $nama,
+            'sks_teori' => 2, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 2,
+        ]);
+        MkUnit::factory()->forMk($mk)->forAcademicUnit($this->prodi)->create([
+            'kode' => 'KU2152100'.$urutan,
+            'is_active' => true,
+        ]);
+        CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 10]);
+    }
+
+    $pemetaan = app(AnalisisMkProdiService::class)->pemetaanCplMk($this->kurikulum);
+    $kontribusi = collect($pemetaan[0]['mk_rows'])->pluck('kontribusi');
+
+    expect($kontribusi->sum())->toBe(100.0)
+        ->and($kontribusi->sort()->values()->all())->toBe([33.33, 33.33, 33.34]);
+});
+
+it('memperhitungkan SKS saat menormalisasi kontribusi MK per CPL', function () {
+    $this->actingAs($this->kaprodi);
+    KurikulumTerpilih::set($this->kurikulum->id);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL10']);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+
+    // Bobot mentah sama (10), SKS berbeda (2 vs 3) → bobot×SKS 20 : 30 → porsi 40% : 60%.
+    // Tanpa SKS keduanya akan 50%–50%.
+    $mkDuaSks = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Aljabar',
+        'sks_teori' => 2, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 2,
+    ]);
+    MkUnit::factory()->forMk($mkDuaSks)->forAcademicUnit($this->prodi)->create([
+        'kode' => 'KU21524001',
+        'is_active' => true,
+    ]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mkDuaSks->id, 'bobot' => 10]);
+
+    $mkTigaSks = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Statistika',
+        'sks_teori' => 3, 'sks_praktik' => 0, 'sks_lapangan' => 0, 'sks' => 3,
+    ]);
+    MkUnit::factory()->forMk($mkTigaSks)->forAcademicUnit($this->prodi)->create([
+        'kode' => 'KU21524002',
+        'is_active' => true,
+    ]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mkTigaSks->id, 'bobot' => 10]);
+
+    $pemetaan = app(AnalisisMkProdiService::class)->pemetaanCplMk($this->kurikulum);
+    $mkRows = collect($pemetaan[0]['mk_rows'])->keyBy('nama');
+
+    expect($mkRows['Aljabar']['kontribusi'])->toBe(40.0)
+        ->and($mkRows['Aljabar']['bobot_mentah'])->toBe(10.0)
+        ->and($mkRows['Aljabar']['sks'])->toBe(2)
+        ->and($mkRows['Statistika']['kontribusi'])->toBe(60.0)
+        ->and($mkRows['Statistika']['bobot_mentah'])->toBe(10.0)
+        ->and($mkRows['Statistika']['sks'])->toBe(3)
+        ->and($mkRows->sum('kontribusi'))->toBe(100.0);
 });
 
 it('menampilkan CPL milik unit induk bila MK-nya diadaptasi lewat penawaran MK prodi', function () {
@@ -309,6 +465,64 @@ it('hasilAnalisisPerAngkatan mengelompokkan rerata dan N per angkatan mahasiswa'
         ->and($ketercapaian['tercapai'])->toBeFalse();
 
     $test->assertSee('CPL tidak tercapai', escape: false);
+});
+
+it('menghitung ketercapaian CPL tertimbang menurut kontribusi MK, bukan rata-rata sederhana', function () {
+    $this->seed(SemesterSeeder::class);
+    $this->seed(EvaluasiSeeder::class);
+    $this->actingAs($this->kaprodi);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL08']);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+
+    $mahasiswa = Mahasiswa::factory()->create(['academic_unit_id' => $this->prodi->id, 'angkatan' => '2023']);
+
+    // Bobot mentah 15 dan 35, SKS sama (2) → bobot×SKS 30 : 70 → porsi 30% : 70%.
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'Basis Data', 'KU21522001', 15, [$mahasiswa->id => 100]);
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'Pemrograman', 'KU21522002', 35, [$mahasiswa->id => 50]);
+
+    $hasilAnalisis = Livewire::test(AnalisisMkProdi::class)->get('hasilAnalisis');
+    $cplGroup = collect($hasilAnalisis['pemetaan'])->firstWhere('cpl_kode', 'CPL08');
+
+    expect($cplGroup['mk_rows'][0]['kontribusi'])->toBe(30.0)
+        ->and($cplGroup['mk_rows'][1]['kontribusi'])->toBe(70.0)
+        // Tertimbang: (100 × 30 + 50 × 70) / 100 = 65, bukan (100 + 50) / 2 = 75.
+        ->and($cplGroup['ketercapaian']['rata_rata'])->toBe(65.0)
+        ->and($cplGroup['ketercapaian']['jumlah_mahasiswa'])->toBe(1)
+        ->and($cplGroup['ketercapaian']['tercapai'])->toBeFalse();
+});
+
+it('menormalisasi ulang bobot ke MK yang sudah ditempuh saja saat menghitung ketercapaian', function () {
+    $this->seed(SemesterSeeder::class);
+    $this->seed(EvaluasiSeeder::class);
+    $this->actingAs($this->kaprodi);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL09']);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+
+    $mahasiswaLengkap = Mahasiswa::factory()->create(['academic_unit_id' => $this->prodi->id, 'angkatan' => '2023']);
+    $mahasiswaSebagian = Mahasiswa::factory()->create(['academic_unit_id' => $this->prodi->id, 'angkatan' => '2024']);
+
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'Basis Data', 'KU21523001', 30, [
+        $mahasiswaLengkap->id => 100,
+    ]);
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'Pemrograman', 'KU21523002', 70, [
+        $mahasiswaLengkap->id => 50,
+        $mahasiswaSebagian->id => 80,
+    ]);
+
+    $hasilAnalisis = Livewire::test(AnalisisMkProdi::class)->get('hasilAnalisis');
+    $ketercapaian = collect($hasilAnalisis['pemetaan'])->firstWhere('cpl_kode', 'CPL09')['ketercapaian'];
+
+    // Mahasiswa yang baru menempuh MK berbobot 70 dinilai 80 (bobotnya
+    // dinormalisasi ulang ke MK itu saja), bukan 80 × 0,7 = 56. Rerata CPL =
+    // (65 + 80) / 2 = 72,5 dengan 1 dari 2 mahasiswa mencapai target 75.
+    expect($ketercapaian['jumlah_mahasiswa'])->toBe(2)
+        ->and($ketercapaian['rata_rata'])->toBe(72.5)
+        ->and($ketercapaian['persentase_tercapai'])->toBe(50.0)
+        ->and($ketercapaian['tercapai'])->toBeFalse();
 });
 
 it('menampilkan "menunggu selesai penilaian" bila CPL belum punya hasil kalkulasi', function () {
