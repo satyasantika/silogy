@@ -5,7 +5,6 @@ namespace App\Modules\Penilaian\Filament\Pages;
 use App\Models\User;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kelas\Models\KelasMk;
-use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Pages\Concerns\InteraksiKoordinatorMatrixPage;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\MkTerpilih;
@@ -61,15 +60,11 @@ class LaporanKoordinator extends Page
             return false;
         }
 
-        if (! $user->can('lihat_laporan')) {
-            return false;
-        }
-
-        if (PenawaranMkScope::isKoordinatorMkOnly($user)) {
-            return MkTerpilih::current() !== null;
-        }
-
-        return false;
+        // Cukup role Koordinator Mata Kuliah (boleh multi-role) + MK sedang
+        // dikerjakan — tidak bergantung KurikulumTerpilih / pivot prodi.
+        return $user->can('lihat_laporan')
+            && $user->hasRole('Koordinator Mata Kuliah')
+            && MkTerpilih::current() !== null;
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -77,7 +72,7 @@ class LaporanKoordinator extends Page
         $user = auth()->user();
 
         return $user instanceof User
-            && PenawaranMkScope::isKoordinatorMkOnly($user)
+            && $user->hasRole('Koordinator Mata Kuliah')
             && static::canAccess();
     }
 
@@ -206,30 +201,14 @@ class LaporanKoordinator extends Page
      */
     protected function getViewData(): array
     {
-        $defaults = [
-            'kurikulum' => null,
-            'tampilkanFilterSemester' => false,
-            'semesterOptions' => [],
-        ];
-
-        $kurikulum = $this->getKurikulum();
-
-        if (! $kurikulum instanceof Kurikulum) {
-            return array_merge($defaults, $this->mkTerpilihViewData());
-        }
-
         $mk = $this->getMkTerpilih();
+        $tampilkanFilterSemester = $mk instanceof Mk && SemesterTerpilih::berlakuUntukUser();
 
-        if (! $mk instanceof Mk) {
-            return array_merge($defaults, ['kurikulum' => $kurikulum], $this->mkTerpilihViewData());
-        }
-
-        $tampilkanFilterSemester = SemesterTerpilih::berlakuUntukUser();
-
-        return array_merge($defaults, [
-            'kurikulum' => $kurikulum,
+        return array_merge([
             'tampilkanFilterSemester' => $tampilkanFilterSemester,
-            'semesterOptions' => $tampilkanFilterSemester ? SemesterTerpilih::options($mk->id) : [],
+            'semesterOptions' => ($tampilkanFilterSemester && $mk instanceof Mk)
+                ? SemesterTerpilih::options($mk->id)
+                : [],
         ], $this->mkTerpilihViewData());
     }
 }

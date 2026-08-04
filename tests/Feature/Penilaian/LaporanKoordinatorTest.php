@@ -122,6 +122,26 @@ it('koordinator MK dapat mengakses Laporan, dosen pengampu murni tidak', functio
     expect(LaporanKoordinator::canAccess())->toBeFalse();
 });
 
+it('menampilkan laporan berdasarkan mata kuliah terpilih tanpa membutuhkan kurikulum terpilih', function () {
+    // Kasus produksi: korma tanpa pivot academic_unit_users → KurikulumTerpilih
+    // gagal di-set saat pilih MK, tapi laporan tetap harus jalan dari MkTerpilih.
+    $this->korma->academicUnits()->detach();
+    KurikulumTerpilih::set(null);
+    session()->forget(KurikulumTerpilih::SESSION_KEY);
+    MkTerpilih::set($this->mk->id);
+
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A');
+
+    expect(KurikulumTerpilih::current())->toBeNull()
+        ->and(MkTerpilih::currentId())->toBe($this->mk->id)
+        ->and(LaporanKoordinator::canAccess())->toBeTrue();
+
+    Livewire::test(LaporanKoordinator::class)
+        ->assertDontSee('Belum ada kurikulum terpilih', escape: false)
+        ->assertSee('Kelas A', escape: false);
+});
+
 it('menampilkan seluruh kelas pada MK lintas dosen pengampu, masing-masing dengan keterangan dosennya', function () {
     siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
 

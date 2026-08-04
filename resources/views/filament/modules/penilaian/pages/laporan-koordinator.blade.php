@@ -1,11 +1,7 @@
 <x-filament-panels::page>
     @include('filament.modules.mk.partials.mk-terpilih-banner')
 
-    @if (! $kurikulum)
-        <x-filament::section icon="heroicon-o-exclamation-triangle" heading="Belum ada kurikulum terpilih">
-            Pilih kurikulum lewat widget di dashboard atau filter pada halaman Mata Kuliah.
-        </x-filament::section>
-    @elseif (! $mkTerpilih)
+    @if (! $mkTerpilih)
         <x-filament::section icon="heroicon-o-exclamation-triangle" heading="Belum ada mata kuliah terpilih">
             Pilih mata kuliah dari halaman Mata Kuliah terlebih dahulu.
         </x-filament::section>
