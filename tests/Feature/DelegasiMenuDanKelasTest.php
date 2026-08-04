@@ -242,7 +242,7 @@ it('menu sidebar dosentimkur mengikuti peran aktif', function () {
 
     ActiveRole::set('Dosen Pengampu');
 
-    expect(KelasMkResource::shouldRegisterNavigation())->toBeTrue()
+    expect(KelasMkResource::shouldRegisterNavigation())->toBeFalse()
         ->and(KurikulumResource::shouldRegisterNavigation())->toBeFalse();
 
     ActiveRole::set('Tim Kurikulum');

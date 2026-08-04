@@ -95,11 +95,14 @@ class KelasMkResource extends Resource
     {
         $user = Auth::user();
 
-        // Menu "Kelas MK" disembunyikan untuk Koordinator Mata Kuliah —
-        // akses/policy-nya (KelasMkPolicy::viewAny()) SENGAJA tidak diubah,
-        // karena Korma tetap perlu bisa menetapkan dosen pengampu pada
-        // kelas yang dikoordinasikannya; ini murni soal visibilitas menu.
-        if ($user instanceof User && PeranUnitFormFields::defaultRole($user) === 'Koordinator Mata Kuliah') {
+        // Menu "Kelas MK" disembunyikan untuk Korma & Dosen Pengampu —
+        // akses/policy (KelasMkPolicy::viewAny()) SENGAJA tidak diubah:
+        // Korma masih menetapkan dosen; Dosen operasional lewat Input Nilai.
+        // Admin (termasuk multi-peran) tetap melihat menu saat peran aktif Admin.
+        if ($user instanceof User && (
+            PeranUnitFormFields::defaultRole($user) === 'Koordinator Mata Kuliah'
+            || (PeranUnitFormFields::defaultRole($user) === 'Dosen Pengampu' && ! $user->hasRole('Admin'))
+        )) {
             return false;
         }
 

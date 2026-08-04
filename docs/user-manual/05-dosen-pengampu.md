@@ -4,28 +4,28 @@ Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai kompon
 
 ## Kewenangan utama
 
-- Mengelola **Kelas** yang diampu.
+- Mengelola kelas yang diampu lewat **Input Nilai** (pilih kelas).
 - **Input Nilai** mahasiswa.
 - **Import Nilai** (unggah massal).
 - Melihat laporan dan dashboard.
 
 ## Menu yang tersedia
 
-- **Kelas → Kelas MK**: daftar kelas yang Anda ampu.
-- **Penilaian → Input Nilai**: halaman pengisian nilai.
+- **Penilaian → Input Nilai**: halaman utama pengisian nilai dan laporan kelas yang diampu.
+- Menu **Kelas MK** tidak ditampilkan untuk Dosen Pengampu (pengelolaan struktur kelas tetap di Admin Prodi / Koordinator).
 
 ## Alur kerja
 
-### 1. Periksa kelas yang diampu
-1. Buka **Kelas → Kelas MK**.
-2. Pastikan kelas, mata kuliah, dan semester sudah benar. Bila ada kekeliruan penugasan, hubungi Admin Prodi/Koordinator MK.
+### 1. Buka kelas yang diampu
+1. Buka **Penilaian → Input Nilai**.
+2. Pilih **kelas** (dan mata kuliah) yang diampu dari pemilih kelas.
+3. Pastikan kelas, mata kuliah, dan semester sudah benar. Bila ada kekeliruan penugasan, hubungi Admin Prodi/Koordinator MK.
 
 ### 2. Input nilai
-1. Buka **Penilaian → Input Nilai**.
-2. Pilih **kelas** dan **mata kuliah** yang diampu.
-3. Akan tampil daftar mahasiswa beserta **komponen penilaian** (mis. Tugas, UTS, UAS) yang telah ditetapkan Koordinator.
-4. Isikan nilai tiap mahasiswa per komponen.
-5. Klik **Simpan**. Nilai akan dihitung dan dipetakan ke ketercapaian CPMK/Sub-CPMK.
+1. Pada halaman **Input Nilai**, pastikan kelas yang benar sudah terpilih.
+2. Akan tampil daftar mahasiswa beserta **komponen penilaian** (mis. Tugas, UTS, UAS) yang telah ditetapkan Koordinator.
+3. Isikan nilai tiap mahasiswa per komponen.
+4. Klik **Simpan**. Nilai akan dihitung dan dipetakan ke ketercapaian CPMK/Sub-CPMK.
 
 ### 3. Import nilai (opsional, untuk jumlah besar)
 1. Pada halaman penilaian, pilih **Import**.
@@ -39,7 +39,7 @@ Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai kompon
 - Simpan berkala saat menginput banyak data.
 - Saat import, gunakan template terbaru dan jangan mengubah header kolom.
 - Periksa kembali nilai sebelum periode penilaian ditutup.
-- Gunakan dashboard untuk melihat ketercapaian pembelajaran kelas Anda.
+- Gunakan tab laporan di Input Nilai / dashboard untuk melihat ketercapaian pembelajaran kelas Anda.
 
 ## Catatan
 
