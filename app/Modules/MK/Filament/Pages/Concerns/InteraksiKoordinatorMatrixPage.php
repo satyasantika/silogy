@@ -26,6 +26,10 @@ trait InteraksiKoordinatorMatrixPage
             return false;
         }
 
+        if (DelegasiMenu::peranAktifDosenBukanAdmin($user)) {
+            return false;
+        }
+
         $kurikulum = KurikulumTerpilih::current();
 
         if (! $kurikulum instanceof Kurikulum || $kurikulum->academicUnit === null) {
@@ -46,7 +50,7 @@ trait InteraksiKoordinatorMatrixPage
 
     public static function shouldRegisterNavigation(): bool
     {
-        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin() || DelegasiMenu::peranAktifDosenBukanAdmin()) {
             return false;
         }
 

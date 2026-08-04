@@ -62,7 +62,7 @@ class CpmkResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin() || DelegasiMenu::peranAktifDosenBukanAdmin()) {
             return false;
         }
 
@@ -70,6 +70,17 @@ class CpmkResource extends Resource
 
         return $user instanceof User && app(CpmkPolicy::class)->viewAny($user)
             && (! PenawaranMkScope::isKoordinatorMkOnly($user) || MkTerpilih::current() !== null);
+    }
+
+    public static function canAccess(): bool
+    {
+        if (DelegasiMenu::peranAktifDosenBukanAdmin()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        return $user instanceof User && app(CpmkPolicy::class)->viewAny($user);
     }
 
     public static function getEloquentQuery(): Builder

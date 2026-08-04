@@ -193,7 +193,7 @@ class SubcpmkResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin() || DelegasiMenu::peranAktifDosenBukanAdmin()) {
             return false;
         }
 
@@ -201,6 +201,17 @@ class SubcpmkResource extends Resource
 
         return $user instanceof User && app(SubcpmkPolicy::class)->viewAny($user)
             && (! PenawaranMkScope::isKoordinatorMkOnly($user) || MkTerpilih::current() !== null);
+    }
+
+    public static function canAccess(): bool
+    {
+        if (DelegasiMenu::peranAktifDosenBukanAdmin()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        return $user instanceof User && app(SubcpmkPolicy::class)->viewAny($user);
     }
 
     public static function getEloquentQuery(): Builder

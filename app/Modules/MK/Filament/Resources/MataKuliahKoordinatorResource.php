@@ -50,7 +50,7 @@ class MataKuliahKoordinatorResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin() || DelegasiMenu::peranAktifDosenBukanAdmin()) {
             return false;
         }
 
@@ -59,6 +59,10 @@ class MataKuliahKoordinatorResource extends Resource
 
     public static function canAccess(): bool
     {
+        if (DelegasiMenu::peranAktifDosenBukanAdmin()) {
+            return false;
+        }
+
         $user = Auth::user();
 
         return $user instanceof User && app(MataKuliahKoordinatorPolicy::class)->viewAny($user);

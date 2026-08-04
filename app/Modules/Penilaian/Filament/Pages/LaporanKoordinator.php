@@ -11,6 +11,7 @@ use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Pages\Concerns\HasLaporanKelasMk;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
+use App\Support\Filament\DelegasiMenu;
 use App\Support\Filament\NavigationGroupPeran;
 use App\Support\Filament\NavigationSortPeran;
 use Filament\Pages\Page;
@@ -60,6 +61,10 @@ class LaporanKoordinator extends Page
             return false;
         }
 
+        if (DelegasiMenu::peranAktifDosenBukanAdmin($user)) {
+            return false;
+        }
+
         // Cukup role Koordinator Mata Kuliah (boleh multi-role) + MK sedang
         // dikerjakan — tidak bergantung KurikulumTerpilih / pivot prodi.
         return $user->can('lihat_laporan')
@@ -69,6 +74,10 @@ class LaporanKoordinator extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
+        if (DelegasiMenu::peranAktifDosenBukanAdmin()) {
+            return false;
+        }
+
         $user = auth()->user();
 
         return $user instanceof User
@@ -169,7 +178,7 @@ class LaporanKoordinator extends Page
             ->get()
             ->map(fn (KelasMk $kelas): array => array_merge(
                 ['id' => $kelas->id],
-                ['dosen_pengampu_nama' => $kelas->dosenPengampu?->full_name ?? '—'],
+                ['dosen_pengampu_nama' => $kelas->dosenPengampu?->namaDenganGelar() ?? '—'],
                 PenilaianDosenService::ringkasanKelas($kelas),
             ))
             ->values()

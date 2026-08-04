@@ -54,7 +54,7 @@ class PesertaKelasResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
+        if (DelegasiMenu::sembunyikanDariSuperAdmin() || DelegasiMenu::peranAktifDosenBukanAdmin()) {
             return false;
         }
 
@@ -62,6 +62,17 @@ class PesertaKelasResource extends Resource
 
         return $user instanceof User && app(PesertaKelasPolicy::class)->viewAny($user)
             && (! PenawaranMkScope::isKoordinatorMkOnly($user) || MkTerpilih::current() !== null);
+    }
+
+    public static function canAccess(): bool
+    {
+        if (DelegasiMenu::peranAktifDosenBukanAdmin()) {
+            return false;
+        }
+
+        $user = Auth::user();
+
+        return $user instanceof User && app(PesertaKelasPolicy::class)->viewAny($user);
     }
 
     public static function getEloquentQuery(): Builder

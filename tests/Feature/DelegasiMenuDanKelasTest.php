@@ -19,7 +19,9 @@ use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Filament\Resources\CpmkResource;
+use App\Modules\MK\Filament\Resources\MataKuliahKoordinatorResource;
 use App\Modules\MK\Filament\Resources\MkUnitResource;
+use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
@@ -27,6 +29,7 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
+use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
@@ -298,4 +301,38 @@ it('koordinator mk tetap melihat menu mata kuliah dan penilaian', function () {
 
     expect(CpmkResource::shouldRegisterNavigation())->toBeTrue()
         ->and(KomponenPenilaianResource::shouldRegisterNavigation())->toBeTrue();
+});
+
+it('menu pipeline korma disembunyikan dan 403 saat peran aktif dosen', function () {
+    $dosen = User::query()->where('username', 'dosen')->firstOrFail();
+    $dosen->assignRole('Koordinator Mata Kuliah');
+
+    $mk = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'koordinator_mk_id' => $dosen->id,
+    ]);
+    MkTerpilih::set($mk->id);
+
+    $this->actingAs($dosen);
+    ActiveRole::set('Dosen Pengampu');
+
+    expect(MataKuliahKoordinatorResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(MataKuliahKoordinatorResource::canAccess())->toBeFalse()
+        ->and(CpmkResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(CpmkResource::canAccess())->toBeFalse()
+        ->and(SubcpmkResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(SubcpmkResource::canAccess())->toBeFalse()
+        ->and(PesertaKelasResource::shouldRegisterNavigation())->toBeFalse()
+        ->and(PesertaKelasResource::canAccess())->toBeFalse();
+
+    $this->get(MataKuliahKoordinatorResource::getUrl('index'))->assertForbidden();
+    $this->get(CpmkResource::getUrl('index'))->assertForbidden();
+
+    ActiveRole::set('Koordinator Mata Kuliah');
+    MkTerpilih::set($mk->id);
+
+    expect(MataKuliahKoordinatorResource::shouldRegisterNavigation())->toBeTrue()
+        ->and(MataKuliahKoordinatorResource::canAccess())->toBeTrue()
+        ->and(CpmkResource::canAccess())->toBeTrue()
+        ->and(CpmkResource::shouldRegisterNavigation())->toBeTrue();
 });
