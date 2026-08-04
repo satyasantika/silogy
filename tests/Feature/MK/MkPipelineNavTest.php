@@ -29,6 +29,7 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -231,7 +232,7 @@ it('cpmk: tombol next ke sub-cpmk muncul setelah impor massal tanpa reload', fun
     $halaman = Livewire::test(ListCpmks::class)
         ->assertDontSee('Sub-CPMK »', escape: false);
 
-    $halaman->callAction('bulkImport', [
+    $halaman->callAction(TestAction::make('bulkImport')->table(), [
         'import_mk_id' => $this->mk->id,
         'rows' => "CPMK-IMPOR-01\tMahasiswa mampu menganalisis\t",
         'mode_duplikat' => 'lewati',

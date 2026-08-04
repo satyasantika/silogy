@@ -7,7 +7,9 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Kurikulum\Support\KurikulumPipeline;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
@@ -31,9 +33,25 @@ class ListCpls extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => CplResource::canCreate()),
+                ->visible(fn (): bool => CplResource::canCreate() && $this->adaCplKurikulum()),
             CreateAction::make(),
         ];
+    }
+
+    protected function getTableEmptyStateActions(): array
+    {
+        return [
+            $this->makeImporMassalAction()
+                ->visible(fn (): bool => CplResource::canCreate()),
+        ];
+    }
+
+    protected function adaCplKurikulum(): bool
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        return $kurikulum instanceof Kurikulum
+            && KurikulumPipeline::hasData('cpl', $kurikulum);
     }
 
     public function content(Schema $schema): Schema

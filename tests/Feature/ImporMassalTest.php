@@ -16,6 +16,7 @@ use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\ListKelasMks;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\ProfilLulusanRelationManager;
+use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
@@ -29,6 +30,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\ListKomponenPenilaians;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
@@ -37,6 +39,7 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -231,7 +234,7 @@ it('impor cpl per unit dengan validasi domain', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => $rows,
             'mode_duplikat' => 'lewati',
         ]);
@@ -248,7 +251,7 @@ it('impor cpl mendukung beberapa domain sekaligus dipisah koma', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => '|CPL-IMP-MULTI|Mampu memahami dan bersikap ilmiah|kognitif,afektif',
             'mode_duplikat' => 'lewati',
         ]);
@@ -276,7 +279,7 @@ it('impor cpl prodi memetakan ke beberapa profil lulusan sekaligus', function ()
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'Pendidik;Peneliti|CPL-PROFIL-01|Mampu pedagogik|kognitif',
             'mode_duplikat' => 'lewati',
         ]);
@@ -290,7 +293,7 @@ it('impor cpl prodi menolak profil lulusan yang tidak ada', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'Profil Tidak Ada|CPL-INVALID-PROFIL|Deskripsi CPL|kognitif',
             'mode_duplikat' => 'lewati',
         ]);
@@ -303,7 +306,7 @@ it('impor cpl fakultas tanpa kolom profil lulusan', function () {
     KurikulumTerpilih::set($this->kurikulumFak->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPL-FAK-01|CPL tingkat fakultas|kognitif',
             'mode_duplikat' => 'lewati',
         ]);
@@ -316,7 +319,7 @@ it('impor cpl fakultas menolak baris dengan kolom profil lulusan', function () {
     KurikulumTerpilih::set($this->kurikulumFak->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'Pendidik|CPL-FAK-PROFIL|Deskripsi|kognitif',
             'mode_duplikat' => 'lewati',
         ]);
@@ -330,7 +333,7 @@ it('impor bok sekaligus memetakan ke cpl', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListBoks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'BOK-IMP-01|Aljabar Dasar|Bahan kajian aljabar|CPL-MAP',
             'mode_duplikat' => 'lewati',
         ]);
@@ -349,7 +352,7 @@ it('impor bok dapat memetakan ke beberapa cpl sekaligus', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListBoks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'BOK-MULTI|Statistik|BoK statistik|CPL-M1;CPL-M2',
             'mode_duplikat' => 'lewati',
         ]);
@@ -367,7 +370,7 @@ it('impor bok menolak kode cpl tidak valid dalam daftar titik koma', function ()
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListBoks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'BOK-INVALID|Geometri||CPL-ADA;CPL-TIDAK-ADA',
             'mode_duplikat' => 'lewati',
         ]);
@@ -381,7 +384,7 @@ it('impor mk dengan sks, jenis, dan koordinator', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListMks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => "Kalkulus Impor\t3\t1\t0\twajib\t\t{$korma->nidn}",
             'mode_duplikat' => 'lewati',
         ]);
@@ -399,7 +402,7 @@ it('impor mk menganggap sks praktik dan lapangan kosong sebagai nol', function (
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListMks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => "Teori Saja\t3\t\t\twajib",
             'mode_duplikat' => 'lewati',
         ]);
@@ -423,7 +426,7 @@ it('impor mk memetakan ke beberapa bahan kajian sekaligus', function () {
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListMks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'MK BoK Multi|3|0|0|wajib|BOK-MK1;BOK-MK2',
             'mode_duplikat' => 'lewati',
         ]);
@@ -439,7 +442,7 @@ it('impor mk menolak kode bahan kajian yang belum dipetakan ke cpl', function ()
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListMks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'MK Invalid BoK|3|0|0|wajib|BOK-TANPA-CPL',
             'mode_duplikat' => 'lewati',
         ]);
@@ -451,7 +454,7 @@ it('impor cpmk pada mk terpilih', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
 
     Livewire::test(ListCpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => "CPMK-IMP-01|Mahasiswa memahami konsep dasar\nCPMK-IMP-02|Mahasiswa mampu menganalisis",
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -468,7 +471,7 @@ it('impor cpmk dengan kode cpl terpetakan langsung memetakan ke cpl', function (
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
 
     Livewire::test(ListCpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-CPL|Mahasiswa memetakan CPL|CPL-IMP',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -487,7 +490,7 @@ it('impor cpmk menolak kode cpl bila cpl mk belum ada', function () {
     Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-TANPA-MK']);
 
     Livewire::test(ListCpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-X|Deskripsi|CPL-TANPA-MK',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -513,7 +516,7 @@ it('impor subcpmk pada cpmk dan semester terpilih', function () {
     ]);
 
     Livewire::test(ListSubcpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-01|SUB-IMP-A|Menjelaskan definisi||Indikator A|',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -552,7 +555,7 @@ it('impor subcpmk mode timpa tidak pernah mengubah bobot, karena bobot hanya dit
     ]);
 
     Livewire::test(ListSubcpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-01|SUB-TIMPA|Deskripsi baru|||',
             'mode_duplikat' => 'timpa',
             'import_mk_id' => $mk->id,
@@ -607,7 +610,7 @@ it('impor subcpmk mode timpa tidak menimpa bobot bila sudah ada interaksi dengan
     expect((float) $sub->fresh()->bobot)->toBe(20.0);
 
     Livewire::test(ListSubcpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-01|SUB-TERPETAKAN|Deskripsi baru|||',
             'mode_duplikat' => 'timpa',
             'import_mk_id' => $mk->id,
@@ -635,7 +638,7 @@ it('impor subcpmk dengan kompetensi bloom dan evaluasi', function () {
     ]);
 
     Livewire::test(ListSubcpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-01|SUB-BLOOM|Menjelaskan konsep|C3,A2,P2||UTS dan kuis',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -667,7 +670,7 @@ it('impor subcpmk menolak format kompetensi salah', function () {
     ]);
 
     Livewire::test(ListSubcpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-01|SUB-INVALID|Deskripsi|X9||',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -688,7 +691,7 @@ it('impor subcpmk berhasil meski belum ada kelas mk', function () {
     $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
 
     Livewire::test(ListSubcpmks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'CPMK-01|SUB-TANPA-KELAS|Deskripsi|||',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -727,7 +730,7 @@ it('impor asesmen dengan pemetaan subcpmk dan bobot merata', function () {
     ]);
 
     Livewire::test(ListKomponenPenilaians::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => implode("\n", [
                 'Asesmen01|Kuis Konseptual dan Ringkasan Tertulis Terstruktur|8|Quiz|SubCPMK01.1',
                 'Asesmen01|Kuis Konseptual dan Ringkasan Tertulis Terstruktur|8|Quiz|SubCPMK01.2',
@@ -768,7 +771,7 @@ it('impor asesmen menolak evaluasi tidak valid', function () {
     ]);
 
     Livewire::test(ListKomponenPenilaians::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'AsesmenX|Tugas X|10|TidakValid|',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -794,7 +797,7 @@ it('impor asesmen menghasilkan satu komponen yang dipakai bersama semua kelas mk
     ]);
 
     Livewire::test(ListKomponenPenilaians::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'Asesmen02|UTS Teori|42|Ujian Tengah Semester|',
             'mode_duplikat' => 'lewati',
             'import_mk_id' => $mk->id,
@@ -873,7 +876,7 @@ it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', functi
 
     $raw = "1\tPendidik Matematika\tOrang yang melakukan proses pengubahan sikap dan perilaku seseorang atau kelompok orang dalam usaha mendewasakan manusia melalui upaya pengajaran, bimbingan dan latihan di bidang matematika dengan menguasai materi matematika (Content Knowledge), pedagogik (Pedagogical Knowledge) dan teknologi (Technological Knowledge)";
 
-    $page = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+    $page = Livewire::test(ListProfilLulusans::class)
         ->instance();
     $parsed = $page->parseImportRaw($raw);
     $preview = $page->renderImportPreview($raw)->toHtml();
@@ -891,8 +894,8 @@ it('pratinjau impor profil membaca baris TSV dengan kurung di deskripsi', functi
     // (lihat PartialsComponentHook::shouldSkipRender()) — assertSee tidak
     // pernah melihatnya. Assersi khusus modal aksi Filament di bawah ini
     // (assertMountedActionModalSee dkk.) membaca dari partial yang benar.
-    Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
-        ->mountAction('bulkImport')
+    Livewire::test(ListProfilLulusans::class)
+        ->mountAction(TestAction::make('bulkImport')->table())
         ->setActionData([
             'rows' => $raw,
         ])
@@ -917,8 +920,8 @@ it('mengosongkan preview impor massal saat modal ditutup', function () {
 
     KurikulumTerpilih::set($kurikulum->id);
 
-    $halaman = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
-        ->mountAction('bulkImport')
+    $halaman = Livewire::test(ListProfilLulusans::class)
+        ->mountAction(TestAction::make('bulkImport')->table())
         ->set('importMassalRowsLive', "1\tPendidik Fisika\tDeskripsi singkat");
 
     expect($halaman->get('importMassalRowsLive'))->toContain('Pendidik Fisika');
@@ -940,8 +943,8 @@ it('modal impor menyembunyikan tombol impor sampai pratinjau terbaca', function 
 
     KurikulumTerpilih::set($kurikulum->id);
 
-    $halaman = Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
-        ->mountAction('bulkImport');
+    $halaman = Livewire::test(ListProfilLulusans::class)
+        ->mountAction(TestAction::make('bulkImport')->table());
 
     $halaman
         ->assertMountedActionModalDontSee('Impor sekarang')
@@ -972,7 +975,7 @@ it('pilihan penanganan duplikat hanya muncul saat pratinjau menemukan duplikat',
         'urutan' => 1,
     ]);
 
-    Livewire::test(\App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource\Pages\ListProfilLulusans::class)
+    Livewire::test(ListProfilLulusans::class)
         ->mountAction('bulkImport')
         ->setActionData(['rows' => "1\tPendidik Matematika\tProfil yang sudah ada"])
         ->assertMountedActionModalSee('Tindakan untuk data duplikat')
@@ -1028,6 +1031,46 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
         ->and(Cpl::query()->where('kode', 'CPL-TIMPA')->count())->toBe(1);
 });
 
+it('impor massal di empty-state saat data kosong, pindah ke header setelah ada data (CPL, BoK, MK, Profil, CPMK)', function () {
+    $timkur = User::where('username', 'timkur')->firstOrFail();
+    $korma = User::where('username', 'korma')->firstOrFail();
+
+    $this->actingAs($timkur);
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    foreach ([ListCpls::class, ListBoks::class, ListMks::class, ListProfilLulusans::class] as $page) {
+        Livewire::test($page)->assertActionHidden('bulkImport');
+    }
+
+    Livewire::test(ListCpls::class)
+        ->callAction(TestAction::make('bulkImport')->table(), [
+            'rows' => '|CPL-EMPTY-01|Deskripsi uji empty-state|kognitif',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    expect(Cpl::query()->where('kode', 'CPL-EMPTY-01')->exists())->toBeTrue();
+    Livewire::test(ListCpls::class)->assertActionVisible('bulkImport');
+
+    $this->actingAs($korma);
+    $mk = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'koordinator_mk_id' => $korma->id,
+    ]);
+    MkTerpilih::set($mk->id);
+
+    Livewire::test(ListCpmks::class)->assertActionHidden('bulkImport');
+
+    Livewire::test(ListCpmks::class)
+        ->callAction(TestAction::make('bulkImport')->table(), [
+            'import_mk_id' => $mk->id,
+            'rows' => "CPMK-EMPTY-01\tDeskripsi empty-state\t",
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    expect(Cpmk::query()->where('mk_id', $mk->id)->where('kode', 'CPMK-EMPTY-01')->exists())->toBeTrue();
+    Livewire::test(ListCpmks::class)->assertActionVisible('bulkImport');
+});
+
 it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda tetap dianggap baru (versioning per kurikulum)', function () {
     $kurikulumLain = Kurikulum::query()->create([
         'academic_unit_id' => $this->prodi->id,
@@ -1039,19 +1082,19 @@ it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda teta
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => '|CPL-VERSI|Deskripsi versi baru|kognitif',
             'mode_duplikat' => 'lewati',
         ]);
 
     Livewire::test(ListBoks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'BOK-VERSI|Bahan kajian versi baru|Deskripsi versi baru|',
             'mode_duplikat' => 'lewati',
         ]);
 
     Livewire::test(ListMks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'MK Versi|3|0|0|wajib||',
             'mode_duplikat' => 'lewati',
         ]);
@@ -1059,19 +1102,19 @@ it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda teta
     KurikulumTerpilih::set($kurikulumLain->id);
 
     Livewire::test(ListCpls::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => '|CPL-VERSI|Deskripsi versi lama|kognitif',
             'mode_duplikat' => 'lewati',
         ]);
 
     Livewire::test(ListBoks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'BOK-VERSI|Bahan kajian versi lama|Deskripsi versi lama|',
             'mode_duplikat' => 'lewati',
         ]);
 
     Livewire::test(ListMks::class)
-        ->callAction('bulkImport', [
+        ->callAction(TestAction::make('bulkImport')->table(), [
             'rows' => 'MK Versi|4|0|0|wajib||',
             'mode_duplikat' => 'lewati',
         ]);

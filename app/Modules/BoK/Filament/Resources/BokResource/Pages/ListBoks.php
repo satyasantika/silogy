@@ -8,6 +8,8 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumPipeline;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
@@ -31,9 +33,25 @@ class ListBoks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => BokResource::canCreate()),
+                ->visible(fn (): bool => BokResource::canCreate() && $this->adaBokKurikulum()),
             CreateAction::make(),
         ];
+    }
+
+    protected function getTableEmptyStateActions(): array
+    {
+        return [
+            $this->makeImporMassalAction()
+                ->visible(fn (): bool => BokResource::canCreate()),
+        ];
+    }
+
+    protected function adaBokKurikulum(): bool
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        return $kurikulum instanceof Kurikulum
+            && KurikulumPipeline::hasData('bok', $kurikulum);
     }
 
     public function content(Schema $schema): Schema

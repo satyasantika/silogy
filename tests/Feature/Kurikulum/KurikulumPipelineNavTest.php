@@ -16,6 +16,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -135,7 +136,7 @@ it('cpl fakultas: tombol next ke bok langsung muncul setelah import massal, tanp
     $halaman = Livewire::test(ListCpls::class)
         ->assertDontSee('BoK »', escape: false);
 
-    $halaman->callAction('bulkImport', [
+    $halaman->callAction(TestAction::make('bulkImport')->table(), [
         'rows' => 'CPL-IMPOR-01|Deskripsi CPL hasil impor massal|kognitif',
         'mode_duplikat' => 'lewati',
     ]);

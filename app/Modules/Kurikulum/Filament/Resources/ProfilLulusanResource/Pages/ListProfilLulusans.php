@@ -6,6 +6,8 @@ use App\Modules\Kurikulum\Filament\Concerns\HasImporProfilLulusanMassal;
 use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumPipeline;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
@@ -52,9 +54,25 @@ class ListProfilLulusans extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => ProfilLulusanResource::bisaKelola()),
+                ->visible(fn (): bool => ProfilLulusanResource::bisaKelola() && $this->adaProfilLulusanKurikulum()),
             CreateAction::make(),
         ];
+    }
+
+    protected function getTableEmptyStateActions(): array
+    {
+        return [
+            $this->makeImporMassalAction()
+                ->visible(fn (): bool => ProfilLulusanResource::bisaKelola()),
+        ];
+    }
+
+    protected function adaProfilLulusanKurikulum(): bool
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        return $kurikulum instanceof Kurikulum
+            && KurikulumPipeline::hasData('profil_lulusan', $kurikulum);
     }
 
     protected function importModalHeading(): string

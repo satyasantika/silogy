@@ -5,7 +5,6 @@ namespace App\Modules\MK\Filament\Resources\CpmkResource\Pages;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Models\Cpmk;
-use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Services\CpmkCplPemetaanService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
@@ -30,9 +29,28 @@ class ListCpmks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => CpmkResource::canCreate()),
+                ->visible(fn (): bool => CpmkResource::canCreate() && $this->adaCpmkMk()),
             CreateAction::make(),
         ];
+    }
+
+    protected function getTableEmptyStateActions(): array
+    {
+        return [
+            $this->makeImporMassalAction()
+                ->visible(fn (): bool => CpmkResource::canCreate()),
+        ];
+    }
+
+    protected function adaCpmkMk(): bool
+    {
+        $mkId = MkTerpilih::currentId();
+
+        if (blank($mkId)) {
+            return false;
+        }
+
+        return Cpmk::query()->where('mk_id', $mkId)->exists();
     }
 
     public function content(Schema $schema): Schema
