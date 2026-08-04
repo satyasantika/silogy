@@ -205,7 +205,7 @@
                                                         min="0"
                                                         max="100"
                                                         step="0.01"
-                                                        wire:model="nilai.{{ $row['id'] }}.{{ $column['id'] }}"
+                                                        wire:model.blur="nilai.{{ $row['id'] }}.{{ $column['id'] }}"
                                                         style="width:74px;padding:4px 6px;border:1.5px solid rgba(128,128,128,.5);border-radius:6px;background:transparent;text-align:center;"
                                                         placeholder="—"
                                                     />
@@ -232,24 +232,32 @@
                             </table>
                         </div>
 
-                        <div style="margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
-                            <x-filament::button
-                                wire:click="save"
-                                wire:loading.attr="disabled"
-                                wire:target="save"
-                                color="primary"
-                                icon="heroicon-o-check"
-                            >
-                                <span wire:loading.remove wire:target="save">Simpan</span>
-                                <span wire:loading wire:target="save">Menyimpan…</span>
-                            </x-filament::button>
+                        @if ($this->adaPerubahanNilai())
+                            <div style="margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
+                                <x-filament::button
+                                    wire:click="save"
+                                    wire:loading.attr="disabled"
+                                    wire:target="save"
+                                    color="primary"
+                                    icon="heroicon-o-check"
+                                >
+                                    <span wire:loading.remove wire:target="save">Simpan</span>
+                                    <span wire:loading wire:target="save">Menyimpan…</span>
+                                </x-filament::button>
 
-                            @if ($showKalkulasiBadge)
+                                @if ($showKalkulasiBadge)
+                                    <x-filament::badge color="info">
+                                        Kalkulasi CPL dijalankan…
+                                    </x-filament::badge>
+                                @endif
+                            </div>
+                        @elseif ($showKalkulasiBadge)
+                            <div style="margin-top:16px;">
                                 <x-filament::badge color="info">
                                     Kalkulasi CPL dijalankan…
                                 </x-filament::badge>
-                            @endif
-                        </div>
+                            </div>
+                        @endif
                     </x-filament::section>
                 </div>
 

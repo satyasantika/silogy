@@ -195,3 +195,57 @@ it('applies pasted matrix via applyTempel', function () {
         ->assertNotified()
         ->assertSet('nilai.'.$fixtures['kmm']->id.'.'.$fixtures['komponen']->id, '91');
 });
+
+it('menampilkan Simpan hanya saat nilai berubah dari yang tersimpan', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = setupInputNilaiFixtures($this->dosen);
+    $fixtures['kmm']->load('mahasiswa');
+
+    $halaman = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    expect($halaman->instance()->adaPerubahanNilai())->toBeFalse();
+    $halaman->assertDontSeeHtml('wire:click="save"');
+
+    $halaman->set('nilai', [
+        $fixtures['kmm']->id => [
+            $fixtures['komponen']->id => '85.5',
+        ],
+    ]);
+
+    expect($halaman->instance()->adaPerubahanNilai())->toBeTrue();
+    $halaman
+        ->assertSeeHtml('wire:click="save"')
+        ->assertActionVisible('simpanNilai');
+
+    $halaman->call('save')->assertNotified();
+
+    expect($halaman->instance()->adaPerubahanNilai())->toBeFalse();
+    $halaman
+        ->assertDontSeeHtml('wire:click="save"')
+        ->assertActionHidden('simpanNilai');
+});
+
+it('menampilkan Simpan setelah tempel dari Excel mengubah matriks', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = setupInputNilaiFixtures($this->dosen);
+    $fixtures['kmm']->load('mahasiswa');
+
+    $paste = sprintf(
+        "NIM\tNama\tUTS\n%s\t%s\t77",
+        $fixtures['kmm']->mahasiswa->nim,
+        $fixtures['kmm']->mahasiswa->nama,
+    );
+
+    $halaman = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    expect($halaman->instance()->adaPerubahanNilai())->toBeFalse();
+
+    $halaman->call('applyTempel', $paste)->assertNotified();
+
+    expect($halaman->instance()->adaPerubahanNilai())->toBeTrue();
+    $halaman
+        ->assertSeeHtml('wire:click="save"')
+        ->assertActionVisible('simpanNilai');
+});

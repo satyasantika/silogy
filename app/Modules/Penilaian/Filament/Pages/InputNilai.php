@@ -55,6 +55,14 @@ class InputNilai extends Page
 
     public bool $showKalkulasiBadge = false;
 
+    /**
+     * Snapshot nilai yang terakhir dimuat/disimpan — acuan dirty-state
+     * tombol Simpan (atas & bawah).
+     *
+     * @var array<string, array<string, string|null>>
+     */
+    public array $nilaiTersimpan = [];
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -65,6 +73,7 @@ class InputNilai extends Page
     protected function afterKelasBerubah(): void
     {
         $this->showKalkulasiBadge = false;
+        $this->nilaiTersimpan = [];
     }
 
     /**
@@ -91,12 +100,16 @@ class InputNilai extends Page
         $this->resetDataLaporan();
 
         if ($this->kelasMkId === null) {
+            $this->nilaiTersimpan = [];
+
             return;
         }
 
         $kelasMk = KelasMk::query()->with('mkUnit')->find($this->kelasMkId);
 
         if (! $kelasMk instanceof KelasMk) {
+            $this->nilaiTersimpan = [];
+
             return;
         }
 
@@ -104,6 +117,8 @@ class InputNilai extends Page
         $this->penugasanBelumSelesai = ! $kelasMk->penugasanSelesai();
 
         if ($this->penugasanBelumSelesai) {
+            $this->nilaiTersimpan = [];
+
             return;
         }
 
@@ -120,6 +135,8 @@ class InputNilai extends Page
         if ($this->kolomTerpilih === [] || array_diff($this->kolomTerpilih, $idKolom) !== []) {
             $this->kolomTerpilih = $idKolom;
         }
+
+        $this->nilaiTersimpan = $this->salinNilaiSnapshot($this->nilai);
     }
 
     public function save(): void
@@ -255,8 +272,8 @@ class InputNilai extends Page
     }
 
     /**
-     * Tombol Salin matriks (badge 1) & Tempel dari Excel (badge 2) — rata
-     * kiri, di dalam body card Penilaian sebelum tabel.
+     * Tombol Salin (1), Tempel (2), Simpan (3) — rata kiri di body card
+     * Penilaian sebelum tabel. Simpan hanya muncul bila ada perubahan.
      *
      * @return list<Action>
      */
@@ -265,7 +282,55 @@ class InputNilai extends Page
         return [
             $this->salinNilaiAction(),
             $this->tempelNilaiAction(),
+            $this->simpanNilaiAction(),
         ];
+    }
+
+    /**
+     * Apakah matriks nilai di layar berbeda dari yang terakhir tersimpan.
+     */
+    public function adaPerubahanNilai(): bool
+    {
+        return $this->salinNilaiSnapshot($this->nilai)
+            !== $this->salinNilaiSnapshot($this->nilaiTersimpan);
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $nilai
+     * @return array<string, array<string, string|null>>
+     */
+    protected function salinNilaiSnapshot(array $nilai): array
+    {
+        $snapshot = [];
+
+        foreach ($nilai as $kmmId => $cells) {
+            if (! is_array($cells)) {
+                continue;
+            }
+
+            ksort($cells);
+
+            foreach ($cells as $komponenId => $value) {
+                $snapshot[(string) $kmmId][(string) $komponenId] = $this->normalisasiNilaiSel($value);
+            }
+        }
+
+        ksort($snapshot);
+
+        return $snapshot;
+    }
+
+    protected function normalisasiNilaiSel(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (! is_numeric($value)) {
+            return (string) $value;
+        }
+
+        return rtrim(rtrim(number_format((float) $value, 2, '.', ''), '0'), '.') ?: '0';
     }
 
     /**
@@ -386,7 +451,8 @@ class InputNilai extends Page
                         .'<li>Pemisah tab dari Excel didukung; pipe (<code>|</code>) juga diterima.</li>'
                         .'<li>Baris dicocokkan berdasarkan NIM; nilai kosong akan dikosongkan.</li>'
                         .'<li>Boleh menyertakan sebagian kolom asesmen saja — kolom yang tidak disertakan tidak akan berubah.</li>'
-                        .'<li>Setelah diterapkan, klik <strong>Simpan</strong> pada halaman.</li>'
+                        .'<li>Setelah diterapkan, klik <strong>Simpan</strong> '
+                        .'(tombol ber-badge 3 di atas, atau Simpan di bawah tabel).</li>'
                         .'</ul></div>'
                     )),
                 Textarea::make('paste_data')
@@ -397,6 +463,20 @@ class InputNilai extends Page
             ])
             ->action(function (array $data): void {
                 $this->applyTempel((string) ($data['paste_data'] ?? ''));
+            });
+    }
+
+    protected function simpanNilaiAction(): Action
+    {
+        return Action::make('simpanNilai')
+            ->label('Simpan')
+            ->icon(Heroicon::OutlinedCheck)
+            ->color('primary')
+            ->badge('3')
+            ->badgeColor('success')
+            ->visible(fn (): bool => $this->matrixSiapClipboard() && $this->adaPerubahanNilai())
+            ->action(function (): void {
+                $this->save();
             });
     }
 
