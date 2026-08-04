@@ -116,6 +116,27 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
     }
 
     /**
+     * Nama untuk tampilan formal (kop laporan, kartu kelas): gelar depan
+     * (`prefix`) + nama + gelar belakang (`suffix`) bila terisi.
+     * Contoh: "Dr. Satya Santika, M.Kom."
+     */
+    public function namaDenganGelar(): string
+    {
+        $nama = trim(implode(' ', array_filter([
+            filled($this->prefix) ? trim((string) $this->prefix) : null,
+            filled($this->full_name) ? trim((string) $this->full_name) : null,
+        ], fn (?string $bagian): bool => $bagian !== null && $bagian !== '')));
+
+        $suffix = filled($this->suffix) ? trim((string) $this->suffix) : '';
+
+        if ($nama === '') {
+            return $suffix !== '' ? $suffix : (string) ($this->username ?? '—');
+        }
+
+        return $suffix !== '' ? "{$nama}, {$suffix}" : $nama;
+    }
+
+    /**
      * @return HasMany<AcademicUnitUser, $this>
      */
     public function academicUnitUsers(): HasMany

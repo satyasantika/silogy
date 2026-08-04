@@ -237,7 +237,7 @@ trait HasLaporanKelasMk
             'kode' => $kelasMk?->mkUnit?->kode ?? '—',
             'sks' => (int) ($mk?->sks ?? 0),
             'semester' => $this->getSemesterTerpilihProperty(),
-            'dosen' => $kelasMk?->dosenPengampu?->full_name ?? '—',
+            'dosen' => $kelasMk?->dosenPengampu?->namaDenganGelar() ?? '—',
             'target' => $this->targetCapaianLulusan,
         ];
     }

@@ -541,6 +541,11 @@ it('ketercapaian dan rincian per mahasiswa memakai nilai mahasiswa itu sendiri, 
 });
 
 it('menampilkan tab Laporan gabungan dengan identitas, rencana evaluasi, workcloud, dan grafik', function () {
+    $this->dosen->forceFill([
+        'prefix' => 'Dr.',
+        'suffix' => 'M.Kom.',
+    ])->save();
+
     $this->actingAs($this->dosen);
     $fixtures = siapkanFixtureTabLaporan($this->dosen);
 
@@ -548,7 +553,7 @@ it('menampilkan tab Laporan gabungan dengan identitas, rencana evaluasi, workclo
         ->set('kelasMkId', $fixtures['kelas']->id)
         ->assertSee('A. Identitas Mata Kuliah', escape: false)
         ->assertSee('IF401', escape: false)
-        ->assertSee($this->dosen->full_name, escape: false)
+        ->assertSee($this->dosen->fresh()->namaDenganGelar(), escape: false)
         ->assertSee('B. Tabel Nilai Mahasiswa (Workcloud Utama)', escape: false)
         ->assertSee('C1. Evaluasi Ketercapaian CPL', escape: false)
         ->assertSee('C2. Detail Ketercapaian CPL-CPMK-SubCPMK', escape: false)
