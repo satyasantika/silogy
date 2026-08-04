@@ -563,6 +563,20 @@
         color: #ffd700;
     }
 
+    .silogy-penilaian-kpi__tile-hint {
+        display: block;
+        margin-top: 0.35rem;
+        font-size: 0.6875rem;
+        line-height: 1.35;
+        opacity: 0.7;
+        color: #14201a;
+    }
+
+    .dark .silogy-penilaian-kpi__tile-hint {
+        color: #f8f9fa;
+        opacity: 0.6;
+    }
+
     .silogy-penilaian-kpi__hint {
         margin: 0.75rem 0 0;
         font-size: 0.75rem;
@@ -949,6 +963,88 @@
     .silogy-penilaian-prodi__aksi-disabled {
         font-size: 0.75rem;
         color: #9ca3af;
+    }
+
+    .silogy-penilaian-prodi__aksi-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        min-height: 1.5rem;
+    }
+
+    /* Trash: tersembunyi default; hover baris → ikon delete saja (tanpa border/outline). */
+    .silogy-penilaian-prodi__hapus {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        padding: 0;
+        margin: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #b91c1c;
+        opacity: 0;
+        cursor: pointer;
+        transition: opacity 140ms ease, color 140ms ease;
+    }
+
+    .silogy-penilaian-prodi__row:hover .silogy-penilaian-prodi__hapus,
+    .silogy-penilaian-prodi__aksi-group:focus-within .silogy-penilaian-prodi__hapus {
+        opacity: 1;
+    }
+
+    .silogy-penilaian-prodi__hapus:hover {
+        color: #991b1b;
+        background: transparent;
+    }
+
+    /* Keyboard: tampilkan ikon + ring tipis (bukan border permanen). */
+    .silogy-penilaian-prodi__hapus:focus-visible {
+        opacity: 1;
+        color: #991b1b;
+        background: transparent;
+        outline: 2px solid rgba(185, 28, 28, 0.55);
+        outline-offset: 2px;
+    }
+
+    .dark .silogy-penilaian-prodi__row:hover .silogy-penilaian-prodi__hapus,
+    .dark .silogy-penilaian-prodi__aksi-group:focus-within .silogy-penilaian-prodi__hapus,
+    .dark .silogy-penilaian-prodi__hapus:focus-visible {
+        color: #f87171;
+        opacity: 1;
+    }
+
+    .dark .silogy-penilaian-prodi__hapus:hover,
+    .dark .silogy-penilaian-prodi__hapus:focus-visible {
+        color: #fca5a5;
+        background: transparent;
+    }
+
+    /* Sentuh / tanpa hover: ikon tipis tetap ada agar bisa dihapus. */
+    @media (hover: none) {
+        .silogy-penilaian-prodi__hapus {
+            opacity: 0.4;
+            color: #9ca3af;
+            border: none;
+            background: transparent;
+        }
+
+        .silogy-penilaian-prodi__hapus:active {
+            opacity: 1;
+            color: #b91c1c;
+        }
+    }
+
+    @media (hover: none) {
+        .dark .silogy-penilaian-prodi__hapus {
+            color: #a1a1aa;
+        }
+
+        .dark .silogy-penilaian-prodi__hapus:active {
+            color: #f87171;
+        }
     }
 
     .silogy-penilaian-prodi__laporan:focus-visible,

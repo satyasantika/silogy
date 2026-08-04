@@ -4,6 +4,7 @@ namespace App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource\Pages;
 
 use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Services\DosenPengampuSintesysImportService;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
@@ -15,6 +16,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
@@ -40,6 +42,67 @@ class ListPenilaianDosens extends ListRecords
     protected function getHeaderActions(): array
     {
         return [];
+    }
+
+    /**
+     * Hapus kelas dari tabel /penilaian (ikon kecil di kolom aksi).
+     * Cascade kontrak mahasiswa + nilai; komponen asesmen MK+semester tetap.
+     */
+    public function hapusKelasAction(): Action
+    {
+        return Action::make('hapusKelas')
+            ->label('Hapus kelas')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(function (array $arguments): string {
+                $kelas = KelasMk::query()->find($arguments['kelasMkId'] ?? null);
+
+                return $kelas instanceof KelasMk
+                    ? 'Hapus Kelas '.$kelas->kode_kelas.'?'
+                    : 'Hapus kelas?';
+            })
+            ->modalDescription(
+                'Menghapus kelas ini juga menghapus kontrak mahasiswa ke kelas tersebut '
+                .'(pendaftaran peserta), nilai yang sudah diinput, dan hasil ketercapaian terkait. '
+                .'Komponen asesmen mata kuliah pada semester ini tetap ada. Tindakan ini tidak dapat dibatalkan.'
+            )
+            ->modalSubmitActionLabel('Ya, hapus kelas')
+            ->action(function (array $arguments): void {
+                $user = auth()->user();
+                $kelas = KelasMk::query()->find($arguments['kelasMkId'] ?? null);
+
+                if ($user === null || ! $kelas instanceof KelasMk) {
+                    return;
+                }
+
+                Gate::forUser($user)->authorize('delete', $kelas);
+
+                if (PenilaianDosenService::ringkasanKelas($kelas)['sudah_dinilai']) {
+                    Notification::make()
+                        ->title('Kelas tidak dapat dihapus')
+                        ->body('Kelas yang sudah dinilai tidak boleh dihapus. Hapus atau ubah nilai terlebih dahulu bila perlu.')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $kode = $kelas->kode_kelas;
+                $jumlahPeserta = $kelas->kelasMkMahasiswas()->count();
+
+                $kelas->delete();
+
+                Notification::make()
+                    ->title('Kelas '.$kode.' dihapus')
+                    ->body($jumlahPeserta > 0
+                        ? "Kontrak {$jumlahPeserta} mahasiswa ke kelas ini juga dihapus."
+                        : 'Kelas tanpa peserta telah dihapus.')
+                    ->success()
+                    ->send();
+
+                $this->resetTable();
+            });
     }
 
     public function table(Table $table): Table

@@ -10,6 +10,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -216,7 +217,7 @@ it('menampilkan status menunggu asesmen bila koordinator belum siap, tanpa badge
         ->not->toContain('Belum dinilai');
 });
 
-it('service barisKelasUntukUnit menyertakan tautan input dan laporan', function () {
+it('service barisKelasUntukUnit menyertakan tautan input dan laporan tanpa tombol hapus bila sudah dinilai', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'Basis Data']);
     $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 1);
 
@@ -237,6 +238,94 @@ it('service barisKelasUntukUnit menyertakan tautan input dan laporan', function 
         ->and($baris['asesmen_siap'])->toBeTrue()
         ->and($baris['url_input'])->toContain('kelas_mk_id='.$kelas['kelas']->id)
         ->and($baris['url_laporan'])->toContain('tab=laporan');
+
+    $html = PenilaianDosenService::tabelKelasUnitHtml(
+        $this->prodi,
+        $this->dosen,
+        $this->semesterAktif->id,
+    )->toHtml();
+
+    expect($html)
+        ->not->toContain('silogy-penilaian-prodi__hapus')
+        ->not->toContain("mountAction('hapusKelas'")
+        ->toContain('Edit nilai')
+        ->toContain($kelas['kelas']->id);
+});
+
+it('tombol hapus kelas muncul dengan mountAction JSON.parse bila kelas belum dinilai', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Belum Dinilai Hapus']);
+    $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 1);
+    $kelasId = $kelas['kelas']->id;
+
+    $html = PenilaianDosenService::tabelKelasUnitHtml(
+        $this->prodi,
+        $this->dosen,
+        $this->semesterAktif->id,
+    )->toHtml();
+
+    expect($html)
+        ->toContain('silogy-penilaian-prodi__hapus')
+        ->toContain("mountAction('hapusKelas', JSON.parse('{\\u0022kelasMkId\\u0022:\\u0022".$kelasId."\\u0022}'))")
+        ->toContain('stroke="currentColor"')
+        ->toContain('aria-label="Hapus kelas A"');
+});
+
+it('dosen pengampu dapat menghapus kelas belum dinilai dari halaman penilaian beserta kontrak mahasiswa', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Hapus Kelas']);
+    $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 2);
+    $kmmIds = $kelas['kmms']->pluck('id')->all();
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    expect(app(KelasMkPolicy::class)->delete($this->dosen, $kelas['kelas']))->toBeTrue();
+
+    Livewire::test(ListPenilaianDosens::class)
+        ->loadTable()
+        ->assertSee('silogy-penilaian-prodi__hapus', escape: false)
+        ->assertSee("mountAction('hapusKelas', JSON.parse(", escape: false)
+        ->callAction('hapusKelas', arguments: ['kelasMkId' => $kelas['kelas']->id]);
+
+    expect(KelasMk::query()->find($kelas['kelas']->id))->toBeNull()
+        ->and(KelasMkMahasiswa::query()->whereIn('id', $kmmIds)->count())->toBe(0)
+        ->and(KomponenPenilaian::query()
+            ->where('mk_id', $mk->id)
+            ->where('semester_id', $this->semesterAktif->id)
+            ->exists())->toBeTrue();
+});
+
+it('action hapusKelas menolak kelas yang sudah dinilai', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Sudah Dinilai']);
+    $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 1);
+
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][0]->id,
+        'nilai' => 77,
+    ]);
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    Livewire::test(ListPenilaianDosens::class)
+        ->loadTable()
+        ->assertDontSee('silogy-penilaian-prodi__hapus', escape: false)
+        ->callAction('hapusKelas', arguments: ['kelasMkId' => $kelas['kelas']->id]);
+
+    expect(KelasMk::query()->find($kelas['kelas']->id))->not->toBeNull();
+});
+
+it('dosen lain tidak dapat menghapus kelas yang bukan miliknya', function () {
+    $dosenLain = User::factory()->create([
+        'username' => 'dosenlainhapuskelas',
+        'email' => 'dosenlainhapuskelas@silogy.test',
+    ]);
+    $dosenLain->assignRole('Dosen Pengampu');
+
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'A', $this->semesterAktif->id, 1);
+
+    expect(app(KelasMkPolicy::class)->delete($dosenLain, $kelas['kelas']))->toBeFalse();
 });
 
 it('service rekapKpiPengampu menghitung prodi mk kelas dan progress', function () {
@@ -268,6 +357,7 @@ it('service rekapKpiPengampu menghitung prodi mk kelas dan progress', function (
         ->and($kpi['kelas_siap'])->toBe(1)
         ->and($kpi['kelas_dinilai'])->toBe(1)
         ->and($kpi['kelas_menunggu_asesmen'])->toBe(1)
+        ->and($kpi['mk_menunggu'])->toBe(1)
         ->and($kpi['progress_persen'])->toBe(100);
 });
 

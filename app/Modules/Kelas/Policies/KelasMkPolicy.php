@@ -81,6 +81,10 @@ class KelasMkPolicy
             return false;
         }
 
+        if ($this->isDosenPemilik($user, $kelasMk)) {
+            return true;
+        }
+
         return $this->canManageByUnit($user, $kelasMk);
     }
 

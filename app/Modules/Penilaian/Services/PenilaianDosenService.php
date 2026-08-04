@@ -13,6 +13,7 @@ use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Js;
 
 class PenilaianDosenService
 {
@@ -205,6 +206,7 @@ class PenilaianDosenService
      *     kelas_siap: int,
      *     kelas_dinilai: int,
      *     kelas_menunggu_asesmen: int,
+     *     mk_menunggu: int,
      *     progress_persen: int
      * }
      */
@@ -223,6 +225,7 @@ class PenilaianDosenService
                 'kelas_siap' => 0,
                 'kelas_dinilai' => 0,
                 'kelas_menunggu_asesmen' => 0,
+                'mk_menunggu' => 0,
                 'progress_persen' => 0,
             ];
         }
@@ -255,6 +258,16 @@ class PenilaianDosenService
             }
         }
 
+        $kelasMenunggu = max(0, $jumlahKelas - $kelasSiap);
+
+        $mkMenunggu = $kelasList
+            ->groupBy(fn (KelasMk $kelas): string => (string) ($kelas->mkUnit?->mk_id ?? ''))
+            ->filter(fn ($grup, string $mkId): bool => $mkId !== '')
+            ->filter(fn ($grup): bool => $grup->contains(
+                fn (KelasMk $kelas): bool => ! static::asesmenSiapUntukKelas($kelas),
+            ))
+            ->count();
+
         $progress = $kelasSiap > 0
             ? (int) round(($kelasDinilai / $kelasSiap) * 100)
             : 0;
@@ -266,7 +279,8 @@ class PenilaianDosenService
             'jumlah_kelas' => $jumlahKelas,
             'kelas_siap' => $kelasSiap,
             'kelas_dinilai' => $kelasDinilai,
-            'kelas_menunggu_asesmen' => max(0, $jumlahKelas - $kelasSiap),
+            'kelas_menunggu_asesmen' => $kelasMenunggu,
+            'mk_menunggu' => $mkMenunggu,
             'progress_persen' => $progress,
         ];
     }
@@ -365,11 +379,17 @@ class PenilaianDosenService
         }
 
         $rows = $baris->map(function (array $row): string {
+            // Hapus hanya untuk kelas yang belum punya nilai — jangan tampilkan
+            // bila sudah dinilai (rata-rata nilai sudah ada).
+            $hapus = $row['sudah_dinilai']
+                ? ''
+                : static::tombolHapusKelasHtml($row['kelas_mk_id'], $row['kode_kelas']);
+
             if (! $row['asesmen_siap']) {
                 $status = '<span class="silogy-penilaian-prodi__status silogy-penilaian-prodi__status--wait">'
                     .'Menunggu persiapan asesmen MK oleh koordinator'
                     .'</span>';
-                $aksi = '<span class="silogy-penilaian-prodi__aksi-disabled">—</span>';
+                $aksiUtama = '<span class="silogy-penilaian-prodi__aksi-disabled">—</span>';
                 $kodeCell = e($row['kode']);
                 $namaCell = e($row['nama_mk']);
             } elseif ($row['sudah_dinilai']) {
@@ -377,15 +397,20 @@ class PenilaianDosenService
                     .'<span class="silogy-penilaian-prodi__rata">'.e((string) $row['rata_rata']).'</span>'
                     .'<a href="'.e($row['url_laporan']).'" class="silogy-penilaian-prodi__laporan">Laporan</a>'
                     .'</span>';
-                $aksi = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">Edit nilai</a>';
+                $aksiUtama = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">Edit nilai</a>';
                 $kodeCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-kode">'.e($row['kode']).'</a>';
                 $namaCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-nama">'.e($row['nama_mk']).'</a>';
             } else {
                 $status = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__status silogy-penilaian-prodi__status--pending">Belum dinilai</a>';
-                $aksi = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">Nilai</a>';
+                $aksiUtama = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">Nilai</a>';
                 $kodeCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-kode">'.e($row['kode']).'</a>';
                 $namaCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-nama">'.e($row['nama_mk']).'</a>';
             }
+
+            $aksi = '<div class="silogy-penilaian-prodi__aksi-group">'
+                .$aksiUtama
+                .$hapus
+                .'</div>';
 
             return '<tr class="silogy-penilaian-prodi__row">'
                 .'<td class="silogy-penilaian-prodi__td silogy-penilaian-prodi__td--kode">'.$kodeCell.'</td>'
@@ -412,6 +437,28 @@ class PenilaianDosenService
             .'</table>'
             .'</div>'
         );
+    }
+
+    /**
+     * Ikon trash di kolom aksi /penilaian (hanya kelas belum dinilai).
+     * Default tersembunyi; muncul saat hover baris — ikon saja, tanpa border.
+     * Format wire:click mengikuti Filament getJsClickHandler (Js::from / JSON.parse).
+     */
+    protected static function tombolHapusKelasHtml(string $kelasMkId, string $kodeKelas): string
+    {
+        $label = 'Hapus kelas '.$kodeKelas;
+        $args = Js::from(['kelasMkId' => $kelasMkId])->toHtml();
+
+        return '<button type="button"'
+            .' class="silogy-penilaian-prodi__hapus"'
+            .' wire:click="mountAction(\'hapusKelas\', '.$args.')"'
+            .' wire:key="hapus-kelas-'.e($kelasMkId).'"'
+            .' title="'.e($label).'"'
+            .' aria-label="'.e($label).'">'
+            .'<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true" width="18" height="18">'
+            .'<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.042-2.201a51.964 51.964 0 0 0-3.32 0c-1.132.037-2.042 1.022-2.042 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>'
+            .'</svg>'
+            .'</button>';
     }
 
     /**

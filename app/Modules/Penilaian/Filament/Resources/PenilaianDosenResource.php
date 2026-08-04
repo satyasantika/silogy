@@ -19,6 +19,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 
 class PenilaianDosenResource extends Resource
 {
@@ -110,18 +111,19 @@ class PenilaianDosenResource extends Resource
 
                     TextColumn::make('tabel_kelas')
                         ->label('')
-                        ->state(function (AcademicUnit $record) use ($user): string {
+                        ->state(function (AcademicUnit $record) use ($user): string|HtmlString {
                             if (! $user instanceof User) {
                                 return '';
                             }
 
+                            // Kembalikan HtmlString (Htmlable), BUKAN ->toHtml() string:
+                            // Filament sanitizeHtml() membuang wire:click + SVG pada string + ->html().
                             return PenilaianDosenService::tabelKelasUnitHtml(
                                 $record,
                                 $user,
                                 PenilaianSemesterTerpilih::currentId(),
-                            )->toHtml();
-                        })
-                        ->html(),
+                            );
+                        }),
                 ])->space(1),
             ])
             ->contentGrid(['default' => 1])

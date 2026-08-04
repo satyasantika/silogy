@@ -1,4 +1,4 @@
-{{-- KPI bento pengampu MK: prodi / MK / kelas + donut progress semester terpilih. --}}
+{{-- KPI bento pengampu MK: MK / siap / menunggu + donut progress semester terpilih. --}}
 @php
     $semesterLabel = $semester_label ?? '—';
     $jumlahProdi = (int) ($jumlah_prodi ?? 0);
@@ -7,6 +7,7 @@
     $kelasSiap = (int) ($kelas_siap ?? 0);
     $kelasDinilai = (int) ($kelas_dinilai ?? 0);
     $kelasMenunggu = (int) ($kelas_menunggu_asesmen ?? 0);
+    $mkMenunggu = (int) ($mk_menunggu ?? 0);
     $progress = max(0, min(100, (int) ($progress_persen ?? 0)));
     $progressCaption = $kelasSiap > 0
         ? sprintf('%d dari %d kelas siap sudah dinilai', $kelasDinilai, $kelasSiap)
@@ -22,23 +23,29 @@
             <div class="silogy-penilaian-kpi__caption">{{ $semesterLabel }}</div>
             <div class="silogy-penilaian-kpi__tiles">
                 <div class="silogy-penilaian-kpi__tile">
-                    <span class="silogy-penilaian-kpi__label">Prodi</span>
-                    <span class="silogy-penilaian-kpi__value">{{ number_format($jumlahProdi, 0, ',', '.') }}</span>
-                </div>
-                <div class="silogy-penilaian-kpi__tile">
                     <span class="silogy-penilaian-kpi__label">Mata kuliah</span>
                     <span class="silogy-penilaian-kpi__value">{{ number_format($jumlahMk, 0, ',', '.') }}</span>
+                    @if ($mkMenunggu > 0)
+                        <span class="silogy-penilaian-kpi__tile-hint">
+                            {{ number_format($mkMenunggu, 0, ',', '.') }} menunggu asesmen
+                        </span>
+                    @endif
                 </div>
                 <div class="silogy-penilaian-kpi__tile">
-                    <span class="silogy-penilaian-kpi__label">Kelas</span>
-                    <span class="silogy-penilaian-kpi__value silogy-penilaian-kpi__value--gold">{{ number_format($jumlahKelas, 0, ',', '.') }}</span>
+                    <span class="silogy-penilaian-kpi__label">Kelas siap dinilai</span>
+                    <span class="silogy-penilaian-kpi__value silogy-penilaian-kpi__value--gold">{{ number_format($kelasSiap, 0, ',', '.') }}</span>
+                    <span class="silogy-penilaian-kpi__tile-hint">
+                        dari {{ number_format($jumlahKelas, 0, ',', '.') }} kelas · {{ number_format($jumlahProdi, 0, ',', '.') }} prodi
+                    </span>
+                </div>
+                <div class="silogy-penilaian-kpi__tile">
+                    <span class="silogy-penilaian-kpi__label">Menunggu asesmen</span>
+                    <span class="silogy-penilaian-kpi__value">{{ number_format($kelasMenunggu, 0, ',', '.') }}</span>
+                    <span class="silogy-penilaian-kpi__tile-hint">
+                        persiapan koordinator MK
+                    </span>
                 </div>
             </div>
-            @if ($kelasMenunggu > 0)
-                <p class="silogy-penilaian-kpi__hint">
-                    {{ number_format($kelasMenunggu, 0, ',', '.') }} kelas menunggu persiapan asesmen koordinator
-                </p>
-            @endif
         </div>
 
         <div class="silogy-penilaian-kpi__rule" aria-hidden="true"></div>
@@ -63,6 +70,7 @@
                     <span class="silogy-penilaian-kpi__progress-sub">
                         Dinilai {{ number_format($kelasDinilai, 0, ',', '.') }}
                         · Siap {{ number_format($kelasSiap, 0, ',', '.') }}
+                        · Menunggu {{ number_format($kelasMenunggu, 0, ',', '.') }}
                     </span>
                 </div>
             </div>
