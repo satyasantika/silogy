@@ -129,6 +129,9 @@ it('menampilkan mk terpilih, kartu kelas, dan ringkasan seluruh kelas', function
         ->assertSet('mkId', $mk->id)
         ->assertSet('kelasMkId', $kelasA['kelas']->id)
         ->assertSee('Struktur Data', escape: false)
+        ->assertSee('Mata kuliah terpilih', escape: false)
+        ->assertSee('Semester:', escape: false)
+        ->assertSee('Ganti', escape: false)
         ->assertSee('Kelas A', escape: false)
         ->assertSee('Kelas B', escape: false)
         ->assertSee('rata-rata 85', escape: false)
@@ -137,7 +140,6 @@ it('menampilkan mk terpilih, kartu kelas, dan ringkasan seluruh kelas', function
         ->assertSee('3 mahasiswa', escape: false)
         ->assertSee('UTS', escape: false)
         ->assertSee($this->semesterAktif->nama, escape: false)
-        ->assertSee('Pilih mata kuliah lain', escape: false)
         ->assertSee(PenilaianDosenResource::getUrl('index'), escape: false);
 });
 

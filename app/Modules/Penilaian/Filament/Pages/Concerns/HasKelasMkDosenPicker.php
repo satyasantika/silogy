@@ -95,7 +95,7 @@ trait HasKelasMkDosenPicker
             return null;
         }
 
-        return Mk::query()->find($this->mkId);
+        return Mk::query()->with('mkUnits')->find($this->mkId);
     }
 
     public function getSemesterTerpilihProperty(): string

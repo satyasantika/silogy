@@ -1,74 +1,65 @@
 <x-filament-panels::page>
-    <x-filament::section icon="heroicon-o-academic-cap" heading="Pilih Kelas MK">
-        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
-            <div style="font-size:13px;line-height:1.7;">
-                <div>
-                    <span style="opacity:.7;">Mata kuliah terpilih (dari Penilaian):</span>
-                    <strong>{{ $this->mkTerpilih?->nama ?? '—' }}</strong>
-                </div>
-                <div>
-                    <span style="opacity:.7;">Semester:</span>
-                    <strong>{{ $this->semesterTerpilih }}</strong>
-                </div>
-            </div>
+    {{-- Banner MK menggantikan heading Filament "Pilih Kelas MK" (ikon + label). --}}
+    <div
+        data-silogy="input-nilai-pilih-kelas"
+        style="border-radius:14px;overflow:hidden;border:1px solid rgba(128,128,128,.2);background:var(--gray-50, #f9fafb);"
+    >
+        @include('filament.modules.penilaian.partials.penilaian-mk-terpilih-banner', ['sebagaiHeaderPanel' => true])
 
-            <a
-                href="{{ \App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource::getUrl('index') }}"
-                style="font-size:12px;font-weight:600;text-decoration:underline;white-space:nowrap;"
-            >
-                ← Pilih mata kuliah lain
-            </a>
+        <div style="padding:14px 16px 16px;">
+            @if (! $this->mkTerpilih)
+                <p style="font-size:13px;opacity:.75;">
+                    Anda belum memiliki kelas yang diampu pada semester ini.
+                </p>
+            @elseif (empty($this->kelasCards))
+                <p style="font-size:13px;opacity:.75;">
+                    Anda tidak memiliki kelas untuk mata kuliah ini pada semester terpilih.
+                </p>
+            @else
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin-bottom:10px;">
+                    Pilih kelas
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    @foreach ($this->kelasCards as $kelas)
+                        @php
+                            $aktif = $kelasMkId === $kelas['id'];
+                            $sudahDinilai = $kelas['sudah_dinilai'];
+                            $border = $aktif ? '#2563eb' : ($sudahDinilai ? '#86efac' : '#fcd34d');
+                            $background = $aktif ? '#dbeafe' : ($sudahDinilai ? '#dcfce7' : '#fef3c7');
+                            $color = $sudahDinilai ? '#166534' : '#92400e';
+                        @endphp
+                        <button
+                            type="button"
+                            wire:click="pilihKelas('{{ $kelas['id'] }}')"
+                            wire:key="kelas-card-{{ $kelas['id'] }}"
+                            style="cursor:pointer;text-align:left;min-width:150px;padding:10px 14px;border-radius:10px;
+                                border:2px solid {{ $border }};background:{{ $background }};color:{{ $color }};"
+                        >
+                            <span style="display:block;font-weight:700;font-size:13px;">Kelas {{ $kelas['kode_kelas'] }}</span>
+                            <span style="display:block;font-size:12px;margin-top:2px;">
+                                {{ $kelas['jumlah_mahasiswa'] }} mhs
+                                @if ($sudahDinilai)
+                                    · rata-rata {{ $kelas['rata_rata'] }}
+                                @else
+                                    · Belum dinilai
+                                @endif
+                            </span>
+                        </button>
+                    @endforeach
+                </div>
+
+                <div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,.08);font-size:12px;">
+                    <strong>Seluruh kelas pada MK ini:</strong>
+                    {{ $this->ringkasanSeluruhKelas['jumlah_mahasiswa'] }} mahasiswa
+                    @if ($this->ringkasanSeluruhKelas['sudah_dinilai'])
+                        · rata-rata {{ $this->ringkasanSeluruhKelas['rata_rata'] }}
+                    @else
+                        · Belum dinilai
+                    @endif
+                </div>
+            @endif
         </div>
-
-        @if (! $this->mkTerpilih)
-            <p style="font-size:13px;opacity:.75;">
-                Anda belum memiliki kelas yang diampu pada semester ini.
-            </p>
-        @elseif (empty($this->kelasCards))
-            <p style="font-size:13px;opacity:.75;">
-                Anda tidak memiliki kelas untuk mata kuliah ini pada semester terpilih.
-            </p>
-        @else
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                @foreach ($this->kelasCards as $kelas)
-                    @php
-                        $aktif = $kelasMkId === $kelas['id'];
-                        $sudahDinilai = $kelas['sudah_dinilai'];
-                        $border = $aktif ? '#2563eb' : ($sudahDinilai ? '#86efac' : '#fcd34d');
-                        $background = $aktif ? '#dbeafe' : ($sudahDinilai ? '#dcfce7' : '#fef3c7');
-                        $color = $sudahDinilai ? '#166534' : '#92400e';
-                    @endphp
-                    <button
-                        type="button"
-                        wire:click="pilihKelas('{{ $kelas['id'] }}')"
-                        wire:key="kelas-card-{{ $kelas['id'] }}"
-                        style="cursor:pointer;text-align:left;min-width:150px;padding:10px 14px;border-radius:10px;
-                            border:2px solid {{ $border }};background:{{ $background }};color:{{ $color }};"
-                    >
-                        <span style="display:block;font-weight:700;font-size:13px;">Kelas {{ $kelas['kode_kelas'] }}</span>
-                        <span style="display:block;font-size:12px;margin-top:2px;">
-                            {{ $kelas['jumlah_mahasiswa'] }} mhs
-                            @if ($sudahDinilai)
-                                · rata-rata {{ $kelas['rata_rata'] }}
-                            @else
-                                · Belum dinilai
-                            @endif
-                        </span>
-                    </button>
-                @endforeach
-            </div>
-
-            <div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,.08);font-size:12px;">
-                <strong>Seluruh kelas pada MK ini:</strong>
-                {{ $this->ringkasanSeluruhKelas['jumlah_mahasiswa'] }} mahasiswa
-                @if ($this->ringkasanSeluruhKelas['sudah_dinilai'])
-                    · rata-rata {{ $this->ringkasanSeluruhKelas['rata_rata'] }}
-                @else
-                    · Belum dinilai
-                @endif
-            </div>
-        @endif
-    </x-filament::section>
+    </div>
 
     @if ($kelasMkId)
         @if ($penugasanBelumSelesai)
