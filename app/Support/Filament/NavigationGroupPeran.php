@@ -7,10 +7,10 @@ use App\Modules\Auth\Support\PeranUnitFormFields;
 
 /**
  * Peran operasional (Tim Kurikulum, Koordinator Mata Kuliah, Dosen
- * Pengampu) hanya punya sedikit menu — dikelompokkan ke kategori
- * (Kurikulum, Mata Kuliah, dst.) cuma menambah klik tanpa manfaat
- * navigasi. Untuk peran-peran ini seluruh menu digabung rata dengan
- * Dasbor (tanpa kategori); peran lain (Admin, Pimpinan, dst.) tetap
+ * Pengampu, Pimpinan) hanya punya sedikit menu — dikelompokkan ke
+ * kategori (Kurikulum, Mata Kuliah, dst.) cuma menambah klik tanpa
+ * manfaat navigasi. Untuk peran-peran ini seluruh menu digabung rata
+ * dengan Dasbor (tanpa kategori); peran lain (Admin, dst.) tetap
  * terkelompok seperti biasa.
  */
 final class NavigationGroupPeran
@@ -19,6 +19,7 @@ final class NavigationGroupPeran
         'Tim Kurikulum',
         'Koordinator Mata Kuliah',
         'Dosen Pengampu',
+        'Pimpinan',
     ];
 
     public static function resolve(string $grup): ?string

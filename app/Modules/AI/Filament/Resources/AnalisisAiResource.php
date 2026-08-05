@@ -9,6 +9,7 @@ use App\Modules\AI\Policies\AnalisisAiPolicy;
 use App\Modules\AI\Support\AnalisisAiStatus;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Support\Filament\DelegasiMenu;
 use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
@@ -67,6 +68,11 @@ class AnalisisAiResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
+        // Pimpinan fokus ke laporan analisis CPL di sidebar.
+        if (DelegasiMenu::peranAktifPimpinan()) {
+            return false;
+        }
+
         return static::canViewAny();
     }
 

@@ -11,6 +11,7 @@ use App\Modules\AI\Services\GeminiCostGuard;
 use App\Modules\AI\Support\AnalisisAiUnitOptions;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Support\Filament\DelegasiMenu;
 use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -62,6 +63,11 @@ class RequestAnalisis extends Page
 
     public static function shouldRegisterNavigation(): bool
     {
+        // Pimpinan fokus ke laporan analisis CPL di sidebar.
+        if (DelegasiMenu::peranAktifPimpinan()) {
+            return false;
+        }
+
         return static::canAccess();
     }
 

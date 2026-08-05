@@ -37,4 +37,19 @@ final class DelegasiMenu
         return PeranUnitFormFields::defaultRole($user) === 'Dosen Pengampu'
             && ! $user->hasRole('Admin');
     }
+
+    /**
+     * Peran aktif (switcher) adalah Pimpinan — sidebar dibatasi ke dasbor
+     * dan laporan analisis CPL (hasil, grafik, per mahasiswa).
+     */
+    public static function peranAktifPimpinan(?User $user = null): bool
+    {
+        $user ??= Auth::user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return PeranUnitFormFields::defaultRole($user) === 'Pimpinan';
+    }
 }

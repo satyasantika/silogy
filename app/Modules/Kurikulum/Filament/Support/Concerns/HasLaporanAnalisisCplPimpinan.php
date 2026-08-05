@@ -15,21 +15,18 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Table;
-use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 
 /**
- * Perilaku bersama halaman "Analisis MK" per level unit (prodi/fakultas/
- * universitas) — dipakai oleh AnalisisMkProdi, AnalisisMkFakultas,
- * AnalisisMkUniversitas. Kelas pemakai wajib mengisi analisisUnitType()
- * dan mendeklarasikan `implements HasTable, HasActions`.
+ * Perilaku bersama tiga menu laporan Pimpinan (Hasil Analisis CPL, Grafik
+ * CPL, Analisis per Mahasiswa) — konten sama dengan tab Analisis MK, tanpa
+ * tab pemetaan. Kurikulum mengikuti KurikulumTerpilih (prodi/fakultas/
+ * universitas) selama unitnya masuk scope pimpinan.
  *
- * Untuk kurikulum prodi, data langsung dari mk_units prodi itu; untuk
- * fakultas/universitas, data adalah rollup lintas semua prodi yang
- * mengadaptasi MK kurikulum itu (lihat
- * AnalisisMkProdiService::mkUnitIdsUntukKurikulum()).
+ * Kelas pemakai wajib `implements HasActions` (dan `HasTable` bila
+ * menampilkan tabel mahasiswa).
  */
-trait HasAnalisisMkForUnitType
+trait HasLaporanAnalisisCplPimpinan
 {
     use InteractsWithActions;
     use InteractsWithTable;
@@ -46,35 +43,19 @@ trait HasAnalisisMkForUnitType
      */
     public array $hasilAnalisis = ['angkatan_list' => [], 'pemetaan' => []];
 
-    /** Tipe academic_unit yang dilayani halaman ini: study_program|faculty|university. */
-    abstract public static function analisisUnitType(): string;
-
     public static function canAccess(): bool
     {
+        if (! DelegasiMenu::peranAktifPimpinan()) {
+            return false;
+        }
+
         $user = auth()->user();
 
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if (! $user->hasRole(['Pimpinan', 'Tim Kurikulum'])) {
-            return false;
-        }
-
-        $kurikulum = KurikulumTerpilih::current();
-
-        return $kurikulum instanceof Kurikulum
-            && $kurikulum->academicUnit?->type === static::analisisUnitType()
-            && KurikulumTerpilih::scopedUnitIds($user)->contains($kurikulum->academic_unit_id);
+        return $user instanceof User && $user->can('lihat_laporan');
     }
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Pimpinan memakai menu laporan terpisah (hasil / grafik / per mahasiswa).
-        if (DelegasiMenu::peranAktifPimpinan()) {
-            return false;
-        }
-
         return static::canAccess();
     }
 
@@ -88,22 +69,16 @@ trait HasAnalisisMkForUnitType
         $kurikulum = $this->getKurikulumProperty();
 
         if ($kurikulum === null) {
-            return static::$title ?? 'Analisis MK';
+            return static::$title ?? 'Laporan CPL';
         }
 
         return sprintf(
             '%s — %s',
-            static::$title ?? 'Analisis MK',
+            static::$title ?? 'Laporan CPL',
             KurikulumTerpilih::unitHierarchyLabel($kurikulum->academicUnit),
         );
     }
 
-    /**
-     * Memicu sinkronisasi kalkulasi CPL (queue mati, lihat
-     * AnalisisMkProdiService::sinkronkanKalkulasiProdi()) lalu memuat data
-     * tab 2 — dipanggil sekali di mount, BUKAN lewat computed property,
-     * supaya operasi berat ini tidak berjalan berulang dalam satu request.
-     */
     protected function muatHasilAnalisis(): void
     {
         $kurikulum = $this->getKurikulumProperty();
@@ -130,10 +105,6 @@ trait HasAnalisisMkForUnitType
 
         $terpilih->loadMissing('academicUnit');
 
-        if ($terpilih->academicUnit?->type !== static::analisisUnitType()) {
-            return null;
-        }
-
         $user = auth()->user();
 
         if (! $user instanceof User || ! KurikulumTerpilih::scopedUnitIds($user)->contains($terpilih->academic_unit_id)) {
@@ -144,33 +115,16 @@ trait HasAnalisisMkForUnitType
     }
 
     /**
-     * Tab 1 — "Pemetaan Rencana Asesmen CPL". 'kontribusi' sudah berupa porsi
-     * relatif per CPL dari (bobot_mentah × SKS) (Σ tepat 100%), 'bobot_mentah'
-     * adalah angka apa adanya dari cpl_mk (lihat
-     * AnalisisMkProdiService::pemetaanCplMk()).
-     *
-     * @return list<array{
-     *     cpl_kode: string,
-     *     cpl_deskripsi: string,
-     *     mk_rows: list<array{mk_id: string, nama: string, kode: string, sks: int, kontribusi: float, bobot_mentah: float}>,
-     * }>
+     * Kontrak yang sama dengan HasAnalisisMkForUnitType — dipakai partial
+     * tabel-hasil-analisis-cpl (dan pemetaan bila dipakai ulang) untuk
+     * membedakan tampilan kode MK prodi vs rollup fakultas/universitas.
      */
-    public function getPemetaanCplMkProperty(): array
+    public function analisisUnitType(): string
     {
-        $kurikulum = $this->getKurikulumProperty();
-
-        if ($kurikulum === null) {
-            return [];
-        }
-
-        return app(AnalisisMkProdiService::class)->pemetaanCplMk($kurikulum);
+        return $this->getKurikulumProperty()?->academicUnit?->type ?? 'study_program';
     }
 
     /**
-     * Tab 3 — "Grafik CPL": satu radar chart per CPL, rerata per MK
-     * penyumbang CPL itu. Dibangun dari $this->hasilAnalisis (sudah
-     * disinkronkan sekali di muatHasilAnalisis()) — tidak query ulang.
-     *
      * @return list<array{
      *     cpl_id: string, cpl_kode: string, cpl_deskripsi: string,
      *     ada_data: bool, labels: list<string>, data: list<float>,
@@ -194,45 +148,6 @@ trait HasAnalisisMkForUnitType
             ->all();
     }
 
-    /**
-     * Modal trigger pada tab "Pemetaan Rencana Asesmen CPL" (khusus
-     * fakultas/universitas — lihat tabel-pemetaan-cpl-mk.blade.php):
-     * tabel prodi mana memakai kode apa untuk satu MK, dibatasi ke
-     * mk_unit_ids kurikulum yang dikerjakan saat ini.
-     */
-    public function kodePerProdiAction(): Action
-    {
-        return Action::make('kodePerProdi')
-            ->label('Lihat kode per prodi')
-            ->modalHeading(fn (array $arguments): string => 'Kode Mata Kuliah per Prodi — '.($arguments['nama'] ?? ''))
-            ->modalContent(function (array $arguments): View {
-                $kurikulum = $this->getKurikulumProperty();
-                $mkUnitIds = $kurikulum !== null
-                    ? app(AnalisisMkProdiService::class)->mkUnitIdsUntukKurikulum($kurikulum)
-                    : collect();
-
-                $baris = app(AnalisisMkProdiService::class)->kodePerProdiUntukMk(
-                    (string) ($arguments['mkId'] ?? ''),
-                    $mkUnitIds,
-                );
-
-                return view('filament.modules.kurikulum.partials.tabel-kode-per-prodi', ['baris' => $baris]);
-            })
-            ->modalSubmitAction(false)
-            ->modalCancelActionLabel('Tutup');
-    }
-
-    /**
-     * Tab 4 — "Hasil Analisis Asesmen CPL per Mahasiswa": roster IPK
-     * kumulatif kurikulum yang dikerjakan lewat komponen Table Filament
-     * native (bukan HTML mentah seperti tab 1-3) supaya dapat
-     * search/pagination bawaan untuk ~100+ mahasiswa. Ringkasan IPK
-     * dihitung SEKALI per render tabel (bukan per baris) lewat
-     * IpkKumulatifService::rosterKurikulum(), disimpan ke variabel lokal
-     * yang di-closure-kan ke tiap kolom — menghindari N+1. Hanya mahasiswa
-     * yang mengontrak penawaran MK kurikulum ini yang tampil; SKS, nilai,
-     * IPK, dan grafik CPL modal hanya menghitung penawaran MK kurikulum ini.
-     */
     public function table(Table $table): Table
     {
         $kurikulum = $this->getKurikulumProperty();
@@ -244,14 +159,8 @@ trait HasAnalisisMkForUnitType
             ? collect(app(IpkKumulatifService::class)->rosterKurikulum($kurikulum, $mkUnitIds))->keyBy('mahasiswa_id')
             : new Collection;
 
-        // Tabel hanya menampilkan mahasiswa yang mengontrak MK pada kurikulum
-        // terpilih (bukan seluruh mahasiswa prodi).
         $mahasiswaIds = $roster->keys()->all();
-
-        // Kurikulum fakultas/universitas adalah rollup lintas beberapa prodi
-        // (lihat AnalisisMkProdiService::mkUnitIdsUntukKurikulum()) — kolom
-        // Prodi hanya relevan/ditampilkan pada kasus itu.
-        $tampilkanKolomProdi = static::analisisUnitType() !== 'study_program';
+        $tampilkanKolomProdi = $kurikulum?->academicUnit?->type !== 'study_program';
 
         return $table
             ->query(

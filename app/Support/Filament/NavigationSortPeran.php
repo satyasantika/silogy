@@ -8,13 +8,12 @@ use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 
 /**
  * Urutan menu khusus peran Tim Kurikulum (menunya sudah digabung rata
- * tanpa kategori, lihat [[NavigationGroupPeran]]) dan Koordinator Mata
- * Kuliah. Urutan Tim Kurikulum berbeda antara level PRODI dan level
- * non-prodi (fakultas/universitas/jurusan) — lihat
- * URUTAN_TIM_KURIKULUM_PRODI vs URUTAN_TIM_KURIKULUM_NON_PRODI di bawah
- * (prodi punya menu tambahan yang tidak relevan di level lain: Profil
- * Lulusan, Penawaran MK, Profil↔CPL). Urutan default per kategori yang
- * dipakai peran lain (Admin, Pimpinan, dst.) TIDAK diubah oleh helper ini.
+ * tanpa kategori, lihat [[NavigationGroupPeran]]), Koordinator Mata
+ * Kuliah, dan Pimpinan (tiga menu laporan CPL). Urutan Tim Kurikulum
+ * berbeda antara level PRODI dan level non-prodi (fakultas/universitas/
+ * jurusan) — lihat URUTAN_TIM_KURIKULUM_PRODI vs
+ * URUTAN_TIM_KURIKULUM_NON_PRODI di bawah. Urutan default per kategori
+ * yang dipakai peran lain (Admin, dst.) TIDAK diubah oleh helper ini.
  */
 final class NavigationSortPeran
 {
@@ -70,6 +69,13 @@ final class NavigationSortPeran
         'peserta-kelas' => 70,
     ];
 
+    private const URUTAN_PIMPINAN = [
+        'daftar-kurikulum' => 5,
+        'hasil-analisis-cpl' => 10,
+        'grafik-cpl' => 20,
+        'analisis-cpl-mahasiswa' => 30,
+    ];
+
     public static function resolve(string $item, ?int $default): ?int
     {
         $user = auth()->user();
@@ -90,6 +96,10 @@ final class NavigationSortPeran
 
         if ($role === 'Koordinator Mata Kuliah') {
             return self::URUTAN_KOORDINATOR_MK[$item] ?? $default;
+        }
+
+        if ($role === 'Pimpinan') {
+            return self::URUTAN_PIMPINAN[$item] ?? $default;
         }
 
         return $default;
