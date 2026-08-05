@@ -708,8 +708,137 @@
         color: rgb(161 161 170);
     }
 
+    /* Dual-donut di /laporan/kurikulums: dua pane progress berdampingan. */
+    .silogy-laporan-kurikulum-kpi__bento {
+        grid-template-columns: minmax(0, 1fr) 2px minmax(0, 1fr);
+    }
+
+    .silogy-laporan-kurikulum-kpi .silogy-penilaian-kpi__progress {
+        margin-top: 0.65rem;
+    }
+
+    /* Versi ringkas di dalam card kurikulum (setelah badge laporan). */
+    .silogy-laporan-kurikulum-kpi--card {
+        margin-top: 2px;
+        width: 100%;
+    }
+
+    /* Card: susun vertikal supaya teks & donat tidak sesak. */
+    .silogy-laporan-kurikulum-kpi__bento--card {
+        grid-template-columns: 1fr;
+        border-radius: 10px;
+    }
+
+    .silogy-laporan-kurikulum-kpi__bento--card .silogy-penilaian-kpi__rule {
+        width: auto;
+        height: 2px;
+        margin-block: 0;
+        margin-inline: 0.75rem;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 215, 0, 0.15) 0%,
+            #ffd700 45%,
+            rgba(11, 57, 20, 0.2) 100%
+        );
+    }
+
+    .dark .silogy-laporan-kurikulum-kpi__bento--card .silogy-penilaian-kpi__rule {
+        background: linear-gradient(
+            90deg,
+            rgba(255, 215, 0, 0.08) 0%,
+            rgba(255, 215, 0, 0.55) 50%,
+            rgba(255, 215, 0, 0.08) 100%
+        );
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__pane {
+        padding: 0.65rem 0.75rem 0.7rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__eyebrow {
+        font-size: 0.62rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__caption {
+        font-size: 0.7rem;
+        line-height: 1.25;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__progress {
+        gap: 0.65rem;
+        margin-top: 0.45rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__donut {
+        flex-basis: 3.75rem;
+        width: 3.75rem;
+        height: 3.75rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__donut-ring {
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 0.5rem), #000 calc(100% - 0.48rem));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 0.5rem), #000 calc(100% - 0.48rem));
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__donut-hole {
+        inset: 0.55rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__donut-value {
+        font-size: 0.8rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__progress-title {
+        font-size: 0.72rem;
+        line-height: 1.3;
+    }
+
+    .silogy-laporan-kurikulum-kpi--card .silogy-penilaian-kpi__progress-sub {
+        font-size: 0.65rem;
+    }
+
+    /* Halaman laporan: horizontal penuh di bawah banner. */
+    .silogy-laporan-kurikulum-kpi--page {
+        margin: 0;
+        padding: 12px 16px 14px;
+        width: 100%;
+        box-sizing: border-box;
+        background: transparent;
+    }
+
+    .silogy-laporan-kurikulum-kpi--page .silogy-laporan-kurikulum-kpi__bento:not(.silogy-laporan-kurikulum-kpi__bento--solo) {
+        grid-template-columns: minmax(0, 1fr) 2px minmax(0, 1fr);
+    }
+
+    .silogy-laporan-kurikulum-kpi__bento--solo {
+        grid-template-columns: 1fr;
+    }
+
+    .silogy-laporan-kurikulum-kpi--page .silogy-penilaian-kpi__pane {
+        padding: 0.9rem 1.1rem 1rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--page .silogy-penilaian-kpi__donut {
+        flex-basis: 5rem;
+        width: 5rem;
+        height: 5rem;
+    }
+
+    .silogy-laporan-kurikulum-kpi--nested {
+        padding: 0;
+    }
+
+    .fi-ta.silogy-kurikulum-cards .fi-ta-description {
+        width: 100%;
+        max-width: none;
+    }
+
     @media (max-width: 767px) {
         .silogy-penilaian-kpi__bento {
+            grid-template-columns: 1fr;
+        }
+
+        .silogy-laporan-kurikulum-kpi__bento {
             grid-template-columns: 1fr;
         }
 

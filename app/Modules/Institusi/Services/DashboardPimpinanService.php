@@ -6,8 +6,10 @@ use App\Models\User;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Services\AnalisisMkProdiService;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Data dashboard Pimpinan: KPI kurikulum serta capaian tertinggi
@@ -118,6 +120,87 @@ class DashboardPimpinanService
                 'jumlah_mahasiswa' => (int) $baris->jumlah_mahasiswa,
             ])
             ->all();
+    }
+
+    /**
+     * Progress penilaian untuk SATU kurikulum card:
+     * - Prodi: semua mk_units penawaran kurikulum tersebut
+     * - Fakultas/universitas: rollup mk_units prodi yang mengadaptasi MK
+     *   kurikulum induk (AnalisisMkProdiService::mkUnitIdsUntukKurikulum)
+     *
+     * Mahasiswa mengikuti penawaran yang sama (kontrak kelas pada mk_units).
+     *
+     * @return array{
+     *     mk_total: int,
+     *     mk_dinilai: int,
+     *     mk_progress_persen: int,
+     *     mahasiswa_total: int,
+     *     mahasiswa_dinilai: int,
+     *     mahasiswa_progress_persen: int
+     * }
+     */
+    public function rekapProgressPenilaianUntukKurikulum(Kurikulum $kurikulum): array
+    {
+        $kosong = [
+            'mk_total' => 0,
+            'mk_dinilai' => 0,
+            'mk_progress_persen' => 0,
+            'mahasiswa_total' => 0,
+            'mahasiswa_dinilai' => 0,
+            'mahasiswa_progress_persen' => 0,
+        ];
+
+        $kurikulum->loadMissing('academicUnit');
+
+        $mkUnitIds = app(AnalisisMkProdiService::class)
+            ->mkUnitIdsUntukKurikulum($kurikulum);
+
+        if ($mkUnitIds->isEmpty()) {
+            return $kosong;
+        }
+
+        // Semua penawaran dalam scope (bukan hanya yang sudah punya kelas).
+        $mkTotal = $mkUnitIds->count();
+
+        $mkDinilai = (int) DB::table('mk_units')
+            ->whereIn('mk_units.id', $mkUnitIds)
+            ->whereExists(function (QueryBuilder $exists): void {
+                $exists->selectRaw('1')
+                    ->from('kelas_mk')
+                    ->join(
+                        'kelas_mk_mahasiswa',
+                        'kelas_mk_mahasiswa.kelas_mk_id',
+                        '=',
+                        'kelas_mk.id',
+                    )
+                    ->whereColumn('kelas_mk.mk_unit_id', 'mk_units.id')
+                    ->whereNotNull('kelas_mk_mahasiswa.nilai_angka');
+            })
+            ->count();
+
+        $mahasiswaTotal = (int) DB::table('kelas_mk_mahasiswa')
+            ->join('kelas_mk', 'kelas_mk.id', '=', 'kelas_mk_mahasiswa.kelas_mk_id')
+            ->whereIn('kelas_mk.mk_unit_id', $mkUnitIds)
+            ->count('kelas_mk_mahasiswa.id');
+
+        $mahasiswaDinilai = (int) DB::table('kelas_mk_mahasiswa')
+            ->join('kelas_mk', 'kelas_mk.id', '=', 'kelas_mk_mahasiswa.kelas_mk_id')
+            ->whereIn('kelas_mk.mk_unit_id', $mkUnitIds)
+            ->whereNotNull('kelas_mk_mahasiswa.nilai_angka')
+            ->count('kelas_mk_mahasiswa.id');
+
+        return [
+            'mk_total' => $mkTotal,
+            'mk_dinilai' => $mkDinilai,
+            'mk_progress_persen' => $mkTotal > 0
+                ? (int) round(($mkDinilai / $mkTotal) * 100)
+                : 0,
+            'mahasiswa_total' => $mahasiswaTotal,
+            'mahasiswa_dinilai' => $mahasiswaDinilai,
+            'mahasiswa_progress_persen' => $mahasiswaTotal > 0
+                ? (int) round(($mahasiswaDinilai / $mahasiswaTotal) * 100)
+                : 0,
+        ];
     }
 
     /**

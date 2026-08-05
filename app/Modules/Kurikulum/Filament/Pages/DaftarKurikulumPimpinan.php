@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Services\DashboardPimpinanService;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
@@ -236,6 +237,7 @@ class DaftarKurikulumPimpinan extends Page implements HasActions, HasTable
             .' · '.e($unitNama)
             .'</div>'
             .static::ketersediaanMenuHtml($kurikulum)->toHtml()
+            .static::kpiProgressPenilaianHtml($kurikulum)->toHtml()
             .'</div>'
         );
     }
@@ -264,10 +266,15 @@ class DaftarKurikulumPimpinan extends Page implements HasActions, HasTable
             'mahasiswa' => 'Per Mahasiswa',
         ];
 
+        $icons = [
+            'hasil' => 'heroicon-m-clipboard-document-check',
+            'grafik' => 'heroicon-m-chart-bar',
+            'mahasiswa' => 'heroicon-m-user-group',
+        ];
+
         $badges = collect(static::ketersediaanMenu($kurikulum))
-            ->map(function (bool $ada, string $menu) use ($kurikulum, $labels): string {
+            ->map(function (bool $ada, string $menu) use ($kurikulum, $labels, $icons): string {
                 $label = $labels[$menu] ?? strtoupper($menu);
-                $status = $ada ? 'Ada' : 'Belum';
                 $url = route('silogy.kurikulum-navigasi-pimpinan', [
                     'kurikulum' => $kurikulum->id,
                     'menu' => $menu,
@@ -276,13 +283,26 @@ class DaftarKurikulumPimpinan extends Page implements HasActions, HasTable
                 $background = $ada ? '#dcfce7' : '#f3f4f6';
                 $color = $ada ? '#166534' : '#6b7280';
                 $border = $ada ? '#86efac' : '#d1d5db';
+                $title = $ada
+                    ? $label.' — data tersedia'
+                    : $label.' — belum ada CPL pada kurikulum ini';
+
+                $iconName = $icons[$menu] ?? 'heroicon-m-link';
+                $iconHtml = svg($iconName, [
+                    'style' => 'width:12px;height:12px;flex-shrink:0;',
+                    'aria-hidden' => 'true',
+                ])->toHtml();
 
                 return '<a href="'.e($url).'" '
+                    .'class="silogy-menu-badge silogy-menu-badge--'.e($menu).'" '
                     .'onclick="event.stopPropagation()" '
-                    .'style="display:inline-flex;align-items:center;padding:3px 8px;'
+                    .'title="'.e($title).'" '
+                    .'aria-label="'.e($title).'" '
+                    .'style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;'
                     .'border-radius:6px;font-size:11px;font-weight:600;line-height:1.4;text-decoration:none;'
                     .'background:'.$background.';color:'.$color.';border:1px solid '.$border.';">'
-                    .e($label).' · '.e($status)
+                    .$iconHtml
+                    .'<span>'.e($label).'</span>'
                     .'</a>';
             })
             ->implode('');
@@ -292,5 +312,24 @@ class DaftarKurikulumPimpinan extends Page implements HasActions, HasTable
             .$badges
             .'</div>'
         );
+    }
+
+    /**
+     * KPI bento donat per card — scope penawaran mengikuti
+     * AnalisisMkProdiService::mkUnitIdsUntukKurikulum (prodi vs rollup).
+     */
+    public static function kpiProgressPenilaianHtml(Kurikulum $kurikulum): HtmlString
+    {
+        return new HtmlString(view(
+            'filament.modules.kurikulum.partials.laporan-kurikulum-kpi',
+            [
+                ...app(DashboardPimpinanService::class)
+                    ->rekapProgressPenilaianUntukKurikulum($kurikulum),
+                'compact' => true,
+                'page' => false,
+                'tampil_mk' => true,
+                'tampil_mahasiswa' => true,
+            ],
+        )->render());
     }
 }
