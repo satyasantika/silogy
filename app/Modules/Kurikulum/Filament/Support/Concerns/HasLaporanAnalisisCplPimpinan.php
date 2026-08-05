@@ -3,6 +3,7 @@
 namespace App\Modules\Kurikulum\Filament\Support\Concerns;
 
 use App\Models\User;
+use App\Modules\Institusi\Services\DashboardPimpinanService;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Services\AnalisisMkProdiService;
 use App\Modules\Kurikulum\Services\IpkKumulatifService;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 
 /**
  * Perilaku bersama tiga menu laporan Pimpinan (Hasil Analisis CPL, Grafik
@@ -64,21 +66,6 @@ trait HasLaporanAnalisisCplPimpinan
         $this->muatHasilAnalisis();
     }
 
-    public function getTitle(): string
-    {
-        $kurikulum = $this->getKurikulumProperty();
-
-        if ($kurikulum === null) {
-            return static::$title ?? 'Laporan CPL';
-        }
-
-        return sprintf(
-            '%s — %s',
-            static::$title ?? 'Laporan CPL',
-            KurikulumTerpilih::unitHierarchyLabel($kurikulum->academicUnit),
-        );
-    }
-
     protected function muatHasilAnalisis(): void
     {
         $kurikulum = $this->getKurikulumProperty();
@@ -125,6 +112,49 @@ trait HasLaporanAnalisisCplPimpinan
     }
 
     /**
+     * Data view KPI donat untuk kurikulum terpilih.
+     *
+     * @param  'both'|'mk'|'mahasiswa'  $fokus
+     * @return array{
+     *     mk_total: int, mk_dinilai: int, mk_progress_persen: int,
+     *     mahasiswa_total: int, mahasiswa_dinilai: int, mahasiswa_progress_persen: int,
+     *     tampil_mk: bool, tampil_mahasiswa: bool, compact: bool, page: bool, nested: bool
+     * }
+     */
+    public function dataKpiProgressPenilaian(string $fokus = 'both', bool $nested = false): array
+    {
+        $kurikulum = $this->getKurikulumProperty();
+
+        $rekap = $kurikulum instanceof Kurikulum
+            ? app(DashboardPimpinanService::class)->rekapProgressPenilaianUntukKurikulum($kurikulum)
+            : [
+                'mk_total' => 0,
+                'mk_dinilai' => 0,
+                'mk_progress_persen' => 0,
+                'mahasiswa_total' => 0,
+                'mahasiswa_dinilai' => 0,
+                'mahasiswa_progress_persen' => 0,
+            ];
+
+        return [
+            ...$rekap,
+            'tampil_mk' => $fokus === 'both' || $fokus === 'mk',
+            'tampil_mahasiswa' => $fokus === 'both' || $fokus === 'mahasiswa',
+            'compact' => false,
+            'page' => true,
+            'nested' => $nested,
+        ];
+    }
+
+    public function htmlKpiProgressPenilaian(string $fokus = 'both', bool $nested = false): HtmlString
+    {
+        return new HtmlString(view(
+            'filament.modules.kurikulum.partials.laporan-kurikulum-kpi',
+            $this->dataKpiProgressPenilaian($fokus, $nested),
+        )->render());
+    }
+
+    /**
      * @return list<array{
      *     cpl_id: string, cpl_kode: string, cpl_deskripsi: string,
      *     ada_data: bool, labels: list<string>, data: list<float>,
@@ -163,6 +193,9 @@ trait HasLaporanAnalisisCplPimpinan
         $tampilkanKolomProdi = $kurikulum?->academicUnit?->type !== 'study_program';
 
         return $table
+            ->description(fn (): HtmlString => KurikulumTerpilih::bannerHtml(
+                bodyHtml: $this->htmlKpiProgressPenilaian('mahasiswa', nested: true)->toHtml(),
+            ))
             ->query(
                 $mahasiswaIds !== []
                     ? Mahasiswa::query()->whereIn('id', $mahasiswaIds)
@@ -177,25 +210,6 @@ trait HasLaporanAnalisisCplPimpinan
                 TextColumn::make('sks_dikontrak')
                     ->label('SKS Dikontrak')
                     ->getStateUsing(fn (Mahasiswa $record): int => $roster->get($record->id)['sks_dikontrak'] ?? 0),
-                TextColumn::make('nilai_angka')
-                    ->label('Nilai Angka')
-                    ->getStateUsing(fn (Mahasiswa $record): ?float => $roster->get($record->id)['nilai_angka'] ?? null)
-                    ->formatStateUsing(fn (?float $state): string => $state !== null ? number_format($state, 2) : '-'),
-                TextColumn::make('nilai_huruf')
-                    ->label('Nilai Huruf')
-                    ->badge()
-                    ->getStateUsing(fn (Mahasiswa $record): string => $roster->get($record->id)['nilai_huruf'] ?? '-')
-                    ->color(fn (string $state): string => match (true) {
-                        $state === '-' => 'gray',
-                        str_starts_with($state, 'A') => 'success',
-                        str_starts_with($state, 'B') => 'info',
-                        str_starts_with($state, 'C') => 'warning',
-                        default => 'danger',
-                    }),
-                TextColumn::make('bobot_huruf')
-                    ->label('Bobot Huruf')
-                    ->getStateUsing(fn (Mahasiswa $record): float => $roster->get($record->id)['bobot_huruf'] ?? 0.0)
-                    ->formatStateUsing(fn (float $state): string => number_format($state, 2)),
                 TextColumn::make('ipk')
                     ->label('IPK')
                     ->weight('bold')

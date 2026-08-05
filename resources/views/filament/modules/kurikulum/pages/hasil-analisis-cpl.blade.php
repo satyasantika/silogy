@@ -9,19 +9,21 @@
     >
         @livewire('silogy.kurikulum-terpilih-banner', ['catatan' => null, 'sebagaiHeaderPanel' => true])
 
-        <div style="padding:14px 16px 16px;">
+        @if ($kurikulum)
+            {!! $this->htmlKpiProgressPenilaian('both')->toHtml() !!}
+        @endif
+
+        <div style="padding:0;">
             @if (! $kurikulum)
-                <p style="font-size:13px;opacity:.75;">
+                <p style="padding:14px 16px 16px;font-size:13px;opacity:.75;">
                     Pilih kurikulum yang akan ditinjau lewat banner di atas, lalu buka kembali halaman ini.
                 </p>
             @else
-                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin-bottom:6px;">
-                    Hasil Analisis CPL
-                </div>
-                <p style="margin:0 0 12px;font-size:12px;line-height:1.5;opacity:.8;">
-                    Ringkasan analisis asesmen berdasarkan kurikulum terpilih
-                </p>
-                @include('filament.modules.kurikulum.partials.tabel-hasil-analisis-cpl', ['hasilAnalisis' => $hasilAnalisis])
+                @include('filament.modules.kurikulum.partials.tabel-hasil-analisis-cpl', [
+                    'hasilAnalisis' => $hasilAnalisis,
+                    'sempitKolomCpl' => true,
+                    'rapatKeBanner' => true,
+                ])
             @endif
         </div>
     </div>

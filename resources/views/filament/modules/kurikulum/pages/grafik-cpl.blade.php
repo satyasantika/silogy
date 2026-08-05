@@ -9,6 +9,10 @@
     >
         @livewire('silogy.kurikulum-terpilih-banner', ['catatan' => null, 'sebagaiHeaderPanel' => true])
 
+        @if ($kurikulum)
+            {!! $this->htmlKpiProgressPenilaian('mk')->toHtml() !!}
+        @endif
+
         <div style="padding:14px 16px 16px;">
             @if (! $kurikulum)
                 <p style="font-size:13px;opacity:.75;">

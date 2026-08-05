@@ -69,6 +69,16 @@ it('tim kurikulum tetap melihat Analisis MK dan tidak melihat menu laporan pimpi
         ->and(AnalisisCplMahasiswa::shouldRegisterNavigation())->toBeFalse();
 });
 
+it('halaman laporan pimpinan memakai judul singkat tanpa hierarki unit', function () {
+    $this->actingAs($this->kaprodi);
+    ActiveRole::set('Pimpinan');
+    KurikulumTerpilih::set($this->kurikulum->id);
+
+    expect(Livewire::test(HasilAnalisisCpl::class)->instance()->getTitle())->toBe('Hasil Analisis CPL')
+        ->and(Livewire::test(GrafikCpl::class)->instance()->getTitle())->toBe('Grafik CPL')
+        ->and(Livewire::test(AnalisisCplMahasiswa::class)->instance()->getTitle())->toBe('Analisis per Mahasiswa');
+});
+
 it('halaman laporan pimpinan menampilkan banner kurikulum dan konten tab analisis', function () {
     $this->actingAs($this->kaprodi);
     ActiveRole::set('Pimpinan');
@@ -78,25 +88,71 @@ it('halaman laporan pimpinan menampilkan banner kurikulum dan konten tab analisi
         ->assertSuccessful()
         ->assertSee('Kurikulum yang dikerjakan', escape: false)
         ->assertSeeHtml('data-silogy="banner-header-panel"')
-        ->assertSee('Hasil Analisis CPL', escape: false)
+        ->assertSeeHtml('silogy-laporan-kurikulum-kpi--page')
+        ->assertSee('Penilaian mata kuliah')
+        ->assertSee('Penilaian mahasiswa')
+        ->assertDontSee('Ringkasan analisis asesmen berdasarkan kurikulum terpilih', escape: false)
         ->assertDontSee('Pemetaan Rencana Asesmen CPL', escape: false);
 
     Livewire::test(GrafikCpl::class)
         ->assertSuccessful()
         ->assertSeeHtml('data-silogy="banner-header-panel"')
+        ->assertSeeHtml('silogy-laporan-kurikulum-kpi--page')
+        ->assertSee('Penilaian mata kuliah')
+        ->assertSee('Pengisian nilai pada penawaran MK')
+        ->assertDontSee('Pengisian nilai kontrak mata kuliah')
         ->assertSee('Grafik CPL', escape: false);
 
     Livewire::test(AnalisisCplMahasiswa::class)
         ->assertSuccessful()
-        ->assertSeeHtml('data-silogy="banner-header-panel"')
-        ->assertSee('Analisis per Mahasiswa', escape: false);
+        ->assertSee('Kurikulum yang dikerjakan', escape: false)
+        ->assertSeeHtml('silogy-laporan-kurikulum-kpi--page')
+        ->assertSee('Penilaian mahasiswa')
+        ->assertSee('Pengisian nilai kontrak mata kuliah')
+        ->assertDontSee('Pengisian nilai pada penawaran MK')
+        ->assertDontSee('Mahasiswa yang mengontrak mata kuliah pada kurikulum yang dikerjakan', escape: false)
+        ->assertDontSee('Nilai Angka', escape: false)
+        ->assertDontSee('Nilai Huruf', escape: false)
+        ->assertDontSee('Bobot Huruf', escape: false);
 });
 
-it('kaprodi tetap bisa membuka URL Analisis MK Prodi (akses data), hanya nav yang disembunyikan', function () {
+it('halaman hasil analisis pimpinan prodi menampilkan deskripsi CPL lengkap dan badge SKS MK', function () {
     $this->actingAs($this->kaprodi);
     ActiveRole::set('Pimpinan');
     KurikulumTerpilih::set($this->kurikulum->id);
 
-    expect(AnalisisMkProdi::canAccess())->toBeTrue()
-        ->and(AnalisisMkProdi::shouldRegisterNavigation())->toBeFalse();
+    $deskripsiCpl = 'Mampu merancang solusi perangkat lunak berbasis data untuk konteks program studi.';
+    $cpl = \App\Modules\CPL\Models\Cpl::factory()->forKurikulum($this->kurikulum)->create([
+        'kode' => 'CPL-PIM-01',
+        'deskripsi' => $deskripsiCpl,
+    ]);
+    $bok = \App\Modules\BoK\Models\Bok::factory()->forKurikulum($this->kurikulum)->create();
+    $cplBok = \App\Modules\CPL\Models\CplBok::query()->create([
+        'cpl_id' => $cpl->id,
+        'bok_id' => $bok->id,
+        'bobot' => 100,
+    ]);
+    $mk = \App\Modules\MK\Models\Mk::factory()->forKurikulum($this->kurikulum)->create([
+        'nama' => 'Pemrograman Lanjut Pimpinan',
+        'sks_teori' => 2,
+        'sks_praktik' => 1,
+        'sks_lapangan' => 0,
+        'sks' => 3,
+    ]);
+    \App\Modules\MK\Models\MkUnit::factory()->forMk($mk)->forKurikulum($this->kurikulum)->create([
+        'kode' => 'PIM3101',
+        'is_active' => true,
+    ]);
+    \App\Modules\CPL\Models\CplMk::query()->create([
+        'cpl_bok_id' => $cplBok->id,
+        'mk_id' => $mk->id,
+        'bobot' => 100,
+    ]);
+
+    Livewire::test(HasilAnalisisCpl::class)
+        ->assertSuccessful()
+        ->assertSee($deskripsiCpl, escape: false)
+        ->assertSee('Pemrograman Lanjut Pimpinan (PIM3101)', escape: false)
+        ->assertSee('3 SKS', escape: false)
+        ->assertDontSee('-webkit-line-clamp:4', escape: false);
 });
