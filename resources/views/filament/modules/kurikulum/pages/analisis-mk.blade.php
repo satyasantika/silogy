@@ -51,7 +51,10 @@
                     <p style="margin:0 0 12px;font-size:12px;line-height:1.5;opacity:.8;">
                         Ringkasan analisis asesmen berdasarkan kurikulum terpilih
                     </p>
-                    @include('filament.modules.kurikulum.partials.tabel-hasil-analisis-cpl', ['hasilAnalisis' => $hasilAnalisis])
+                    @include('filament.modules.kurikulum.partials.tabel-hasil-analisis-cpl', [
+                        'hasilAnalisis' => $hasilAnalisis,
+                        'sempitKolomCpl' => true,
+                    ])
                 </div>
 
                 <div x-show="tabAktif === 'grafik'" x-cloak>

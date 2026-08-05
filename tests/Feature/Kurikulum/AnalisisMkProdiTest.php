@@ -16,6 +16,7 @@ use App\Modules\Kurikulum\Services\AnalisisMkProdiService;
 use App\Modules\Kurikulum\Services\IpkKumulatifService;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Modules\Mahasiswa\Support\AngkatanDariNim;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
@@ -466,7 +467,37 @@ it('hasilAnalisisPerAngkatan mengelompokkan rerata dan N per angkatan mahasiswa'
         ->and($ketercapaian['persentase_tercapai'])->toBe(50.0)
         ->and($ketercapaian['tercapai'])->toBeFalse();
 
-    $test->assertSee('CPL tidak tercapai', escape: false);
+    $test->assertSee('CPL tidak tercapai', escape: false)
+        ->assertSeeHtml('n=1')
+        ->assertDontSeeHtml('>Rerata</th>')
+        ->assertDontSeeHtml('>N</th>');
+});
+
+it('hasilAnalisisPerAngkatan tetap menampilkan rerata dan ketercapaian bila angkatan mahasiswa kosong', function () {
+    $this->seed(SemesterSeeder::class);
+    $this->seed(EvaluasiSeeder::class);
+    $this->actingAs($this->kaprodi);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-NULL-ANG']);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+
+    $mahasiswa = Mahasiswa::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nim' => '249990001',
+        'angkatan' => null,
+    ]);
+
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'MK Tanpa Angkatan', 'KU21599001', 100, [$mahasiswa->id => 80]);
+
+    $hasilAnalisis = Livewire::test(AnalisisMkProdi::class)->get('hasilAnalisis');
+    $cplGroup = collect($hasilAnalisis['pemetaan'])->firstWhere('cpl_kode', 'CPL-NULL-ANG');
+
+    expect($hasilAnalisis['angkatan_list'])->toBe([AngkatanDariNim::LABEL_TANPA_ANGKATAN])
+        ->and($cplGroup['mk_rows'][0]['rata_rata_keseluruhan'])->toBe(80.0)
+        ->and($cplGroup['mk_rows'][0]['per_angkatan'][AngkatanDariNim::LABEL_TANPA_ANGKATAN]['n'])->toBe(1)
+        ->and($cplGroup['ketercapaian']['rata_rata'])->toBe(80.0)
+        ->and($cplGroup['ketercapaian']['jumlah_mahasiswa'])->toBe(1);
 });
 
 it('menghitung ketercapaian CPL tertimbang menurut kontribusi MK, bukan rata-rata sederhana', function () {
@@ -495,7 +526,7 @@ it('menghitung ketercapaian CPL tertimbang menurut kontribusi MK, bukan rata-rat
         ->and($cplGroup['ketercapaian']['tercapai'])->toBeFalse();
 });
 
-it('menormalisasi ulang bobot ke MK yang sudah ditempuh saja saat menghitung ketercapaian', function () {
+it('menekan ketercapaian sesuai kontribusi MK yang belum ditempuh (tanpa renormalisasi)', function () {
     $this->seed(SemesterSeeder::class);
     $this->seed(EvaluasiSeeder::class);
     $this->actingAs($this->kaprodi);
@@ -518,13 +549,46 @@ it('menormalisasi ulang bobot ke MK yang sudah ditempuh saja saat menghitung ket
     $hasilAnalisis = Livewire::test(AnalisisMkProdi::class)->get('hasilAnalisis');
     $ketercapaian = collect($hasilAnalisis['pemetaan'])->firstWhere('cpl_kode', 'CPL09')['ketercapaian'];
 
-    // Mahasiswa yang baru menempuh MK berbobot 70 dinilai 80 (bobotnya
-    // dinormalisasi ulang ke MK itu saja), bukan 80 × 0,7 = 56. Rerata CPL =
-    // (65 + 80) / 2 = 72,5 dengan 1 dari 2 mahasiswa mencapai target 75.
+    // Lengkap: (100×30 + 50×70) / 100 = 65. Sebagian (hanya MK 70%): 80×70 / 100 = 56.
+    // Rerata CPL = (65 + 56) / 2 = 60,5 — belum ada yang ≥ target 75.
     expect($ketercapaian['jumlah_mahasiswa'])->toBe(2)
-        ->and($ketercapaian['rata_rata'])->toBe(72.5)
-        ->and($ketercapaian['persentase_tercapai'])->toBe(50.0)
+        ->and($ketercapaian['rata_rata'])->toBe(60.5)
+        ->and($ketercapaian['persentase_tercapai'])->toBe(0.0)
         ->and($ketercapaian['tercapai'])->toBeFalse();
+});
+
+it('menandai baris MK success/warning menurut rerata vs target, tanpa tanda bila belum dinilai', function () {
+    $this->seed(SemesterSeeder::class);
+    $this->seed(EvaluasiSeeder::class);
+    $this->actingAs($this->kaprodi);
+
+    $this->kurikulum->update(['target_capaian_lulusan' => 75]);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-TINT']);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+
+    $mahasiswa = Mahasiswa::factory()->create(['academic_unit_id' => $this->prodi->id, 'angkatan' => '2023']);
+
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'MK Lulus Target', 'KU21524001', 40, [$mahasiswa->id => 80]);
+    buatMkPenyumbangCpl($this->prodi, $this->dosen, $cplBok, 'MK Di Bawah Target', 'KU21524002', 40, [$mahasiswa->id => 60]);
+
+    $mkBelum = Mk::factory()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'MK Belum Dinilai',
+        'sks_teori' => 2,
+        'sks_praktik' => 0,
+        'sks_lapangan' => 0,
+        'sks' => 2,
+    ]);
+    MkUnit::factory()->forMk($mkBelum)->forAcademicUnit($this->prodi)->create(['kode' => 'KU21524003', 'is_active' => true]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mkBelum->id, 'bobot' => 20]);
+
+    Livewire::test(AnalisisMkProdi::class)
+        ->assertSeeHtml('data-silogy-mk-capaian="success"')
+        ->assertSeeHtml('data-silogy-mk-capaian="warning"')
+        ->assertSee('MK Belum Dinilai', escape: false)
+        ->assertDontSeeHtml('hasil-'.$cpl->id.'-'.$mkBelum->id.'" data-silogy-mk-capaian');
 });
 
 it('menampilkan "menunggu selesai penilaian" bila CPL belum punya hasil kalkulasi', function () {

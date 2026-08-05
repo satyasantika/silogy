@@ -150,4 +150,24 @@
         border-color: rgba(255, 215, 0, 0.22);
         color: #fde68a;
     }
+
+    /*
+     * Baris MK pada hasil analisis CPL: tint success/warning menurut
+     * rerata MK vs target. Kolom rowspan (CPL / ketercapaian) tidak diwarnai.
+     */
+    tr[data-silogy-mk-capaian="success"] > td:not([rowspan]) {
+        background: rgba(34, 197, 94, .10);
+    }
+
+    tr[data-silogy-mk-capaian="warning"] > td:not([rowspan]) {
+        background: rgba(245, 158, 11, .10);
+    }
+
+    .dark tr[data-silogy-mk-capaian="success"] > td:not([rowspan]) {
+        background: rgba(34, 197, 94, .16);
+    }
+
+    .dark tr[data-silogy-mk-capaian="warning"] > td:not([rowspan]) {
+        background: rgba(245, 158, 11, .16);
+    }
 </style>

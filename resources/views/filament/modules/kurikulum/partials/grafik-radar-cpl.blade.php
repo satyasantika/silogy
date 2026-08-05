@@ -3,7 +3,7 @@
         Belum ada CPL yang dibebankan pada mata kuliah di program studi ini.
     </p>
 @else
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(480px, 1fr));gap:16px;">
         @foreach ($radarPerCpl as $cplData)
             <div wire:key="grafik-cpl-{{ $cplData['cpl_id'] }}" style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                 <div style="margin-bottom:8px;">
@@ -20,7 +20,7 @@
                         <canvas
                             wire:key="radar-cpl-{{ $cplData['cpl_id'] }}"
                             x-data
-                            x-init="renderRadarSilogy($el, @js(['labels' => $cplData['labels'], 'data' => $cplData['data']]), '#2563eb')"
+                            x-init="renderRadarSilogy($el, @js(['labels' => $cplData['labels'], 'data' => $cplData['data'], 'label_max_len' => 22]), '#2563eb')"
                         ></canvas>
                     </div>
                 @endif

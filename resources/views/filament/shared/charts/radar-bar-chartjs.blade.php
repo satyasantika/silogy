@@ -16,6 +16,46 @@
             window.addEventListener('open-modal', () => chart.resize(), { once: true });
         }
 
+        function bungkusLabelRadarSilogy(label, maxLen) {
+            if (Array.isArray(label)) {
+                return label;
+            }
+
+            const text = String(label ?? '').trim();
+
+            if (text === '' || text.length <= maxLen) {
+                return text;
+            }
+
+            const words = text.split(/\s+/);
+            const lines = [];
+            let current = '';
+
+            for (const word of words) {
+                const next = current === '' ? word : `${current} ${word}`;
+
+                if (next.length > maxLen && current !== '') {
+                    lines.push(current);
+
+                    if (word.length > maxLen) {
+                        const chunks = word.match(new RegExp(`.{1,${maxLen}}`, 'g')) || [word];
+                        lines.push(...chunks.slice(0, -1));
+                        current = chunks[chunks.length - 1];
+                    } else {
+                        current = word;
+                    }
+                } else {
+                    current = next;
+                }
+            }
+
+            if (current !== '') {
+                lines.push(current);
+            }
+
+            return lines.length > 1 ? lines : text;
+        }
+
         window.renderRadarSilogy = function (canvas, dataset, color) {
             if (! canvas || typeof Chart === 'undefined') {
                 return;
@@ -25,10 +65,13 @@
                 canvas._radarChartInstance.destroy();
             }
 
+            const maxLen = Number(dataset.label_max_len ?? dataset.labelMaxLen ?? 20);
+            const labels = (dataset.labels || []).map((label) => bungkusLabelRadarSilogy(label, maxLen));
+
             canvas._radarChartInstance = new Chart(canvas, {
                 type: 'radar',
                 data: {
-                    labels: dataset.labels,
+                    labels,
                     datasets: [{
                         label: 'Nilai',
                         data: dataset.data,
@@ -45,16 +88,21 @@
                     maintainAspectRatio: true,
                     layout: {
                         padding: {
-                            top: 8,
-                            right: 12,
-                            bottom: 8,
-                            left: 12,
+                            top: 14,
+                            right: 18,
+                            bottom: 14,
+                            left: 18,
                         },
                     },
                     scales: {
                         r: {
                             min: 0,
                             max: 100,
+                            pointLabels: {
+                                font: {
+                                    size: 11,
+                                },
+                            },
                         },
                     },
                     plugins: {

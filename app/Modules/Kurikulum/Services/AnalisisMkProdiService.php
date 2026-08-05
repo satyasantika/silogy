@@ -6,6 +6,7 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Mahasiswa\Support\AngkatanDariNim;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
@@ -258,22 +259,33 @@ class AnalisisMkProdiService
         // kurikulum/prodi LAIN yang kebetulan memakai mk_id sama (mis. MK
         // yang diadaptasi ke beberapa prodi turunan) tidak ikut terhitung
         // di luar rollup mk_unit_ids yang sudah diresolusi di atas.
+        // Angkatan boleh kosong — tetap masuk rerata/ketercapaian; label
+        // grouping memakai bucket "Tanpa angkatan" (lihat AngkatanDariNim).
         $hasilRows = HasilCplMk::query()
             ->whereNotNull('nilai_akhir')
             ->whereHas('mkUnit', fn ($query) => $query->whereIn('id', $mkUnitIds))
             ->with(['mkUnit', 'kelasMkMahasiswa.mahasiswa'])
             ->get()
-            ->filter(fn (HasilCplMk $hasil): bool => filled($hasil->kelasMkMahasiswa?->mahasiswa?->angkatan));
+            ->filter(fn (HasilCplMk $hasil): bool => $hasil->kelasMkMahasiswa?->mahasiswa !== null);
 
         $angkatanList = $hasilRows
-            ->pluck('kelasMkMahasiswa.mahasiswa.angkatan')
+            ->map(fn (HasilCplMk $hasil): string => AngkatanDariNim::label($hasil->kelasMkMahasiswa->mahasiswa->angkatan))
             ->unique()
-            ->sort()
+            ->sort(function (string $a, string $b): int {
+                if ($a === AngkatanDariNim::LABEL_TANPA_ANGKATAN) {
+                    return 1;
+                }
+                if ($b === AngkatanDariNim::LABEL_TANPA_ANGKATAN) {
+                    return -1;
+                }
+
+                return $a <=> $b;
+            })
             ->values()
             ->all();
 
         $perMkAngkatan = $hasilRows->groupBy(
-            fn (HasilCplMk $hasil): string => $hasil->cpl_id.'|'.$hasil->mkUnit->mk_id.'|'.$hasil->kelasMkMahasiswa->mahasiswa->angkatan,
+            fn (HasilCplMk $hasil): string => $hasil->cpl_id.'|'.$hasil->mkUnit->mk_id.'|'.AngkatanDariNim::label($hasil->kelasMkMahasiswa->mahasiswa->angkatan),
         );
         $perMkKeseluruhan = $hasilRows->groupBy(
             fn (HasilCplMk $hasil): string => $hasil->cpl_id.'|'.$hasil->mkUnit->mk_id,
@@ -335,8 +347,9 @@ class AnalisisMkProdiService
      * tanpa filter semester_id tunggal.
      *
      * Nilai tiap mahasiswa dihitung TERTIMBANG memakai kontribusi MK ke CPL
-     * (lihat nilaiCplTertimbang()), jadi MK dengan bobot besar lebih
-     * menentukan ketercapaian. Konsekuensinya angka di halaman ini berbeda
+     * terhadap basis 100% (lihat nilaiCplTertimbang()) — MK yang belum
+     * dinilai tidak diabaikan dari penyebut, sehingga porsi kontribusi
+     * tetap menekan capaian. Konsekuensinya angka di halaman ini berbeda
      * basis dari dashboard CPL yang memakai hasil_cpl_mk.nilai_berbobot
      * (CplUnitAggregator::agregatDariMkUnits()) — penyelarasan keduanya di
      * luar cakupan perubahan ini.
@@ -375,14 +388,14 @@ class AnalisisMkProdiService
     }
 
     /**
-     * Nilai satu mahasiswa untuk satu CPL: rata-rata TERTIMBANG dari rerata
-     * nilainya di tiap MK, dengan bobot berupa kontribusi MK ke CPL itu.
+     * Nilai satu mahasiswa untuk satu CPL: jumlah TERTIMBANG
+     * (rerata_mk × kontribusi_mk) / 100. Kontribusi dipakai apa adanya
+     * (Σ kontribusi seluruh MK penyumbang = 100), tanpa renormalisasi ke
+     * MK yang sudah ditempuh — supaya MK yang belum dinilai tetap
+     * mengurangi capaian sesuai porsi kontribusinya.
      *
-     * Bobot dinormalisasi ulang ke MK yang BENAR-BENAR sudah ditempuh
-     * (pembagi = Σ bobot MK yang punya nilai, bukan 100) supaya mahasiswa
-     * angkatan baru yang belum menempuh seluruh MK penyumbang CPL tidak
-     * tertekan nilainya. Bila tidak ada MK berbobot yang ditempuh, jatuh
-     * kembali ke rata-rata sederhana agar hasilnya tidak hilang.
+     * Bila tidak ada MK berbobot yang punya nilai, jatuh ke rata-rata
+     * sederhana agar baris hasil tidak hilang.
      *
      * @param  Collection<int, HasilCplMk>  $baris  hasil_cpl_mk satu mahasiswa pada satu CPL
      * @param  array<string, float>  $kontribusiPerMk
@@ -394,7 +407,7 @@ class AnalisisMkProdiService
             ->map(fn (Collection $samaMk): float => (float) $samaMk->avg('nilai_akhir'));
 
         $jumlahBerbobot = 0.0;
-        $totalBobot = 0.0;
+        $adaBobot = false;
 
         foreach ($rerataPerMk as $mkId => $rerata) {
             $bobot = (float) ($kontribusiPerMk[$mkId] ?? 0);
@@ -404,14 +417,14 @@ class AnalisisMkProdiService
             }
 
             $jumlahBerbobot += $rerata * $bobot;
-            $totalBobot += $bobot;
+            $adaBobot = true;
         }
 
-        if ($totalBobot <= 0) {
+        if (! $adaBobot) {
             return (float) $baris->avg('nilai_akhir');
         }
 
-        return $jumlahBerbobot / $totalBobot;
+        return $jumlahBerbobot / 100.0;
     }
 
     /**

@@ -328,7 +328,7 @@ it('kolom Tab 1 hanya menampilkan nama MK tanpa kode untuk fakultas, tapi tetap 
         ->assertSee('MK Milik Prodi A (PRA101)', escape: false);
 });
 
-it('kolom Aspek Mata Kuliah pada Tab 2 menampilkan badge SKS untuk fakultas, tapi tetap nama (kode) untuk prodi', function () {
+it('kolom Aspek Mata Kuliah menampilkan badge SKS untuk fakultas dan prodi (prodi tetap nama + kode)', function () {
     $this->actingAs(User::query()->where('username', 'timkurfak')->firstOrFail());
     siapkanRollupHasilCplMk($this);
 
@@ -341,11 +341,17 @@ it('kolom Aspek Mata Kuliah pada Tab 2 menampilkan badge SKS untuk fakultas, tap
         ->assertSee($mk->total_sks.' SKS', escape: false)
         ->assertDontSee($mkUnitA->kode, escape: false);
 
-    // Prodi A: kolom Aspek Mata Kuliah tetap format lama "Nama (Kode)".
+    // Prodi A: format "Nama (Kode)" + badge SKS.
     $cplProdi = Cpl::factory()->forKurikulum($this->kurikulumA)->create(['kode' => 'CPL-PRODI-SKS']);
     $bokProdi = Bok::factory()->forKurikulum($this->kurikulumA)->create();
     $cplBokProdi = CplBok::query()->create(['cpl_id' => $cplProdi->id, 'bok_id' => $bokProdi->id, 'bobot' => 100]);
-    $mkProdi = Mk::factory()->forKurikulum($this->kurikulumA)->create(['nama' => 'MK Prodi Untuk SKS']);
+    $mkProdi = Mk::factory()->forKurikulum($this->kurikulumA)->create([
+        'nama' => 'MK Prodi Untuk SKS',
+        'sks_teori' => 3,
+        'sks_praktik' => 0,
+        'sks_lapangan' => 0,
+        'sks' => 3,
+    ]);
     MkUnit::factory()->forMk($mkProdi)->forKurikulum($this->kurikulumA)->create(['kode' => 'PRSKS01', 'is_active' => true]);
     CplMk::query()->create(['cpl_bok_id' => $cplBokProdi->id, 'mk_id' => $mkProdi->id, 'bobot' => 100]);
 
@@ -353,7 +359,8 @@ it('kolom Aspek Mata Kuliah pada Tab 2 menampilkan badge SKS untuk fakultas, tap
     $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
 
     Livewire::test(AnalisisMkProdi::class)
-        ->assertSee('MK Prodi Untuk SKS (PRSKS01)', escape: false);
+        ->assertSee('MK Prodi Untuk SKS (PRSKS01)', escape: false)
+        ->assertSee('3 SKS', escape: false);
 });
 
 it('tab hasil analisis dan grafik CPL tetap menampilkan struktur CPL/MK fakultas walau belum ada prodi yang menawarkan', function () {
