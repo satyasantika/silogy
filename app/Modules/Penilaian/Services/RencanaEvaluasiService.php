@@ -28,8 +28,8 @@ class RencanaEvaluasiService
      *             evaluasi_nama: string,
      *             asesmen: list<array{kode: string, nama: string, bobot: float}>,
      *             bobot_total: float,
-     *             cpl_kodes: list<string>,
-     *             cpmk_kodes: list<string>
+     *             cpls: list<array{kode: string, deskripsi: string|null}>,
+     *             cpmks: list<array{kode: string, deskripsi: string|null}>
      *         }>
      *     }>,
      *     total_bobot: float
@@ -85,8 +85,8 @@ class RencanaEvaluasiService
                     'evaluasi_nama' => $evaluasi->nama,
                     'asesmen' => $asesmen,
                     'bobot_total' => $bobotTotal,
-                    'cpl_kodes' => $this->kumpulkanCplKodes($komponens),
-                    'cpmk_kodes' => $this->kumpulkanCpmkKodes($komponens),
+                    'cpls' => $this->kumpulkanCpls($komponens),
+                    'cpmks' => $this->kumpulkanCpmks($komponens),
                 ];
             }
 
@@ -120,32 +120,40 @@ class RencanaEvaluasiService
 
     /**
      * @param  Collection<int, KomponenPenilaian>  $komponens
-     * @return list<string>
+     * @return list<array{kode: string, deskripsi: string|null}>
      */
-    private function kumpulkanCplKodes(Collection $komponens): array
+    private function kumpulkanCpls(Collection $komponens): array
     {
         return $komponens
             ->flatMap(fn (KomponenPenilaian $komponen) => $komponen->subcpmkKomponens)
-            ->map(fn ($pivot) => $pivot->subcpmk?->mkCpmk?->cplMk?->cplBok?->cpl?->kode)
+            ->map(fn ($pivot) => $pivot->subcpmk?->mkCpmk?->cplMk?->cplBok?->cpl)
             ->filter()
-            ->unique()
-            ->sort()
+            ->unique('id')
+            ->sortBy('kode')
+            ->map(fn ($cpl): array => [
+                'kode' => (string) $cpl->kode,
+                'deskripsi' => filled($cpl->deskripsi) ? (string) $cpl->deskripsi : null,
+            ])
             ->values()
             ->all();
     }
 
     /**
      * @param  Collection<int, KomponenPenilaian>  $komponens
-     * @return list<string>
+     * @return list<array{kode: string, deskripsi: string|null}>
      */
-    private function kumpulkanCpmkKodes(Collection $komponens): array
+    private function kumpulkanCpmks(Collection $komponens): array
     {
         return $komponens
             ->flatMap(fn (KomponenPenilaian $komponen) => $komponen->subcpmkKomponens)
-            ->map(fn ($pivot) => $pivot->subcpmk?->mkCpmk?->cpmk?->kode)
+            ->map(fn ($pivot) => $pivot->subcpmk?->mkCpmk?->cpmk)
             ->filter()
-            ->unique()
-            ->sort()
+            ->unique('id')
+            ->sortBy('kode')
+            ->map(fn ($cpmk): array => [
+                'kode' => (string) $cpmk->kode,
+                'deskripsi' => filled($cpmk->deskripsi) ? (string) $cpmk->deskripsi : null,
+            ])
             ->values()
             ->all();
     }

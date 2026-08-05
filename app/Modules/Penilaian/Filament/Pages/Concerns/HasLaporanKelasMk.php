@@ -72,7 +72,7 @@ trait HasLaporanKelasMk
     public array $detailCplCpmkSubcpmk = [];
 
     /**
-     * @var array{groups: list<array{label: string, bobot_persen: float, rows: list<array{evaluasi_nama: string, asesmen: list<array{kode: string, nama: string, bobot: float}>, bobot_total: float, cpl_kodes: list<string>, cpmk_kodes: list<string>}>}>, total_bobot: float}|null
+     * @var array{groups: list<array{label: string, bobot_persen: float, rows: list<array{evaluasi_nama: string, asesmen: list<array{kode: string, nama: string, bobot: float}>, bobot_total: float, cpls: list<array{kode: string, deskripsi: string|null}>, cpmks: list<array{kode: string, deskripsi: string|null}>}>}>, total_bobot: float}|null
      */
     public ?array $rencanaEvaluasi = null;
 

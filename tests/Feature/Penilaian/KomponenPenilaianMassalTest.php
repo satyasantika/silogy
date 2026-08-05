@@ -141,6 +141,58 @@ it('kode subcpmk pada card asesmen menjadi trigger keterangan tanpa membuka edit
         ->toContain('@click.stop.prevent');
 });
 
+it('Tabel Rencana Evaluasi memakai trigger keterangan untuk kode CPL dan CPMK', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create([
+        'kode' => 'CPL-RE',
+        'deskripsi' => 'Deskripsi CPL di rencana evaluasi.',
+    ]);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
+    $cpmk = Cpmk::query()->create([
+        'mk_id' => $this->mk->id,
+        'kode' => 'CPMK-RE',
+        'deskripsi' => 'Deskripsi CPMK di rencana evaluasi.',
+    ]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+    $sub = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id,
+        'semester_id' => $this->semester->id,
+        'kode' => 'SubCPMK-RE',
+        'deskripsi' => 'Sub untuk rantai CPL-CPMK.',
+    ]);
+
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'ASES-RE',
+        'nama' => 'Asesmen Rencana Evaluasi',
+        'bobot' => 100,
+    ]);
+
+    SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $sub->id,
+        'komponen_penilaian_id' => $komponen->id,
+        'bobot' => 100,
+    ]);
+
+    $html = Livewire::test(ListKomponenPenilaians::class)->loadTable()->html();
+
+    expect($html)
+        ->toContain('Tabel Rencana Evaluasi')
+        ->toContain('data-silogy="kode-keterangan-trigger"')
+        ->toContain('data-jenis="CPL"')
+        ->toContain('CPL-RE')
+        ->toContain('Deskripsi CPL di rencana evaluasi.')
+        ->toContain('data-jenis="CPMK"')
+        ->toContain('CPMK-RE')
+        ->toContain('Deskripsi CPMK di rencana evaluasi.');
+});
+
 it('membuat asesmen baru menghasilkan satu baris untuk mk dan semester terpilih, bukan satu per kelas', function () {
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);

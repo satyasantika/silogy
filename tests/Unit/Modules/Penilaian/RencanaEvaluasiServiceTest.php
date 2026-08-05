@@ -66,8 +66,14 @@ beforeEach(function () {
 
 it('menyusun rencana evaluasi per grup kategori evaluasi', function () {
     $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
-    $cpmk = Cpmk::factory()->forMk($this->mk)->create(['kode' => 'CPMK-1']);
-    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL06']);
+    $cpmk = Cpmk::factory()->forMk($this->mk)->create([
+        'kode' => 'CPMK-1',
+        'deskripsi' => 'Mampu menerapkan konsep dasar.',
+    ]);
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create([
+        'kode' => 'CPL06',
+        'deskripsi' => 'Menguasai landasan keilmuan.',
+    ]);
     $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
     $cplBok = CplBok::query()->create([
         'cpl_id' => $cpl->id,
@@ -108,8 +114,10 @@ it('menyusun rencana evaluasi per grup kategori evaluasi', function () {
         ->and($quizRow['asesmen'])->toHaveCount(1)
         ->and($quizRow['asesmen'][0]['kode'])->toBe('Asesmen01')
         ->and($quizRow['bobot_total'])->toBe(8.0)
-        ->and($quizRow['cpl_kodes'])->toContain('CPL06')
-        ->and($quizRow['cpmk_kodes'])->toContain('CPMK-1')
+        ->and(collect($quizRow['cpls'])->pluck('kode'))->toContain('CPL06')
+        ->and(collect($quizRow['cpls'])->firstWhere('kode', 'CPL06')['deskripsi'])->toBe('Menguasai landasan keilmuan.')
+        ->and(collect($quizRow['cpmks'])->pluck('kode'))->toContain('CPMK-1')
+        ->and(collect($quizRow['cpmks'])->firstWhere('kode', 'CPMK-1')['deskripsi'])->toBe('Mampu menerapkan konsep dasar.')
         ->and($rencana['total_bobot'])->toBe(8.0);
 });
 

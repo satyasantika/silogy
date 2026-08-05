@@ -75,10 +75,34 @@
                                             {{ $service->formatBobot($row['bobot_total']) }}
                                         </td>
                                         <td style="padding:10px 12px;">
-                                            {{ $row['cpl_kodes'] !== [] ? implode(', ', $row['cpl_kodes']) : '-' }}
+                                            @if (($row['cpls'] ?? []) === [])
+                                                -
+                                            @else
+                                                <span style="display:inline-flex;flex-wrap:wrap;align-items:baseline;">
+                                                    @foreach ($row['cpls'] as $cpl)
+                                                        @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
+                                                            'jenis' => 'CPL',
+                                                            'kode' => $cpl['kode'],
+                                                            'deskripsi' => $cpl['deskripsi'] ?? null,
+                                                        ])@if (! $loop->last)<span style="margin:0 4px;opacity:.4;" aria-hidden="true">,</span>@endif
+                                                    @endforeach
+                                                </span>
+                                            @endif
                                         </td>
                                         <td style="padding:10px 12px;">
-                                            {{ $row['cpmk_kodes'] !== [] ? implode(', ', $row['cpmk_kodes']) : '-' }}
+                                            @if (($row['cpmks'] ?? []) === [])
+                                                -
+                                            @else
+                                                <span style="display:inline-flex;flex-wrap:wrap;align-items:baseline;">
+                                                    @foreach ($row['cpmks'] as $cpmk)
+                                                        @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
+                                                            'jenis' => 'CPMK',
+                                                            'kode' => $cpmk['kode'],
+                                                            'deskripsi' => $cpmk['deskripsi'] ?? null,
+                                                        ])@if (! $loop->last)<span style="margin:0 4px;opacity:.4;" aria-hidden="true">,</span>@endif
+                                                    @endforeach
+                                                </span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
