@@ -6,9 +6,9 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
 use App\Modules\Kurikulum\Services\NormalisasiBobotCplMkService;
-use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\MK\Models\Mk;
+use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Support\Filament\NavigationGroupPeran;
 use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\Action;
@@ -88,9 +88,21 @@ class CplMkMatrix extends Page
             return;
         }
 
+        $batas = CplMk::sisaBobotTersedia($mkId, $cplBokId);
+        $nilai = round(min(round((float) $bobot, CplMk::DESIMAL_BOBOT), $batas), CplMk::DESIMAL_BOBOT);
+
+        if ($nilai <= 0) {
+            CplMk::query()
+                ->where('mk_id', $mkId)
+                ->where('cpl_bok_id', $cplBokId)
+                ->delete();
+
+            return;
+        }
+
         CplMk::query()->updateOrCreate(
             ['mk_id' => $mkId, 'cpl_bok_id' => $cplBokId],
-            ['bobot' => min((float) $bobot, 100)],
+            ['bobot' => $nilai],
         );
     }
 
@@ -208,7 +220,7 @@ class CplMkMatrix extends Page
 
         $totals = $pivotRows
             ->groupBy('mk_id')
-            ->map(fn ($rows): float => (float) $rows->sum('bobot'));
+            ->map(fn ($rows): float => CplMk::jumlahBobot($rows->pluck('bobot')));
 
         $cellEditable = collect();
 
