@@ -195,6 +195,10 @@ class AdminPanelProvider extends PanelProvider
                 for: 'App\Modules\AI\Filament\Widgets',
             )
             ->discoverWidgets(
+                in: app_path('Modules/Institusi/Filament/Widgets'),
+                for: 'App\Modules\Institusi\Filament\Widgets',
+            )
+            ->discoverWidgets(
                 in: app_path('Modules/Kalkulasi/Filament/Widgets'),
                 for: 'App\Modules\Kalkulasi\Filament\Widgets',
             )

@@ -80,6 +80,27 @@ class AcademicUnitScope
     }
 
     /**
+     * Unit kerja pimpinan user beserta seluruh keturunannya — dipakai untuk
+     * agregasi KPI dasbor, karena Pimpinan bisa ditugaskan di level
+     * Universitas/Fakultas/Jurusan sementara data Kurikulum/CPL/MK tersimpan
+     * di level Prodi. Berbeda dari scopedPimpinanUnitIdsFor() (dipakai
+     * pemilihan unit di gerbang Pilih Peran & Unit, yang butuh unit pivot
+     * literal, bukan hasil roll-up).
+     *
+     * @return Collection<int, string>
+     */
+    public static function scopedPimpinanUnitIdsWithDescendantsFor(User $user): Collection
+    {
+        $ids = collect();
+
+        foreach (static::scopedPimpinanUnitIdsFor($user) as $unitId) {
+            $ids = $ids->merge(static::descendantIdsIncludingSelf($unitId));
+        }
+
+        return $ids->unique()->values();
+    }
+
+    /**
      * Unit tempat user berstatus tim kurikulum pada pivot (tanpa merge Admin).
      *
      * @return Collection<int, string>

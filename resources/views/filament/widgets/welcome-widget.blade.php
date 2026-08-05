@@ -2,10 +2,15 @@
     use App\Models\User;
     use App\Modules\Auth\Support\ActiveRole;
     use App\Modules\Auth\Support\PeranUnitFormFields;
+    use App\Modules\Institusi\Models\AcademicUnit;
 
     $user = filament()->auth()->user();
     $roles = $user instanceof User ? ActiveRole::ownedRoleNames($user) : [];
     $peranAktif = $user instanceof User ? PeranUnitFormFields::defaultRole($user) : null;
+    $unitAktifId = $user instanceof User ? PeranUnitFormFields::defaultUnitId($user) : null;
+    $unitAktifNama = ($peranAktif !== 'Tim Kurikulum' && $unitAktifId)
+        ? AcademicUnit::find($unitAktifId)?->nama_lengkap
+        : null;
     $bisaGanti = $user instanceof User
         && (count($roles) > 1 || PeranUnitFormFields::roleMembutuhkanPilihanUnit($user, $peranAktif));
     $tanpaPeran = $user instanceof User && count($roles) === 0;
@@ -31,6 +36,9 @@
             @else
                 <p style="font-size:.8125rem;font-weight:500;opacity:.7;margin-top:2px;">
                     Anda berperan sebagai {{ $peranAktif }}
+                    @if ($unitAktifNama)
+                        &middot; Unit: {{ $unitAktifNama }}
+                    @endif
                     @if ($bisaGanti)
                         {{ $this->gantiPeranUnitAction() }}
                     @endif

@@ -38,6 +38,27 @@ trait CanAccessDashboardWidgets
     }
 
     /**
+     * Dashboard bekerja dalam mode Pimpinan: KPI kepemimpinan + capaian
+     * teratas lintas kurikulum pada unit kepemimpinannya (beserta seluruh
+     * keturunannya), tanpa filter unit/semester/CPL. Kalah prioritas hanya
+     * dari Super Admin.
+     */
+    public static function isDashboardPimpinan(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if ($user === null) {
+            return false;
+        }
+
+        if (! $user->hasRole('Pimpinan')) {
+            return false;
+        }
+
+        return ! $user->hasRole('Super Admin');
+    }
+
+    /**
      * Dashboard bekerja dalam mode Tim Kurikulum: KPI kurikulum + capaian
      * teratas lintas kurikulum, tanpa filter unit/semester/CPL. Mengikuti
      * role aktif (hasRole() sudah difilter ActiveRole), sehingga user yang

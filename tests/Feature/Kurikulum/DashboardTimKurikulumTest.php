@@ -5,6 +5,7 @@ use App\Filament\Widgets\WelcomeWidget;
 use App\Models\User;
 use App\Modules\AI\Filament\Widgets\AiInsightWidget;
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\Institusi\Filament\Widgets\PimpinanKpiWidget;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Filament\Widgets\CplPerMkUnitTable;
@@ -160,18 +161,20 @@ it('dashboard tim kurikulum memuat KPI kurikulum, grafik CPL tertinggi, dan peri
         ->and(MkCapaianTertinggiTable::canView())->toBeTrue();
 });
 
-it('pimpinan tetap mendapat filter dashboard CPL beserta widget capaian per unit', function () {
+it('pimpinan tetap mendapat filter dashboard CPL beserta widget capaian per unit, dilengkapi KPI kepemimpinan', function () {
     $this->actingAs($this->kaprodi);
 
     Livewire::test(Dashboard::class)
         ->assertSuccessful()
         ->assertSee('Filter Dashboard CPL')
-        ->assertSee('Capaian CPL per Unit');
+        ->assertSee('Capaian CPL per Unit')
+        ->assertSee('Ringkasan Kepemimpinan');
 
     expect(CplUnitChartWidget::canView())->toBeTrue()
         ->and(KurikulumKpiWidget::canView())->toBeFalse()
         ->and(CplTertinggiChartWidget::canView())->toBeFalse()
-        ->and(MkCapaianTertinggiTable::canView())->toBeFalse();
+        ->and(MkCapaianTertinggiTable::canView())->toBeFalse()
+        ->and(PimpinanKpiWidget::canView())->toBeTrue();
 });
 
 it('KPI menghitung kurikulum unit kerja dan menautkan daftar kurikulum serta profil lulusan', function () {

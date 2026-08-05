@@ -5,7 +5,12 @@ namespace App\Filament\Pages;
 use App\Filament\Widgets\AktivitasTerbaruWidget;
 use App\Filament\Widgets\SuperAdminKpiWidget;
 use App\Filament\Widgets\WelcomeWidget;
+use App\Models\User;
 use App\Modules\AI\Filament\Widgets\AiInsightWidget;
+use App\Modules\Institusi\Filament\Widgets\PimpinanCapaianTertinggiTable;
+use App\Modules\Institusi\Filament\Widgets\PimpinanCplTertinggiChartWidget;
+use App\Modules\Institusi\Filament\Widgets\PimpinanKpiWidget;
+use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Filament\Support\Concerns\CanAccessDashboardWidgets;
 use App\Modules\Kalkulasi\Filament\Support\DashboardAcademicUnitOptions;
@@ -50,6 +55,21 @@ class Dashboard extends BaseDashboard
     {
         if (! static::canViewDashboardWidgets()) {
             return [];
+        }
+
+        // Pimpinan tetap memakai dashboard CPL ber-filter (Insight AI +
+        // capaian per unit/semester terpilih — lihat AiInsightWidgetTest,
+        // Sprint4\DashboardCplTest), dilengkapi KPI kepemimpinan lintas unit
+        // kepemimpinannya beserta seluruh keturunannya (lihat isDashboardPimpinan()).
+        if (static::isDashboardPimpinan()) {
+            return [
+                PimpinanKpiWidget::class,
+                PimpinanCplTertinggiChartWidget::class,
+                PimpinanCapaianTertinggiTable::class,
+                AiInsightWidget::class,
+                CplUnitChartWidget::class,
+                CplPerMkUnitTable::class,
+            ];
         }
 
         // Tim Kurikulum bekerja per kurikulum, bukan per unit+semester:
@@ -165,7 +185,11 @@ class Dashboard extends BaseDashboard
         $unitOptions = DashboardAcademicUnitOptions::forUser();
         $semester = Semester::query()->where('status_aktif', true)->first();
 
-        $academicUnitId = array_key_first($unitOptions);
+        $user = auth()->user();
+        $unitTerpilih = $user instanceof User ? AcademicUnitTerpilih::currentId($user) : null;
+        $academicUnitId = ($unitTerpilih !== null && array_key_exists($unitTerpilih, $unitOptions))
+            ? $unitTerpilih
+            : array_key_first($unitOptions);
         $semesterId = $semester?->id;
         $cplId = null;
 
