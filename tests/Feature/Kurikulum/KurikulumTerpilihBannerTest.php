@@ -88,15 +88,24 @@ it('halaman daftar profil cpl bok mk menampilkan banner identitas beserta ketera
 
     Livewire::test(ListCpls::class)
         ->assertSee('Kurikulum yang dikerjakan')
-        ->assertSee('CPL yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.');
+        ->assertSeeHtml('data-silogy="banner-kurikulum-header-panel"')
+        ->assertDontSee('CPL yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.', escape: false)
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertDontSeeHtml('data-silogy="banner-header-panel"');
 
     Livewire::test(ListBoks::class)
         ->assertSee('Kurikulum yang dikerjakan')
-        ->assertSee('Bahan kajian (BoK) yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.');
+        ->assertSeeHtml('data-silogy="banner-kurikulum-header-panel"')
+        ->assertDontSee('Bahan kajian (BoK) yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.', escape: false)
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertDontSeeHtml('data-silogy="banner-header-panel"');
 
     Livewire::test(ListMks::class)
         ->assertSee('Kurikulum yang dikerjakan')
-        ->assertSee('Mata kuliah yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.');
+        ->assertSeeHtml('data-silogy="banner-kurikulum-header-panel"')
+        ->assertDontSee('Mata kuliah yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.', escape: false)
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertDontSeeHtml('data-silogy="banner-header-panel"');
 });
 
 it('halaman interaksi dan analisis mk prodi menampilkan banner beserta keterangan khas', function () {
@@ -109,14 +118,20 @@ it('halaman interaksi dan analisis mk prodi menampilkan banner beserta keteranga
         ->assertSee('Pemetaan profil lulusan ke CPL yang dicentang di bawah tersimpan pada kurikulum ini.');
 
     Livewire::test(CplBokMatrix::class)
+        ->assertSeeHtml('data-silogy="banner-header-panel"')
         ->assertSee('Kurikulum yang dikerjakan')
         ->assertSee('Pemetaan CPL ke bahan kajian (BoK) yang dicentang di bawah tersimpan pada kurikulum ini.');
 
     Livewire::test(CplMkMatrix::class)
+        ->assertSeeHtml('data-silogy="banner-header-panel"')
         ->assertSee('Kurikulum yang dikerjakan')
         ->assertSee('Bobot kontribusi MK terhadap CPL (via BoK) yang diisi di bawah tersimpan pada kurikulum ini.');
 
     Livewire::test(AnalisisMkProdi::class)
+        ->assertSeeHtml('data-silogy="banner-header-panel"')
         ->assertSee('Kurikulum yang dikerjakan')
-        ->assertSee('Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini.');
+        ->assertSee('Pemetaan Rencana Asesmen CPL', escape: false)
+        ->assertSee('Hasil Analisis Asesmen CPL per Mahasiswa', escape: false)
+        ->assertDontSee('Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini.', escape: false)
+        ->assertDontSee('gabungan (rollup)', escape: false);
 });

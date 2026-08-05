@@ -126,15 +126,17 @@ it('banner mk yang dikerjakan menempatkan nama mata kuliah sebagai fokus utama',
     $this->actingAs($this->korma);
     MkTerpilih::set($mk->id);
 
-    $html = MkTerpilih::bannerHtml()->toHtml();
+    $html = MkTerpilih::bannerHtml('Catatan pelengkap uji')->toHtml();
 
     expect($html)
+        ->toContain('data-silogy="banner-header-panel"')
         ->toContain('Mata kuliah yang dikerjakan')
         ->toContain('Aplikasi Komputer Matematika (KP21514004)')
         ->toContain('3 SKS')
         ->toContain('Ganti')
         ->toContain($this->kurikulum->nama)
         ->toContain('Program Studi')
+        ->toContain('Catatan pelengkap uji')
         ->not->toContain('Kurikulum yang dikerjakan');
 });
 
@@ -168,6 +170,10 @@ it('cpmk hanya menampilkan data mk terpilih', function () {
 
     Livewire::test(ListCpmks::class)
         ->loadTable()
+        ->assertSeeHtml('data-silogy="banner-mk-header-panel"')
+        ->assertDontSeeHtml('data-silogy="banner-header-panel"')
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertDontSeeHtml('data-silogy="kode-keterangan-trigger"')
         ->assertSee('CPMK-SEL', escape: false)
         ->assertDontSee('CPMK-LAIN', escape: false);
 });

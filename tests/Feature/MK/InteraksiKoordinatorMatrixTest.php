@@ -127,6 +127,10 @@ it('matriks cpl cpmk hanya menampilkan kolom cpl yang terpetakan pada mk terpili
     ]);
 
     Livewire::test(CplCpmkMatrix::class)
+        ->assertSeeHtml('data-silogy="banner-header-panel"')
+        ->assertSeeHtml('data-silogy="kode-keterangan-trigger"')
+        ->assertSeeHtml('data-jenis="CPMK"')
+        ->assertSeeHtml('data-jenis="CPL"')
         ->assertSee('CPL-MAP', escape: false)
         ->assertDontSee('CPL-LAIN', escape: false);
 });
@@ -276,7 +280,11 @@ it('menandai warna badge total bobot sesuai perbandingan dengan bobot Asesmen', 
 
     $html = Livewire::test(SubcpmkAsesmenMatrix::class)->html();
 
-    expect($html)->toContain('background:#d97706;') // warning: total < bobot asesmen
+    expect($html)->toContain('data-silogy="banner-header-panel"')
+        ->and($html)->toContain('data-silogy="kode-keterangan-trigger"')
+        ->and($html)->toContain('data-jenis="Sub-CPMK"')
+        ->and($html)->toContain('data-jenis="CPMK"')
+        ->and($html)->toContain('background:#d97706;') // warning: total < bobot asesmen
         ->and($html)->toContain('background:#dc2626;') // danger: total > bobot asesmen
         ->and($html)->toContain('background:#16a34a;'); // success: total = bobot asesmen
 });

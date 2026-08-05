@@ -76,7 +76,9 @@ it('toolbar subcpmk: filter semester tanpa indikator filter aktif dan tanpa urut
     Livewire::test(ListSubcpmks::class)->loadTable()
         ->assertSee('Semester', escape: false)
         ->assertDontSee('Filter aktif', escape: false)
-        ->assertDontSee('Urutkan menurut', escape: false);
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertSeeHtml('data-silogy="banner-mk-header-panel"')
+        ->assertDontSeeHtml('data-silogy="kode-keterangan-trigger"');
 });
 
 it('menampilkan badge taksonomi bloom pada tabel subcpmk', function () {

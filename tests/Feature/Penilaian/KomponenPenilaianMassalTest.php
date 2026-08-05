@@ -8,6 +8,14 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\BoK\Models\Bok;
+use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplBok;
+use App\Modules\CPL\Models\CplMk;
+use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\MkCpmk;
+use App\Modules\MK\Models\Subcpmk;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\EditKomponenPenilaian;
@@ -82,7 +90,55 @@ it('toolbar asesmen: filter semester tanpa indikator filter aktif dan tanpa urut
     Livewire::test(ListKomponenPenilaians::class)->loadTable()
         ->assertSee('Semester', escape: false)
         ->assertDontSee('Filter aktif', escape: false)
-        ->assertDontSee('Urutkan menurut', escape: false);
+        ->assertDontSee('Urutkan menurut', escape: false)
+        ->assertSeeHtml('data-silogy="banner-mk-header-panel"');
+});
+
+it('kode subcpmk pada card asesmen menjadi trigger keterangan tanpa membuka edit', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
+    $cpmk = Cpmk::query()->create([
+        'mk_id' => $this->mk->id,
+        'kode' => 'CPMK-TRG',
+        'deskripsi' => 'Deskripsi CPMK trigger.',
+    ]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+    $sub = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id,
+        'semester_id' => $this->semester->id,
+        'kode' => 'SubCPMK-TRG',
+        'deskripsi' => 'Deskripsi Sub-CPMK untuk trigger di card asesmen.',
+    ]);
+
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $this->mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'ASES-TRG',
+        'nama' => 'Asesmen Trigger',
+        'bobot' => 100,
+    ]);
+
+    SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $sub->id,
+        'komponen_penilaian_id' => $komponen->id,
+        'bobot' => 100,
+    ]);
+
+    $html = Livewire::test(ListKomponenPenilaians::class)->loadTable()->html();
+
+    expect($html)
+        ->toContain('data-silogy="kode-keterangan-trigger"')
+        ->toContain('data-jenis="Sub-CPMK"')
+        ->toContain('SubCPMK-TRG')
+        ->toContain('Deskripsi Sub-CPMK untuk trigger di card asesmen.')
+        ->toContain('onclick="event.stopPropagation(); event.preventDefault();"')
+        ->toContain('@click.stop.prevent');
 });
 
 it('membuat asesmen baru menghasilkan satu baris untuk mk dan semester terpilih, bukan satu per kelas', function () {

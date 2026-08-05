@@ -236,7 +236,9 @@ it('analisis mengikuti kurikulum terpilih di session', function () {
 
     $test = Livewire::test(AnalisisMkProdi::class)
         ->assertSee('Kurikulum yang dikerjakan', escape: false)
-        ->assertSee('Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini', escape: false)
+        ->assertSeeHtml('data-silogy="banner-header-panel"')
+        ->assertSee('Pemetaan Rencana Asesmen CPL', escape: false)
+        ->assertDontSee('Seluruh pemetaan, hasil asesmen, dan grafik CPL di bawah dihitung dari kurikulum prodi ini', escape: false)
         ->assertDontSee('Pilih Program Studi', escape: false);
 
     expect($test->get('kurikulum')?->id)->toBe($kurikulumDraft->id)

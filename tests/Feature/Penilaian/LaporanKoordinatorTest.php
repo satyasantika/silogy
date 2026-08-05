@@ -138,8 +138,11 @@ it('menampilkan laporan berdasarkan mata kuliah terpilih tanpa membutuhkan kurik
         ->and(LaporanKoordinator::canAccess())->toBeTrue();
 
     Livewire::test(LaporanKoordinator::class)
+        ->assertSeeHtml('data-silogy="banner-header-panel"')
         ->assertDontSee('Belum ada kurikulum terpilih', escape: false)
-        ->assertSee('Kelas A', escape: false);
+        ->assertSee('Pilih kelas', escape: false)
+        ->assertSee('Kelas A', escape: false)
+        ->assertDontSee('Pilih Kelas MK', escape: false);
 });
 
 it('menampilkan seluruh kelas pada MK lintas dosen pengampu, masing-masing dengan keterangan dosennya', function () {

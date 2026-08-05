@@ -112,7 +112,8 @@ it('daftar kurikulum menampilkan record dan ketersediaan menu', function () {
         ->assertSee('Program Studi')
         ->assertSee('Profil ·')
         ->assertSee('CPL ·')
-        ->assertSee('Aktif');
+        ->assertSee('Aktif')
+        ->assertDontSee('Urutkan menurut', escape: false);
 });
 
 it('card kurikulum terpilih menampilkan Sedang dikerjakan dan aksi kerjakan mengganti session', function () {
@@ -254,8 +255,10 @@ it('banner kurikulum terpilih menampilkan hierarki unit', function () {
     $html = KurikulumTerpilih::bannerHtml()->toHtml();
 
     expect($html)
+        ->toContain('data-silogy="banner-kurikulum-header-panel"')
         ->toContain('Kurikulum Prodi 2026')
-        ->toContain($hierarchy);
+        ->toContain($hierarchy)
+        ->not->toContain('data-silogy="banner-header-panel"');
 });
 
 it('ketersediaan menu kurikulum menampilkan status ada atau belum', function () {
@@ -309,6 +312,32 @@ it('matriks cpl-bok dapat memetakan lewat toggle', function () {
     expect(CplBok::query()->where('cpl_id', $cpl->id)->where('bok_id', $bok->id)->exists())->toBeTrue();
 });
 
+it('kode cpl dan bok pada matriks interaksi menjadi trigger keterangan', function () {
+    $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create([
+        'kode' => 'CPL-KET',
+        'deskripsi' => '<p>Deskripsi CPL untuk trigger keterangan.</p>',
+    ]);
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create([
+        'kode' => 'BOK-KET',
+        'nama' => 'Bahan Kajian Keterangan',
+        'deskripsi' => 'Uraian bahan kajian untuk trigger.',
+    ]);
+
+    $html = Livewire::test(CplBokMatrix::class)->html();
+
+    expect($html)
+        ->toContain('data-silogy="kode-keterangan-trigger"')
+        ->toContain('data-jenis="CPL"')
+        ->toContain('data-jenis="BoK"')
+        ->toContain('data-silogy="kode-keterangan-dialog"')
+        ->toContain('Deskripsi CPL untuk trigger keterangan.')
+        ->toContain('Uraian bahan kajian untuk trigger.')
+        ->toContain('Bahan Kajian Keterangan');
+});
+
 it('matriks cpl-bok menolak melepas centang bila sudah ada bobot cpl-mk', function () {
     $this->actingAs(User::query()->where('username', 'timkur')->firstOrFail());
     KurikulumTerpilih::set($this->kurikulumProdi->id);
@@ -325,7 +354,9 @@ it('matriks cpl-bok menolak melepas centang bila sudah ada bobot cpl-mk', functi
     ]);
 
     Livewire::test(CplBokMatrix::class)
-        ->assertSee('hapus bobot pada interaksi CPL ↔ MK terlebih dahulu')
+        ->assertSeeHtml('data-silogy="cpl-bok-kunci-bobot-hint"')
+        ->assertSee('1 irisan terkunci · CPL ↔ MK', escape: false)
+        ->assertSee('Hapus bobot pada interaksi CPL ↔ MK terlebih dahulu', escape: false)
         ->call('toggle', $cpl->id, $bok->id);
 
     expect(CplBok::query()->where('cpl_id', $cpl->id)->where('bok_id', $bok->id)->exists())->toBeTrue();

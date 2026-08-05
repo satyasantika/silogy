@@ -79,9 +79,12 @@ it('banner kurikulum terpilih merender komponen livewire modal ganti', function 
     $this->actingAs($adminProdi);
     KurikulumTerpilih::set($this->kurikulum->id);
 
-    $html = KurikulumTerpilih::bannerHtml()->toHtml();
+    $html = KurikulumTerpilih::bannerHtml('Catatan pelengkap uji')->toHtml();
 
-    expect($html)->not->toContain(KurikulumResource::getUrl('index'))
+    expect($html)
+        ->toContain('data-silogy="banner-header-panel"')
+        ->toContain('Catatan pelengkap uji')
+        ->not->toContain(KurikulumResource::getUrl('index'))
         ->and(
             str_contains($html, 'wire:') || str_contains($html, 'Kurikulum yang dikerjakan'),
         )->toBeTrue();
