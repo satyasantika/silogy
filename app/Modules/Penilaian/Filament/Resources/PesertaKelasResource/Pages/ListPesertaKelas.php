@@ -75,11 +75,11 @@ class ListPesertaKelas extends ListRecords
     }
 
     /**
-     * Banner MK terpilih + KPI bento di dalam card tabel (pola /subcpmk).
+     * Banner MK + bento KPI sebagai kepala satu kartu tabel.
      */
     protected function deskripsiPesertaKelas(): HtmlString
     {
-        return new HtmlString(view('filament.modules.penilaian.partials.peserta-kelas-deskripsi', [
+        return new HtmlString(view('filament.modules.penilaian.partials.peserta-kelas-card-head', [
             'kpi' => $this->rekapKpiPesertaKelas(),
         ])->render());
     }

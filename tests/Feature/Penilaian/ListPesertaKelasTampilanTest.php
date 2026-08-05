@@ -111,6 +111,9 @@ it('menampilkan kpi bento semester terpilih dan semua semester', function () {
         ->and($rekap['semua_mahasiswa'])->toBe(4);
 
     $component
+        ->assertSeeHtml('data-silogy="peserta-kelas-panel"')
+        ->assertSeeHtml('data-silogy="banner-mk-header-panel"')
+        ->assertSeeHtml('data-silogy="peserta-kelas-bento"')
         ->assertSee('Mata kuliah yang dikerjakan')
         ->assertSee('Aljabar Linier Lanjut')
         ->assertSee('Semester terpilih')
@@ -125,7 +128,17 @@ it('menampilkan kpi bento semester terpilih dan semua semester', function () {
         ->assertTableColumnDoesNotExist('mkUnit.mk.nama');
 });
 
-it('meletakkan aksi tarik data pada header tabel bersama filter semester', function () {
+it('menggabungkan banner, bento, toolbar, dan tabel dalam satu kartu', function () {
+    $html = Livewire::test(ListPesertaKelas::class)->html();
+
+    expect(strpos($html, 'data-silogy="peserta-kelas-panel"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="banner-mk-header-panel"'))
+        ->and(strpos($html, 'data-silogy="banner-mk-header-panel"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="peserta-kelas-bento"'))
+        ->and(strpos($html, 'data-silogy="peserta-kelas-bento"'))
+        ->toBeLessThan(strpos($html, 'importSintesysPesertaKelas'))
+        ->and(substr_count($html, 'data-silogy="peserta-kelas-panel"'))->toBe(1);
+
     Livewire::test(ListPesertaKelas::class)
         ->assertTableActionExists('importSintesysPesertaKelas')
         ->assertActionDoesNotExist('importSintesysPesertaKelas');

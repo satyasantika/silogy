@@ -108,6 +108,7 @@ class PesertaKelasResource extends Resource
         return $table
             ->extraAttributes([
                 'class' => 'silogy-mk-semester-toolbar silogy-peserta-kelas',
+                'data-silogy' => 'peserta-kelas-panel',
             ])
             ->columns([
                 TextColumn::make('kode_kelas')

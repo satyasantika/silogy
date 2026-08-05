@@ -130,66 +130,100 @@
     }
 
     /*
-     * /peserta-kelas (pola /subcpmk):
-     * 1) banner + KPI full-width di card
-     * 2) semester + Tarik data bergabung kiri
-     * 3) pencarian kanan
-     *
-     * display:contents pada .fi-ta-header membuat anak (deskripsi & aksi)
-     * menjadi sibling flex dari filter/toolbar.
+     * /peserta-kelas: satu kartu — banner, bento, toolbar semester, tabel.
+     * Selector digabung agar mengalahkan .silogy-mk-semester-toolbar.
      */
-    .fi-ta.silogy-peserta-kelas .fi-ta-header-ctn {
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas > .fi-ta-ctn {
+        overflow: hidden;
+    }
+
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header-ctn {
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
         column-gap: 0.5rem;
         row-gap: 0;
+        margin: 0 !important;
+        padding: 0;
+        border-bottom: 1px solid rgb(229 231 235);
+        background: transparent;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-header {
+    .dark .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header-ctn {
+        border-bottom-color: rgb(255 255 255 / 0.1);
+    }
+
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header {
         display: contents;
+        flex: unset;
+        padding: 0 !important;
+        border: none !important;
+        gap: 0 !important;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-header > div:not(.fi-ta-actions) {
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header > div:not(.fi-ta-actions) {
         order: 0;
         flex: 1 0 100%;
         width: 100%;
-        padding-block: 1rem 0.25rem;
-        padding-inline: 1.5rem;
-        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-header-description {
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header-description {
         margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100%;
         color: inherit !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-filters-above-content-ctn {
+    .silogy-peserta-card-bento {
+        padding: 14px 16px 12px;
+        background: var(--gray-50, #f9fafb);
+        border-bottom: 1px solid rgb(229 231 235);
+    }
+
+    .dark .silogy-peserta-card-bento {
+        background: rgba(24, 24, 27, 0.55);
+        border-bottom-color: rgb(255 255 255 / 0.1);
+    }
+
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-filters-above-content-ctn {
         order: 1;
-        padding-inline-end: 0.35rem !important;
+        flex: 0 1 auto;
+        width: max-content;
+        max-width: min(100%, 32rem);
+        padding-block: 0.75rem !important;
+        padding-inline: 1.5rem 0.5rem !important;
+        margin: 0 !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-header .fi-ta-actions {
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header .fi-ta-actions {
         order: 2;
         flex: 0 0 auto;
         align-self: center;
         padding-block: 0.75rem;
-        padding-inline-end: 0.75rem;
+        padding-inline-end: 0.5rem;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-header-toolbar {
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header-toolbar {
         order: 3;
-        flex: 1 1 0;
+        flex: 1 1 12rem;
         min-width: 12rem;
         justify-content: flex-end !important;
+        padding-block: 0.75rem !important;
+        padding-inline: 0.5rem 1.5rem !important;
+        margin: 0 !important;
+        border: none !important;
     }
 
-    .fi-ta.silogy-peserta-kelas .fi-ta-filter-indicators {
+    .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-filter-indicators {
         display: none !important;
-    }
-
-    .silogy-peserta-deskripsi {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
     }
 
     /*
@@ -337,19 +371,15 @@
             margin-inline: 1.15rem;
         }
 
-        .fi-ta.silogy-peserta-kelas .fi-ta-header > div:not(.fi-ta-actions) {
-            padding-inline: 1rem;
-        }
-
-        .fi-ta.silogy-peserta-kelas .fi-ta-filters-above-content-ctn,
-        .fi-ta.silogy-peserta-kelas .fi-ta-header .fi-ta-actions,
-        .fi-ta.silogy-peserta-kelas .fi-ta-header-toolbar {
+        .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-filters-above-content-ctn,
+        .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header .fi-ta-actions,
+        .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header-toolbar {
             width: 100%;
             max-width: 100%;
             padding-inline: 1rem !important;
         }
 
-        .fi-ta.silogy-peserta-kelas .fi-ta-header-toolbar {
+        .fi-ta.silogy-mk-semester-toolbar.silogy-peserta-kelas .fi-ta-header-toolbar {
             justify-content: flex-start !important;
         }
     }
