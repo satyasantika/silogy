@@ -2,6 +2,16 @@
     Footer sidebar (satu baris): menu identitas | tombol Keluar.
     Saat sidebar diminimize hanya Keluar yang tampil.
 --}}
+@php
+    use App\Modules\Institusi\Models\AcademicUnit;
+
+    // Tim Kurikulum & Pimpinan: identitas cukup nama + peran (unit dipilih
+    // di gerbang / banner kurikulum, bukan di footer sidebar).
+    $unitNama = (! in_array($peranAktif, ['Tim Kurikulum', 'Pimpinan'], true) && $unitAktifId)
+        ? AcademicUnit::find($unitAktifId)?->nama_lengkap
+        : null;
+@endphp
+
 <div
     class="fi-sidebar-footer silogy-sidebar-user"
     x-data="{}"
@@ -43,6 +53,14 @@
                                     >
                                         {{ $peranAktif }}
                                     </span>
+                                    @if (filled($unitNama))
+                                        <span
+                                            class="silogy-sidebar-user-unit"
+                                            style="display:block;white-space:normal;overflow-wrap:break-word;"
+                                        >
+                                            {{ $unitNama }}
+                                        </span>
+                                    @endif
                                 </span>
                             @endif
                         </span>

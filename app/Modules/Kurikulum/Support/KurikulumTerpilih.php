@@ -7,10 +7,10 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Support\Filament\SilogyBannerPanel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Blade;
-use App\Support\Filament\SilogyBannerPanel;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -230,10 +230,10 @@ class KurikulumTerpilih
         // Tim kurikulum + Admin (unit penugasan) via scopedTimKurikulumUnitIdsFor.
         $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($user);
 
-        // Pimpinan membaca laporan CPL prodi (mis. Analisis MK Prodi) yang
-        // mengikuti kurikulum terpilih, jadi unit pimpinannya ikut ter-scope
-        // meskipun ia bukan tim kurikulum.
-        $unitIds = $unitIds->merge(AcademicUnitScope::scopedPimpinanUnitIdsFor($user));
+        // Pimpinan membaca laporan CPL pada unit kepemimpinannya beserta
+        // seluruh keturunannya (KPI dasbor & daftar kurikulum memakai
+        // scope yang sama — lihat DashboardPimpinanService).
+        $unitIds = $unitIds->merge(AcademicUnitScope::scopedPimpinanUnitIdsWithDescendantsFor($user));
 
         // Koordinator MK mengelola kelas per prodi — perlu melihat kurikulum
         // unit penugasan saat role Koordinator sedang aktif.

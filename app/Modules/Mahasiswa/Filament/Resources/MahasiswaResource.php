@@ -10,6 +10,7 @@ use App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource\Pages\CreateMahas
 use App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource\Pages\EditMahasiswa;
 use App\Modules\Mahasiswa\Filament\Resources\MahasiswaResource\Pages\ListMahasiswas;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Support\Filament\DelegasiMenu;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -48,6 +49,16 @@ class MahasiswaResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return auth()->user()?->hasRole('Super Admin') ? null : 'Mahasiswa';
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Pimpinan fokus ke laporan analisis CPL — bukan kelola mahasiswa.
+        if (DelegasiMenu::peranAktifPimpinan()) {
+            return false;
+        }
+
+        return static::canViewAny();
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Kurikulum\Http\Controllers\KurikulumLaporanPimpinanRedirectController;
 use App\Modules\Kurikulum\Http\Controllers\KurikulumMenuRedirectController;
 use App\Modules\MK\Http\Controllers\MkMenuRedirectController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,11 @@ Route::middleware(['web', 'auth'])
     ->get('/navigasi-kurikulum/{kurikulum}/{menu}', KurikulumMenuRedirectController::class)
     ->whereIn('menu', ['profil', 'cpl', 'bok', 'mk'])
     ->name('silogy.kurikulum-navigasi');
+
+Route::middleware(['web', 'auth'])
+    ->get('/navigasi-kurikulum-pimpinan/{kurikulum}/{menu}', KurikulumLaporanPimpinanRedirectController::class)
+    ->whereIn('menu', ['hasil', 'grafik', 'mahasiswa'])
+    ->name('silogy.kurikulum-navigasi-pimpinan');
 
 Route::middleware(['web', 'auth'])
     ->get('/navigasi-mk/{mk}/{menu}', MkMenuRedirectController::class)

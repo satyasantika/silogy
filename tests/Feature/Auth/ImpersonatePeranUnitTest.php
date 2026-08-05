@@ -104,7 +104,7 @@ it('menu identitas PeranUnitMenu menautkan ganti peran ke halaman gerbang', func
         ->assertActionDoesNotExist('gantiPeranUnit');
 });
 
-it('identitas footer sidebar tidak menampilkan unit akademik', function () {
+it('identitas footer sidebar tidak menampilkan unit akademik untuk tim kurikulum', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
     ActiveRole::set('Tim Kurikulum');
@@ -114,6 +114,20 @@ it('identitas footer sidebar tidak menampilkan unit akademik', function () {
 
     Livewire::test(PeranUnitMenu::class)
         ->assertSee('Tim Kurikulum')
+        ->assertDontSeeHtml('silogy-sidebar-user-unit')
+        ->assertDontSee($prodi->nama_lengkap);
+});
+
+it('identitas footer sidebar tidak menampilkan unit akademik untuk pimpinan', function () {
+    $kaprodi = User::query()->where('username', 'kaprodi')->firstOrFail();
+    $this->actingAs($kaprodi);
+    ActiveRole::set('Pimpinan');
+
+    $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+    AcademicUnitTerpilih::set($prodi->id);
+
+    Livewire::test(PeranUnitMenu::class)
+        ->assertSee('Pimpinan')
         ->assertDontSeeHtml('silogy-sidebar-user-unit')
         ->assertDontSee($prodi->nama_lengkap);
 });

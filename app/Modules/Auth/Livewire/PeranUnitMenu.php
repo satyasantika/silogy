@@ -53,6 +53,7 @@ class PeranUnitMenu extends Component implements HasActions, HasSchemas
             'user' => $user,
             'roles' => $roles,
             'peranAktif' => $peranAktif,
+            'unitAktifId' => $user instanceof User ? PeranUnitFormFields::defaultUnitId($user) : null,
             'bisaGanti' => $bisaGanti,
             'profileUrl' => filament()->getProfileUrl() ?? EditProfile::getUrl(),
             'pilihPeranUnitUrl' => PilihPeranUnit::getUrl(),
