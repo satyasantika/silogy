@@ -31,6 +31,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\HtmlString;
@@ -167,17 +168,22 @@ class UserResource extends Resource
                             ->schema([
                                 Select::make('academic_unit_id')
                                     ->label('Unit akademik')
-                                    ->options(fn (): array => AcademicUnit::query()
-                                        ->orderBy('nama')
-                                        ->get()
-                                        ->mapWithKeys(fn (AcademicUnit $unit): array => [
-                                            $unit->id => AcademicUnitResource::formatUnitOptionLabel($unit),
-                                        ])
-                                        ->all())
+                                    ->options(fn (Select $component): array => static::opsiUnitPenugasan(
+                                        static::unitIdTerpilihDiRepeater($component),
+                                        $component->getState(),
+                                    ))
                                     ->searchable()
                                     ->required()
                                     ->distinct()
-                                    ->live(),
+                                    ->live()
+                                    ->placeholder('Pilih unit yang belum ditugaskan')
+                                    ->helperText(fn (Select $component): ?string => static::opsiUnitPenugasan(
+                                        static::unitIdTerpilihDiRepeater($component),
+                                        $component->getState(),
+                                    ) === [] && blank($component->getState())
+                                        ? 'Semua unit akademik sudah ditugaskan pada kartu lain.'
+                                        : null)
+                                    ->columnSpanFull(),
                                 Toggle::make('status_pimpinan')
                                     ->label('Pimpinan unit')
                                     ->inline(false)
@@ -188,23 +194,108 @@ class UserResource extends Resource
                                     ->live(),
                                 TextInput::make('jabatan')
                                     ->label('Jabatan')
-                                    ->maxLength(100),
+                                    ->maxLength(100)
+                                    ->columnSpanFull(),
                             ])
                             ->columns(2)
                             ->collapsible()
-                            ->collapsed()
+                            ->collapsed(fn (?Schema $item): bool => static::penugasanUnitHarusDilipat($item))
                             ->itemLabel(fn (array $state): HtmlString => static::labelPenugasanUnit($state))
                             ->addActionLabel('Tambah penugasan unit')
+                            ->addable(fn (Repeater $component): bool => static::masihBisaTambahPenugasan($component))
                             ->addAction(function (Action $action): Action {
-                                // Default Filament me-expand item baru; lipat lagi setelah aksi selesai.
                                 return $action->after(function (Repeater $component): void {
-                                    $component->collapsed(true, shouldMakeComponentCollapsible: false);
+                                    // Pulihkan aturan per-kartu: yang sudah tersimpan tetap terlipat,
+                                    // kartu penugasan baru tetap terbuka setelah tombol tambah.
+                                    $component->collapsed(
+                                        fn (?Schema $item): bool => static::penugasanUnitHarusDilipat($item),
+                                        shouldMakeComponentCollapsible: false,
+                                    );
                                 });
                             })
+                            ->deleteAction(fn (Action $action): Action => $action
+                                ->requiresConfirmation()
+                                ->modalHeading('Hapus penugasan unit?')
+                                ->modalDescription(function (array $arguments, Repeater $component): string {
+                                    $item = $component->getRawState()[$arguments['item'] ?? ''] ?? [];
+                                    $unitId = is_array($item) ? ($item['academic_unit_id'] ?? null) : null;
+                                    $nama = filled($unitId)
+                                        ? (AcademicUnit::query()->find($unitId)?->nama_lengkap ?? 'unit ini')
+                                        : 'penugasan baru ini';
+
+                                    return "Penugasan {$nama} akan dihapus dari pengguna ini.";
+                                })
+                                ->modalSubmitActionLabel('Ya, hapus')
+                                ->modalCancelActionLabel('Batal'))
                             ->defaultItems(0),
                     ])
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Opsi Select unit pada satu kartu penugasan. Unit yang sudah dipilih
+     * di kartu lain dikecualikan; unit kartu ini tetap ada agar label Select utuh.
+     *
+     * @param  iterable<int, mixed>  $unitIdTerpilih
+     * @return array<string, string>
+     */
+    public static function opsiUnitPenugasan(iterable $unitIdTerpilih, mixed $unitIdKartuIni = null): array
+    {
+        $kecualikan = collect($unitIdTerpilih)
+            ->filter()
+            ->map(fn (mixed $id): string => (string) $id)
+            ->reject(fn (string $id): bool => filled($unitIdKartuIni) && $id === (string) $unitIdKartuIni)
+            ->unique()
+            ->values()
+            ->all();
+
+        return AcademicUnit::query()
+            ->orderBy('nama')
+            ->when($kecualikan !== [], fn (Builder $query): Builder => $query->whereNotIn('id', $kecualikan))
+            ->get()
+            ->mapWithKeys(fn (AcademicUnit $unit): array => [
+                $unit->id => AcademicUnitResource::formatUnitOptionLabel($unit),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public static function unitIdTerpilihDiRepeater(Select $component): Collection
+    {
+        $repeater = $component->getParentRepeater();
+
+        if (! $repeater instanceof Repeater) {
+            return collect();
+        }
+
+        return collect($repeater->getRawState() ?? [])
+            ->pluck('academic_unit_id')
+            ->filter()
+            ->map(fn (mixed $id): string => (string) $id)
+            ->values();
+    }
+
+    public static function penugasanUnitHarusDilipat(?Schema $item): bool
+    {
+        if (! $item instanceof Schema) {
+            return true;
+        }
+
+        $record = $item->getRecord();
+
+        return $record instanceof Model && $record->exists;
+    }
+
+    public static function masihBisaTambahPenugasan(Repeater $component): bool
+    {
+        $items = collect($component->getRawState() ?? []);
+        $terisi = $items->pluck('academic_unit_id')->filter()->unique()->count();
+        $kosong = $items->filter(fn (mixed $item): bool => is_array($item) && blank($item['academic_unit_id'] ?? null))->count();
+
+        return ($terisi + $kosong) < AcademicUnit::query()->count();
     }
 
     /**

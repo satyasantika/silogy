@@ -12,6 +12,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Repeater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
@@ -349,7 +350,9 @@ it('label penugasan unit menampilkan badge pimpinan dan tim kurikulum', function
         ->not->toContain('Tim kurikulum');
 });
 
-it('setelah tambah penugasan unit, accordion repeater otomatis dilipat', function () {
+it('setelah tambah penugasan unit, kartu penugasan baru otomatis terbuka', function () {
+    $prodi = AcademicUnit::where('type', 'study_program')->firstOrFail();
+
     $dosen = User::create([
         'full_name' => 'Dosen Accordion',
         'username' => 'dosenaccordion',
@@ -357,17 +360,125 @@ it('setelah tambah penugasan unit, accordion repeater otomatis dilipat', functio
         'password' => 'RahasiaKuat123',
     ]);
 
+    AcademicUnitUser::query()->create([
+        'user_id' => $dosen->id,
+        'academic_unit_id' => $prodi->id,
+        'status_pimpinan' => false,
+        'status_tim_kurikulum' => false,
+    ]);
+
     $test = Livewire::test(EditUser::class, ['record' => $dosen->id]);
-
-    $repeater = $test->instance()->form->getComponent('academicUnitUsers');
-    expect($repeater)->toBeInstanceOf(\Filament\Forms\Components\Repeater::class)
-        ->and($repeater->isCollapsed())->toBeTrue();
-
     $test->callFormComponentAction('academicUnitUsers', 'add');
 
-    $repeaterSetelah = $test->instance()->form->getComponent('academicUnitUsers');
-    expect($repeaterSetelah->isCollapsed())->toBeTrue()
-        ->and(count($repeaterSetelah->getRawState() ?? []))->toBe(1);
+    $repeater = $test->instance()->form->getComponent('academicUnitUsers');
+    expect($repeater)->toBeInstanceOf(Repeater::class);
+
+    $items = array_values($repeater->getItems());
+    expect($items)->toHaveCount(2)
+        ->and($repeater->isCollapsed($items[0]))->toBeTrue()
+        ->and($repeater->isCollapsed($items[1]))->toBeFalse()
+        ->and($items[1]->getComponent('academic_unit_id')->getColumnSpan())->toBe(['default' => 'full']);
+});
+
+it('hapus penugasan unit meminta konfirmasi sebelum dijalankan', function () {
+    $prodi = AcademicUnit::where('type', 'study_program')->firstOrFail();
+
+    $dosen = User::create([
+        'full_name' => 'Dosen Hapus Penugasan',
+        'username' => 'dosenhapuspenugasan',
+        'email' => 'dosenhapuspenugasan@silogy.test',
+        'password' => 'RahasiaKuat123',
+    ]);
+
+    AcademicUnitUser::query()->create([
+        'user_id' => $dosen->id,
+        'academic_unit_id' => $prodi->id,
+        'status_pimpinan' => false,
+        'status_tim_kurikulum' => false,
+    ]);
+
+    $test = Livewire::test(EditUser::class, ['record' => $dosen->id]);
+    $repeater = $test->instance()->form->getComponent('academicUnitUsers');
+    expect($repeater)->toBeInstanceOf(Repeater::class)
+        ->and($repeater->getDeleteAction()->isConfirmationRequired())->toBeTrue();
+
+    $itemKey = array_key_first($repeater->getRawState() ?? []);
+
+    $test->mountFormComponentAction('academicUnitUsers', 'delete', ['item' => $itemKey])
+        ->assertFormComponentActionMounted('academicUnitUsers', 'delete');
+
+    expect(count($test->instance()->form->getComponent('academicUnitUsers')->getRawState() ?? []))->toBe(1);
+
+    $modal = $test->effects['partials']['action-modals'] ?? '';
+    expect($modal)->toContain('Hapus penugasan unit?')
+        ->toContain('Ya, hapus')
+        ->toContain(e($prodi->nama_lengkap));
+
+    $test->callMountedFormComponentAction();
+
+    expect(count($test->instance()->form->getComponent('academicUnitUsers')->getRawState() ?? []))->toBe(0);
+});
+
+it('opsi unit penugasan pada kartu baru mengecualikan unit yang sudah dipakai user', function () {
+    $prodi = AcademicUnit::where('type', 'study_program')->firstOrFail();
+    $fakultas = AcademicUnit::where('type', 'faculty')->firstOrFail();
+
+    $dosen = User::create([
+        'full_name' => 'Dosen Penugasan',
+        'username' => 'dosenpenugasan',
+        'email' => 'dosenpenugasan@silogy.test',
+        'password' => 'RahasiaKuat123',
+    ]);
+
+    AcademicUnitUser::query()->create([
+        'user_id' => $dosen->id,
+        'academic_unit_id' => $prodi->id,
+        'status_pimpinan' => false,
+        'status_tim_kurikulum' => false,
+        'jabatan' => 'Dosen',
+    ]);
+
+    $test = Livewire::test(EditUser::class, ['record' => $dosen->id]);
+    $test->callFormComponentAction('academicUnitUsers', 'add');
+
+    $repeater = $test->instance()->form->getComponent('academicUnitUsers');
+    expect($repeater)->toBeInstanceOf(Repeater::class);
+
+    $items = $repeater->getItems();
+    expect($items)->toHaveCount(2);
+
+    $kartuLama = array_values($items)[0]->getComponent('academic_unit_id');
+    $kartuBaru = array_values($items)[1]->getComponent('academic_unit_id');
+
+    expect($kartuLama->getOptions())
+        ->toHaveKey($prodi->id)
+        ->toHaveKey($fakultas->id)
+        ->and($kartuBaru->getOptions())
+        ->not->toHaveKey($prodi->id)
+        ->toHaveKey($fakultas->id);
+});
+
+it('tombol tambah penugasan unit nonaktif bila semua unit sudah dipakai', function () {
+    $dosen = User::create([
+        'full_name' => 'Dosen Penuh Unit',
+        'username' => 'dosenpenuhunit',
+        'email' => 'dosenpenuhunit@silogy.test',
+        'password' => 'RahasiaKuat123',
+    ]);
+
+    foreach (AcademicUnit::query()->pluck('id') as $unitId) {
+        AcademicUnitUser::query()->create([
+            'user_id' => $dosen->id,
+            'academic_unit_id' => $unitId,
+            'status_pimpinan' => false,
+            'status_tim_kurikulum' => false,
+        ]);
+    }
+
+    $test = Livewire::test(EditUser::class, ['record' => $dosen->id]);
+    $repeater = $test->instance()->form->getComponent('academicUnitUsers');
+
+    expect($repeater->isAddable())->toBeFalse();
 });
 
 it('card Akun default dilipat dan Permission dilebur ke card Role', function () {
