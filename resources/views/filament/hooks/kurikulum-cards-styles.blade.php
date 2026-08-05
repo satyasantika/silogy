@@ -1157,6 +1157,35 @@
         line-height: inherit !important;
     }
 
+    /*
+     * /penilaian/laporan-koordinator: satu kartu panel.
+     * Section tab laporan diratakan agar tidak jadi kartu bersarang.
+     */
+    [data-silogy-laporan-koordinator-panel] .fi-section {
+        background: transparent !important;
+        box-shadow: none !important;
+        --tw-ring-shadow: 0 0 #0000 !important;
+        border: none !important;
+        border-radius: 0 !important;
+    }
+
+    [data-silogy-laporan-koordinator-panel] .fi-section-header {
+        padding-inline: 0 !important;
+        padding-block-start: 0 !important;
+    }
+
+    [data-silogy-laporan-koordinator-panel] .fi-section-content-ctn,
+    [data-silogy-laporan-koordinator-panel] .fi-section-content {
+        padding-inline: 0 !important;
+        padding-block-end: 0 !important;
+    }
+
+    [data-silogy-laporan-koordinator-panel] .silogy-langkah-batas {
+        margin-top: 2px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(11, 57, 20, 0.2);
+    }
+
     /* Sembunyikan dropdown "Urutkan menurut" jika masih ter-render. */
     .fi-ta.silogy-kurikulum-cards .fi-ta-sort,
     .fi-ta:has([data-silogy="banner-kurikulum-header-panel"]) .fi-ta-sort,

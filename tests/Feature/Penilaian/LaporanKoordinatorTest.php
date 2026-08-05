@@ -206,3 +206,55 @@ it('tidak bisa membuka kelas MK di luar cakupan koordinasi', function () {
 
     expect($test->instance()->kelasMkId)->toBe($kelasSaya['kelas']->id);
 });
+
+it('menomori langkah pilih semester, pilih kelas, lalu pilih tab Laporan', function () {
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A');
+
+    $html = Livewire::test(LaporanKoordinator::class)->html();
+
+    expect($html)
+        ->not->toContain('Urutan kerja')
+        ->not->toContain('data-silogy="petunjuk-urutan-laporan"')
+        ->toContain('data-silogy="langkah-kelas"')
+        ->toContain('Pilih kelas')
+        ->toContain('data-silogy="langkah-tab-laporan"')
+        ->toContain('Pilih tab Laporan')
+        ->toContain('silogy-langkah-batas');
+});
+
+it('menggabungkan banner, semester, kelas, tab, dan data laporan dalam satu kartu', function () {
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A');
+
+    $html = Livewire::test(LaporanKoordinator::class)->html();
+
+    expect(substr_count($html, 'data-silogy="banner-header-panel"'))->toBe(1)
+        ->and(strpos($html, 'data-silogy="banner-header-panel"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="langkah-semester"'))
+        ->and(strpos($html, 'data-silogy="langkah-semester"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="langkah-kelas"'))
+        ->and(strpos($html, 'data-silogy="langkah-kelas"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="langkah-tab-laporan"'))
+        ->and(strpos($html, 'data-silogy="langkah-tab-laporan"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="laporan-koordinator-data"'))
+        ->and($html)->toContain('data-silogy-laporan-koordinator-panel')
+        ->and($html)->toContain('Portofolio');
+});
+
+it('memakai garis pemisah sebelum pilih kelas dan pilih tab Laporan', function () {
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A');
+
+    $html = Livewire::test(LaporanKoordinator::class)->html();
+
+    expect(substr_count($html, 'silogy-langkah-batas'))->toBeGreaterThanOrEqual(2)
+        ->and(strpos($html, 'data-silogy="langkah-kelas"'))
+        ->toBeLessThan(strpos($html, 'data-silogy="langkah-tab-laporan"'));
+
+    preg_match('/data-silogy="langkah-kelas"[^>]*>/', $html, $kelasTag);
+    preg_match('/data-silogy="langkah-tab-laporan"[^>]*>/', $html, $tabTag);
+
+    expect($kelasTag[0] ?? '')->toContain('silogy-langkah-batas')
+        ->and($tabTag[0] ?? '')->toContain('silogy-langkah-batas');
+});
