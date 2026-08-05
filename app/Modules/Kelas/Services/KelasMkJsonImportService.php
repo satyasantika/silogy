@@ -8,6 +8,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Modules\Mahasiswa\Support\AngkatanDariNim;
 use App\Modules\MK\Models\MkUnit;
 use Closure;
 use Illuminate\Support\Collection;
@@ -227,9 +228,12 @@ class KelasMkJsonImportService
                         'nim' => $npm,
                         'nama' => $namaMahasiswa !== '' ? $namaMahasiswa : null,
                         'academic_unit_id' => $academicUnit->id,
+                        'angkatan' => AngkatanDariNim::dari($npm),
                     ]);
 
                     $mahasiswaDibuat++;
+                } else {
+                    AngkatanDariNim::isiBilaKosong($mahasiswa);
                 }
 
                 $pivot = KelasMkMahasiswa::query()->firstOrCreate([

@@ -36,7 +36,11 @@ beforeEach(function () {
     $this->dosen = User::factory()->create(['nidn' => '0412026601']);
     $this->mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'koordinator_mk_id' => $this->dosen->id]);
     $this->mkUnit = MkUnit::factory()->forMk($this->mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KP92552012']);
-    $this->mahasiswa = Mahasiswa::factory()->create(['nim' => '259255111003', 'academic_unit_id' => $this->prodi->id]);
+    $this->mahasiswa = Mahasiswa::factory()->create([
+        'nim' => '259255111003',
+        'academic_unit_id' => $this->prodi->id,
+        'angkatan' => null,
+    ]);
 });
 
 it('menampilkan pratinjau jumlah data yang tersedia lalu menjalankan impor sungguhan setelah dikonfirmasi', function () {
@@ -85,6 +89,8 @@ it('menampilkan pratinjau jumlah data yang tersedia lalu menjalankan impor sungg
         ->and($import->dibuat_oleh)->toBe($this->adminProdi->id);
 
     expect(KelasMk::query()->where('kode_kelas', 'A')->exists())->toBeTrue();
+
+    expect($this->mahasiswa->fresh()->angkatan)->toBe('2025');
 });
 
 it('melaporkan tanpa membuat apa pun ketika sintesys tidak memiliki data untuk konteks tersebut', function () {

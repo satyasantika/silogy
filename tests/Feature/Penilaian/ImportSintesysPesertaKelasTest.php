@@ -152,7 +152,8 @@ it('tarik dari sintesys mengirim kode_matakuliah pada request dan mengimpor pese
 
     expect($mahasiswa)->not->toBeNull()
         ->and($mahasiswa->nama)->toBe('Peserta Uji Sintesys')
-        ->and($mahasiswa->academic_unit_id)->toBe($this->prodi->id);
+        ->and($mahasiswa->academic_unit_id)->toBe($this->prodi->id)
+        ->and($mahasiswa->angkatan)->toBe('2025');
 
     expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelas->id)->where('mahasiswa_id', $mahasiswa->id)->exists())->toBeTrue();
 });

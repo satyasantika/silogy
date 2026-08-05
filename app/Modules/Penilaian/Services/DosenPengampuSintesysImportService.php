@@ -7,6 +7,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Modules\Mahasiswa\Support\AngkatanDariNim;
 use App\Modules\MK\Models\MkUnit;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -275,8 +276,11 @@ class DosenPengampuSintesysImportService
                         'nim' => $npm,
                         'nama' => $namaMahasiswa !== '' ? $namaMahasiswa : null,
                         'academic_unit_id' => $unitId,
+                        'angkatan' => AngkatanDariNim::dari($npm),
                     ]);
                     $mahasiswaDibuat++;
+                } else {
+                    AngkatanDariNim::isiBilaKosong($mahasiswa);
                 }
 
                 $pivot = KelasMkMahasiswa::query()->firstOrCreate([
