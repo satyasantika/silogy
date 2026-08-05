@@ -118,6 +118,6 @@ class KeluarAction
         $peranAktif = PeranUnitFormFields::defaultRole($user);
 
         return count($roles) > 1
-            || PeranUnitFormFields::unitCountForRole($user, $peranAktif) > 1;
+            || PeranUnitFormFields::roleMembutuhkanPilihanUnit($user, $peranAktif);
     }
 }

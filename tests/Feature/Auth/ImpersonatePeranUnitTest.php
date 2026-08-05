@@ -8,7 +8,6 @@ use App\Modules\Auth\Livewire\PeranUnitMenu;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Models\AcademicUnit;
-use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -105,6 +104,20 @@ it('menu identitas PeranUnitMenu menautkan ganti peran ke halaman gerbang', func
         ->assertActionDoesNotExist('gantiPeranUnit');
 });
 
+it('identitas footer sidebar tidak menampilkan unit akademik', function () {
+    $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosentimkur);
+    ActiveRole::set('Tim Kurikulum');
+
+    $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+    AcademicUnitTerpilih::set($prodi->id);
+
+    Livewire::test(PeranUnitMenu::class)
+        ->assertSee('Tim Kurikulum')
+        ->assertDontSeeHtml('silogy-sidebar-user-unit')
+        ->assertDontSee($prodi->nama_lengkap);
+});
+
 it('modal keluar menampilkan ganti peran untuk user multi-peran', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
@@ -169,15 +182,12 @@ it('modal ganti peran & unit dari WelcomeWidget (kartu Selamat Datang) berhasil 
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
-    $unitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($dosentimkur);
-    $fakultas = AcademicUnit::query()->whereIn('id', $unitIds)->where('type', 'faculty')->firstOrFail();
-
     Livewire::test(WelcomeWidget::class)
         ->mountAction('gantiPeranUnit')
-        ->setActionData(['role' => 'Tim Kurikulum', 'unit_id' => $fakultas->id])
+        ->setActionData(['role' => 'Tim Kurikulum'])
         ->callMountedAction();
 
-    expect(AcademicUnitTerpilih::currentId($dosentimkur))->toBe($fakultas->id);
+    expect(ActiveRole::currentFor($dosentimkur))->toBe('Tim Kurikulum');
 });
 
 it('outline animasi impersonate tampil hanya saat impersonate aktif, banner teks lama hilang', function () {

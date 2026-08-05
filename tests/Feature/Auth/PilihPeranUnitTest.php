@@ -3,13 +3,16 @@
 use App\Models\User;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -66,17 +69,17 @@ it('pilihan peran memakai kartu persegi berikon representatif tanpa tombol Lanju
         ->assertSeeHtml('wire:click="pilihPeran')
         ->assertDontSee('Lanjutkan');
 
-    expect(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Dosen Pengampu')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedAcademicCap->value)
-        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Tim Kurikulum')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedBookOpen->value)
-        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Super Admin')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedShieldCheck->value)
-        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Koordinator Mata Kuliah')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedClipboardDocumentList->value)
-        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::iconForRole('Auditor Mutu')->value)
-        ->toBe(\Filament\Support\Icons\Heroicon::OutlinedMagnifyingGlassCircle->value)
-        ->and(\App\Modules\Auth\Support\PeranUnitFormFields::colorForRole('Pimpinan'))
+    expect(PeranUnitFormFields::iconForRole('Dosen Pengampu')->value)
+        ->toBe(Heroicon::OutlinedAcademicCap->value)
+        ->and(PeranUnitFormFields::iconForRole('Tim Kurikulum')->value)
+        ->toBe(Heroicon::OutlinedBookOpen->value)
+        ->and(PeranUnitFormFields::iconForRole('Super Admin')->value)
+        ->toBe(Heroicon::OutlinedShieldCheck->value)
+        ->and(PeranUnitFormFields::iconForRole('Koordinator Mata Kuliah')->value)
+        ->toBe(Heroicon::OutlinedClipboardDocumentList->value)
+        ->and(PeranUnitFormFields::iconForRole('Auditor Mutu')->value)
+        ->toBe(Heroicon::OutlinedMagnifyingGlassCircle->value)
+        ->and(PeranUnitFormFields::colorForRole('Pimpinan'))
         ->toBe('warning');
 });
 
@@ -89,11 +92,11 @@ it('mount() PilihPeranUnit redirect ke dashboard bila user single-role tanpa pil
     expect($response->headers->get('Location'))->not->toContain('pilih-peran-unit');
 });
 
-it('klik kartu peran/unit menyimpan role dan unit aktif, lalu KurikulumTerpilih mengikuti unit tersebut', function () {
+it('klik kartu Tim Kurikulum langsung menerapkan tanpa memilih unit', function () {
     $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
     $this->actingAs($dosentimkur);
 
-    $prodiUnitIds = \App\Modules\Institusi\Support\AcademicUnitScope::scopedTimKurikulumUnitIdsFor($dosentimkur);
+    $prodiUnitIds = AcademicUnitScope::scopedTimKurikulumUnitIdsFor($dosentimkur);
     $prodi = AcademicUnit::query()->whereIn('id', $prodiUnitIds)->where('type', 'study_program')->firstOrFail();
     $fakultas = AcademicUnit::query()->whereIn('id', $prodiUnitIds)->where('type', 'faculty')->firstOrFail();
 
@@ -112,27 +115,12 @@ it('klik kartu peran/unit menyimpan role dan unit aktif, lalu KurikulumTerpilih 
 
     Livewire::test(PilihPeranUnit::class)
         ->call('pilihPeran', 'Tim Kurikulum')
-        ->assertSet('selectedRole', 'Tim Kurikulum')
-        ->assertSee($prodi->nama)
-        ->call('pilihUnit', $prodi->id)
         ->assertRedirect();
 
-    expect(ActiveRole::currentFor($dosentimkur))->toBe('Tim Kurikulum')
-        ->and(AcademicUnitTerpilih::currentId($dosentimkur))->toBe($prodi->id);
+    expect(ActiveRole::currentFor($dosentimkur))->toBe('Tim Kurikulum');
 
-    $kurikulumProdi = KurikulumTerpilih::default($dosentimkur);
-    expect($kurikulumProdi?->academic_unit_id)->toBe($prodi->id);
-
-    // Ganti unit aktif ke fakultas — KurikulumTerpilih harus ikut berubah,
-    // membuktikan bug asli (data kurikulum tidak ditemukan) sudah selesai:
-    // sekarang unit yang ditampilkan benar-benar mengikuti pilihan eksplisit user.
-    Livewire::test(PilihPeranUnit::class)
-        ->call('pilihPeran', 'Tim Kurikulum')
-        ->call('pilihUnit', $fakultas->id)
-        ->assertRedirect();
-
-    $kurikulumFakultas = KurikulumTerpilih::default($dosentimkur);
-    expect($kurikulumFakultas?->academic_unit_id)->toBe($fakultas->id);
+    $kurikulum = KurikulumTerpilih::default($dosentimkur);
+    expect($kurikulum?->academic_unit_id)->toBe($prodi->id);
 });
 
 it('klik kartu peran tanpa pilihan unit langsung menerapkan dan redirect', function () {

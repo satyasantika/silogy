@@ -46,14 +46,13 @@ class PeranUnitMenu extends Component implements HasActions, HasSchemas
         $roles = $user instanceof User ? ActiveRole::ownedRoleNames($user) : [];
         $peranAktif = $user instanceof User ? PeranUnitFormFields::defaultRole($user) : null;
         $bisaGanti = $user instanceof User && (
-            count($roles) > 1 || PeranUnitFormFields::unitCountForRole($user, $peranAktif) > 1
+            count($roles) > 1 || PeranUnitFormFields::roleMembutuhkanPilihanUnit($user, $peranAktif)
         );
 
         return view('filament.auth.peran-unit-menu', [
             'user' => $user,
             'roles' => $roles,
             'peranAktif' => $peranAktif,
-            'unitAktifId' => $user instanceof User ? PeranUnitFormFields::defaultUnitId($user) : null,
             'bisaGanti' => $bisaGanti,
             'profileUrl' => filament()->getProfileUrl() ?? EditProfile::getUrl(),
             'pilihPeranUnitUrl' => PilihPeranUnit::getUrl(),

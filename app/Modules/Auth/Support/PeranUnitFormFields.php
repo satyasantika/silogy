@@ -7,6 +7,7 @@ use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
@@ -19,7 +20,7 @@ use Illuminate\Support\Collection;
 class PeranUnitFormFields
 {
     /**
-     * @return array<int, \Filament\Schemas\Components\Component>
+     * @return array<int, Component>
      */
     public static function schema(User $user): array
     {
@@ -45,8 +46,8 @@ class PeranUnitFormFields
                 ->options(fn (Get $get): array => AcademicUnitTerpilih::optionsForUnitIds(
                     static::unitIdsForRole($user, $get('role')),
                 ))
-                ->visible(fn (Get $get): bool => static::unitCountForRole($user, $get('role')) > 1)
-                ->required(fn (Get $get): bool => static::unitCountForRole($user, $get('role')) > 1)
+                ->visible(fn (Get $get): bool => static::roleMembutuhkanPilihanUnit($user, $get('role')))
+                ->required(fn (Get $get): bool => static::roleMembutuhkanPilihanUnit($user, $get('role')))
                 ->default(static::defaultUnitId($user)),
         ];
     }
@@ -112,6 +113,36 @@ class PeranUnitFormFields
     public static function unitCountForRole(User $user, ?string $role): int
     {
         return static::unitIdsForRole($user, $role)->count();
+    }
+
+    /**
+     * Tim Kurikulum tidak memilih unit di gerbang/modal — konteks unit
+     * mengikuti KurikulumTerpilih / unit sesi yang masih valid.
+     */
+    public static function roleMembutuhkanPilihanUnit(User $user, ?string $role): bool
+    {
+        if (blank($role) || $role === 'Tim Kurikulum') {
+            return false;
+        }
+
+        return static::unitCountForRole($user, $role) > 1;
+    }
+
+    public static function unitIdUntukRole(User $user, ?string $role): ?string
+    {
+        $unitIds = static::unitIdsForRole($user, $role);
+
+        if ($unitIds->isEmpty()) {
+            return null;
+        }
+
+        $current = AcademicUnitTerpilih::currentId($user);
+
+        if ($current !== null && $unitIds->contains($current)) {
+            return $current;
+        }
+
+        return $unitIds->count() === 1 ? $unitIds->first() : null;
     }
 
     /**

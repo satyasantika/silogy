@@ -54,7 +54,7 @@ class PilihPeranUnit extends Page
         if (count($roles) <= 1) {
             $singleRole = $roles[0] ?? null;
             $hasUnitChoice = $singleRole !== null
-                && PeranUnitFormFields::unitCountForRole($user, $singleRole) > 1;
+                && PeranUnitFormFields::roleMembutuhkanPilihanUnit($user, $singleRole);
 
             if (! $hasUnitChoice) {
                 $this->redirectIntended(Dashboard::getUrl());
@@ -76,18 +76,18 @@ class PilihPeranUnit extends Page
             return;
         }
 
-        $unitIds = PeranUnitFormFields::unitIdsForRole($user, $role);
-
-        if ($unitIds->count() <= 1) {
+        if (! PeranUnitFormFields::roleMembutuhkanPilihanUnit($user, $role)) {
             PeranUnitFormFields::apply([
                 'role' => $role,
-                'unit_id' => $unitIds->first(),
+                'unit_id' => PeranUnitFormFields::unitIdUntukRole($user, $role),
             ]);
 
             $this->redirectIntended(Dashboard::getUrl());
 
             return;
         }
+
+        $unitIds = PeranUnitFormFields::unitIdsForRole($user, $role);
 
         $this->selectedRole = $role;
         $this->unitOptions = AcademicUnit::query()
