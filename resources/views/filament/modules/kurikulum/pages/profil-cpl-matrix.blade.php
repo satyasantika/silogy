@@ -23,8 +23,13 @@
                         <tr style="text-align:left;border-bottom:2px solid rgba(128,128,128,.35);">
                             <th style="padding:8px;">CPL \ Profil</th>
                             @foreach ($profils as $profil)
-                                <th style="padding:8px;text-align:center;" title="{{ $profil->nama ?? $profil->deskripsi }}">
-                                    {{ $profil->kode }}
+                                <th style="padding:8px;text-align:center;min-width:7.5rem;max-width:12rem;vertical-align:bottom;white-space:normal;">
+                                    @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
+                                        'jenis' => 'Profil',
+                                        'kode' => filled($profil->nama) ? $profil->nama : $profil->kode,
+                                        'nama' => filled($profil->nama) ? $profil->kode : null,
+                                        'deskripsi' => $profil->deskripsi,
+                                    ])
                                 </th>
                             @endforeach
                         </tr>

@@ -284,13 +284,24 @@ it('matriks profil-cpl dapat memetakan dan melepas lewat toggle', function () {
     $profil = ProfilLulusan::query()->create([
         'kurikulum_id' => $this->kurikulumProdi->id,
         'kode' => 'PL-1',
+        'nama' => 'Saintis Data',
         'deskripsi' => 'Profil uji',
     ]);
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
 
-    Livewire::test(ProfilCplMatrix::class)
-        ->assertSee($profil->kode)
+    $html = Livewire::test(ProfilCplMatrix::class)
+        ->assertSee('Saintis Data')
         ->assertSee($cpl->kode)
+        ->html();
+
+    expect($html)
+        ->toContain('data-silogy="kode-keterangan-trigger"')
+        ->toContain('data-jenis="Profil"')
+        ->toContain('data-jenis="CPL"')
+        ->toContain('Profil uji')
+        ->toContain('>Saintis Data</button>');
+
+    Livewire::test(ProfilCplMatrix::class)
         ->call('toggle', $cpl->id, $profil->id);
 
     expect(CplProfilLulusan::query()->where('cpl_id', $cpl->id)->where('profil_lulusan_id', $profil->id)->exists())->toBeTrue();
