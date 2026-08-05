@@ -340,6 +340,173 @@ it('menampilkan tombol Normalisasi hanya untuk asesmen yang totalnya belum sama 
         ->not->toContain($wireKeySelBelum);
 });
 
+it('rekap Σ asesmen ikut terbarui setelah updateBobot dan bobot 0 menghapus pivot', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-REKAP', 'deskripsi' => 'Rekap live.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $sub1 = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-REKAP-1', 'deskripsi' => 'Sub 1',
+    ]);
+    $sub2 = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-REKAP-2', 'deskripsi' => 'Sub 2',
+    ]);
+
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'ASES-REKAP',
+        'nama' => 'UTS Rekap',
+        'bobot' => 10,
+    ]);
+
+    $page = Livewire::test(SubcpmkAsesmenMatrix::class);
+
+    expect($page->html())
+        ->toContain('data-silogy="rekap-bobot-asesmen"')
+        ->toContain('data-total="0"')
+        ->toContain('data-silogy="rekap-total-angka">0</span>');
+
+    $page->call('updateBobot', $komponen->id, $sub1->id, '4')
+        ->call('updateBobot', $komponen->id, $sub2->id, '6');
+
+    expect($page->html())
+        ->toContain('data-total="10"')
+        ->toContain('data-silogy="rekap-total-angka">10</span>')
+        ->toContain('background:#16a34a;');
+
+    expect(SubcpmkKomponenPenilaian::query()->where('komponen_penilaian_id', $komponen->id)->count())->toBe(2);
+
+    $page->call('updateBobot', $komponen->id, $sub2->id, '0');
+
+    expect(SubcpmkKomponenPenilaian::query()
+        ->where('komponen_penilaian_id', $komponen->id)
+        ->where('subcpmk_id', $sub2->id)
+        ->exists())->toBeFalse();
+
+    expect($page->html())
+        ->toContain('data-total="4"')
+        ->toContain('data-silogy="rekap-total-angka">4</span>')
+        ->toContain('background:#d97706;');
+});
+
+it('rekap Σ menjadi 10 setelah turun 10 ke 8 lalu isi sisa 2 pada Sub-CPMK lain', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-8PLUS2', 'deskripsi' => 'Regresi rekap.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $sub1 = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-8PLUS2-A', 'deskripsi' => 'A',
+    ]);
+    $sub2 = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-8PLUS2-B', 'deskripsi' => 'B',
+    ]);
+
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'ASES-8PLUS2',
+        'nama' => 'UTS 8+2',
+        'bobot' => 10,
+    ]);
+
+    $page = Livewire::test(SubcpmkAsesmenMatrix::class)
+        ->call('updateBobot', $komponen->id, $sub1->id, '10')
+        ->call('updateBobot', $komponen->id, $sub1->id, '8')
+        ->call('updateBobot', $komponen->id, $sub2->id, '2');
+
+    $html = $page->html();
+
+    expect($html)
+        ->toContain('data-silogy="rekap-bobot-asesmen"')
+        ->toContain('data-total="10"')
+        ->toContain('data-silogy="rekap-total-angka">10</span>')
+        ->toContain('background:#16a34a;')
+        ->not->toContain("mountAction('normalisasiBobotAsesmen', JSON.parse('{\u0022komponenId\u0022:\u0022".$komponen->id."\u0022}'))");
+
+    expect((float) SubcpmkKomponenPenilaian::query()->where('komponen_penilaian_id', $komponen->id)->sum('bobot'))
+        ->toBe(10.0);
+});
+
+it('kuota penuh mengunci sel Sub-CPMK kosong (readonly) hingga bobot terisi diturunkan', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-KUNCI', 'deskripsi' => 'Kunci kuota.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $subIsi = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-ISI', 'deskripsi' => 'Terisi',
+    ]);
+    $subKosong = Subcpmk::query()->create([
+        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-KOSONG', 'deskripsi' => 'Kosong',
+    ]);
+
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id,
+    ]);
+
+    $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id,
+        'semester_id' => $this->semester->id,
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'ASES-KUNCI',
+        'nama' => 'UTS Kunci',
+        'bobot' => 10,
+    ]);
+
+    $page = Livewire::test(SubcpmkAsesmenMatrix::class)
+        ->call('updateBobot', $komponen->id, $subIsi->id, '10');
+
+    $html = $page->html();
+
+    // Sel terisi tetap bisa diedit (tanpa data-terkunci SSR).
+    expect($html)->toContain('data-subcpmk="'.$subIsi->id.'"')
+        ->and($html)->toContain('bobot-input-'.$komponen->id.'-'.$subIsi->id.'-10');
+
+    // Sel kosong terkunci karena kuota 10/10 sudah penuh.
+    expect($html)
+        ->toContain('data-subcpmk="'.$subKosong->id.'"')
+        ->toContain('data-terkunci="1"');
+
+    // Turunkan bobot terisi → kuota terbuka, kunci hilang.
+    $page->call('updateBobot', $komponen->id, $subIsi->id, '6');
+    $htmlSetelah = $page->html();
+
+    expect($htmlSetelah)
+        ->toContain('bobot-input-'.$komponen->id.'-'.$subIsi->id.'-6')
+        ->not->toContain('data-terkunci="1"');
+});
+
 it('cpmk belum diinteraksikan bila belum ada mk cpmk', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
     $cpmk = Cpmk::query()->create([

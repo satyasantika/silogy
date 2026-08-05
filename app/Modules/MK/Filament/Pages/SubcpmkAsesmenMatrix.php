@@ -14,6 +14,7 @@ use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
+use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenClipboardService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
@@ -94,11 +95,7 @@ class SubcpmkAsesmenMatrix extends Page
         $bobot = trim((string) $bobot);
 
         if ($bobot === '' || ! is_numeric($bobot) || (float) $bobot <= 0) {
-            SubcpmkKomponenPenilaian::query()
-                ->where('komponen_penilaian_id', $komponenPenilaianId)
-                ->where('subcpmk_id', $subcpmkId)
-                ->get()
-                ->each(fn (SubcpmkKomponenPenilaian $pivot) => $pivot->delete());
+            $this->hapusPivotBobot($komponenPenilaianId, $subcpmkId);
 
             return;
         }
@@ -111,6 +108,15 @@ class SubcpmkAsesmenMatrix extends Page
             ->first();
 
         $batas = SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $existing?->getKey());
+        $nilai = round(min((float) $bobot, $batas), 2);
+
+        // Bobot 0 (atau terpotong ke 0 karena kapasitas habis) = hapus pivot,
+        // jangan biarkan baris interaksi dengan bobot nol tersimpan.
+        if ($nilai <= 0) {
+            $this->hapusPivotBobot($komponenPenilaianId, $subcpmkId);
+
+            return;
+        }
 
         SubcpmkKomponenPenilaian::query()->updateOrCreate(
             [
@@ -118,10 +124,19 @@ class SubcpmkAsesmenMatrix extends Page
                 'subcpmk_id' => $subcpmkId,
             ],
             [
-                'bobot' => min((float) $bobot, $batas),
+                'bobot' => $nilai,
                 'semester_id' => $komponen->semester_id,
             ],
         );
+    }
+
+    protected function hapusPivotBobot(string $komponenPenilaianId, string $subcpmkId): void
+    {
+        SubcpmkKomponenPenilaian::query()
+            ->where('komponen_penilaian_id', $komponenPenilaianId)
+            ->where('subcpmk_id', $subcpmkId)
+            ->get()
+            ->each(fn (SubcpmkKomponenPenilaian $pivot) => $pivot->delete());
     }
 
     /**
@@ -149,18 +164,22 @@ class SubcpmkAsesmenMatrix extends Page
                 $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
 
                 return 'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
-                    .'secara proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat sama '
+                    .'secara proporsional lalu dibulatkan sesuai pilihan di bawah, sehingga totalnya tepat sama '
                     ."dengan bobot Asesmen ini ({$bobotAsesmen}).";
             })
+            ->schema([
+                NormalisasiBobotDesimal::field(),
+            ])
             ->modalSubmitActionLabel('Normalisasi')
-            ->action(function (array $arguments): void {
+            ->action(function (array $data, array $arguments): void {
                 $komponen = KomponenPenilaian::query()->find($arguments['komponenId'] ?? null);
 
                 if (! $komponen instanceof KomponenPenilaian) {
                     return;
                 }
 
-                $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen);
+                $desimal = NormalisasiBobotDesimal::dariData($data);
+                $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen, $desimal);
                 $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
 
                 match ($hasil['status']) {
