@@ -2,6 +2,7 @@
 
 use App\Models\Role;
 use App\Models\User;
+use App\Modules\Auth\Filament\Resources\UserResource;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\EditUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
@@ -316,4 +317,73 @@ it('mengizinkan hapus user yang datanya belum dipakai tabel lain', function () {
 
     expect($dosen->hasDependentRecords())->toBeFalse()
         ->and($superadmin->can('delete', $dosen))->toBeTrue();
+});
+
+it('label penugasan unit menampilkan badge pimpinan dan tim kurikulum', function () {
+    $prodi = AcademicUnit::where('type', 'study_program')->first();
+
+    $kosong = UserResource::labelPenugasanUnit([])->toHtml();
+    expect($kosong)->toContain('Penugasan baru')
+        ->not->toContain('Pimpinan')
+        ->not->toContain('Tim kurikulum');
+
+    $denganBadge = UserResource::labelPenugasanUnit([
+        'academic_unit_id' => $prodi->id,
+        'status_pimpinan' => true,
+        'status_tim_kurikulum' => true,
+    ])->toHtml();
+
+    expect($denganBadge)
+        ->toContain(e($prodi->nama_lengkap))
+        ->toContain('>Pimpinan</span>')
+        ->toContain('>Tim kurikulum</span>');
+
+    $hanyaPimpinan = UserResource::labelPenugasanUnit([
+        'academic_unit_id' => $prodi->id,
+        'status_pimpinan' => true,
+        'status_tim_kurikulum' => false,
+    ])->toHtml();
+
+    expect($hanyaPimpinan)
+        ->toContain('>Pimpinan</span>')
+        ->not->toContain('Tim kurikulum');
+});
+
+it('setelah tambah penugasan unit, accordion repeater otomatis dilipat', function () {
+    $dosen = User::create([
+        'full_name' => 'Dosen Accordion',
+        'username' => 'dosenaccordion',
+        'email' => 'dosenaccordion@silogy.test',
+        'password' => 'RahasiaKuat123',
+    ]);
+
+    $test = Livewire::test(EditUser::class, ['record' => $dosen->id]);
+
+    $repeater = $test->instance()->form->getComponent('academicUnitUsers');
+    expect($repeater)->toBeInstanceOf(\Filament\Forms\Components\Repeater::class)
+        ->and($repeater->isCollapsed())->toBeTrue();
+
+    $test->callFormComponentAction('academicUnitUsers', 'add');
+
+    $repeaterSetelah = $test->instance()->form->getComponent('academicUnitUsers');
+    expect($repeaterSetelah->isCollapsed())->toBeTrue()
+        ->and(count($repeaterSetelah->getRawState() ?? []))->toBe(1);
+});
+
+it('card Akun default dilipat dan Permission dilebur ke card Role', function () {
+    $dosen = User::create([
+        'full_name' => 'Dosen Section',
+        'username' => 'dosensection',
+        'email' => 'dosensection@silogy.test',
+        'password' => 'RahasiaKuat123',
+    ]);
+
+    Livewire::test(EditUser::class, ['record' => $dosen->id])
+        ->assertSuccessful()
+        ->assertSee('(username, email, password)', escape: false)
+        ->assertSee('Permission', escape: false)
+        ->assertDontSee('Permission Langsung', escape: false)
+        ->assertFormFieldExists('roles')
+        ->assertFormFieldExists('permissions')
+        ->assertFormFieldExists('username');
 });

@@ -33,6 +33,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\HtmlString;
 use STS\FilamentImpersonate\Actions\Impersonate;
 
 class UserResource extends Resource
@@ -94,6 +95,7 @@ class UserResource extends Resource
                     ->columnSpanFull(),
 
                 Section::make('Akun')
+                    ->description('(username, email, password)')
                     ->schema([
                         TextInput::make('username')
                             ->label('Username')
@@ -122,9 +124,12 @@ class UserResource extends Resource
                             ),
                     ])
                     ->columns(2)
+                    ->collapsible()
+                    ->collapsed()
                     ->columnSpanFull(),
 
                 Section::make('Role')
+                    ->description('Permission')
                     ->schema([
                         Select::make('roles')
                             ->label('Role')
@@ -139,14 +144,9 @@ class UserResource extends Resource
                             ->preload()
                             ->searchable()
                             ->required(),
-                    ])
-                    ->columnSpanFull(),
-
-                Section::make('Permission Langsung')
-                    ->description('Permission tambahan di luar role. Hanya Super Admin yang dapat mengatur.')
-                    ->schema([
                         Select::make('permissions')
                             ->label('Permission langsung')
+                            ->helperText('Permission tambahan di luar role. Hanya Super Admin yang dapat mengatur.')
                             ->relationship('permissions', 'name')
                             ->multiple()
                             ->preload()
@@ -154,9 +154,9 @@ class UserResource extends Resource
                             ->getOptionLabelFromRecordUsing(
                                 fn (Permission $record): string => DomainPermissionLabels::label($record->name)
                             )
-                            ->dehydrated(fn (): bool => auth()->user()?->can('kelola_permission') ?? false),
+                            ->dehydrated(fn (): bool => auth()->user()?->can('kelola_permission') ?? false)
+                            ->visible(fn (): bool => auth()->user()?->can('kelola_permission') ?? false),
                     ])
-                    ->visible(fn (): bool => auth()->user()?->can('kelola_permission') ?? false)
                     ->columnSpanFull(),
 
                 Section::make('Penugasan Unit')
@@ -176,29 +176,62 @@ class UserResource extends Resource
                                         ->all())
                                     ->searchable()
                                     ->required()
-                                    ->distinct(),
+                                    ->distinct()
+                                    ->live(),
                                 Toggle::make('status_pimpinan')
                                     ->label('Pimpinan unit')
-                                    ->inline(false),
+                                    ->inline(false)
+                                    ->live(),
                                 Toggle::make('status_tim_kurikulum')
                                     ->label('Tim kurikulum')
-                                    ->inline(false),
+                                    ->inline(false)
+                                    ->live(),
                                 TextInput::make('jabatan')
                                     ->label('Jabatan')
                                     ->maxLength(100),
                             ])
                             ->columns(2)
                             ->collapsible()
-                            ->itemLabel(
-                                fn (array $state): ?string => isset($state['academic_unit_id'])
-                                    ? AcademicUnit::find($state['academic_unit_id'])?->nama_lengkap
-                                    : null
-                            )
+                            ->collapsed()
+                            ->itemLabel(fn (array $state): HtmlString => static::labelPenugasanUnit($state))
                             ->addActionLabel('Tambah penugasan unit')
+                            ->addAction(function (Action $action): Action {
+                                // Default Filament me-expand item baru; lipat lagi setelah aksi selesai.
+                                return $action->after(function (Repeater $component): void {
+                                    $component->collapsed(true, shouldMakeComponentCollapsible: false);
+                                });
+                            })
                             ->defaultItems(0),
                     ])
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Label accordion penugasan: nama unit + badge Pimpinan / Tim kurikulum.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    public static function labelPenugasanUnit(array $state): HtmlString
+    {
+        $unitId = $state['academic_unit_id'] ?? null;
+
+        if (blank($unitId)) {
+            return new HtmlString('<span style="opacity:.65;">Penugasan baru</span>');
+        }
+
+        $nama = AcademicUnit::query()->find($unitId)?->nama_lengkap ?? 'Unit akademik';
+        $html = '<span>'.e($nama).'</span>';
+
+        if (filter_var($state['status_pimpinan'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $html .= '<span style="display:inline-flex;align-items:center;margin-inline-start:8px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;background:rgba(37,99,235,.12);color:#1d4ed8;">Pimpinan</span>';
+        }
+
+        if (filter_var($state['status_tim_kurikulum'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $html .= '<span style="display:inline-flex;align-items:center;margin-inline-start:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;background:rgba(0,112,0,.14);color:#0b3914;">Tim kurikulum</span>';
+        }
+
+        return new HtmlString($html);
     }
 
     public static function table(Table $table): Table
