@@ -189,6 +189,7 @@ class AnalisisMkProdiService
             $mkRows->mapWithKeys(fn (array $mkRow): array => [
                 $mkRow['mk_id'] => $mkRow['bobot_mentah'] * max(0, (int) $mkRow['sks']),
             ]),
+            desimal: 2,
         );
     }
 

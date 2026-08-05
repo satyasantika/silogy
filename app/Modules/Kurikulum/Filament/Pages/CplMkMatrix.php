@@ -6,6 +6,7 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
 use App\Modules\Kurikulum\Services\NormalisasiBobotCplMkService;
+use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\MK\Models\Mk;
 use App\Support\Filament\NavigationGroupPeran;
@@ -110,11 +111,14 @@ class CplMkMatrix extends Page
             ->modalHeading('Normalisasi bobot CPL ↔ MK')
             ->modalDescription(
                 'Bobot MK ini terhadap tiap CPL (via BoK) yang berinteraksi akan disesuaikan secara '
-                .'proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat 100%. CPL (via BoK) '
-                .'yang bukan milik unit Anda tidak akan disentuh.',
+                .'proporsional lalu dibulatkan sesuai pilihan di bawah, sehingga totalnya tepat 100%. '
+                .'CPL (via BoK) yang bukan milik unit Anda tidak akan disentuh.',
             )
+            ->schema([
+                NormalisasiBobotDesimal::field(),
+            ])
             ->modalSubmitActionLabel('Normalisasi')
-            ->action(function (array $arguments): void {
+            ->action(function (array $data, array $arguments): void {
                 $unitId = $this->getKurikulum()?->academic_unit_id;
                 $mk = Mk::query()->find($arguments['mkId'] ?? null);
 
@@ -122,7 +126,8 @@ class CplMkMatrix extends Page
                     return;
                 }
 
-                $hasil = app(NormalisasiBobotCplMkService::class)->normalisasi($mk, $unitId);
+                $desimal = NormalisasiBobotDesimal::dariData($data);
+                $hasil = app(NormalisasiBobotCplMkService::class)->normalisasi($mk, $unitId, $desimal);
 
                 match ($hasil['status']) {
                     'dinormalisasi' => Notification::make()

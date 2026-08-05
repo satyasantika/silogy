@@ -8,15 +8,15 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Menormalisasi bobot interaksi Sub-CPMK ↔ Asesmen milik satu komponen
- * penilaian, secara proporsional dan dibulatkan ke 2 desimal, agar totalnya
- * tepat sama dengan bobot Asesmen itu sendiri (bukan lagi selalu 100%).
+ * penilaian, secara proporsional dan dibulatkan ke N desimal (default: satuan),
+ * agar totalnya tepat sama dengan bobot Asesmen itu sendiri.
  */
 class NormalisasiBobotSubcpmkService
 {
     /**
      * @return array{status: 'kosong'|'sudah_pas'|'dinormalisasi', jumlah: int, total_sebelum: float}
      */
-    public function normalisasi(KomponenPenilaian $komponen): array
+    public function normalisasi(KomponenPenilaian $komponen, int $desimal = 0): array
     {
         $target = (float) $komponen->bobot;
 
@@ -28,12 +28,13 @@ class NormalisasiBobotSubcpmkService
             return ['status' => 'kosong', 'jumlah' => $rows->count(), 'total_sebelum' => $total];
         }
 
-        if (abs($total - $target) < 0.01) {
+        $bobotPerId = $rows->mapWithKeys(fn ($row) => [$row->getKey() => (float) $row->bobot]);
+
+        if (BobotNormalizer::sudahSesuai($bobotPerId, $target, $desimal)) {
             return ['status' => 'sudah_pas', 'jumlah' => $rows->count(), 'total_sebelum' => $total];
         }
 
-        $bobotPerId = $rows->mapWithKeys(fn ($row) => [$row->getKey() => (float) $row->bobot]);
-        $dibulatkan = BobotNormalizer::keTarget($bobotPerId, $target);
+        $dibulatkan = BobotNormalizer::keTarget($bobotPerId, $target, $desimal);
 
         DB::transaction(function () use ($rows, $dibulatkan): void {
             foreach ($rows as $row) {

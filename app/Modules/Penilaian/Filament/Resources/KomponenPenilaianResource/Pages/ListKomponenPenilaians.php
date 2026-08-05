@@ -20,6 +20,7 @@ use App\Modules\Penilaian\Services\AsesmenImporService;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
 use App\Modules\Penilaian\Services\KomponenPenilaianSalinSemesterService;
 use App\Modules\Penilaian\Services\NormalisasiBobotKomponenService;
+use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Support\Filament\Concerns\HasImporMassal;
@@ -240,13 +241,16 @@ class ListKomponenPenilaians extends ListRecords
             ->modalHeading('Normalisasi bobot komponen')
             ->modalDescription(
                 'Bobot tiap asesmen pada mata kuliah dan semester ini akan disesuaikan secara '
-                .'proporsional lalu dibulatkan ke bilangan bulat terdekat, sehingga totalnya '
+                .'proporsional lalu dibulatkan sesuai pilihan di bawah, sehingga totalnya '
                 .'tepat 100%. Tindakan ini mengubah nilai bobot yang sudah tersimpan.',
             )
+            ->schema([
+                NormalisasiBobotDesimal::field(),
+            ])
             ->modalSubmitActionLabel('Normalisasi')
             // Tampil hanya saat ada komponen dan total bobot belum tepat 100%.
             ->visible(fn (): bool => $this->bolehNormalisasiBobot())
-            ->action(function (): void {
+            ->action(function (array $data): void {
                 $mkId = MkTerpilih::currentId();
                 $service = app(RencanaEvaluasiService::class);
                 $semesterId = filled($mkId) ? $service->resolveSemesterId($mkId) : null;
@@ -260,8 +264,9 @@ class ListKomponenPenilaians extends ListRecords
                     return;
                 }
 
+                $desimal = NormalisasiBobotDesimal::dariData($data);
                 $hasil = app(NormalisasiBobotKomponenService::class)
-                    ->normalisasi((string) $mkId, (string) $semesterId);
+                    ->normalisasi((string) $mkId, (string) $semesterId, $desimal);
 
                 match ($hasil['status']) {
                     'dinormalisasi' => Notification::make()

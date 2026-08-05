@@ -78,7 +78,9 @@ it('mk milik unit lain terkunci sepenuhnya, walau salah satu kolom cplbok milik 
         ->and((float) $rowUnivSisi->fresh()->bobot)->toBe(20.0);
 });
 
-it('status sudah_pas tetap berlaku untuk mk unit lain bila totalnya sudah tepat 100', function () {
+it('mk unit lain tetap terkunci meski totalnya sudah tepat 100', function () {
+    // Kepemilikan MK menentukan editabilitas — total 100 tidak mengubah status
+    // terkunci menjadi sudah_pas bagi unit yang tidak punya hak edit.
     $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
 
     $cplBokProdi = CplBok::query()->create([
@@ -89,7 +91,8 @@ it('status sudah_pas tetap berlaku untuk mk unit lain bila totalnya sudah tepat 
 
     $hasil = $this->service->normalisasi($mkUniv, $this->prodi->id);
 
-    expect($hasil['status'])->toBe('sudah_pas');
+    expect($hasil['status'])->toBe('terkunci')
+        ->and($hasil['total_terkunci'])->toBe(100.0);
 });
 
 it('status sudah_pas bila total sudah tepat 100', function () {

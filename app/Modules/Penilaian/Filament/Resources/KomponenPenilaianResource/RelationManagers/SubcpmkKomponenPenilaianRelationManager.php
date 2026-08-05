@@ -6,6 +6,7 @@ use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
+use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use Filament\Actions\Action;
@@ -129,9 +130,12 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                         $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
 
                         return 'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
-                            .'secara proporsional lalu dibulatkan ke 2 desimal, sehingga totalnya tepat sama '
+                            .'secara proporsional lalu dibulatkan sesuai pilihan di bawah, sehingga totalnya tepat sama '
                             ."dengan bobot Asesmen ini ({$bobotAsesmen}).";
                     })
+                    ->schema([
+                        NormalisasiBobotDesimal::field(),
+                    ])
                     ->modalSubmitActionLabel('Normalisasi')
                     ->visible(function (): bool {
                         /** @var KomponenPenilaian $komponen */
@@ -140,11 +144,12 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
 
                         return $total > 0 && abs($total - (float) $komponen->bobot) > 0.01;
                     })
-                    ->action(function (): void {
+                    ->action(function (array $data): void {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
 
-                        $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen);
+                        $desimal = NormalisasiBobotDesimal::dariData($data);
+                        $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen, $desimal);
                         $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
 
                         match ($hasil['status']) {

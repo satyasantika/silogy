@@ -56,11 +56,11 @@ beforeEach(function () {
     ]);
 });
 
-it('menormalisasi bobot pivot agar totalnya tepat sama dengan bobot Asesmen (desimal)', function () {
+it('menormalisasi bobot pivot dengan 2 desimal agar total tepat bobot Asesmen desimal', function () {
     SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
     SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
 
-    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen);
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, desimal: 2);
 
     expect($hasil['status'])->toBe('dinormalisasi')
         ->and($hasil['jumlah'])->toBe(2);
@@ -68,17 +68,36 @@ it('menormalisasi bobot pivot agar totalnya tepat sama dengan bobot Asesmen (des
     $bobots = SubcpmkKomponenPenilaian::query()
         ->where('komponen_penilaian_id', $this->komponen->id)
         ->pluck('bobot')
+        ->map(fn ($b) => (float) $b)
         ->all();
 
     expect(array_sum($bobots))->toBe(7.5)
         ->and($bobots)->toEqualCanonicalizing([3.75, 3.75]);
 });
 
-it('mengembalikan status sudah_pas bila total sudah sama dengan bobot Asesmen', function () {
+it('menormalisasi default ke satuan: target 7.5 menjadi 8', function () {
+    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
+    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
+
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen);
+
+    expect($hasil['status'])->toBe('dinormalisasi');
+
+    $bobots = SubcpmkKomponenPenilaian::query()
+        ->where('komponen_penilaian_id', $this->komponen->id)
+        ->pluck('bobot')
+        ->map(fn ($b) => (float) $b)
+        ->all();
+
+    expect(array_sum($bobots))->toBe(8.0)
+        ->and($bobots)->toEqualCanonicalizing([4.0, 4.0]);
+});
+
+it('mengembalikan status sudah_pas bila total dan desimal sudah sesuai', function () {
     SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 5]);
     SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 2.5]);
 
-    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen);
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, desimal: 2);
 
     expect($hasil['status'])->toBe('sudah_pas');
 });

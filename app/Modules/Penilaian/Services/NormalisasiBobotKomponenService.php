@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Menormalisasi bobot asesmen pada satu mata kuliah + semester secara
- * proporsional dan dibulatkan ke bilangan bulat terdekat, agar totalnya
+ * proporsional dan dibulatkan ke N desimal (default: satuan), agar totalnya
  * tepat 100%.
  */
 class NormalisasiBobotKomponenService
@@ -16,7 +16,7 @@ class NormalisasiBobotKomponenService
     /**
      * @return array{status: 'kosong'|'sudah_pas'|'dinormalisasi', jumlah_asesmen: int, total_sebelum: float}
      */
-    public function normalisasi(string $mkId, string $semesterId): array
+    public function normalisasi(string $mkId, string $semesterId, int $desimal = 0): array
     {
         $perKode = KomponenPenilaian::query()
             ->where('mk_id', $mkId)
@@ -32,11 +32,11 @@ class NormalisasiBobotKomponenService
             return ['status' => 'kosong', 'jumlah_asesmen' => $perKode->count(), 'total_sebelum' => $total];
         }
 
-        if (abs($total - 100) < 0.01) {
+        if (BobotNormalizer::sudahSesuai($perKode, 100.0, $desimal)) {
             return ['status' => 'sudah_pas', 'jumlah_asesmen' => $perKode->count(), 'total_sebelum' => $total];
         }
 
-        $dibulatkan = BobotNormalizer::keSeratus($perKode);
+        $dibulatkan = BobotNormalizer::keSeratus($perKode, $desimal);
 
         DB::transaction(function () use ($mkId, $semesterId, $dibulatkan): void {
             foreach ($dibulatkan as $kode => $bobotBaru) {
