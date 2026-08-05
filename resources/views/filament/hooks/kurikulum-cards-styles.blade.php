@@ -1186,6 +1186,170 @@
         border-top: 1px solid rgba(11, 57, 20, 0.2);
     }
 
+    .silogy-capaian-grafik {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .silogy-capaian-grafik__radar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    @media (min-width: 768px) {
+        .silogy-capaian-grafik__radar {
+            grid-template-columns: 1fr 1fr;
+            align-items: stretch;
+        }
+    }
+
+    .silogy-laporan-cetak-badan {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .silogy-laporan-blok__judul {
+        font-weight: 600;
+        font-size: 13px;
+        margin: 0 0 10px;
+        color: #0b3914;
+    }
+
+    .silogy-laporan-radar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+        gap: 16px;
+    }
+
+    .silogy-laporan-radar-kartu {
+        border: 1px solid rgba(128, 128, 128, 0.2);
+        border-radius: 10px;
+        padding: 14px;
+    }
+
+    .silogy-laporan-radar-kartu__kanvas {
+        aspect-ratio: 1 / 1;
+        width: 100%;
+        position: relative;
+    }
+
+    @media print {
+        @page {
+            size: auto;
+            margin: 12mm;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] * {
+            visibility: hidden !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"],
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] * {
+            visibility: visible !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 2mm !important;
+            border: none !important;
+            background: #fff !important;
+            box-shadow: none !important;
+            color: #111 !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-cetak-aksi,
+        body[data-silogy-print="laporan-lengkap"] .fi-sidebar,
+        body[data-silogy-print="laporan-lengkap"] .fi-topbar,
+        body[data-silogy-print="laporan-lengkap"] .fi-header {
+            display: none !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-blok {
+            break-inside: auto;
+            page-break-inside: auto;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-blok--rapat,
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-radar-kartu {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-blok__judul {
+            break-after: avoid;
+            page-break-after: avoid;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-blok__judul + .silogy-laporan-blok__isi,
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-blok__judul + .silogy-laporan-radar-kartu__kanvas {
+            break-before: avoid;
+            page-break-before: avoid;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] table {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            table-layout: auto;
+            font-size: 9.5pt !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] th,
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] td {
+            white-space: normal !important;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            padding: 5px 6px !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] thead {
+            display: table-header-group;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] [style*="overflow"],
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] .silogy-laporan-blok__isi {
+            overflow: visible !important;
+            max-width: 100% !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] .portofolio-sticky,
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] [style*="position:sticky"],
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] [style*="position: sticky"] {
+            position: static !important;
+            left: auto !important;
+            top: auto !important;
+            box-shadow: none !important;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-radar-grid {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 70mm), 1fr));
+            gap: 8mm;
+        }
+
+        body[data-silogy-print="laporan-lengkap"] .silogy-laporan-radar-kartu__kanvas,
+        body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] canvas {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+    }
+
+
     /* Sembunyikan dropdown "Urutkan menurut" jika masih ter-render. */
     .fi-ta.silogy-kurikulum-cards .fi-ta-sort,
     .fi-ta:has([data-silogy="banner-kurikulum-header-panel"]) .fi-ta-sort,

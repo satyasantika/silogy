@@ -143,105 +143,131 @@
             heading="Laporan Mata Kuliah ke Prodi"
             description="Portofolio penilaian dan evaluasi untuk kelas terpilih."
         >
-            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-                <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" onclick="window.print()">
+            <div class="silogy-laporan-cetak-aksi" style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" onclick="silogyCetakLaporanLengkap()">
                     Cetak
                 </x-filament::button>
             </div>
 
-            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;margin-bottom:16px;">
-                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">A. Identitas Mata Kuliah</div>
-                <table style="width:100%;border-collapse:collapse;font-size:13px;">
-                    <tbody>
-                        <tr>
-                            <th style="text-align:left;padding:6px 8px;width:200px;white-space:nowrap;">Mata Kuliah</th>
-                            <td style="padding:6px 8px;">{{ $this->identitasMk['nama'] }}</td>
-                        </tr>
-                        <tr>
-                            <th style="text-align:left;padding:6px 8px;">Kode MK / SKS</th>
-                            <td style="padding:6px 8px;">{{ $this->identitasMk['kode'] }} / {{ $this->identitasMk['sks'] }} SKS</td>
-                        </tr>
-                        <tr>
-                            <th style="text-align:left;padding:6px 8px;">Semester</th>
-                            <td style="padding:6px 8px;">{{ $this->identitasMk['semester'] }}</td>
-                        </tr>
-                        <tr>
-                            <th style="text-align:left;padding:6px 8px;">Dosen Pengampu</th>
-                            <td style="padding:6px 8px;">{{ $this->identitasMk['dosen'] }}</td>
-                        </tr>
-                        <tr>
-                            <th style="text-align:left;padding:6px 8px;">Target Kelulusan CPL</th>
-                            <td style="padding:6px 8px;">{{ $this->identitasMk['target'] }}%</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            @include('filament.modules.penilaian.partials.rencana-evaluasi-table', ['rencana' => $rencanaEvaluasi])
-
-            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">B. Tabel Nilai Mahasiswa (Workcloud Utama)</div>
-            @include('filament.modules.penilaian.partials.tabel-workcloud', [
-                'kolomEvaluasi' => $kolomEvaluasi,
-                'rows' => $portofolioRows,
-                'nilaiEvaluasi' => $this->nilaiEvaluasi,
-                'rataRataEvaluasi' => $this->rataRataEvaluasi,
-                'wireKeySuffix' => 'laporan',
-            ])
-
-            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">C1. Evaluasi Ketercapaian CPL</div>
-            @include('filament.modules.penilaian.partials.tabel-ketercapaian-cpl', ['ketercapaian' => $ketercapaianCpl])
-
-            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">C2. Detail Ketercapaian CPL-CPMK-SubCPMK</div>
-            @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', [
-                'detail' => $detailCplCpmkSubcpmk,
-                'target' => $targetCapaianLulusan,
-                'rataRataKeseluruhan' => $this->rataRataKeseluruhanCpl,
-            ])
-
-            <div style="margin-top:16px;font-weight:600;font-size:13px;margin-bottom:10px;">D. Distribusi Nilai</div>
-            @include('filament.modules.penilaian.partials.tabel-distribusi-nilai', ['distribusi' => $distribusiNilaiHuruf])
-
-            <div style="margin-top:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
-                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
-                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E1. Jaring Laba-laba Ketercapaian CPL</div>
-                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
-                        <canvas
-                            wire:key="radar-cpl-{{ $kelasMkId }}"
-                            x-data
-                            x-init="renderRadarSilogy($el, @js($this->radarData['cpl'] ?? ['labels' => [], 'data' => []]), '#2563eb')"
-                        ></canvas>
+            <div data-silogy="laporan-cetak-badan" class="silogy-laporan-cetak-badan">
+                <section class="silogy-laporan-blok silogy-laporan-blok--rapat" data-silogy="laporan-blok-a">
+                    <div class="silogy-laporan-blok__judul">A. Identitas Mata Kuliah</div>
+                    <div class="silogy-laporan-blok__isi" style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                            <tbody>
+                                <tr>
+                                    <th style="text-align:left;padding:6px 8px;width:200px;white-space:nowrap;">Mata Kuliah</th>
+                                    <td style="padding:6px 8px;">{{ $this->identitasMk['nama'] }}</td>
+                                </tr>
+                                <tr>
+                                    <th style="text-align:left;padding:6px 8px;">Kode MK / SKS</th>
+                                    <td style="padding:6px 8px;">{{ $this->identitasMk['kode'] }} / {{ $this->identitasMk['sks'] }} SKS</td>
+                                </tr>
+                                <tr>
+                                    <th style="text-align:left;padding:6px 8px;">Semester</th>
+                                    <td style="padding:6px 8px;">{{ $this->identitasMk['semester'] }}</td>
+                                </tr>
+                                <tr>
+                                    <th style="text-align:left;padding:6px 8px;">Dosen Pengampu</th>
+                                    <td style="padding:6px 8px;">{{ $this->identitasMk['dosen'] }}</td>
+                                </tr>
+                                <tr>
+                                    <th style="text-align:left;padding:6px 8px;">Target Kelulusan CPL</th>
+                                    <td style="padding:6px 8px;">{{ $this->identitasMk['target'] }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
-                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E2. Jaring Laba-laba Ketercapaian CPMK</div>
-                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
-                        <canvas
-                            wire:key="radar-cpmk-{{ $kelasMkId }}"
-                            x-data
-                            x-init="renderRadarSilogy($el, @js($this->radarData['cpmk'] ?? ['labels' => [], 'data' => []]), '#059669')"
-                        ></canvas>
+                </section>
+
+                <section class="silogy-laporan-blok" data-silogy="laporan-blok-rencana">
+                    <div class="silogy-laporan-blok__isi">
+                        @include('filament.modules.penilaian.partials.rencana-evaluasi-table', ['rencana' => $rencanaEvaluasi])
                     </div>
-                </div>
-                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
-                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E3. Jaring Laba-laba Ketercapaian Sub-CPMK</div>
-                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
-                        <canvas
-                            wire:key="radar-subcpmk-{{ $kelasMkId }}"
-                            x-data
-                            x-init="renderRadarSilogy($el, @js($this->radarData['subcpmk'] ?? ['labels' => [], 'data' => []]), '#d97706')"
-                        ></canvas>
+                </section>
+
+                <section class="silogy-laporan-blok" data-silogy="laporan-blok-b">
+                    <div class="silogy-laporan-blok__judul">B. Tabel Nilai Mahasiswa (Workcloud Utama)</div>
+                    <div class="silogy-laporan-blok__isi">
+                        @include('filament.modules.penilaian.partials.tabel-workcloud', [
+                            'kolomEvaluasi' => $kolomEvaluasi,
+                            'rows' => $portofolioRows,
+                            'nilaiEvaluasi' => $this->nilaiEvaluasi,
+                            'rataRataEvaluasi' => $this->rataRataEvaluasi,
+                            'wireKeySuffix' => 'laporan',
+                        ])
                     </div>
-                </div>
-                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
-                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">E4. Jaring Laba-laba Rata-rata Penugasan</div>
-                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
-                        <canvas
-                            wire:key="radar-asesmen-{{ $kelasMkId }}"
-                            x-data
-                            x-init="renderRadarSilogy($el, @js($this->radarData['asesmen'] ?? ['labels' => [], 'data' => []]), '#7c3aed')"
-                        ></canvas>
+                </section>
+
+                <section class="silogy-laporan-blok" data-silogy="laporan-blok-c1">
+                    <div class="silogy-laporan-blok__judul">C1. Evaluasi Ketercapaian CPL</div>
+                    <div class="silogy-laporan-blok__isi">
+                        @include('filament.modules.penilaian.partials.tabel-ketercapaian-cpl', ['ketercapaian' => $ketercapaianCpl])
                     </div>
-                </div>
+                </section>
+
+                <section class="silogy-laporan-blok" data-silogy="laporan-blok-c2">
+                    <div class="silogy-laporan-blok__judul">C2. Detail Ketercapaian CPL-CPMK-SubCPMK</div>
+                    <div class="silogy-laporan-blok__isi">
+                        @include('filament.modules.penilaian.partials.tabel-detail-cpl-cpmk-subcpmk', [
+                            'detail' => $detailCplCpmkSubcpmk,
+                            'target' => $targetCapaianLulusan,
+                            'rataRataKeseluruhan' => $this->rataRataKeseluruhanCpl,
+                        ])
+                    </div>
+                </section>
+
+                <section class="silogy-laporan-blok silogy-laporan-blok--rapat" data-silogy="laporan-blok-d">
+                    <div class="silogy-laporan-blok__judul">D. Distribusi Nilai</div>
+                    <div class="silogy-laporan-blok__isi">
+                        @include('filament.modules.penilaian.partials.tabel-distribusi-nilai', ['distribusi' => $distribusiNilaiHuruf])
+                    </div>
+                </section>
+
+                <section class="silogy-laporan-blok" data-silogy="laporan-blok-e">
+                    <div class="silogy-laporan-radar-grid">
+                        <div class="silogy-laporan-radar-kartu">
+                            <div class="silogy-laporan-blok__judul">E1. Jaring Laba-laba Ketercapaian CPL</div>
+                            <div class="silogy-laporan-radar-kartu__kanvas">
+                                <canvas
+                                    wire:key="radar-cpl-{{ $kelasMkId }}"
+                                    x-data
+                                    x-init="renderRadarSilogy($el, @js($this->radarData['cpl'] ?? ['labels' => [], 'data' => []]), '#2563eb')"
+                                ></canvas>
+                            </div>
+                        </div>
+                        <div class="silogy-laporan-radar-kartu">
+                            <div class="silogy-laporan-blok__judul">E2. Jaring Laba-laba Ketercapaian CPMK</div>
+                            <div class="silogy-laporan-radar-kartu__kanvas">
+                                <canvas
+                                    wire:key="radar-cpmk-{{ $kelasMkId }}"
+                                    x-data
+                                    x-init="renderRadarSilogy($el, @js($this->radarData['cpmk'] ?? ['labels' => [], 'data' => []]), '#059669')"
+                                ></canvas>
+                            </div>
+                        </div>
+                        <div class="silogy-laporan-radar-kartu">
+                            <div class="silogy-laporan-blok__judul">E3. Jaring Laba-laba Ketercapaian Sub-CPMK</div>
+                            <div class="silogy-laporan-radar-kartu__kanvas">
+                                <canvas
+                                    wire:key="radar-subcpmk-{{ $kelasMkId }}"
+                                    x-data
+                                    x-init="renderRadarSilogy($el, @js($this->radarData['subcpmk'] ?? ['labels' => [], 'data' => []]), '#d97706')"
+                                ></canvas>
+                            </div>
+                        </div>
+                        <div class="silogy-laporan-radar-kartu">
+                            <div class="silogy-laporan-blok__judul">E4. Jaring Laba-laba Rata-rata Penugasan</div>
+                            <div class="silogy-laporan-radar-kartu__kanvas">
+                                <canvas
+                                    wire:key="radar-asesmen-{{ $kelasMkId }}"
+                                    x-data
+                                    x-init="renderRadarSilogy($el, @js($this->radarData['asesmen'] ?? ['labels' => [], 'data' => []]), '#7c3aed')"
+                                ></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
         </x-filament::section>
     </div>
@@ -288,6 +314,18 @@
             background: #27272a;
         }
     </style>
+    <script>
+        window.silogyCetakLaporanLengkap = function () {
+            const selesai = function () {
+                document.body.removeAttribute('data-silogy-print');
+                window.removeEventListener('afterprint', selesai);
+            };
+
+            document.body.setAttribute('data-silogy-print', 'laporan-lengkap');
+            window.addEventListener('afterprint', selesai);
+            window.print();
+        };
+    </script>
 @endonce
 
 @include('filament.shared.charts.radar-bar-chartjs')

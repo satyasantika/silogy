@@ -8,6 +8,7 @@ use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\HtmlString;
 
@@ -296,6 +297,7 @@ trait HasLaporanKelasMk
             ->icon(Heroicon::OutlinedEye)
             ->color('gray')
             ->size('sm')
+            ->modalWidth(Width::SixExtraLarge)
             ->modalHeading(function (array $arguments): string {
                 $mahasiswa = collect($this->rows)->firstWhere('id', $arguments['kmmId'] ?? null);
 

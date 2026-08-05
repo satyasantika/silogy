@@ -493,6 +493,7 @@ it('modal Capaian menampilkan grafik CPMK, Sub-CPMK, dan Besaran Nilai Penugasan
     expect($html)->toContain('Grafik Ketercapaian CPMK')
         ->toContain('Grafik Ketercapaian Sub-CPMK')
         ->toContain('Grafik Besaran Nilai Penugasan')
+        ->toContain('silogy-capaian-grafik__radar')
         ->toContain('renderRadarSilogy')
         ->toContain('renderBarSilogy')
         ->not->toContain('belum tersedia');
@@ -567,7 +568,46 @@ it('menampilkan tab Laporan gabungan dengan identitas, rencana evaluasi, workclo
     expect($html)->toContain('radar-cpl-'.$fixtures['kelas']->id)
         ->toContain('radar-cpmk-'.$fixtures['kelas']->id)
         ->toContain('radar-subcpmk-'.$fixtures['kelas']->id)
-        ->toContain('radar-asesmen-'.$fixtures['kelas']->id);
+        ->toContain('radar-asesmen-'.$fixtures['kelas']->id)
+        ->toContain('data-silogy="laporan-cetak-badan"')
+        ->toContain('data-silogy="laporan-blok-c2"')
+        ->toContain('silogy-laporan-blok__judul')
+        ->toContain('silogyCetakLaporanLengkap()')
+        ->not->toContain('onclick="window.print()"');
+
+    $badan = strstr($html, 'data-silogy="laporan-cetak-badan"');
+    $badan = strstr($badan, '</div></x-filament::section>') !== false
+        ? substr($badan, 0, strpos($badan, 'silogy-laporan-cetak-aksi') ?: strlen($badan))
+        : $badan;
+
+    expect(strpos($html, 'data-silogy="laporan-cetak-badan"'))
+        ->toBeLessThan(strpos($html, 'A. Identitas Mata Kuliah'))
+        ->and(strpos($html, 'A. Identitas Mata Kuliah'))
+        ->toBeLessThan(strpos($html, 'E4. Jaring Laba-laba Rata-rata Penugasan'))
+        ->and(strpos($html, 'silogy-laporan-cetak-aksi'))
+        ->toBeLessThan(strpos($html, 'data-silogy="laporan-cetak-badan"'));
+});
+
+it('membungkus heading laporan bersama isi agar tidak terpotong saat cetak', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $html = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->html();
+
+    foreach (['laporan-blok-a', 'laporan-blok-b', 'laporan-blok-c1', 'laporan-blok-c2', 'laporan-blok-d', 'laporan-blok-e'] as $blok) {
+        expect($html)->toContain('data-silogy="'.$blok.'"');
+    }
+
+    $c2 = strstr($html, 'data-silogy="laporan-blok-c2"');
+    $c2 = substr((string) $c2, 0, (int) strpos((string) $c2, 'data-silogy="laporan-blok-d"'));
+
+    expect($c2)->toContain('C2. Detail Ketercapaian CPL-CPMK-SubCPMK')
+        ->toContain('silogy-laporan-blok__judul')
+        ->toContain('silogy-laporan-blok__isi')
+        ->and(strpos($c2, 'silogy-laporan-blok__judul'))
+        ->toBeLessThan(strpos($c2, 'silogy-laporan-blok__isi'));
 });
 
 it('radarData menyusun label dan nilai untuk keempat grafik jaring laba-laba', function () {

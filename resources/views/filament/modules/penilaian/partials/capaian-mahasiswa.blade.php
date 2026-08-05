@@ -32,25 +32,27 @@
             Grafik belum dapat ditampilkan karena penilaian mata kuliah mahasiswa ini belum tersedia.
         </div>
     @else
-        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px;">
-            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
-                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian CPMK</div>
-                <div style="aspect-ratio:1/1;width:100%;position:relative;">
-                    <canvas
-                        wire:key="radar-cpmk-mahasiswa-{{ $kmmId }}"
-                        x-data
-                        x-init="renderRadarSilogy($el, @js($radarCpmk), '#059669')"
-                    ></canvas>
+        <div class="silogy-capaian-grafik">
+            <div class="silogy-capaian-grafik__radar">
+                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian CPMK</div>
+                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
+                        <canvas
+                            wire:key="radar-cpmk-mahasiswa-{{ $kmmId }}"
+                            x-data
+                            x-init="renderRadarSilogy($el, @js($radarCpmk), '#059669')"
+                        ></canvas>
+                    </div>
                 </div>
-            </div>
-            <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
-                <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian Sub-CPMK</div>
-                <div style="aspect-ratio:1/1;width:100%;position:relative;">
-                    <canvas
-                        wire:key="radar-subcpmk-mahasiswa-{{ $kmmId }}"
-                        x-data
-                        x-init="renderRadarSilogy($el, @js($radarSubcpmk), '#d97706')"
-                    ></canvas>
+                <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
+                    <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Grafik Ketercapaian Sub-CPMK</div>
+                    <div style="aspect-ratio:1/1;width:100%;position:relative;">
+                        <canvas
+                            wire:key="radar-subcpmk-mahasiswa-{{ $kmmId }}"
+                            x-data
+                            x-init="renderRadarSilogy($el, @js($radarSubcpmk), '#d97706')"
+                        ></canvas>
+                    </div>
                 </div>
             </div>
             <div style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
