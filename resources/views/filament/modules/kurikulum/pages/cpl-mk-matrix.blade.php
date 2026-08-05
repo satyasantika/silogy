@@ -1,24 +1,31 @@
 <x-filament-panels::page>
-    @include('filament.modules.kurikulum.partials.kurikulum-terpilih-banner', [
-        'catatan' => 'Bobot kontribusi MK terhadap CPL (via BoK) yang diisi di bawah tersimpan pada kurikulum ini.',
-    ])
+    <div
+        data-silogy="banner-header-panel"
+        style="border-radius:14px;overflow:hidden;border:1px solid rgba(128,128,128,.2);background:var(--gray-50, #f9fafb);"
+    >
+        @livewire('silogy.kurikulum-terpilih-banner', ['catatan' => null, 'sebagaiHeaderPanel' => true])
 
-    @if (! $kurikulum)
-        <x-filament::section icon="heroicon-o-exclamation-triangle" heading="Belum ada kurikulum terpilih">
-            Pilih kurikulum dari halaman Kurikulum terlebih dahulu.
-        </x-filament::section>
-    @elseif ($mks->isEmpty() || $cplBoks->isEmpty())
-        <x-filament::section icon="heroicon-o-information-circle" heading="Data belum lengkap">
-            Matriks membutuhkan minimal satu mata kuliah dan satu pemetaan CPL–BoK
-            (lihat menu Interaksi → CPL ↔ BoK) pada kurikulum terpilih.
-        </x-filament::section>
-    @else
-        <x-filament::section
-            icon="heroicon-o-arrows-right-left"
-            heading="Interaksi CPL ↔ MK (bobot)"
-            description="Isi bobot (%) kontribusi tiap MK (baris) terhadap CPL via BoK (kolom). Kosongkan atau isi 0 untuk menghapus. Total per baris MK dihitung otomatis dan harus tepat 100%. MK/CPL bertanda † berasal dari adaptasi MK unit lain — sel yang murni milik unit lain bersifat baca-saja."
-        >
-            <div style="overflow-x:auto;" wire:key="matriks-cpl-mk">
+        <div style="padding:14px 16px 16px;">
+            <p style="margin:0 0 12px;font-size:13px;line-height:1.55;opacity:.88;">
+                Bobot kontribusi MK terhadap CPL (via BoK) yang diisi di bawah tersimpan pada kurikulum ini.
+            </p>
+
+            @if (! $kurikulum)
+                <p style="font-size:13px;opacity:.75;">
+                    Pilih kurikulum dari halaman Kurikulum terlebih dahulu.
+                </p>
+            @elseif ($mks->isEmpty() || $cplBoks->isEmpty())
+                <p style="font-size:13px;opacity:.75;">
+                    Matriks membutuhkan minimal satu mata kuliah dan satu pemetaan CPL–BoK (lihat menu Interaksi → CPL ↔ BoK) pada kurikulum terpilih.
+                </p>
+            @else
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.55;margin-bottom:8px;">
+                    Interaksi CPL ↔ MK (bobot)
+                </div>
+                <p style="margin:0 0 12px;font-size:12px;line-height:1.5;opacity:.8;">
+                    Isi bobot (%) kontribusi tiap MK (baris) terhadap CPL via BoK (kolom). Kosongkan atau isi 0 untuk menghapus. Total per baris MK dihitung otomatis dan harus tepat 100%. MK/CPL bertanda † berasal dari adaptasi MK unit lain — sel yang murni milik unit lain bersifat baca-saja.
+                </p>
+                <div style="overflow-x:auto;" wire:key="matriks-cpl-mk">
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
                     <thead>
                         <tr style="text-align:left;border-bottom:2px solid rgba(128,128,128,.35);">
@@ -26,15 +33,29 @@
                             @foreach ($cplBoks as $cplBok)
                                 @php($cplAsing = $cplBok->cpl && $cplBok->cpl->academic_unit_id !== $kurikulum->academic_unit_id)
                                 @php($bokAsing = $cplBok->bok && $cplBok->bok->academic_unit_id !== $kurikulum->academic_unit_id)
-                                <th style="padding:8px;text-align:center;white-space:nowrap;"
-                                    title="{{ $cplBok->cpl?->deskripsi }}">
-                                    {{ $cplKodeMap[$cplBok->cpl_id] ?? $cplBok->cpl?->kode }}
+                                <th style="padding:8px;text-align:center;white-space:nowrap;">
+                                    @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
+                                        'jenis' => 'CPL',
+                                        'kode' => $cplKodeMap[$cplBok->cpl_id] ?? $cplBok->cpl?->kode,
+                                        'deskripsi' => $cplBok->cpl?->deskripsi,
+                                        'meta' => $cplAsing
+                                            ? 'Adaptasi dari '.($cplBok->cpl?->academicUnit?->nama_lengkap ?? '—')
+                                            : null,
+                                    ])
                                     @if ($cplAsing)
                                         <sup style="color:#b45309;">†</sup>
                                     @endif
                                     <br>
                                     <span style="font-weight:400;opacity:.7;">
-                                        {{ $bokKodeMap[$cplBok->bok_id] ?? $cplBok->bok?->kode }}
+                                        @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
+                                            'jenis' => 'BoK',
+                                            'kode' => $bokKodeMap[$cplBok->bok_id] ?? $cplBok->bok?->kode,
+                                            'nama' => $cplBok->bok?->nama,
+                                            'deskripsi' => $cplBok->bok?->deskripsi,
+                                            'meta' => $bokAsing
+                                                ? 'Adaptasi dari '.($cplBok->bok?->academicUnit?->nama_lengkap ?? '—')
+                                                : null,
+                                        ])
                                         @if ($bokAsing)
                                             <sup style="color:#b45309;">†</sup>
                                         @endif
@@ -101,10 +122,11 @@
                     </tbody>
                 </table>
             </div>
-        </x-filament::section>
-    @endif
+            @endif
+        </div>
+    </div>
 
-    <style>
+<style>
         .cpl-mk-sticky {
             border-right: 1px solid rgba(128, 128, 128, 0.25);
             box-shadow: 4px 0 8px -4px rgba(0, 0, 0, 0.12);

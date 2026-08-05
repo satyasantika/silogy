@@ -27,6 +27,8 @@ class KurikulumTerpilihBanner extends Component implements HasActions, HasSchema
     /** Keterangan konteks halaman, ditampilkan di bawah garis pemisah banner. */
     public ?string $catatan = null;
 
+    public bool $sebagaiHeaderPanel = false;
+
     public function gantiAction(): Action
     {
         return Action::make('ganti')
@@ -102,6 +104,7 @@ class KurikulumTerpilihBanner extends Component implements HasActions, HasSchema
             'kurikulum' => $kurikulum,
             'hierarki' => BannerKurikulumDikerjakan::hierarkiUnit(),
             'catatan' => $this->catatan,
+            'sebagaiHeaderPanel' => $this->sebagaiHeaderPanel,
             'peringatan' => 'Belum ada kurikulum yang dikerjakan.',
             'arahan' => $adaOpsi
                 ? 'Gunakan tombol di samping untuk memilih kurikulum yang akan dikerjakan.'

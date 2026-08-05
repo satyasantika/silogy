@@ -187,7 +187,7 @@ class CplMkMatrix extends Page
             ->get();
 
         $cplBoks = CplBokAdaptasiScope::scopeVisibleCplBok(CplBok::query(), $kurikulumId)
-            ->with(['cpl', 'bok'])
+            ->with(['cpl.academicUnit', 'bok.academicUnit'])
             ->get()
             ->sortBy(fn (CplBok $cplBok): string => $cplBok->cpl->kode.'/'.$cplBok->bok->kode)
             ->values();

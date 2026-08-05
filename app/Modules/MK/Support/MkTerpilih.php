@@ -10,6 +10,7 @@ use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Services\MataKuliahKoordinatorService;
 use Illuminate\Database\Eloquent\Builder;
+use App\Support\Filament\SilogyBannerPanel;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -104,14 +105,23 @@ class MkTerpilih
      * di Profil, dengan nama mata kuliah sebagai fokus utama.
      * Dipakai di CPMK, Sub-CPMK, Asesmen, Mahasiswa, Laporan, dan matriks.
      */
-    public static function bannerHtml(?string $catatan = null): HtmlString
+    public static function bannerHtml(?string $catatan = null, ?string $bodyHtml = null): HtmlString
     {
-        return new HtmlString(view('filament.modules.mk.partials.mk-terpilih-banner-inner', [
+        // Strip hijau flat di header card Filament (pola Tim Kurikulum /cpls).
+        // Bungkus panel hanya bila ada pelengkap/body (mis. KPI peserta-kelas).
+        $banner = view('filament.modules.mk.partials.mk-terpilih-banner-inner', [
             'gantiUrl' => MataKuliahKoordinatorResource::getUrl('index'),
             'mk' => static::current(),
             'kurikulum' => KurikulumTerpilih::current(),
-            'catatan' => $catatan,
-        ])->render());
+            'catatan' => null,
+            'sebagaiHeaderPanel' => true,
+        ])->render();
+
+        if (blank($catatan) && blank($bodyHtml)) {
+            return new HtmlString($banner);
+        }
+
+        return SilogyBannerPanel::wrap($banner, $catatan, $bodyHtml);
     }
 
     public static function mkDitawarkanPadaKurikulum(Mk $mk, Kurikulum $kurikulum): bool

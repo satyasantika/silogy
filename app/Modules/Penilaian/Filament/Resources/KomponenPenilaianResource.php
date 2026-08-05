@@ -223,22 +223,40 @@ class KomponenPenilaianResource extends Resource
 
                     TextColumn::make('subcpmk_terpetakan')
                         ->label('SubCPMK')
-                        ->html()
                         ->size('sm')
-                        ->getStateUsing(function (KomponenPenilaian $record): string {
+                        // Jangan ikutkan klik kolom ke recordUrl (edit asesmen).
+                        ->disabledClick()
+                        ->getStateUsing(function (KomponenPenilaian $record): string|HtmlString {
                             $service = app(RencanaEvaluasiService::class);
 
                             $items = $record->subcpmkKomponens
                                 ->filter(fn ($pivot) => $pivot->subcpmk !== null)
                                 ->sortBy(fn ($pivot) => $pivot->subcpmk->kode)
-                                ->map(fn ($pivot) => sprintf(
-                                    '<div>%s <span style="color:#2563eb;font-weight:600;">(%s)</span></div>',
-                                    e($pivot->subcpmk->kode),
-                                    e($service->formatBobot((float) $pivot->bobot)),
-                                ))
+                                ->map(function ($pivot) use ($service): string {
+                                    $sub = $pivot->subcpmk;
+                                    $kodeHtml = view(
+                                        'filament.modules.kurikulum.partials.kode-keterangan-trigger',
+                                        [
+                                            'jenis' => 'Sub-CPMK',
+                                            'kode' => $sub->kode,
+                                            'deskripsi' => $sub->deskripsi,
+                                        ],
+                                    )->render();
+
+                                    return sprintf(
+                                        '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">%s<span style="color:#2563eb;font-weight:600;">(%s)</span></div>',
+                                        $kodeHtml,
+                                        e($service->formatBobot((float) $pivot->bobot)),
+                                    );
+                                })
                                 ->values();
 
-                            return $items->isNotEmpty() ? $items->join('') : '—';
+                            if ($items->isEmpty()) {
+                                return '—';
+                            }
+
+                            // HtmlString: Alpine/data-silogy tidak kena sanitizeHtml Filament.
+                            return new HtmlString($items->join(''));
                         }),
                 ])->space(2),
             ])

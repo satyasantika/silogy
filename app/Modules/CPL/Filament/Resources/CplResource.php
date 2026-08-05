@@ -60,11 +60,6 @@ class CplResource extends Resource
 
     protected static ?string $slug = 'cpls';
 
-    protected static function kurikulumBannerCatatan(): ?string
-    {
-        return 'CPL yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.';
-    }
-
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
@@ -247,7 +242,6 @@ class CplResource extends Resource
                     TextColumn::make('kode')
                         ->label('Kode')
                         ->searchable()
-                        ->sortable()
                         ->weight(FontWeight::Bold)
                         ->state(function (Cpl $record): string {
                             $unitId = KurikulumTerpilih::current()?->academic_unit_id;

@@ -67,11 +67,6 @@ class MkResource extends Resource
 
     protected static ?string $slug = 'mks';
 
-    protected static function kurikulumBannerCatatan(): ?string
-    {
-        return 'Mata kuliah yang tampil, ditambahkan, maupun diimpor mengikuti kurikulum ini.';
-    }
-
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
@@ -246,8 +241,8 @@ class MkResource extends Resource
                     'class' => 'silogy-mk-semester-toolbar',
                 ])
                 ->columns([
-                    TextColumn::make('nama')->label('Nama')->searchable()->sortable(),
-                    TextColumn::make('sks')->label('SKS')->sortable(),
+                    TextColumn::make('nama')->label('Nama')->searchable(),
+                    TextColumn::make('sks')->label('SKS'),
                     TextColumn::make('jenis')
                         ->label('Jenis')
                         ->formatStateUsing(fn (string $state): string => static::jenisOptions()[$state] ?? $state),
@@ -272,10 +267,7 @@ class MkResource extends Resource
                     TextColumn::make('dikontrak')
                         ->label('Dikontrak')
                         ->html()
-                        ->getStateUsing(fn (Mk $record): HtmlString => static::dikontrakBadgeHtml($record))
-                        ->sortable(query: function (Builder $query, string $direction): Builder {
-                            return $query->orderBy('jumlah_mahasiswa', $direction);
-                        }),
+                        ->getStateUsing(fn (Mk $record): HtmlString => static::dikontrakBadgeHtml($record)),
                     IconColumn::make('is_active')->label('Aktif')->boolean(),
                 ])
                 ->filters([

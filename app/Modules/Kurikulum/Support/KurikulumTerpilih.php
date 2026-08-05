@@ -10,6 +10,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Blade;
+use App\Support\Filament\SilogyBannerPanel;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -186,14 +187,19 @@ class KurikulumTerpilih
      * modal penggantian tanpa meninggalkan halaman. $catatan mengisi baris di
      * bawah garis pemisah banner dengan keterangan khas halaman pemanggil.
      */
-    public static function bannerHtml(?string $catatan = null): HtmlString
+    public static function bannerHtml(?string $catatan = null, ?string $bodyHtml = null): HtmlString
     {
-        return new HtmlString(
-            Blade::render(
-                '@livewire(\'silogy.kurikulum-terpilih-banner\', [\'catatan\' => $catatan])',
-                ['catatan' => $catatan],
-            ),
+        // Strip hijau flat (header). Bungkus panel hanya jika ada pelengkap/body —
+        // di list Filament, strip saja menempel ke header card utama (bukan kartu baru).
+        $banner = Blade::render(
+            '@livewire(\'silogy.kurikulum-terpilih-banner\', [\'catatan\' => null, \'sebagaiHeaderPanel\' => true])',
         );
+
+        if (blank($catatan) && blank($bodyHtml)) {
+            return new HtmlString($banner);
+        }
+
+        return SilogyBannerPanel::wrap($banner, $catatan, $bodyHtml);
     }
 
     /**

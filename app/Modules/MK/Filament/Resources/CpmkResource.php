@@ -163,7 +163,6 @@ class CpmkResource extends Resource
                     TextColumn::make('kode')
                         ->label('Kode')
                         ->searchable()
-                        ->sortable()
                         ->weight(FontWeight::Bold),
 
                     TextColumn::make('mkCpmks_count')

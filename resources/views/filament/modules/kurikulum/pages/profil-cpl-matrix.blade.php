@@ -32,8 +32,17 @@
                     <tbody>
                         @foreach ($cpls as $cpl)
                             <tr style="border-bottom:1px solid rgba(128,128,128,.2);">
-                                <td style="padding:8px;white-space:nowrap;" title="{{ $cpl->deskripsi }}{{ ($cplAsalMap[$cpl->id] ?? false) ? ' — adaptasi dari '.($cpl->academicUnit->nama_lengkap ?? '—') : '' }}">
-                                    <strong>{{ $cplKodeMap[$cpl->id] ?? $cpl->kode }}</strong>
+                                <td style="padding:8px;white-space:nowrap;">
+                                    <strong>
+                                        @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
+                                            'jenis' => 'CPL',
+                                            'kode' => $cplKodeMap[$cpl->id] ?? $cpl->kode,
+                                            'deskripsi' => $cpl->deskripsi,
+                                            'meta' => ($cplAsalMap[$cpl->id] ?? false)
+                                                ? 'Adaptasi dari '.($cpl->academicUnit->nama_lengkap ?? '—')
+                                                : null,
+                                        ])
+                                    </strong>
                                     @if ($cplAsalMap[$cpl->id] ?? false)
                                         <sup style="color:#b45309;">†</sup>
                                     @endif

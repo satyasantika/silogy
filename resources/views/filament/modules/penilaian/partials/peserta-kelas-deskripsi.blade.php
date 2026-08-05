@@ -1,10 +1,6 @@
-{{-- Banner MK + KPI bento di dalam card tabel (/peserta-kelas), pola seperti /subcpmk. --}}
+{{-- Banner MK sebagai header panel; KPI bento di body (pola input-nilai). --}}
 @php
     $kpi = $kpi ?? [];
+    $kpiHtml = view('filament.modules.penilaian.partials.peserta-kelas-kpi', $kpi)->render();
 @endphp
-
-<div class="silogy-peserta-deskripsi">
-    {!! \App\Modules\MK\Support\MkTerpilih::bannerHtml() !!}
-
-    @include('filament.modules.penilaian.partials.peserta-kelas-kpi', $kpi)
-</div>
+{!! \App\Modules\MK\Support\MkTerpilih::bannerHtml(null, $kpiHtml) !!}

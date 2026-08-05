@@ -267,13 +267,11 @@ class KurikulumResource extends Resource
                     TextColumn::make('kode')
                         ->label('Kode')
                         ->searchable()
-                        ->sortable()
-                        ->hidden(),
+                                                ->hidden(),
 
                     TextColumn::make('tahun')
                         ->label('Tahun')
-                        ->sortable()
-                        ->hidden(),
+                                                ->hidden(),
 
                     TextColumn::make('header_card')
                         ->label('')
@@ -283,8 +281,7 @@ class KurikulumResource extends Resource
                     TextColumn::make('nama')
                         ->label('Nama')
                         ->searchable()
-                        ->sortable()
-                        ->weight(FontWeight::Medium),
+                                                ->weight(FontWeight::Medium),
 
                     TextColumn::make('unit_dan_menu')
                         ->label('')

@@ -1099,4 +1099,40 @@
         }
     }
 
+
+
+    /*
+     * List CPL/BoK/MK/Profil: banner kurikulum = header card Filament,
+     * bukan kartu bersarang di dalam description.
+     */
+    .fi-ta:has([data-silogy="banner-kurikulum-header-panel"]) > .fi-ta-ctn,
+    .fi-ta:has([data-silogy="banner-mk-header-panel"]) > .fi-ta-ctn {
+        overflow: hidden;
+    }
+
+    .fi-ta .fi-ta-header:has([data-silogy="banner-kurikulum-header-panel"]),
+    .fi-ta .fi-ta-header:has([data-silogy="banner-mk-header-panel"]) {
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+
+    .fi-ta .fi-ta-header-description:has([data-silogy="banner-kurikulum-header-panel"]),
+    .fi-ta .fi-ta-header-description:has([data-silogy="banner-mk-header-panel"]) {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100%;
+        color: inherit !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+    }
+
+    /* Sembunyikan dropdown "Urutkan menurut" jika masih ter-render. */
+    .fi-ta.silogy-kurikulum-cards .fi-ta-sort,
+    .fi-ta:has([data-silogy="banner-kurikulum-header-panel"]) .fi-ta-sort,
+    .fi-ta:has([data-silogy="banner-mk-header-panel"]) .fi-ta-sort,
+    .fi-ta.silogy-mk-semester-toolbar .fi-ta-sort {
+        display: none !important;
+    }
+
 </style>
