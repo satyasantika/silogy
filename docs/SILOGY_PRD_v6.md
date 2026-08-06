@@ -9,7 +9,7 @@
 |---|---|
 | Sistem Operasional | SILARIS – Siliwangi Learning & Quality Assurance System |
 | Paradigma | Outcome-Based Education (OBE) |
-| Stack Teknologi | Laravel 13 · Filament v3 · MySQL 8 · Redis · Anthropic Claude API |
+| Stack Teknologi | Laravel 13 · Filament v4 · MySQL 8 · Redis · Google Gemini API |
 | Versi Dokumen | 6.0 |
 | Tagline | *"From learning data to academic quality"* |
 
@@ -17,12 +17,12 @@
 
 ## 1. Ringkasan Eksekutif
 
-SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manajemen mutu akademik berbasis OBE untuk Universitas Siliwangi. Implementasi operasionalnya, **SILARIS**, adalah aplikasi web Laravel 13 + Filament v3 yang mengukur, menganalisis, dan meningkatkan ketercapaian CPL (Capaian Pembelajaran Lulusan) secara sistematis pada **semua level institusi** (universitas, fakultas, jurusan, program studi).
+SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manajemen mutu akademik berbasis OBE untuk Universitas Siliwangi. Implementasi operasionalnya, **SILARIS**, adalah aplikasi web Laravel 13 + Filament v4 yang mengukur, menganalisis, dan meningkatkan ketercapaian CPL (Capaian Pembelajaran Lulusan) secara sistematis pada **semua level institusi** (universitas, fakultas, jurusan, program studi).
 
 ### 1.1 Tiga Pilar SILOGY
 
 - **Pengukuran:** Data nilai mahasiswa → subCPMK → CPMK → CPL secara terstruktur dan dapat ditelusuri.
-- **Analitik:** Mesin kalkulasi 5 tahap + AI Anthropic Claude API untuk wawasan mutu di setiap level unit.
+- **Analitik:** Mesin kalkulasi 5 tahap + AI Google Gemini API untuk wawasan mutu di setiap level unit, termasuk dashboard KPI rollup lintas-kurikulum untuk Pimpinan.
 - **Peningkatan:** Rekomendasi berbasis data untuk perbaikan kurikulum dan pembelajaran lintas unit.
 
 ### 1.2 Perubahan Arsitektur Utama v6
@@ -35,7 +35,7 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 - **`subcpmk`** menghapus `cpmk_id` (akses lewat `mk_cpmk_id`).
 - **`hasil_cpl_unit`** menggantikan `hasil_cpl_prodi`; ditambah **`hasil_cpl_mk_unit`** untuk agregat CPL level non-prodi.
 - **`analisis_ai.academic_unit_id`** menggantikan `prodi_id` agar AI bekerja pada semua level.
-- **RBAC baru**: ditambah Admin Fakultas, Admin Jurusan, Koordinator Mata Kuliah, dan Pimpinan Universitas/Fakultas/Jurusan/Program Studi; `kelola_komponen_penilaian` dipindah dari Dosen Pengampu ke Koordinator Mata Kuliah.
+- **RBAC disederhanakan**: 7 role generik (Super Admin, Admin, Tim Kurikulum, Koordinator Mata Kuliah, Dosen Pengampu, Pimpinan, Auditor Mutu); level/unit kerja ditentukan lewat penugasan `academic_unit_users` (`jabatan`, `status_pimpinan`, `status_tim_kurikulum`), bukan role terpisah per tipe unit; `kelola_komponen_penilaian` dipindah dari Dosen Pengampu ke Koordinator Mata Kuliah.
 - **Workflow kurikulum** tetap: `draft → profil_lulusan* → cpl → bok → mk → setdosenmk → aktif` (*: hanya untuk unit prodi).
 
 ---
@@ -44,19 +44,13 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 
 | Peran | Deskripsi | Penetapan Oleh | Lingkup Unit | Akses Utama |
 |---|---|---|---|---|
-| Super Admin | Administrator sistem | Teknis | — | Institusi (universitas/fakultas/jurusan/prodi), Master user/role/permission, Semester, Evaluasi |
-| Admin Universitas | Operasional tingkat universitas | Super Admin | university | Kelola user (semua level), kelola fakultas/jurusan/prodi, set dosen MK |
-| Admin Fakultas | Operasional tingkat fakultas | Super Admin / Admin Univ | faculty | Kelola user (fakultas ke bawah), kelola jurusan/prodi |
-| Admin Jurusan | Operasional tingkat jurusan | Admin Univ/Fak | department | Kelola user (jurusan & prodi), kelola prodi |
-| Admin Program Studi | Operasional tingkat prodi | Admin Univ/Fak/Jur | study_program | Kelola user prodi, kelola kelas, set dosen MK |
-| Tim Kurikulum | Penyusun kurikulum unit (status_tim_kurikulum=1) | Admin Unit | semua tipe | Profil Lulusan *(khusus prodi)*, CPL, BoK, MK, mk_units, set dosen MK |
-| Koordinator Mata Kuliah | Pengelola CPMK, SubCPMK, Komponen Penilaian | Admin Prodi | per kelas MK | Tidak lagi dibebankan ke Dosen |
-| Dosen Pengampu | Input nilai & kelola kelas | Admin Prodi (academic_unit_users) | per kelas MK | Kelas MK, input/import nilai *(tanpa kelola_komponen_penilaian)* |
-| Pimpinan Universitas | Rektor/Wakil Rektor | Super Admin | university | Laporan, Dashboard, AI level universitas |
-| Pimpinan Fakultas | Dekan/Wakil Dekan | Admin Univ | faculty | Laporan, Dashboard, AI level fakultas |
-| Pimpinan Jurusan | Ketua/Sekretaris Jurusan | Admin Univ/Fak | department | Laporan, Dashboard, AI level jurusan |
-| Pimpinan Program Studi | Kaprodi | Admin Univ/Fak/Jur | study_program | Laporan, Dashboard, AI level prodi |
-| Auditor Mutu | Audit sistem | Super Admin | — | Semua (read-only) |
+| Super Admin | Administrator sistem | Teknis | — (lintas institusi) | Institusi (universitas/fakultas/jurusan/prodi), Master user/role/permission, Semester, Evaluasi |
+| Admin | Operasional unit; level (universitas/fakultas/jurusan/prodi) ditentukan penugasan, bukan role terpisah | Super Admin / Admin unit di atasnya | Sesuai `academic_unit_users` | Kelola unit & user (lingkup penugasan), kurikulum, CPL/BoK/MK, kelas, set dosen MK, laporan |
+| Tim Kurikulum | Penyusun kurikulum unit (`status_tim_kurikulum=1`) | Admin Unit | Sesuai penugasan, semua tipe unit | Profil Lulusan *(khusus prodi)*, CPL, BoK, MK, mk_units, set dosen MK |
+| Koordinator Mata Kuliah | Pengelola CPMK, SubCPMK, Komponen Penilaian | Admin Unit | per kelas MK | Kelola CPMK/SubCPMK/Komponen Penilaian, kelola peserta kelas |
+| Dosen Pengampu | Input nilai & kelola kelas | Admin Unit (academic_unit_users) | per kelas MK | Kelas MK, input/import nilai *(tanpa kelola_komponen_penilaian)* |
+| Pimpinan | Rektor/Wakil Rektor, Dekan/Wakil Dekan, Ketua/Sekretaris Jurusan, atau Kaprodi (`status_pimpinan=1`); level ditentukan penugasan, bukan role terpisah | Super Admin / Admin unit di atasnya | Sesuai penugasan, semua tipe unit | Laporan, Dashboard, AI, ekspor data — sesuai level unit yang ditugaskan |
+| Auditor Mutu | Audit sistem | Super Admin | — (lintas institusi, read-only) | Semua (read-only) |
 
 > ⚠ Mahasiswa **TIDAK** memiliki akun login di SILARIS. Data mahasiswa dikelola via tabel `mahasiswas`.
 
@@ -83,8 +77,8 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 | FR-INST-03 | Penetapan pengelola via `academic_unit_users` dengan `status_pimpinan`, `status_tim_kurikulum`, dan `jabatan` | Tinggi |
 | FR-INST-04 | Kelola mahasiswa: NIM, nama, angkatan, `academic_unit_id` (study_program), email, `nomor_wa` | Tinggi |
 | FR-INST-05 | Kelola semester: kode `YYYYS`, `status_aktif` boolean | Tinggi |
-| FR-INST-06 | Permission terpisah per tipe unit: `kelola_universitas`, `kelola_fakultas`, `kelola_jurusan`, `kelola_prodi` | Tinggi |
-| FR-INST-07 | Permission user-management per tipe unit: `kelola_user_universitas/fakultas/jurusan/prodi` | Tinggi |
+| FR-INST-06 | Permission tunggal `kelola_unit` untuk kelola unit institusi (universitas/fakultas/jurusan/prodi); lingkup ditentukan penugasan `academic_unit_users`, bukan permission terpisah per tipe unit | Tinggi |
+| FR-INST-07 | Permission tunggal `kelola_user` untuk manajemen pengguna; lingkup mengikuti unit penugasan admin yang bersangkutan | Tinggi |
 
 ### 3.3 FR-KUR — Manajemen Kurikulum
 
@@ -157,7 +151,7 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 
 | Kode | Deskripsi | Prioritas |
 |---|---|---|
-| FR-AI-01 | Integrasi Anthropic Claude API (Claude Opus 4.6) | Tinggi |
+| FR-AI-01 | Integrasi Google Gemini API | Tinggi |
 | FR-AI-02 | Analisis ringkasan CPL per semester per unit | Tinggi |
 | FR-AI-03 | `analisis_ai.academic_unit_id` (bukan `prodi_id`) — bisa di setiap level | Tinggi |
 
@@ -169,6 +163,14 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 | FR-AUDIT-02 | Laporan PDF & ekspor Excel | Tinggi |
 | FR-AUDIT-03 | Dashboard Filament: tren CPL per semester per unit | Tinggi |
 
+### 3.12 FR-DASH — Dashboard KPI Pimpinan Lintas-Kurikulum
+
+| Kode | Deskripsi | Prioritas |
+|---|---|---|
+| FR-DASH-01 | Dashboard KPI Pimpinan menampilkan rollup capaian CPL lintas-kurikulum untuk unit yang ditugaskan (widget `PimpinanKpiWidget`) | Tinggi |
+| FR-DASH-02 | Chart CPL tertinggi per kurikulum untuk Pimpinan (`PimpinanCplTertinggiChartWidget`), termasuk visualisasi donut & radar | Sedang |
+| FR-DASH-03 | Halaman `DaftarKurikulumPimpinan`: daftar seluruh kurikulum dalam lingkup unit Pimpinan beserta status ketercapaiannya | Tinggi |
+
 ---
 
 ## 4. User Stories Utama
@@ -176,7 +178,7 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 | Kode | Peran | Skenario | Kriteria Penerimaan |
 |---|---|---|---|
 | US-01 | Super Admin | Mengelola hierarki institusi pada satu tabel tunggal | `academic_units` (UUID) berisi univ/fakultas/jurusan/prodi; tabel terpisah dihapus |
-| US-02 | Admin Universitas | Menetapkan Admin Fakultas/Jurusan/Prodi & Pimpinan tiap unit | Tersedia permission `kelola_user_universitas/fakultas/jurusan/prodi`; role Admin & Pimpinan per level |
+| US-02 | Admin (universitas) | Menetapkan Admin & Pimpinan pada unit fakultas/jurusan/prodi di bawahnya | Permission `kelola_user` + `kelola_unit`; role `Admin` & `Pimpinan` generik, level ditentukan penugasan `academic_unit_users` |
 | US-03 | Tim Kurikulum Prodi | Menyusun Profil Lulusan → CPL → BoK → MK → setdosenmk | `status_tim_kurikulum=1` pada unit `study_program`; akses penuh Profil Lulusan |
 | US-04 | Tim Kurikulum Fakultas | Menyusun CPL → BoK → MK fakultas tanpa Profil Lulusan | `status_tim_kurikulum=1` pada unit `faculty`; akses CPL, BoK, MK; tidak ada Profil Lulusan |
 | US-05 | Tim Kurikulum | Menambah MK universitas dengan kode berbeda di tiap prodi | `mk_units` mencatat `kode` dan `semester_ke` per `academic_unit_id` |
@@ -190,44 +192,42 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 
 ---
 
-## 5. Matriks RBAC v6 (Ringkas)
+## 5. Matriks RBAC (Ringkas)
 
-| Permission | SAdm | AdmU | AdmF | AdmJ | AdmP | TimK | Korma | Dos | PimU | PimF | PimJ | PimP | Audit |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| kelola_universitas | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_fakultas | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_jurusan | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — |
-| kelola_prodi | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — |
-| kelola_semester | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_evaluasi | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_user | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_role | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_permission | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_user_universitas | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_user_fakultas | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — |
-| kelola_user_jurusan | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — |
-| kelola_user_prodi | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — |
-| kelola_kurikulum | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_profil_lulusan | — | — | — | — | — | ✓* | — | — | — | — | — | — | — |
-| kelola_cpl | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_bok | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_mk | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_mk_unit | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_cpmk | — | — | — | — | — | — | ✓ | — | — | — | — | — | — |
-| kelola_subcpmk | — | — | — | — | — | — | ✓ | — | — | — | — | — | — |
-| kelola_komponen_penilaian | — | — | — | — | — | — | ✓ | — | — | — | — | — | — |
-| kelola_kelas | — | — | — | — | ✓ | — | — | ✓ | — | — | — | — | — |
-| setdosen_mk | — | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
-| input_nilai | — | — | — | — | — | — | — | ✓ | — | — | — | — | — |
-| import_nilai | — | — | — | — | — | — | — | ✓ | — | — | — | — | — |
-| lihat_laporan | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| ekspor_data | — | ✓ | ✓ | ✓ | ✓ | — | — | — | ✓ | ✓ | ✓ | ✓ | ✓ |
-| minta_analisis_ai | — | — | — | — | — | — | — | — | ✓ | ✓ | ✓ | ✓ | — |
-| lihat_dashboard | — | — | — | — | — | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| lihat_audit_log | ✓ | — | — | — | — | — | — | — | — | — | — | — | ✓ |
-| konfigurasi_sistem | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
+7 role generik; level/unit kerja tiap akun ditentukan oleh penugasan pada `academic_unit_users` (`jabatan`, `status_pimpinan`, `status_tim_kurikulum`), bukan oleh role terpisah per tipe unit.
+
+| Permission | SAdm | Adm | TimK | Korma | Dos | Pim | Audit |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| kelola_unit | ✓ | ✓ | — | — | — | — | — |
+| kelola_semester | ✓ | — | — | — | — | — | — |
+| kelola_evaluasi | ✓ | — | — | — | — | — | — |
+| kelola_user | ✓ | — | — | — | — | — | — |
+| kelola_role | ✓ | — | — | — | — | — | — |
+| kelola_permission | ✓ | — | — | — | — | — | — |
+| impersonate_user | ✓ | — | — | — | — | — | — |
+| kelola_kurikulum | — | ✓ | ✓ | — | — | — | — |
+| kelola_profil_lulusan | — | ✓ | ✓* | — | — | — | — |
+| kelola_cpl | — | ✓ | ✓ | — | — | — | — |
+| kelola_bok | — | ✓ | ✓ | — | — | — | — |
+| kelola_mk | — | ✓ | ✓ | — | — | — | — |
+| kelola_mk_unit | — | ✓ | ✓ | — | — | — | — |
+| kelola_cpmk | — | ✓ | — | ✓ | — | — | — |
+| kelola_subcpmk | — | ✓ | — | ✓ | — | — | — |
+| kelola_komponen_penilaian | — | ✓ | — | ✓ | — | — | — |
+| kelola_kelas | — | ✓ | ✓ | — | ✓ | — | — |
+| kelola_peserta_kelas | — | ✓ | — | ✓ | — | — | — |
+| setdosen_mk | — | ✓ | ✓ | — | — | — | — |
+| input_nilai | — | — | — | — | ✓ | — | — |
+| import_nilai | — | — | — | — | ✓ | — | — |
+| lihat_laporan | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ekspor_data | — | ✓ | — | — | — | ✓ | ✓ |
+| minta_analisis_ai | — | — | — | — | — | ✓ | — |
+| lihat_dashboard | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| lihat_audit_log | ✓ | — | — | — | — | — | ✓ |
+| konfigurasi_sistem | ✓ | — | — | — | — | — | — |
 
 > *Profil Lulusan hanya berlaku ketika Tim Kurikulum bertugas di unit `study_program` (lihat `academic_unit_users.status_tim_kurikulum`).
+> Sumber kebenaran: `database/seeders/RolePermissionSeeder.php`.
 
 ---
 
@@ -236,7 +236,7 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 - **Performa.** Halaman Filament < 2 detik (100 user paralel). Kalkulasi CPL 1 kelas (30–50 mhs) < 30 detik via Queue. Respons AI analisis < 15 detik (asinkron).
 - **Keamanan.** Spatie Permission UUID; FilamentShield per Resource; row-level scoping via Policy + `academic_unit_users`; HTTPS wajib; CSRF aktif; bcrypt cost ≥ 12.
 - **Ketersediaan.** Uptime 99% (≤ 7,2 jam/bulan). Backup harian terenkripsi; RTO ≤ 4 jam.
-- **Kegunaan.** Filament v3 responsif (desktop & tablet). Workflow state tampil visual (stepper/badge). Validasi form real-time dalam Bahasa Indonesia.
+- **Kegunaan.** Filament v4 responsif (desktop & tablet). Workflow state tampil visual (stepper/badge). Validasi form real-time dalam Bahasa Indonesia.
 - **Skalabilitas.** Mendukung multi-fakultas dan banyak prodi; agregat CPL hingga level universitas dapat dihitung secara batch.
 
 ---
@@ -259,8 +259,8 @@ SILOGY (Siliwangi Learning Outcomes & Quality Analytics) adalah paradigma manaje
 | `mahasiswas` | Tabel mahasiswa terpisah | tanpa login; `phone` → `nomor_wa` |
 | `setdosenmk` | State kurikulum | Penetapan dosen sebelum kurikulum aktif |
 | Koordinator MK | Pengelola CPMK/SubCPMK/Komponen | BARU v6 |
-| Pimpinan * | Rektor/Dekan/Kajur/Kaprodi | Role per tipe unit |
+| Pimpinan * | Rektor/Dekan/Kajur/Kaprodi | Role generik `Pimpinan`; level ditentukan penugasan `academic_unit_users.status_pimpinan` |
 
 ---
 
-*Selesai — SILARIS v6 siap diimplementasikan di atas Laravel 13 + Filament v3.*
+*Selesai — SILARIS v6 siap diimplementasikan di atas Laravel 13 + Filament v4.*
