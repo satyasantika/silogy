@@ -15,7 +15,7 @@
 | Pilar | Fokus | Outcome untuk institusi |
 |---|---|---|
 | **Pengukuran** | Rantai nilai terstruktur: mahasiswa → sub-CPMK → CPMK → CPL | Setiap capaian dapat ditelusuri ke bukti penilaian di kelas |
-| **Analitik** | Mesin kalkulasi 5 tahap + dashboard CPL per `academic_unit` | Pimpinan melihat persentase tercapai vs target kurikulum per semester |
+| **Analitik** | Mesin kalkulasi 5 tahap + dashboard CPL per `academic_unit`, plus rollup KPI lintas-kurikulum untuk Pimpinan | Pimpinan melihat persentase tercapai vs target kurikulum per semester, lintas unit dalam satu dashboard |
 | **Peningkatan** | Rekomendasi berbasis data lintas unit | Tim kurikulum dan prodi punya dasar empiris untuk revisi kurikulum & pembelajaran |
 
 ---
@@ -34,6 +34,10 @@
 
 - [ONBOARDING.md](docs/ONBOARDING.md) — setup laptop & alur 30 menit
 - [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — skrip presentasi 15 menit
+
+**Panduan pengguna (per role):**
+
+- [docs/user-manual/](docs/user-manual/00-README.md) — indeks panduan, satu file per role (Super Admin, Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu, Pimpinan & Auditor)
 
 ---
 
@@ -93,6 +97,9 @@ Password default semua akun: **`siliwangi`**
 | `timkuruniv` | Tim Kurikulum (universitas) |
 | `dosentimkur` | Dosen Pengampu + Tim Kurikulum (universitas, fakultas, prodi) |
 | `korma` | Koordinator Mata Kuliah |
+| `dosenuniv` | Dosen Pengampu (penugasan universitas) |
+| `dosenfak` | Dosen Pengampu (penugasan fakultas) |
+| `dosenjur` | Dosen Pengampu (penugasan jurusan) |
 | `dosen` | Dosen Pengampu |
 | `auditor` | Auditor Mutu |
 
@@ -121,7 +128,9 @@ Catatan: pengaturan pengguna (`/users`) kini eksklusif untuk `superadmin`.
 | Perintah | Fungsi |
 |---|---|
 | `make up` | Build & jalankan container, `composer install`, generate `APP_KEY` |
+| `make migrate` | Jalankan migration saja (tanpa seed) |
 | `make fresh` | `migrate:fresh --seed` (data demo siap dipakai) |
+| `make seed` | Jalankan seeder saja (tanpa fresh migrate) |
 | `make down` | Hentikan container |
 | `make logs` | Tail log semua service |
 | `make sh` | Shell ke container `app` |
