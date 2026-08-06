@@ -9,7 +9,7 @@
 |---|---|
 | Sistem Operasional | SILARIS – Siliwangi Learning & Quality Assurance System |
 | Paradigma | Outcome-Based Education (OBE) |
-| Stack Teknologi | Laravel 13 · Filament v3 · MySQL 8 · Redis · Supervisor |
+| Stack Teknologi | Laravel 13 · Filament v4 · MySQL 8 · Redis · Supervisor |
 | Versi Dokumen | 6.0 |
 | Tagline | *"From learning data to academic quality"* |
 
@@ -20,13 +20,13 @@
 | Lapisan | Teknologi | Versi | Keterangan |
 |---|---|---|---|
 | Framework Backend | Laravel | 13.x | PHP 8.3+; Modular Monolith Vertical Slice |
-| Panel Admin | Filament | 3.x | Livewire 3 + Alpine.js |
+| Panel Admin | Filament | 4.x | Livewire 3 + Alpine.js |
 | Database | MySQL | 8.0 | InnoDB; utf8mb4; UUID PK |
 | Cache & Queue | Redis | 7.x | 3 queue: `cpl-calculation`, `ai-analysis`, `default` |
 | Process Manager | Supervisor | 4.x | 8 worker total |
 | Autentikasi | Laravel session + Sanctum | 4.x | Username ATAU email |
 | RBAC | Spatie Permission | 6.x | UUID untuk `roles` & `permissions` |
-| AI Integration | Anthropic PHP SDK | latest | `claude-opus-4-6` |
+| AI Integration | Google Gemini (`google-gemini-php/laravel`) | ^2.0 | `config/gemini.php` |
 | Workflow State | Spatie Model States | 2.x | 7-state kurikulum, 6-state MK |
 | Audit Log | Spatie Activitylog | 4.x | Polymorphic log |
 | PDF Export | DomPDF | 3.x | Laporan CPL |
@@ -51,7 +51,7 @@ app/Modules/
 │                     # SubcpmkKomponenPenilaian, NilaiMahasiswas
 ├── Kalkulasi/        # HasilSubcpmk, HasilCpmk, HasilCplMk,
 │                     # HasilCplMkUnit, HasilCplUnit, Jobs/
-├── AI/               # AnthropicClientService, AnalisisAi, Jobs/
+├── AI/               # GeminiClientService, GeminiCostGuard, AnalisisAi, Jobs/
 └── Audit/            # ActivityLog, Pelaporan
 ```
 
@@ -314,36 +314,33 @@ class CplUnitAggregator
 
 ---
 
-## 7. Matriks RBAC v6
+## 7. Matriks RBAC
 
-| Permission | SAdm | AdmU | AdmF | AdmJ | AdmP | TimK | Korma | Dos | PimU | PimF | PimJ | PimP | Audit |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| kelola_universitas | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_fakultas | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_jurusan | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — |
-| kelola_prodi | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — |
-| kelola_semester | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_evaluasi | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_user / role / permission | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_user_universitas | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — | — |
-| kelola_user_fakultas | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — | — |
-| kelola_user_jurusan | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — | — |
-| kelola_user_prodi | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — | — |
-| kelola_kurikulum | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_profil_lulusan* | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_cpl / bok / mk / mk_unit | — | — | — | — | — | ✓ | — | — | — | — | — | — | — |
-| kelola_cpmk / subcpmk / komponen | — | — | — | — | — | — | ✓ | — | — | — | — | — | — |
-| kelola_kelas | — | — | — | — | ✓ | — | — | ✓ | — | — | — | — | — |
-| setdosen_mk | — | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — | — | — |
-| input_nilai / import_nilai | — | — | — | — | — | — | — | ✓ | — | — | — | — | — |
-| lihat_laporan | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| ekspor_data | — | ✓ | ✓ | ✓ | ✓ | — | — | — | ✓ | ✓ | ✓ | ✓ | ✓ |
-| minta_analisis_ai | — | — | — | — | — | — | — | — | ✓ | ✓ | ✓ | ✓ | — |
-| lihat_dashboard | — | — | — | — | — | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| lihat_audit_log | ✓ | — | — | — | — | — | — | — | — | — | — | — | ✓ |
-| konfigurasi_sistem | ✓ | — | — | — | — | — | — | — | — | — | — | — | — |
+7 role generik (Super Admin, Admin, Tim Kurikulum, Koordinator Mata Kuliah, Dosen Pengampu, Pimpinan, Auditor Mutu); level/unit kerja ditentukan penugasan `academic_unit_users`, bukan role terpisah per tipe unit (lihat §5).
+
+| Permission | SAdm | Adm | TimK | Korma | Dos | Pim | Audit |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| kelola_unit | ✓ | ✓ | — | — | — | — | — |
+| kelola_semester | ✓ | — | — | — | — | — | — |
+| kelola_evaluasi | ✓ | — | — | — | — | — | — |
+| kelola_user / role / permission / impersonate_user | ✓ | — | — | — | — | — | — |
+| kelola_kurikulum | — | ✓ | ✓ | — | — | — | — |
+| kelola_profil_lulusan* | — | ✓ | ✓ | — | — | — | — |
+| kelola_cpl / bok / mk / mk_unit | — | ✓ | ✓ | — | — | — | — |
+| kelola_cpmk / subcpmk / komponen_penilaian | — | ✓ | — | ✓ | — | — | — |
+| kelola_kelas | — | ✓ | ✓ | — | ✓ | — | — |
+| kelola_peserta_kelas | — | ✓ | — | ✓ | — | — | — |
+| setdosen_mk | — | ✓ | ✓ | — | — | — | — |
+| input_nilai / import_nilai | — | — | — | — | ✓ | — | — |
+| lihat_laporan | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ekspor_data | — | ✓ | — | — | — | ✓ | ✓ |
+| minta_analisis_ai | — | — | — | — | — | ✓ | — |
+| lihat_dashboard | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| lihat_audit_log | ✓ | — | — | — | — | — | ✓ |
+| konfigurasi_sistem | ✓ | — | — | — | — | — | — |
 
 *Profil Lulusan hanya jika unit penugasan Tim Kurikulum bertipe `study_program`.
+Sumber kebenaran: `database/seeders/RolePermissionSeeder.php`.
 
 ---
 
@@ -354,7 +351,7 @@ class CplUnitAggregator
 - **Anonymous class migrations.** Setiap file migration di v6 menggunakan format `return new class extends Migration {...};` yang sudah default sejak Laravel 9 dan tetap pada 13.
 - **`casts()` method.** Atribut JSON pada `analisis_ai.konteks` dideklarasikan via method `casts(): array` (bukan property `$casts`).
 - **Spatie Permission UUID.** Pastikan publish ulang migration setelah update config `permission.column_names.model_morph_key = 'model_uuid'` agar konsisten dengan PK `users`.
-- **Filament Shield 3.x** untuk auto-generate policy & gate FilamentResource sesuai permission baru.
+- **Filament Shield 4.x** untuk auto-generate policy & gate FilamentResource sesuai permission baru.
 
 ---
 
