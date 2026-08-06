@@ -26,8 +26,8 @@
 │  SSL/TLS · Gzip/Brotli · Static cache (1y immutable)       │
 └──────────────────────┬─────────────────────────────────────┘
                        ▼
-┌──────────── PHP-FPM 8.3 (Laravel 13 + Filament v3) ───────┐
-│  12 Modul Vertical Slice                                    │
+┌──────────── PHP-FPM 8.3 (Laravel 13 + Filament v4) ───────┐
+│  13 Modul Vertical Slice                                    │
 │  academic_units (UUID) sebagai sumber hierarki institusi    │
 │  mk_units pivot · kelas_mk.mk_unit_id                      │
 │  Rantai: cpl → cpl_bok → cpl_mk → mk_cpmk → subcpmk        │
@@ -43,8 +43,8 @@
                               │  default          [2w]    │
                               └──────────────┬────────────┘
                                              ▼
-                              ┌─ Anthropic Claude API ────┐
-                              │  claude-opus-4-6 (HTTPS)  │
+                              ┌──── Google Gemini API ────┐
+                              │  gemini-2.5-pro (HTTPS)   │
                               └───────────────────────────┘
 ```
 
@@ -71,12 +71,12 @@
 | Package | Versi | Fungsi |
 |---|---|---|
 | `laravel/framework` | ^13.0 | Framework utama (PHP 8.3+) |
-| `filament/filament` | ^3.0 | Panel admin Filament v3 |
-| `bezhansalleh/filament-shield` | ^3.0 | RBAC guard Filament |
+| `filament/filament` | ^4.0 | Panel admin Filament v4 |
+| `bezhansalleh/filament-shield` | ^4.0 | RBAC guard Filament |
 | `spatie/laravel-permission` | ^6.0 | Role & permission (UUID) |
 | `spatie/laravel-activitylog` | ^4.0 | Audit log seluruh model |
 | `spatie/laravel-model-states` | ^2.0 | Workflow state |
-| `anthropic-ai/sdk` | latest | Anthropic Claude API (Claude Opus 4.6) |
+| `google-gemini-php/laravel` | ^2.0 | Google Gemini API |
 | `barryvdh/laravel-dompdf` | ^3.0 | Laporan PDF |
 | `phpoffice/phpspreadsheet` | ^2.0 | Export Excel |
 | `laravel/sanctum` | ^4.0 | Autentikasi session/token |
@@ -113,10 +113,12 @@ CACHE_STORE=redis
 SESSION_DRIVER=redis
 QUEUE_CONNECTION=redis
 
-# Anthropic AI
-ANTHROPIC_API_KEY=sk-ant-...
-AI_MODEL=claude-opus-4-6
-AI_MAX_TOKENS=4096
+# Google Gemini AI
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL_DEFAULT=gemini-2.5-pro
+GEMINI_MODEL_FLASH=gemini-2.5-flash
+GEMINI_MAX_TOKENS=4096
+GEMINI_MONTHLY_TOKEN_BUDGET=5000000
 
 # Queue names
 QUEUE_CPL_CALCULATION=cpl-calculation
@@ -306,8 +308,8 @@ silaris/
 │   │   │   │                 # CplMkUnit, CplUnitAggregator
 │   │   │   └── Jobs/RecalkulasiCplJob.php
 │   │   ├── AI/
-│   │   │   ├── Services/AnthropicClientService.php
-│   │   │   └── Jobs/RunAiAnalysisJob.php
+│   │   │   ├── Services/GeminiClientService.php, GeminiCostGuard.php
+│   │   │   └── Jobs/RunAnalisisAiJob.php
 │   │   └── Audit/
 │   ├── Models/               # Re-export model utama (untuk Spatie & Filament)
 │   └── Providers/
@@ -323,7 +325,7 @@ silaris/
 │   │   └── RolePermissionSeeder.php # Role, Permission, Akun
 │   └── factories/
 ├── config/
-│   ├── ai.php
+│   ├── gemini.php
 │   └── permission.php        # UUID & model_morph_key
 └── tests/
     ├── Unit/Kalkulasi/
@@ -349,4 +351,4 @@ silaris/
 
 ---
 
-*Selesai — Arsitektur SILARIS v6 disusun untuk Laravel 13 + Filament v3 di atas VPS Ubuntu 24.04.*
+*Selesai — Arsitektur SILARIS v6 disusun untuk Laravel 13 + Filament v4 di atas VPS Ubuntu 24.04.*
