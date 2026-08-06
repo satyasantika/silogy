@@ -9,7 +9,7 @@
 |---|---|
 | Sistem Operasional | SILARIS – Siliwangi Learning & Quality Assurance System |
 | Paradigma | Outcome-Based Education (OBE) |
-| Stack Teknologi | Laravel 13 · Filament v3 · MySQL 8 · Redis |
+| Stack Teknologi | Laravel 13 · Filament v4 · MySQL 8 · Redis |
 | Versi Dokumen | 6.1 |
 | Tagline | *"From learning data to academic quality"* |
 
@@ -331,7 +331,7 @@ Riwayat transisi state pada model bertingkat (Kurikulum, Mk, dll.).
 | kurikulum_id | CHAR(36) | NO | FK | → `kurikulum.id` — paket CPL milik kurikulum ini |
 | kode | VARCHAR(15) | NO | | Mis. CPL-P01 |
 | deskripsi | TEXT | NO | | |
-| domain | ENUM('kognitif','afektif','psikomotorik','gabungan') | YES | | |
+| domain | JSON | YES | | Array multi-select: `kognitif`/`afektif`/`psikomotorik` |
 | created_at | TIMESTAMP | YES | | |
 | updated_at | TIMESTAMP | YES | | |
 
@@ -364,6 +364,7 @@ Riwayat transisi state pada model bertingkat (Kurikulum, Mk, dll.).
 | id | CHAR(36) | NO | PK | UUID v4 |
 | academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` (pemilik MK – universitas/fakultas/jurusan/prodi) |
 | kurikulum_id | CHAR(36) | NO | FK | → `kurikulum.id` (kurikulum pemilik MK) |
+| koordinator_mk_id | CHAR(36) | YES | FK | → `users.id`, `nullOnDelete` — koordinator MK di level `mk` (terpisah dari `kelas_mk.koordinator_mk_id` per kelas) |
 | state | VARCHAR(50) | NO | | laravel-state |
 | nama | VARCHAR(150) | NO | | Nama mata kuliah |
 | sks | TINYINT | NO | | Total SKS (= sks_teori + sks_praktik + sks_lapangan) |
@@ -375,7 +376,7 @@ Riwayat transisi state pada model bertingkat (Kurikulum, Mk, dll.).
 | created_at | TIMESTAMP | YES | | |
 | updated_at | TIMESTAMP | YES | | |
 
-**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `kurikulum_id → kurikulum.id (CASCADE)`
+**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `kurikulum_id → kurikulum.id (CASCADE)` · `koordinator_mk_id → users.id (NULL ON DELETE)`
 **Indeks:** `idx_mk_unit (academic_unit_id)` · `idx_mk_kurikulum (kurikulum_id)` · `idx_mk_active (is_active)`
 
 ### Tabel: `mk_units` *(BARU)*
@@ -520,17 +521,23 @@ UQ `(kelas_mk_id, mahasiswa_id)`
 | nama | VARCHAR(150) | NO | |
 | timestamps | | | |
 
-### Tabel: `komponen_penilaian` *(v6: default bobot = 100)*
+### Tabel: `komponen_penilaian` *(v6: default bobot = 100; v6.2: `kelas_mk_id` → `mk_id`+`semester_id`)*
+
+> Catatan v6.2: komponen penilaian tidak lagi milik satu kelas MK, melainkan satu definisi per **MK + semester**, dipakai bersama oleh semua kelas MK pada kombinasi tersebut (migration `2026_07_13_000001_ubah_komponen_penilaian_ke_mk_semester.php`).
 
 | Kolom | Tipe | NULL | Key | Deskripsi |
 |---|---|---|---|---|
 | id | CHAR(36) | NO | PK | UUID v4 |
-| kelas_mk_id | CHAR(36) | NO | FK | → `kelas_mk.id` |
+| mk_id | CHAR(36) | NO | FK | → `mk.id` |
+| semester_id | CHAR(36) | NO | FK | → `semesters.id` |
 | evaluasi_id | CHAR(36) | NO | FK | → `evaluasi.id` |
 | kode | VARCHAR(30) | YES | | Mis. UTS_TEORI |
 | nama | VARCHAR(100) | NO | | |
 | bobot | DECIMAL(5,2) | NO | | **Default 100.00** |
 | created_at / updated_at | TIMESTAMP | YES | | |
+
+**FK:** `mk_id → mk.id (CASCADE)` · `semester_id → semesters.id (RESTRICT)`
+**Indeks:** UQ `(mk_id, semester_id, kode)` — `uq_komponen_mk_semester_kode`
 
 ### Tabel: `subcpmk_komponenpenilaian`
 
@@ -656,7 +663,7 @@ UQ `(cpl_id, academic_unit_id, semester_id)`
 | konteks | JSON | YES | | |
 | prompt | TEXT | NO | | |
 | hasil | LONGTEXT | YES | | |
-| model_ai | VARCHAR(80) | YES | | Mis. claude-opus-4-6 |
+| model_ai | VARCHAR(80) | YES | | Mis. gemini-2.5-pro |
 | token_digunakan | INT | YES | | |
 | durasi_ms | INT | YES | | |
 | dibuat_oleh | CHAR(36) | YES | FK | → `users.id` |
@@ -665,6 +672,50 @@ UQ `(cpl_id, academic_unit_id, semester_id)`
 ### Tabel: `activity_log` *(Spatie Activitylog)*
 
 Standar Spatie — `subject_id`/`causer_id` VARCHAR(36) UUID-compatible.
+
+### 10.1 Override Kode CPL/BoK & Impor Sintesys *(BARU, belum ada di v6.0/6.1)*
+
+> Konsekuensi adaptasi MK lintas unit: CPL/BoK milik universitas/fakultas yang terhubung ke MK yang diadaptasi prodi otomatis terlihat di menu CPL/BoK prodi, tapi hanya kode-nya yang boleh diseragamkan per prodi — bukan mengubah kode asli milik unit pemilik. `cpl_kode_overrides`/`bok_kode_overrides` menyimpan override tsb, dibuat lazily hanya saat prodi benar-benar mengubahnya.
+
+**Tabel: `cpl_kode_overrides`**
+
+| Kolom | Tipe | NULL | Key | Deskripsi |
+|---|---|---|---|---|
+| id | CHAR(36) | NO | PK | UUID v4 |
+| academic_unit_id | CHAR(36) | NO | FK | → `academic_units.id` |
+| cpl_id | CHAR(36) | NO | FK | → `cpl.id` |
+| kode | VARCHAR(15) | NO | | Kode CPL hasil override untuk unit ini |
+| created_at / updated_at | TIMESTAMP | YES | | |
+
+**FK:** `academic_unit_id → academic_units.id (CASCADE)` · `cpl_id → cpl.id (CASCADE)`
+**Indeks:** UQ `(academic_unit_id, cpl_id)` · UQ `(academic_unit_id, kode)`
+
+**Tabel: `bok_kode_overrides`** — struktur identik, mengganti `cpl_id` dengan `bok_id → bok.id`.
+
+**Tabel: `kelas_mk_sintesys_imports`**
+
+> Melacak status job impor kelas MK & peserta dari Sintesys secara asinkron.
+
+| Kolom | Tipe | NULL | Key | Deskripsi |
+|---|---|---|---|---|
+| id | CHAR(36) | NO | PK | UUID v4 |
+| semester_id | CHAR(36) | YES | FK | → `semesters.id`, `nullOnDelete` |
+| academic_unit_id | CHAR(36) | YES | FK | → `academic_units.id`, `nullOnDelete` |
+| tahun_akademik | VARCHAR(10) | NO | | |
+| kode_prodi | VARCHAR(30) | NO | | |
+| status | ENUM('pending','running','completed','failed') | NO | | Default `pending` |
+| total | INT UNSIGNED | YES | | |
+| processed | INT UNSIGNED | NO | | Default 0 |
+| kelas_dibuat | INT UNSIGNED | NO | | Default 0 |
+| kelas_diperbarui | INT UNSIGNED | NO | | Default 0 |
+| peserta_terdaftar | INT UNSIGNED | NO | | Default 0 |
+| peserta_sudah_terdaftar | INT UNSIGNED | NO | | Default 0 |
+| errors | JSON | YES | | |
+| pesan_gagal | TEXT | YES | | |
+| dibuat_oleh | CHAR(36) | YES | FK | → `users.id`, `nullOnDelete` |
+| created_at / updated_at | TIMESTAMP | YES | | |
+
+**Tabel: `notifications`** — tabel notifikasi standar Laravel (`id` UUID, `type`, `notifiable_type`/`notifiable_id`, `data` JSON, `read_at`, timestamps).
 
 ---
 
@@ -677,7 +728,7 @@ Standar Spatie — `subject_id`/`causer_id` VARCHAR(36) UUID-compatible.
 | 3 | users | Pengguna | tanpa `prodi_id` |
 | 4 | mahasiswas | Pengguna | `phone` → `nomor_wa`; `prodi_id` → `academic_unit_id` |
 | 5 | roles | RBAC | UUID |
-| 6 | permissions | RBAC | UUID — +`kelola_permission`, +`kelola_fakultas/jurusan`, +`kelola_user_*`, +`kelola_evaluasi`, +`kelola_mk_unit`, +`setdosen_mk` |
+| 6 | permissions | RBAC | UUID — `kelola_unit`/`kelola_user` tunggal (bukan per tipe unit), +`kelola_permission`, +`impersonate_user`, +`kelola_evaluasi`, +`kelola_mk_unit`, +`kelola_peserta_kelas`, +`setdosen_mk` |
 | 7 | model_has_roles | RBAC | |
 | 8 | model_has_permissions | RBAC | |
 | 9 | role_has_permissions | RBAC | |
@@ -686,10 +737,10 @@ Standar Spatie — `subject_id`/`causer_id` VARCHAR(36) UUID-compatible.
 | 12 | profil_lulusan | Kurikulum | khusus prodi |
 | 13 | profil_indikators | Kurikulum | |
 | 14 | state_transitions | Workflow | |
-| 15 | cpl | CPL | `academic_unit_id` (ex-level/level_id) |
-| 16 | bok | BoK | `academic_unit_id` |
-| 17 | mk | MK | -`kode`, -`semester_ke`, -`status`; +`is_active`, +`sks_teori/praktik/lapangan`; `academic_unit_id` |
-| 18 | mk_units | MK | **BARU** — pivot `academic_unit_id ↔ mk_id` + kode + semester_ke |
+| 15 | cpl | CPL | `academic_unit_id` (ex-level/level_id); +`kurikulum_id`; `domain` kini **JSON** multi-select |
+| 16 | bok | BoK | `academic_unit_id`; +`kurikulum_id` |
+| 17 | mk | MK | -`kode`, -`semester_ke`, -`status`; +`is_active`, +`sks_teori/praktik/lapangan`; `academic_unit_id`; +`kurikulum_id`; +`koordinator_mk_id` |
+| 18 | mk_units | MK | **BARU** — pivot `academic_unit_id ↔ mk_id` + kode + semester_ke; +`kurikulum_id` |
 | 19 | cpl_profil_lulusan | Pivot | |
 | 20 | cpl_bok | Pivot | |
 | 21 | cpl_mk | Pivot | |
@@ -699,7 +750,7 @@ Standar Spatie — `subject_id`/`causer_id` VARCHAR(36) UUID-compatible.
 | 25 | kelas_mk | Kelas | `mk_id` → **`mk_unit_id`**, +`koordinator_mk_id` |
 | 26 | kelas_mk_mahasiswa | Kelas | |
 | 27 | evaluasi | Penilaian | |
-| 28 | komponen_penilaian | Penilaian | **default bobot=100** |
+| 28 | komponen_penilaian | Penilaian | **default bobot=100**; v6.2: `kelas_mk_id` → **`mk_id`+`semester_id`** (dipakai bersama semua kelas) |
 | 29 | subcpmk_komponenpenilaian | Pivot | default bobot=100 |
 | 30 | nilai_mahasiswas | Penilaian | kolom **`subcpmk_komponenpenilaian_id`** |
 | 31 | hasil_subcpmk | Kalkulasi | |
@@ -709,6 +760,10 @@ Standar Spatie — `subject_id`/`causer_id` VARCHAR(36) UUID-compatible.
 | 35 | hasil_cpl_unit | Kalkulasi | rename `hasil_cpl_prodi`; `academic_unit_id` |
 | 36 | analisis_ai | AI | `prodi_id` → **`academic_unit_id`** |
 | 37 | activity_log | Audit | Spatie Activitylog |
+| 38 | cpl_kode_overrides | CPL | **BARU** — override kode CPL per unit saat CPL diadaptasi lintas unit |
+| 39 | bok_kode_overrides | BoK | **BARU** — override kode BoK per unit saat BoK diadaptasi lintas unit |
+| 40 | kelas_mk_sintesys_imports | Kelas | **BARU** — status/progres job impor kelas MK dari Sintesys (async) |
+| 41 | notifications | Sistem | **BARU** — tabel notifikasi standar Laravel |
 
 ---
 
@@ -1853,4 +1908,4 @@ class RolePermissionSeeder extends Seeder
 
 ---
 
-*Selesai — siap diintegrasikan ke proyek Laravel 13 + Filament v3.*
+*Selesai — siap diintegrasikan ke proyek Laravel 13 + Filament v4.*
