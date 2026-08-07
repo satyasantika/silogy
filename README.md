@@ -167,6 +167,38 @@ Target DoD: **< 30 detik** untuk filter di atas.
 
 ## Operasional Produksi
 
+### Deploy di root domain vs subpath
+
+Aplikasi mendukung dua mode deployment tanpa perubahan kode, dikontrol lewat `.env`:
+
+**Root domain** (mis. `https://silogy.unsil.ac.id/`) — konfigurasi default, tidak perlu variabel tambahan:
+
+```bash
+APP_URL=https://silogy.unsil.ac.id
+SESSION_PATH=/
+```
+
+**Subpath** (mis. `https://supportfkip.unsil.ac.id/demo-silogy`) — sertakan path di `APP_URL` dan samakan `SESSION_PATH`:
+
+```bash
+APP_URL=https://supportfkip.unsil.ac.id/demo-silogy
+SESSION_PATH=/demo-silogy
+SESSION_COOKIE=silogy_session   # opsional, hindari bentrok cookie antar-app di domain yang sama
+SESSION_SECURE_COOKIE=true
+```
+
+Cara kerjanya: `AppServiceProvider::configureUrlForSubpathDeployment()` (lihat `app/Providers/AppServiceProvider.php`) mem-parsing path dari `APP_URL` dan, bila ada, memaksa `URL::forceRootUrl()` + `forceScheme('https')` sehingga semua `url()`/`route()`/`asset()` menyertakan prefix subpath, termasuk asset Livewire yang di-patch manual. Bila `APP_URL` tidak berisi path (mode root), Laravel kembali memakai deteksi host dari request seperti biasa.
+
+Yang perlu disiapkan di luar repo ini:
+
+1. **Reverse proxy harus melepas prefix subpath sebelum meneruskan ke container**, karena Laravel me-routing berdasarkan path yang benar-benar diterima PHP, bukan `APP_URL`. Contoh Apache:
+   ```apache
+   ProxyPass        /demo-silogy/ http://app-container:8080/
+   ProxyPassReverse /demo-silogy/ http://app-container:8080/
+   ```
+2. Proxy harus meneruskan header `X-Forwarded-Proto/Host/Port` — `bootstrap/app.php` sudah `trustProxies(at: '*')` untuk membacanya, tapi hanya berguna kalau header tersebut memang dikirim.
+3. Root domain (tanpa ProxyPass) tidak butuh langkah 1-2 di atas selama request langsung ke container/index.php.
+
 ### Health check
 
 Endpoint publik (tanpa auth), envelope JSON §5.1 PreVibeCoding:
