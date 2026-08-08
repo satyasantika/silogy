@@ -439,17 +439,6 @@ trait HasImporMassal
         );
     }
 
-    protected function importColumnsHelperText(): string
-    {
-        $penutup = 'Pratinjau muncul otomatis di bawah kotak tempel; tombol impor menyertainya begitu data terbaca.';
-
-        if ($this->importExampleRows() !== []) {
-            return 'Tempel baris data di bawah petunjuk (lihat contoh pada placeholder kotak di bawah). '.$penutup;
-        }
-
-        return 'Tempel baris data di bawah petunjuk. '.$penutup;
-    }
-
     /**
      * Isi kotak tempel terkini. Property live dipakai lebih dulu, lalu state
      * form modal (mountedActions.{i}.data.rows) sebagai jaring aman: dengan
@@ -790,8 +779,7 @@ trait HasImporMassal
                             $this->forceRender();
                         }
                     })
-                    ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get)))
-                    ->helperText($this->importColumnsHelperText()),
+                    ->placeholder(fn (Get $get): ?string => $this->importExamplePlaceholder($contextFromGet($get))),
                 Placeholder::make('preview_live')
                     ->hiddenLabel()
                     ->content(fn (Get $get): HtmlString => $this->renderImportPreview(
