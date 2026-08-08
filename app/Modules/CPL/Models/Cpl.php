@@ -35,7 +35,25 @@ class Cpl extends Model
 
     protected $casts = [
         'domain' => 'array',
+        'urutan' => 'integer',
     ];
+
+    /**
+     * Urutan tampil default = paling akhir dalam kurikulum yang sama,
+     * kecuali sudah diisi eksplisit (mis. lewat drag-reorder). Berlaku
+     * untuk semua jalur create (form, importer, seeder) karena lewat
+     * event Eloquent.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Cpl $cpl): void {
+            if ($cpl->urutan !== null || blank($cpl->kurikulum_id)) {
+                return;
+            }
+
+            $cpl->urutan = ((int) static::query()->where('kurikulum_id', $cpl->kurikulum_id)->max('urutan')) + 1;
+        });
+    }
 
     /**
      * @return BelongsTo<AcademicUnit, $this>

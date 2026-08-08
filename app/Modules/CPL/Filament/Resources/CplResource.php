@@ -229,6 +229,8 @@ class CplResource extends Resource
     {
         return static::applyKurikulumTerpilihCardTable(
             $table
+                ->reorderable('urutan')
+                ->authorizeReorder(fn (): bool => auth()->user()?->can('kelola_cpl') ?? false)
                 ->recordActions([
                     EditAction::make(),
                 ])
@@ -283,9 +285,9 @@ class CplResource extends Resource
                     ->size('sm')
                     ->color('warning'),
             ],
-            fn (Builder $query, Kurikulum $kurikulum): Builder => CplBokAdaptasiScope::scopeVisibleCpl(
-                $query,
-                $kurikulum->id,
+            fn (Builder $query, Kurikulum $kurikulum): Builder => CplBokAdaptasiScope::applyDisplayOrderCpl(
+                CplBokAdaptasiScope::scopeVisibleCpl($query, $kurikulum->id),
+                $kurikulum,
             ),
         );
     }

@@ -4,6 +4,7 @@ namespace App\Modules\BoK\Filament\Resources\BokResource\Pages;
 
 use App\Modules\BoK\Filament\Resources\BokResource;
 use App\Modules\BoK\Models\Bok;
+use App\Modules\BoK\Models\BokKodeOverride;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Schema;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ListBoks extends ListRecords
@@ -44,6 +46,61 @@ class ListBoks extends ListRecords
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => BokResource::canCreate()),
         ];
+    }
+
+    /**
+     * Lihat penjelasan lengkap di ListCpls::reorderTable() — mekanisme
+     * yang sama persis, dicerminkan untuk BoK/BokKodeOverride.
+     *
+     * @param  array<int, string>  $order
+     */
+    public function reorderTable(array $order, int|string|null $draggedRecordKey = null): void
+    {
+        if (! $this->getTable()->isReorderable()) {
+            return;
+        }
+
+        $kurikulum = KurikulumTerpilih::current();
+
+        if (! $kurikulum instanceof Kurikulum) {
+            return;
+        }
+
+        $this->getTable()->callBeforeReordering($order);
+
+        DB::transaction(function () use ($order, $kurikulum): void {
+            $records = Bok::query()->whereIn('id', $order)->get()->keyBy('id');
+
+            foreach ($order as $index => $recordId) {
+                $record = $records->get($recordId);
+
+                if (! $record) {
+                    continue;
+                }
+
+                $urutan = $index + 1;
+
+                if ($record->kurikulum_id === $kurikulum->id) {
+                    $record->update(['urutan' => $urutan]);
+
+                    continue;
+                }
+
+                $override = BokKodeOverride::query()->firstOrNew([
+                    'academic_unit_id' => $kurikulum->academic_unit_id,
+                    'bok_id' => $record->id,
+                ]);
+
+                if (! $override->exists) {
+                    $override->kode = $record->kode;
+                }
+
+                $override->urutan = $urutan;
+                $override->save();
+            }
+        });
+
+        $this->getTable()->callAfterReordering($order);
     }
 
     protected function adaBokKurikulum(): bool

@@ -32,6 +32,27 @@ class Bok extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'urutan' => 'integer',
+    ];
+
+    /**
+     * Urutan tampil default = paling akhir dalam kurikulum yang sama,
+     * kecuali sudah diisi eksplisit (mis. lewat drag-reorder). Berlaku
+     * untuk semua jalur create (form, importer, seeder) karena lewat
+     * event Eloquent.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Bok $bok): void {
+            if ($bok->urutan !== null || blank($bok->kurikulum_id)) {
+                return;
+            }
+
+            $bok->urutan = ((int) static::query()->where('kurikulum_id', $bok->kurikulum_id)->max('urutan')) + 1;
+        });
+    }
+
     /**
      * @return BelongsTo<AcademicUnit, $this>
      */

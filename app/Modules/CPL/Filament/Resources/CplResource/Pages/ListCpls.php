@@ -4,6 +4,7 @@ namespace App\Modules\CPL\Filament\Resources\CplResource\Pages;
 
 use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
@@ -20,6 +21,7 @@ use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Schema;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ListCpls extends ListRecords
@@ -44,6 +46,78 @@ class ListCpls extends ListRecords
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => CplResource::canCreate()),
         ];
+    }
+
+    /**
+     * Menimpa CanReorderRecords::reorderTable() bawaan Filament (yang
+     * hanya bisa menulis ke satu kolom pada satu model dasar tabel) —
+     * ListRecords hanya meng-alias makeTable(), reorderTable() TIDAK
+     * dikecualikan, jadi method di sini menang atas versi trait lewat
+     * resolusi method PHP biasa. UI drag-and-drop bawaan Filament
+     * (toggle, SortableJS, animasi) tetap dipakai apa adanya — hanya
+     * persistensinya yang diganti di sini, dipecah menurut kepemilikan
+     * tiap baris terhadap kurikulum yang SEDANG dilihat:
+     *
+     *  - CPL milik kurikulum ini (cpl.kurikulum_id === kurikulum
+     *    terpilih): urutan ditulis langsung ke cpl.urutan — aman, hanya
+     *    kurikulum ini yang pernah menganggap baris tsb "miliknya
+     *    sendiri" (cek per kurikulum_id, BUKAN academic_unit_id, karena
+     *    satu unit bisa punya beberapa kurikulum/generasi).
+     *  - CPL asing (tersingkap lewat adaptasi MK): urutan privat untuk
+     *    UNIT yang sedang melihat, disimpan di cpl_kode_overrides (baris
+     *    yang sama dipakai bersama alias kode — dibuat lazily persis pola
+     *    default kode_override di CplResource::form()), TIDAK PERNAH
+     *    menyentuh cpl.kode/cpl.urutan milik unit pemilik asli.
+     *
+     * @param  array<int, string>  $order
+     */
+    public function reorderTable(array $order, int|string|null $draggedRecordKey = null): void
+    {
+        if (! $this->getTable()->isReorderable()) {
+            return;
+        }
+
+        $kurikulum = KurikulumTerpilih::current();
+
+        if (! $kurikulum instanceof Kurikulum) {
+            return;
+        }
+
+        $this->getTable()->callBeforeReordering($order);
+
+        DB::transaction(function () use ($order, $kurikulum): void {
+            $records = Cpl::query()->whereIn('id', $order)->get()->keyBy('id');
+
+            foreach ($order as $index => $recordId) {
+                $record = $records->get($recordId);
+
+                if (! $record) {
+                    continue;
+                }
+
+                $urutan = $index + 1;
+
+                if ($record->kurikulum_id === $kurikulum->id) {
+                    $record->update(['urutan' => $urutan]);
+
+                    continue;
+                }
+
+                $override = CplKodeOverride::query()->firstOrNew([
+                    'academic_unit_id' => $kurikulum->academic_unit_id,
+                    'cpl_id' => $record->id,
+                ]);
+
+                if (! $override->exists) {
+                    $override->kode = $record->kode;
+                }
+
+                $override->urutan = $urutan;
+                $override->save();
+            }
+        });
+
+        $this->getTable()->callAfterReordering($order);
     }
 
     protected function adaCplKurikulum(): bool

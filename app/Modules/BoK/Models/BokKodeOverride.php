@@ -23,6 +23,10 @@ class BokKodeOverride extends Model
 
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'urutan' => 'integer',
+    ];
+
     /**
      * @return BelongsTo<AcademicUnit, $this>
      */

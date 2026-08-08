@@ -266,4 +266,108 @@ class CplBokAdaptasiScope
             $bok->id => $overrides[$bok->id] ?? $bok->kode,
         ]);
     }
+
+    /**
+     * ORDER BY gabungan urutan-milik-sendiri + urutan-override-adaptasi,
+     * dihitung di SQL (bukan di PHP) supaya tetap benar saat tabel
+     * dipaginasi. Subquery berkorelasi dipakai (bukan JOIN) supaya kolom
+     * `kode` yang sama-sama ada di cpl/cpl_kode_overrides tidak jadi
+     * ambigu terhadap TextColumn::make('kode')->searchable() pada tabel.
+     * NULL (belum pernah direorder manual) selalu di akhir.
+     *
+     * @param  Builder<Cpl>  $query
+     * @return Builder<Cpl>
+     */
+    public static function applyDisplayOrderCpl(Builder $query, Kurikulum $kurikulum): Builder
+    {
+        return self::applyDisplayOrder($query, $kurikulum, 'cpl', 'cpl_kode_overrides', 'cpl_id');
+    }
+
+    /**
+     * @param  Builder<Bok>  $query
+     * @return Builder<Bok>
+     */
+    public static function applyDisplayOrderBok(Builder $query, Kurikulum $kurikulum): Builder
+    {
+        return self::applyDisplayOrder($query, $kurikulum, 'bok', 'bok_kode_overrides', 'bok_id');
+    }
+
+    /**
+     * @param  Builder<Cpl>|Builder<Bok>  $query
+     * @return Builder<Cpl>|Builder<Bok>
+     */
+    protected static function applyDisplayOrder(
+        Builder $query,
+        Kurikulum $kurikulum,
+        string $baseTable,
+        string $overrideTable,
+        string $overrideForeignKey,
+    ): Builder {
+        $effective = 'COALESCE('
+            ."(SELECT o.urutan FROM {$overrideTable} o WHERE o.{$overrideForeignKey} = {$baseTable}.id AND o.academic_unit_id = ? LIMIT 1), "
+            ."CASE WHEN {$baseTable}.kurikulum_id = ? THEN {$baseTable}.urutan ELSE NULL END"
+        .')';
+
+        return $query->orderByRaw(
+            "({$effective}) IS NULL, ({$effective}) ASC, {$baseTable}.kode ASC",
+            [
+                $kurikulum->academic_unit_id, $kurikulum->id,
+                $kurikulum->academic_unit_id, $kurikulum->id,
+            ],
+        );
+    }
+
+    /**
+     * Peta id -> urutan efektif (PHP-side mirror of applyDisplayOrder(),
+     * untuk kebutuhan uji/inspeksi — sort tabel sesungguhnya tetap pakai
+     * applyDisplayOrderCpl()/applyDisplayOrderBok() di SQL demi paginasi
+     * yang benar). null berarti "belum diurutkan manual" (tampil paling
+     * akhir).
+     *
+     * @param  Collection<int, Cpl>  $cpls
+     * @return Collection<string, ?int>
+     */
+    public static function displayUrutanMapCpl(Collection $cpls, Kurikulum $viewingKurikulum): Collection
+    {
+        $foreignIds = $cpls
+            ->filter(fn (Cpl $cpl): bool => $cpl->kurikulum_id !== $viewingKurikulum->id)
+            ->pluck('id');
+
+        $overrides = $foreignIds->isEmpty()
+            ? collect()
+            : CplKodeOverride::query()
+                ->where('academic_unit_id', $viewingKurikulum->academic_unit_id)
+                ->whereIn('cpl_id', $foreignIds)
+                ->pluck('urutan', 'cpl_id');
+
+        return $cpls->mapWithKeys(fn (Cpl $cpl): array => [
+            $cpl->id => $cpl->kurikulum_id === $viewingKurikulum->id
+                ? $cpl->urutan
+                : ($overrides[$cpl->id] ?? null),
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Bok>  $boks
+     * @return Collection<string, ?int>
+     */
+    public static function displayUrutanMapBok(Collection $boks, Kurikulum $viewingKurikulum): Collection
+    {
+        $foreignIds = $boks
+            ->filter(fn (Bok $bok): bool => $bok->kurikulum_id !== $viewingKurikulum->id)
+            ->pluck('id');
+
+        $overrides = $foreignIds->isEmpty()
+            ? collect()
+            : BokKodeOverride::query()
+                ->where('academic_unit_id', $viewingKurikulum->academic_unit_id)
+                ->whereIn('bok_id', $foreignIds)
+                ->pluck('urutan', 'bok_id');
+
+        return $boks->mapWithKeys(fn (Bok $bok): array => [
+            $bok->id => $bok->kurikulum_id === $viewingKurikulum->id
+                ? $bok->urutan
+                : ($overrides[$bok->id] ?? null),
+        ]);
+    }
 }
