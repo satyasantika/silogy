@@ -122,6 +122,16 @@ it('impor unit akademik: baru dibuat, duplikat kode terdeteksi', function () {
         ->and(AcademicUnit::query()->where('nama', 'Duplikat FKIP')->exists())->toBeFalse();
 });
 
+it('modal impor menampilkan tombol salin contoh data dengan payload TSV dan HTML header berwarna', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    Livewire::test(ListAcademicUnits::class)
+        ->mountAction('bulkImport')
+        ->assertMountedActionModalSee('Salin contoh data')
+        ->assertMountedActionModalSee("jenis\tkode\tjenjang\tnama")
+        ->assertMountedActionModalSeeHtml('data-copy-html="&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;');
+});
+
 it('impor unit akademik: prodi dapat berinduk ke fakultas yang baru dibuat di baris lebih awal pada tempelan yang sama', function () {
     $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
 

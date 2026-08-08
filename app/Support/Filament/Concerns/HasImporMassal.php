@@ -13,6 +13,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 
@@ -255,6 +256,10 @@ trait HasImporMassal
         }
 
         $baris = [];
+        // Baris <tr> "bersih" (tanpa kolom nomor/huruf dekoratif Excel-chrome),
+        // dipakai sebagai payload HTML tombol salin di bawah — dikumpulkan di
+        // loop yang sama supaya tidak menghitung ulang $contohBaris/$columns.
+        $dataRowsHtmlBersih = [];
 
         $headerCells = '';
         foreach ($columns as $col) {
@@ -269,6 +274,7 @@ trait HasImporMassal
                 $cells .= '<td style="'.$cellStyle.'">'.e($value).'</td>';
             }
             $baris[] = $this->renderImportContohExcelRow($i + 2, $cells, $chromeStyle);
+            $dataRowsHtmlBersih[] = '<tr>'.$cells.'</tr>';
         }
 
         $tabel = '<div style="overflow-x:auto;margin-bottom:12px;">'
@@ -292,12 +298,117 @@ trait HasImporMassal
             ? ''
             : '<p class="mb-2 text-xs opacity-80">'.implode(' · ', $legendParts).'</p>';
 
-        return new HtmlString($legend.$tabel);
+        $tombolSalin = $this->renderImportCopyContohButton($columns, $contohBaris, $headerCells, $dataRowsHtmlBersih);
+
+        return new HtmlString($legend.$tabel.$tombolSalin);
     }
 
     private function renderImportContohExcelRow(int $nomor, string $cells, string $chromeStyle): string
     {
         return '<tr><td style="'.$chromeStyle.'text-align:center;">'.$nomor.'</td>'.$cells.'</tr>';
+    }
+
+    /**
+     * Tombol "Salin contoh data" di bawah tabel contoh — menyalin header +
+     * baris contoh ke clipboard lewat Clipboard API multi-format
+     * (text/html + text/plain), sehingga saat ditempel ke Excel/Google
+     * Sheets warna teks header (oranye = wajib, biru = opsional) ikut
+     * terjaga. text/plain (TSV) jadi isi bila target tempel tidak
+     * memahami HTML; writeText() polos jadi fallback bila ClipboardItem
+     * tidak tersedia (browser lama) atau navigator.clipboard tidak ada
+     * (konteks tidak aman/non-HTTPS).
+     *
+     * Payload TSV & HTML ditaruh sebagai atribut data-copy-text /
+     * data-copy-html, di-escape lewat {{ }} Blade (setara e(), dipakai
+     * konsisten dengan sel-sel tabel lain di kelas ini) — browser otomatis
+     * mendekode entity itu balik jadi teks asli saat dibaca lewat
+     * dataset.copyText/dataset.copyHtml. Karena payload dinamis HANYA ada
+     * di atribut (bukan disisipkan ke teks JS), handler @click bersifat
+     * statis 100% dan didaftarkan sekali via x-init — idiom yang sama
+     * dipakai silogyRekapAsesmen di modul lain.
+     *
+     * @param  list<array{key: string, label: string, wajib: bool}>  $columns
+     * @param  list<list<string>>  $contohBaris
+     * @param  list<string>  $dataRowsHtmlBersih
+     */
+    private function renderImportCopyContohButton(
+        array $columns,
+        array $contohBaris,
+        string $headerCells,
+        array $dataRowsHtmlBersih,
+    ): string {
+        $tsvBaris = [implode("\t", array_map(fn (array $col): string => $col['label'], $columns))];
+
+        foreach ($contohBaris as $parts) {
+            $tsvBaris[] = implode("\t", $parts);
+        }
+
+        $tsv = implode("\n", $tsvBaris);
+        $htmlTabel = '<table><tbody><tr>'.$headerCells.'</tr>'.implode('', $dataRowsHtmlBersih).'</tbody></table>';
+
+        // PENTING: string Blade di bawah harus TETAP statis (jangan pernah
+        // sisipkan $tsv/$htmlTabel langsung ke dalamnya) — Blade::render()
+        // meng-cache file view terkompilasi di storage/framework/views
+        // berdasar hash isi string; kalau string ini berubah per baris
+        // data, cache akan menumpuk tanpa batas. Nilai dinamis SELALU
+        // lewat argumen $data kedua supaya cache-nya cuma satu file.
+        return Blade::render(<<<'BLADE'
+            <div class="mt-2" x-data x-init="
+                window.silogySalinContohImpor = window.silogySalinContohImpor || function () {
+                    return {
+                        disalin: false,
+                        async salin() {
+                            const teks = this.$el.dataset.copyText ?? '';
+                            const html = this.$el.dataset.copyHtml ?? '';
+                            const clipboard = navigator.clipboard;
+
+                            if (! clipboard) {
+                                return;
+                            }
+
+                            try {
+                                if (window.ClipboardItem && clipboard.write) {
+                                    await clipboard.write([
+                                        new ClipboardItem({
+                                            'text/html': new Blob([html], { type: 'text/html' }),
+                                            'text/plain': new Blob([teks], { type: 'text/plain' }),
+                                        }),
+                                    ]);
+                                } else {
+                                    await clipboard.writeText(teks);
+                                }
+                            } catch (err) {
+                                try {
+                                    await clipboard.writeText(teks);
+                                } catch (err2) {
+                                    return;
+                                }
+                            }
+
+                            this.disalin = true;
+                            setTimeout(() => { this.disalin = false; }, 1500);
+                        },
+                    };
+                };
+            ">
+                <x-filament::button
+                    type="button"
+                    color="gray"
+                    size="xs"
+                    icon="heroicon-o-clipboard-document"
+                    x-data="silogySalinContohImpor()"
+                    x-on:click="salin()"
+                    data-copy-text="{{ $tsv }}"
+                    data-copy-html="{{ $htmlTabel }}"
+                >
+                    <span x-show="! disalin">Salin contoh data</span>
+                    <span x-show="disalin" x-cloak>Tersalin &#10003;</span>
+                </x-filament::button>
+            </div>
+            BLADE, [
+            'tsv' => $tsv,
+            'htmlTabel' => $htmlTabel,
+        ]);
     }
 
     /**
