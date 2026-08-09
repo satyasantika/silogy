@@ -5,9 +5,10 @@ namespace App\Modules\Auth\Filament\Resources\UserResource\Pages;
 use App\Models\Role;
 use App\Models\User;
 use App\Modules\Auth\Filament\Resources\UserResource;
+use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
-use Filament\Forms\Components\Toggle;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Collection;
 
@@ -35,38 +36,22 @@ class ListUsers extends ListRecords
     {
         return [
             ['key' => 'name', 'label' => 'name', 'wajib' => true],
-            ['key' => 'username', 'label' => 'username', 'wajib' => true],
-            ['key' => 'password', 'label' => 'password', 'wajib' => true],
             ['key' => 'email', 'label' => 'email', 'wajib' => true],
+            ['key' => 'password', 'label' => 'password', 'wajib' => true],
             ['key' => 'role', 'label' => 'role', 'wajib' => true],
+            ['key' => 'kode_prodi', 'label' => 'kode prodi', 'wajib' => false],
+            ['key' => 'username', 'label' => 'username', 'wajib' => false],
+            ['key' => 'nip', 'label' => 'nip', 'wajib' => false],
+            ['key' => 'nidn', 'label' => 'nidn', 'wajib' => false],
+            ['key' => 'nuptk', 'label' => 'nuptk', 'wajib' => false],
         ];
     }
 
     protected function importHelperNote(): string
     {
-        return 'Lebih dari satu role dipisahkan titik koma.';
-    }
-
-    /**
-     * @return array<int, \Filament\Schemas\Components\Component|\Filament\Forms\Components\Field>
-     */
-    protected function importContextComponents(): array
-    {
-        return [
-            Toggle::make('isi_nidn_dari_username')
-                ->label('Isi NIDN dari username untuk role Dosen Pengampu')
-                ->helperText('Jika aktif, baris dengan role Dosen Pengampu otomatis mengisi NIDN memakai nilai username yang sama.')
-                ->default(false)
-                ->inline(false),
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function importContextKeys(): array
-    {
-        return ['isi_nidn_dari_username'];
+        return 'Lebih dari satu role dipisahkan titik koma. Kode prodi opsional, lebih dari satu dipisahkan koma — '
+            .'bila diisi, pengguna direlasikan ke unit tsb; status Pimpinan/Tim Kurikulum pada relasi mengikuti role yang diberikan. '
+            .'Username, NIP, NIDN, dan NUPTK opsional — kosongkan bila tidak ada, akan tersimpan NULL.';
     }
 
     /**
@@ -75,19 +60,19 @@ class ListUsers extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            "Budi Santoso\tbudis\tRahasiaKuat123\tbudi@silogy.test\tDosen Pengampu",
-            "Siti Aminah\tsitiaminah\tRahasiaKuat456\tsiti@silogy.test\tTim Kurikulum;Dosen Pengampu",
+            "Budi Santoso\tbudi@silogy.test\tRahasiaKuat123\tDosen Pengampu\t\tbudis\t\t\t",
+            "Siti Aminah\tsiti@silogy.test\tRahasiaKuat456\tTim Kurikulum;Dosen Pengampu\t2151,2122,2121\tsitiaminah\t198501012010122001\t0012345678\t1234567890123456",
         ];
     }
 
     protected function resolveImportRow(array $data, array $context): array
     {
-        if (! preg_match('/^[A-Za-z0-9_-]+$/', $data['username'])) {
-            return ['status' => 'invalid', 'keterangan' => 'Username hanya boleh huruf, angka, strip, dan garis bawah.'];
-        }
-
         if (! filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             return ['status' => 'invalid', 'keterangan' => 'Email tidak valid.'];
+        }
+
+        if ($data['username'] !== '' && ! preg_match('/^[A-Za-z0-9_-]+$/', $data['username'])) {
+            return ['status' => 'invalid', 'keterangan' => 'Username hanya boleh huruf, angka, strip, dan garis bawah.'];
         }
 
         $roleNames = $this->parseRoleNames($data['role']);
@@ -103,32 +88,36 @@ class ListUsers extends ListRecords
             return ['status' => 'invalid', 'keterangan' => 'Hanya Super Admin yang dapat memberikan role Super Admin.'];
         }
 
-        $byUsername = User::query()->where('username', $data['username'])->first();
-        $byEmail = User::query()->where('email', $data['email'])->first();
+        $kodeProdi = $this->parseKodeProdi($data['kode_prodi'] ?? '');
 
-        if ($byUsername && $byEmail && ! $byUsername->is($byEmail)) {
-            return ['status' => 'invalid', 'keterangan' => 'Username dan email menunjuk dua pengguna berbeda yang sudah terdaftar.'];
-        }
+        if ($kodeProdi->isNotEmpty()) {
+            $ditemukan = AcademicUnit::query()
+                ->whereIn('code', $kodeProdi)
+                ->where('type', 'study_program')
+                ->pluck('code');
 
-        if ($this->shouldFillNidnFromUsername($data, $context)) {
-            $adaKonflikNidn = User::query()
-                ->where('nidn', $data['username'])
-                ->when($byUsername, fn ($query) => $query->whereKeyNot($byUsername->id))
-                ->exists();
+            $kodeTidakDitemukan = $kodeProdi->diff($ditemukan);
 
-            if ($adaKonflikNidn) {
-                return ['status' => 'invalid', 'keterangan' => 'NIDN (dari username) sudah dipakai pengguna lain.'];
+            if ($kodeTidakDitemukan->isNotEmpty()) {
+                return ['status' => 'invalid', 'keterangan' => 'Kode prodi tidak ditemukan: '.$kodeTidakDitemukan->join(', ').'.'];
             }
         }
 
-        $dedup = mb_strtolower($data['username']).'/'.mb_strtolower($data['email']);
-        $existing = $byUsername ?? $byEmail;
+        $byEmail = User::query()->where('email', $data['email'])->first();
 
-        if ($existing) {
+        $konflik = $this->cariKonflikIdentitasImport($data, $byEmail);
+
+        if ($konflik !== null) {
+            return ['status' => 'invalid', 'keterangan' => $konflik];
+        }
+
+        $dedup = mb_strtolower($data['email']);
+
+        if ($byEmail) {
             return [
                 'status' => 'duplikat',
-                'keterangan' => $byUsername ? 'Username sudah terdaftar.' : 'Email sudah terdaftar.',
-                'existing_id' => $existing->id,
+                'keterangan' => 'Email sudah terdaftar.',
+                'existing_id' => $byEmail->id,
                 'dedup' => $dedup,
             ];
         }
@@ -136,23 +125,49 @@ class ListUsers extends ListRecords
         return ['status' => 'baru', 'keterangan' => '', 'dedup' => $dedup];
     }
 
-    protected function createImportRow(array $data, array $context): void
+    /**
+     * Cek konflik untuk tiap field opsional (username/nip/nidn/nuptk) yang
+     * terisi di baris ini: bila sudah dipakai pengguna lain — selain
+     * pengguna yang sudah dicocokkan lewat email pada baris update —
+     * tandai baris sebagai invalid.
+     *
+     * @param  array<string, string>  $data
+     */
+    protected function cariKonflikIdentitasImport(array $data, ?User $byEmail): ?string
     {
-        $attributes = [
-            'full_name' => $data['name'],
-            'username' => $data['username'],
-            'password' => $data['password'],
-            'email' => $data['email'],
+        $fieldLabel = [
+            'username' => 'Username',
+            'nip' => 'NIP',
+            'nidn' => 'NIDN',
+            'nuptk' => 'NUPTK',
         ];
 
-        if ($this->shouldFillNidnFromUsername($data, $context)) {
-            $attributes['nidn'] = $data['username'];
+        foreach ($fieldLabel as $field => $label) {
+            $value = $data[$field] ?? '';
+
+            if ($value === '') {
+                continue;
+            }
+
+            $pemilik = User::query()->where($field, $value)->first();
+
+            if ($pemilik && (! $byEmail || ! $pemilik->is($byEmail))) {
+                return "{$label} sudah dipakai pengguna lain.";
+            }
         }
 
-        $user = User::create($attributes);
+        return null;
+    }
+
+    protected function createImportRow(array $data, array $context): void
+    {
+        $user = User::create($this->importAttributesFromRow($data));
 
         $user->forceFill(['email_verified_at' => now()])->save();
-        $user->syncRoles($this->parseRoleNames($data['role'])->all());
+
+        $roleNames = $this->parseRoleNames($data['role']);
+        $user->syncRoles($roleNames->all());
+        $this->relasikanProdi($user, $data, $roleNames);
     }
 
     /**
@@ -163,19 +178,31 @@ class ListUsers extends ListRecords
     {
         $user = User::query()->findOrFail($existingId);
 
-        $attributes = [
+        $user->update($this->importAttributesFromRow($data));
+
+        $roleNames = $this->parseRoleNames($data['role']);
+        $user->syncRoles($roleNames->all());
+        $this->relasikanProdi($user, $data, $roleNames);
+    }
+
+    /**
+     * Kolom opsional (username/nip/nidn/nuptk) yang kosong di baris tempelan
+     * disimpan sebagai NULL, bukan string kosong.
+     *
+     * @param  array<string, string>  $data
+     * @return array<string, ?string>
+     */
+    protected function importAttributesFromRow(array $data): array
+    {
+        return [
             'full_name' => $data['name'],
-            'username' => $data['username'],
             'email' => $data['email'],
             'password' => $data['password'],
+            'username' => $data['username'] !== '' ? $data['username'] : null,
+            'nip' => $data['nip'] !== '' ? $data['nip'] : null,
+            'nidn' => $data['nidn'] !== '' ? $data['nidn'] : null,
+            'nuptk' => $data['nuptk'] !== '' ? $data['nuptk'] : null,
         ];
-
-        if ($this->shouldFillNidnFromUsername($data, $context)) {
-            $attributes['nidn'] = $data['username'];
-        }
-
-        $user->update($attributes);
-        $user->syncRoles($this->parseRoleNames($data['role'])->all());
     }
 
     /**
@@ -190,15 +217,52 @@ class ListUsers extends ListRecords
     }
 
     /**
-     * @param  array<string, string>  $data
-     * @param  array<string, mixed>  $context
+     * @return Collection<int, non-falsy-string>
      */
-    protected function shouldFillNidnFromUsername(array $data, array $context): bool
+    protected function parseKodeProdi(string $kodeProdiInput): Collection
     {
-        if (! ($context['isi_nidn_dari_username'] ?? false)) {
-            return false;
+        return collect(explode(',', $kodeProdiInput))
+            ->map(fn (string $kode): string => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Merelasikan pengguna ke unit prodi yang disebut kolom kode_prodi,
+     * dengan status_pimpinan/status_tim_kurikulum mengikuti role baris
+     * ini. Bersifat ADDITIVE (sesuai keputusan produk): hanya menyentuh
+     * pivot untuk unit yang disebut di baris ini — relasi ke unit lain
+     * yang sudah dimiliki pengguna sebelumnya (tidak disebut di sini)
+     * dibiarkan apa adanya, tidak dihapus. Berbeda dari role (syncRoles
+     * = full-replace) secara sengaja, karena satu baris impor biasanya
+     * hanya mewakili sebagian penugasan unit seorang pengguna, bukan
+     * daftar lengkapnya.
+     *
+     * @param  array<string, string>  $data
+     * @param  Collection<int, non-falsy-string>  $roleNames
+     */
+    protected function relasikanProdi(User $user, array $data, Collection $roleNames): void
+    {
+        $kodeProdi = $this->parseKodeProdi($data['kode_prodi'] ?? '');
+
+        if ($kodeProdi->isEmpty()) {
+            return;
         }
 
-        return $this->parseRoleNames($data['role'])->contains('Dosen Pengampu');
+        $unitIds = AcademicUnit::query()
+            ->whereIn('code', $kodeProdi)
+            ->where('type', 'study_program')
+            ->pluck('id');
+
+        foreach ($unitIds as $unitId) {
+            AcademicUnitUser::query()->updateOrCreate(
+                ['academic_unit_id' => $unitId, 'user_id' => $user->id],
+                [
+                    'status_pimpinan' => $roleNames->contains('Pimpinan'),
+                    'status_tim_kurikulum' => $roleNames->contains('Tim Kurikulum'),
+                ],
+            );
+        }
     }
 }

@@ -527,7 +527,6 @@ class ListPesertaKelas extends ListRecords
                         'tahun_akademik' => $semester->kode,
                         'kode_prodi' => (string) $mkUnit->academicUnit?->code,
                         'kode_matakuliah' => $mkUnit->kode,
-                        'nidn' => null,
                         'nuptk' => null,
                         'email' => null,
                     ]);

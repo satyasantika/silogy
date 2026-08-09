@@ -73,6 +73,8 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         'username',
         'email',
         'nidn',
+        'nip',
+        'nuptk',
         'prefix',
         'full_name',
         'suffix',

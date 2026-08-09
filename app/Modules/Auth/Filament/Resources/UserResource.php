@@ -86,6 +86,14 @@ class UserResource extends Resource
                             ->label('NIDN')
                             ->maxLength(20)
                             ->unique(ignoreRecord: true),
+                        TextInput::make('nip')
+                            ->label('NIP')
+                            ->maxLength(20)
+                            ->unique(ignoreRecord: true),
+                        TextInput::make('nuptk')
+                            ->label('NUPTK')
+                            ->maxLength(20)
+                            ->unique(ignoreRecord: true),
                         TextInput::make('nomor_wa')
                             ->label('Nomor WhatsApp')
                             ->tel()
@@ -96,11 +104,10 @@ class UserResource extends Resource
                     ->columnSpanFull(),
 
                 Section::make('Akun')
-                    ->description('(username, email, password)')
+                    ->description('(email dan password wajib, username opsional)')
                     ->schema([
                         TextInput::make('username')
                             ->label('Username')
-                            ->required()
                             ->maxLength(50)
                             ->unique(ignoreRecord: true)
                             ->alphaDash(),
@@ -336,10 +343,20 @@ class UserResource extends Resource
                     ->label('Nama lengkap')
                     ->searchable(['full_name', 'username', 'email'])
                     ->sortable()
-                    ->description(fn (User $record): string => $record->username),
+                    ->description(fn (User $record): ?string => $record->username),
 
                 TextColumn::make('username')
                     ->label('Username')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(),
+
+                TextColumn::make('nip')
+                    ->label('NIP')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(),
+
+                TextColumn::make('nuptk')
+                    ->label('NUPTK')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
@@ -397,7 +414,12 @@ class UserResource extends Resource
                     // jadi di deployment subpath (mis. /demo-silogy) hasilnya
                     // menuju ke akar domain, bukan /demo-silogy/dashboard — sudah
                     // ditangani lewat route() di dalam helper tersebut.
-                    ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart()),
+                    ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart())
+                    // Eksplisit (bukan andalkan fallback referer bawaan package)
+                    // supaya "tinggalkan impersonate" (PilihPeranUnit/KeluarAction,
+                    // baca session 'impersonate.back_to') pasti kembali ke baris
+                    // tabel + filter ini, bukan bergantung header Referer browser.
+                    ->backTo(fn (): string => url()->full()),
                 static::makeResetPasswordAction()
                     ->iconButton()
                     ->tooltip('Reset password'),

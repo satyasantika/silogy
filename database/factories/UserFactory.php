@@ -22,6 +22,8 @@ class UserFactory extends Factory
             'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'nidn' => null,
+            'nip' => null,
+            'nuptk' => null,
             'prefix' => null,
             'full_name' => fake('id_ID')->name(),
             'suffix' => null,

@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Tarik kelas + peserta dari Sintesys untuk Dosen Pengampu, difilter NIDN
- * dosen yang sedang login (halaman /penilaian).
+ * Tarik kelas + peserta dari Sintesys untuk Dosen Pengampu, difilter email
+ * dosen yang sedang login (halaman /penilaian). Email dipakai (bukan NIDN)
+ * karena email dijamin terisi (identitas wajib), sedangkan NIDN opsional.
  */
 class DosenPengampuSintesysImportService
 {
@@ -24,21 +25,11 @@ class DosenPengampuSintesysImportService
      */
     public function preview(User $dosen, Semester $semester): array
     {
-        $nidn = trim((string) ($dosen->nidn ?? ''));
+        $email = trim((string) $dosen->email);
 
-        if ($nidn === '') {
-            return [
-                'status' => 'validasi',
-                'pesan' => 'NIDN Anda belum diisi pada profil. Lengkapi NIDN sebelum menarik data dari Sintesys.',
-                'payload' => null,
-                'jumlah_kelas' => 0,
-                'jumlah_peserta' => 0,
-            ];
-        }
+        $cacheKey = sprintf('sintesys-preview-dosen:%s:%s:%s', $dosen->id, $semester->id, $email);
 
-        $cacheKey = sprintf('sintesys-preview-dosen:%s:%s:%s', $dosen->id, $semester->id, $nidn);
-
-        return Cache::remember($cacheKey, now()->addMinutes(3), function () use ($semester, $nidn): array {
+        return Cache::remember($cacheKey, now()->addMinutes(3), function () use ($semester, $email): array {
             $endpoint = (string) config('services.sintesys.endpoint');
             $token = (string) config('services.sintesys.token');
 
@@ -59,9 +50,8 @@ class DosenPengampuSintesysImportService
                         'tahun_akademik' => $semester->kode,
                         'kode_prodi' => null,
                         'kode_matakuliah' => null,
-                        'nidn' => $nidn,
                         'nuptk' => null,
-                        'email' => null,
+                        'email' => $email,
                     ]);
             } catch (\Throwable $exception) {
                 return [
@@ -111,8 +101,8 @@ class DosenPengampuSintesysImportService
                 return [
                     'status' => 'kosong',
                     'pesan' => sprintf(
-                        'Tidak ada kelas diampu untuk NIDN %s pada tahun akademik %s.',
-                        $nidn,
+                        'Tidak ada kelas diampu untuk email %s pada tahun akademik %s.',
+                        $email,
                         $semester->kode,
                     ),
                     'payload' => null,
@@ -133,7 +123,7 @@ class DosenPengampuSintesysImportService
 
     public function ringkasanPreviewHtml(User $dosen, Semester $semester, array $preview): string
     {
-        $nidn = trim((string) ($dosen->nidn ?? '')) ?: '—';
+        $email = trim((string) $dosen->email) ?: '—';
 
         return match ($preview['status']) {
             'validasi', 'error' => sprintf(
@@ -141,17 +131,17 @@ class DosenPengampuSintesysImportService
                 e((string) ($preview['pesan'] ?? 'Terjadi kesalahan.')),
             ),
             'kosong' => sprintf(
-                '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari Sintesys untuk NIDN <strong>%s</strong> '
+                '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari Sintesys untuk email <strong>%s</strong> '
                 .'· tahun akademik <strong>%s</strong>. Tidak ada yang bisa diimpor.</p>',
-                e($nidn),
+                e($email),
                 e($semester->nama),
             ),
             default => sprintf(
                 '<p style="font-size:13px;color:#166534;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
-                .'siap diimpor dari Sintesys untuk NIDN <strong>%s</strong> · tahun akademik <strong>%s</strong>.</p>',
+                .'siap diimpor dari Sintesys untuk email <strong>%s</strong> · tahun akademik <strong>%s</strong>.</p>',
                 (int) $preview['jumlah_kelas'],
                 (int) $preview['jumlah_peserta'],
-                e($nidn),
+                e($email),
                 e($semester->nama),
             ),
         };

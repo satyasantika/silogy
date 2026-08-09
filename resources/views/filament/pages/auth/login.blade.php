@@ -410,13 +410,13 @@
         <form wire:submit="authenticate" autocomplete="on">
 
             <div class="lp-field">
-                <label for="lp-login" class="lp-label">Username atau Email</label>
+                <label for="lp-login" class="lp-label">Email, Username, NIDN, NIP, atau NUPTK</label>
                 <input
                     id="lp-login"
                     wire:model="data.login"
                     type="text"
                     class="lp-input {{ $errors->has('data.login') ? 'is-invalid' : '' }}"
-                    placeholder="Username atau alamat email"
+                    placeholder="Email, username, NIDN, NIP, atau NUPTK"
                     required
                     autocomplete="username"
                     autofocus

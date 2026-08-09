@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages\Auth;
 
+use App\Models\User;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Component;
@@ -28,22 +29,38 @@ class Login extends BaseLogin
     protected function getLoginFormComponent(): Component
     {
         return TextInput::make('login')
-            ->label('Username atau Email')
+            ->label('Email, Username, NIDN, NIP, atau NUPTK')
             ->required()
             ->autocomplete('username')
             ->autofocus();
     }
 
     /**
+     * Login menerima email, username, NIDN, NIP, atau NUPTK. Karena email
+     * dijamin unique + not-null (identitas wajib satu-satunya), pencarian
+     * lintas kolom di sini diterjemahkan kembali ke kredensial email supaya
+     * Auth::attempt() tetap satu jalur seperti sebelumnya. Bila tidak ada
+     * user yang cocok, input mentah diteruskan apa adanya agar tetap gagal
+     * dengan pesan generik yang sama (tidak membocorkan identitas mana yang
+     * terdaftar).
+     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     protected function getCredentialsFromFormData(#[\SensitiveParameter] array $data): array
     {
-        $loginType = filter_var($data['login'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+        $login = trim((string) $data['login']);
+
+        $user = User::query()
+            ->where('email', $login)
+            ->orWhere('username', $login)
+            ->orWhere('nidn', $login)
+            ->orWhere('nip', $login)
+            ->orWhere('nuptk', $login)
+            ->first();
 
         return [
-            $loginType => $data['login'],
+            'email' => $user?->email ?? $login,
             'password' => $data['password'],
         ];
     }

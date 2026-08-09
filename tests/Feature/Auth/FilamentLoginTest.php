@@ -33,6 +33,50 @@ it('login dengan username atau email akun demo berhasil', function () {
         ->and(auth()->user()?->username)->toBe('superadmin');
 });
 
+it('login dengan email akun demo berhasil', function () {
+    Livewire::test(Login::class)
+        ->fillForm([
+            'login' => 'superadmin@silogy.test',
+            'password' => 'siliwangi',
+        ])
+        ->call('authenticate')
+        ->assertRedirect(route('filament.admin.pages.dashboard'))
+        ->assertHasNoFormErrors();
+
+    expect(auth()->check())->toBeTrue()
+        ->and(auth()->user()?->username)->toBe('superadmin');
+});
+
+it('login dengan nidn, nip, atau nuptk berhasil', function (string $field, string $value) {
+    $user = User::where('username', 'superadmin')->firstOrFail();
+    $user->update([$field => $value]);
+
+    Livewire::test(Login::class)
+        ->fillForm(['login' => $value, 'password' => 'siliwangi'])
+        ->call('authenticate')
+        ->assertRedirect(route('filament.admin.pages.dashboard'))
+        ->assertHasNoFormErrors();
+
+    expect(auth()->check())->toBeTrue()
+        ->and(auth()->user()?->id)->toBe($user->id);
+})->with([
+    'nidn' => ['nidn', '0012345678'],
+    'nip' => ['nip', '198501012010122001'],
+    'nuptk' => ['nuptk', '1234567890123456'],
+]);
+
+it('login gagal dengan identitas yang tidak dikenal', function () {
+    Livewire::test(Login::class)
+        ->fillForm([
+            'login' => 'tidak-ada-identitas-ini',
+            'password' => 'siliwangi',
+        ])
+        ->call('authenticate')
+        ->assertHasFormErrors(['login']);
+
+    expect(auth()->check())->toBeFalse();
+});
+
 it('adminprodi melihat menu kelas mk setelah login', function () {
     Livewire::test(Login::class)
         ->fillForm([

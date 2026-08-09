@@ -54,7 +54,7 @@ it('tombol tarik data berada di header tabel bersama filter semester', function 
         ->assertSeeHtml('silogy-penilaian-dosen');
 });
 
-it('tarik dari sintesys mengirim nidn dosen pengampu dan mengimpor kelas lintas unit', function () {
+it('tarik dari sintesys mengirim email dosen pengampu dan mengimpor kelas lintas unit', function () {
     $mkFak = Mk::factory()->create([
         'academic_unit_id' => $this->fakultas->id,
         'nama' => 'MK Fakultas Diampu',
@@ -68,7 +68,7 @@ it('tarik dari sintesys mengirim nidn dosen pengampu dan mengimpor kelas lintas 
             'tahun_akademik' => $this->semester->kode,
             'kode_prodi' => null,
             'kode_matakuliah' => null,
-            'nidn' => $this->dosen->nidn,
+            'email' => $this->dosen->email,
             'data' => [
                 [
                     'kode_mk' => 'KP21514004',
@@ -116,7 +116,7 @@ it('tarik dari sintesys mengirim nidn dosen pengampu dan mengimpor kelas lintas 
 
     Http::assertSent(function ($request) {
         return $request['tahun_akademik'] === $this->semester->kode
-            && $request['nidn'] === $this->dosen->nidn;
+            && $request['email'] === $this->dosen->email;
     });
 
     $notificationsComponent = new Notifications;
@@ -152,10 +152,15 @@ it('tarik dari sintesys mengirim nidn dosen pengampu dan mengimpor kelas lintas 
             ->exists())->toBeTrue();
 });
 
-it('menolak tarik data bila nidn dosen belum diisi', function () {
+it('tetap dapat tarik data dari sintesys walau nidn dosen kosong (memakai email)', function () {
     $this->dosen->update(['nidn' => null]);
 
-    Http::fake();
+    Http::fake([
+        'sintesys.test/*' => Http::response([
+            'tahun_akademik' => $this->semester->kode,
+            'data' => [],
+        ], 200),
+    ]);
 
     $component = Livewire::test(ListPenilaianDosens::class)
         ->mountTableAction('importSintesysDosenPengampu');
@@ -165,7 +170,8 @@ it('menolak tarik data bila nidn dosen belum diisi', function () {
         ?? null;
 
     expect($mountedData)->not->toBeNull()
-        ->and($mountedData['preview_status'])->toBe('validasi');
+        ->and($mountedData['preview_status'])->toBe('kosong');
 
-    Http::assertNothingSent();
+    Http::assertSent(fn ($request) => $request['email'] === $this->dosen->email
+        && ! array_key_exists('nidn', $request->data()));
 });
