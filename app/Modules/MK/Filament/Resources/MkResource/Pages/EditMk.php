@@ -3,19 +3,24 @@
 namespace App\Modules\MK\Filament\Resources\MkResource\Pages;
 
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\MK\Filament\Concerns\HasResetCpmkSubcpmkAsesmen;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Support\Filament\Pages\BaseSimpleEditRecord;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 
 class EditMk extends BaseSimpleEditRecord
 {
+    use HasResetCpmkSubcpmkAsesmen;
+
     protected static string $resource = MkResource::class;
 
     /** Id penawaran (MkUnit) yang rincian semesternya sedang dibuka. */
@@ -24,6 +29,15 @@ class EditMk extends BaseSimpleEditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // Di balik trigger dropdown, bukan tombol header langsung — pola
+            // sama "Alat penawaran MK" di ListMkUnits.
+            ActionGroup::make([
+                $this->makeResetCpmkSubcpmkAsesmenAction(),
+            ])
+                ->label('Alat lanjutan')
+                ->icon(Heroicon::OutlinedWrenchScrewdriver)
+                ->color('gray')
+                ->button(),
             DeleteAction::make(),
         ];
     }
