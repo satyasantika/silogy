@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Auth\Http\Controllers\LeaveImpersonateController;
 use App\Modules\Kurikulum\Http\Controllers\KurikulumLaporanPimpinanRedirectController;
 use App\Modules\Kurikulum\Http\Controllers\KurikulumMenuRedirectController;
 use App\Modules\MK\Http\Controllers\MkMenuRedirectController;
@@ -16,6 +17,12 @@ Route::get('/', function () {
 Route::get('/health', [HealthController::class, 'index'])
     ->middleware('throttle:health')
     ->name('health.index');
+
+// GET biasa (bukan aksi Livewire) — lihat catatan di LeaveImpersonateController
+// soal kenapa ini sengaja tidak dijalankan lewat POST /livewire/update.
+Route::middleware(['web', 'auth'])
+    ->get('/impersonate/leave', LeaveImpersonateController::class)
+    ->name('impersonate.leave');
 
 Route::middleware(['web', 'auth'])
     ->get('/navigasi-kurikulum/{kurikulum}/{menu}', KurikulumMenuRedirectController::class)
