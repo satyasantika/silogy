@@ -169,7 +169,7 @@ Target DoD: **< 30 detik** untuk filter di atas.
 
 ### Deploy di root domain vs subpath
 
-Aplikasi mendukung dua mode deployment tanpa perubahan kode, dikontrol lewat `.env`:
+Aplikasi mendukung tiga mode deployment tanpa perubahan kode, dikontrol lewat `.env`:
 
 **Root domain** (mis. `https://silogy.unsil.ac.id/`) — konfigurasi default, tidak perlu variabel tambahan:
 
@@ -178,16 +178,26 @@ APP_URL=https://silogy.unsil.ac.id
 SESSION_PATH=/
 ```
 
-**Subpath** (mis. `https://supportfkip.unsil.ac.id/demo-silogy`) — sertakan path di `APP_URL` dan samakan `SESSION_PATH`:
+**Subdomain** (mis. `https://silogy.kampus.ac.id/`) — sama persis dengan mode root domain di atas, cukup ganti host di `APP_URL`. Subdomain BUKAN kasus khusus: tidak butuh path apa pun di `APP_URL`, dan `SESSION_DOMAIN` biarkan default (`null`) supaya cookie otomatis mengikuti host mana pun yang diakses.
+
+```bash
+APP_URL=https://silogy.kampus.ac.id
+SESSION_PATH=/
+```
+
+**Subpath** (mis. `https://supportfkip.unsil.ac.id/demo-silogy`) — sertakan path di `APP_URL`:
 
 ```bash
 APP_URL=https://supportfkip.unsil.ac.id/demo-silogy
-SESSION_PATH=/demo-silogy
 SESSION_COOKIE=silogy_session   # opsional, hindari bentrok cookie antar-app di domain yang sama
 SESSION_SECURE_COOKIE=true
 ```
 
-Cara kerjanya: `AppServiceProvider::configureUrlForSubpathDeployment()` (lihat `app/Providers/AppServiceProvider.php`) mem-parsing path dari `APP_URL` dan, bila ada, memaksa `URL::forceRootUrl()` + `forceScheme('https')` sehingga semua `url()`/`route()`/`asset()` menyertakan prefix subpath, termasuk asset Livewire yang di-patch manual. Bila `APP_URL` tidak berisi path (mode root), Laravel kembali memakai deteksi host dari request seperti biasa.
+`SESSION_PATH` **tidak perlu diisi manual lagi** untuk mode subpath — bila dibiarkan kosong (masih default `/`), `AppServiceProvider::configureUrlForSubpathDeployment()` otomatis menyamakannya dengan path di `APP_URL`. Tetap boleh disetel eksplisit (mis. `SESSION_PATH=/demo-silogy` atau path lain) bila memang perlu — nilai eksplisit itu selalu dihormati dan tidak akan ditimpa.
+
+Cara kerjanya: `AppServiceProvider::configureUrlForSubpathDeployment()` (lihat `app/Providers/AppServiceProvider.php`) mem-parsing path dari `APP_URL` dan, bila ada, memaksa `URL::forceRootUrl()` + `forceScheme('https')` sehingga semua `url()`/`route()`/`redirect()`/`asset()` menyertakan prefix subpath — termasuk redirect setelah login dan asset Livewire yang di-patch manual. Bila `APP_URL` tidak berisi path (mode root/subdomain), Laravel kembali memakai deteksi host dari request seperti biasa dan fungsi ini tidak melakukan apa-apa.
+
+> **Troubleshooting**: jika setelah login pengguna malah diarahkan ke domain root tanpa prefix subpath (mis. `domain.com/dashboard`, bukan `domain.com/demo-silogy/dashboard`), penyebab paling umum adalah `APP_URL` di `.env` server belum menyertakan path subpath-nya. Perbaiki `APP_URL` (lihat contoh "Subpath" di atas) — jangan mengedit kode redirect, mekanismenya sudah menangani ini otomatis begitu `APP_URL` benar.
 
 Yang perlu disiapkan di luar repo ini:
 
@@ -197,7 +207,7 @@ Yang perlu disiapkan di luar repo ini:
    ProxyPassReverse /demo-silogy/ http://app-container:8080/
    ```
 2. Proxy harus meneruskan header `X-Forwarded-Proto/Host/Port` — `bootstrap/app.php` sudah `trustProxies(at: '*')` untuk membacanya, tapi hanya berguna kalau header tersebut memang dikirim.
-3. Root domain (tanpa ProxyPass) tidak butuh langkah 1-2 di atas selama request langsung ke container/index.php.
+3. Root domain maupun subdomain (tanpa `ProxyPass` path-stripping) tidak butuh langkah 1-2 di atas selama request langsung ke container/index.php.
 
 ### Health check
 

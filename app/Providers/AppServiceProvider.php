@@ -135,8 +135,14 @@ class AppServiceProvider extends ServiceProvider
      * prefix path (/demo-silogy) dari APP_URL. Tanpa ini, route()/url()/redirect()
      * akan menghasilkan URL tanpa prefix tersebut, memutus login redirect, form
      * action, dsb. Tidak berefek apa pun bila APP_URL tidak berisi path (dev lokal).
+     * Cookie sesi (session.path) ikut mengikuti subpath ini secara otomatis
+     * kecuali SESSION_PATH disetel eksplisit di .env — lihat komentar di bawah.
+     *
+     * Public (bukan protected) supaya bisa dipanggil ulang langsung dari test
+     * setelah mengubah config('app.url'), tanpa reflection — lihat
+     * tests/Unit/Providers/ConfigureUrlForSubpathDeploymentTest.php.
      */
-    protected function configureUrlForSubpathDeployment(): void
+    public function configureUrlForSubpathDeployment(): void
     {
         $subPath = rtrim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
 
@@ -156,6 +162,20 @@ class AppServiceProvider extends ServiceProvider
         }
 
         URL::forceRootUrl(config('app.url'));
+
+        // Cookie sesi harus ikut dibatasi ke subpath yang sama, jika tidak
+        // browser akan menyimpannya di path lain dan sesi Livewire/Filament
+        // gagal terbaca lagi setelah redirect. Sengaja mengecek
+        // config('session.path') (BUKAN env('SESSION_PATH') langsung — env()
+        // di luar file config tidak terbaca lagi setelah `config:cache`,
+        // sehingga override eksplisit user diam-diam kalah oleh derivasi
+        // otomatis ini di produksi). config('session.path') sudah membawa
+        // hasil env('SESSION_PATH', '/') dari config/session.php sejak
+        // sebelum boot() manapun berjalan, jadi nilainya '/' berarti memang
+        // masih default (belum di-custom) — aman diganti mengikuti subpath.
+        if (config('session.path') === '/') {
+            config(['session.path' => $subPath]);
+        }
 
         // FrontendAssets::js() (script Livewire inti) membaca URI route mentah,
         // bukan lewat route()/url() — jadi tidak ikut ter-prefix oleh
