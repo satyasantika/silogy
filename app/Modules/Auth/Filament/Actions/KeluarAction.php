@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\PeranUnitFormFields;
-use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
@@ -45,25 +44,15 @@ class KeluarAction
             ])
             ->extraModalFooterActions([
                 ActionGroup::make([
+                    // ->url() (bukan ->action()) dengan sengaja — lihat catatan
+                    // di LeaveImpersonateController soal kenapa ini tidak boleh
+                    // lewat POST /livewire/update.
                     Action::make('leaveImpersonateDariKeluar')
                         ->label('Tinggalkan impersonate')
                         ->icon(Heroicon::ArrowUturnLeft)
                         ->color('warning')
                         ->visible(fn (): bool => app(ImpersonateManager::class)->isImpersonating())
-                        ->action(function () {
-                            $manager = app(ImpersonateManager::class);
-
-                            if (! $manager->isImpersonating()) {
-                                return null;
-                            }
-
-                            $manager->leave();
-
-                            session()->forget(ActiveRole::SESSION_KEY);
-                            session()->forget(AcademicUnitTerpilih::SESSION_KEY);
-
-                            return redirect()->to(session()->pull('impersonate.back_to') ?? url('/dashboard'));
-                        }),
+                        ->url(fn (): string => route('impersonate.leave')),
 
                     Action::make('gantiPeranDariKeluar')
                         ->label('Ganti peran')

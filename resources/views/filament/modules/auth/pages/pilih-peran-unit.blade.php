@@ -253,7 +253,10 @@
 
         @if ($this->isImpersonating())
             <div class="silogy-peran-actions">
-                <x-filament::button color="warning" wire:click="leaveImpersonate" type="button" icon="heroicon-o-arrow-uturn-left">
+                {{-- Tautan biasa (bukan wire:click) — lihat catatan di
+                     LeaveImpersonateController soal kenapa ini tidak boleh
+                     lewat POST /livewire/update. --}}
+                <x-filament::button color="warning" tag="a" href="{{ route('impersonate.leave') }}" icon="heroicon-o-arrow-uturn-left">
                     Tinggalkan impersonate
                 </x-filament::button>
             </div>

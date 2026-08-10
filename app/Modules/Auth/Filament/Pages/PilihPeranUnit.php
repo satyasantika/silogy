@@ -135,22 +135,6 @@ class PilihPeranUnit extends Page
         return app(ImpersonateManager::class)->isImpersonating();
     }
 
-    public function leaveImpersonate(): void
-    {
-        $manager = app(ImpersonateManager::class);
-
-        if (! $manager->isImpersonating()) {
-            return;
-        }
-
-        $manager->leave();
-
-        session()->forget(ActiveRole::SESSION_KEY);
-        session()->forget(AcademicUnitTerpilih::SESSION_KEY);
-
-        $this->redirect(session()->pull('impersonate.back_to') ?? url('/dashboard'));
-    }
-
     /**
      * @return array<string, mixed>
      */
