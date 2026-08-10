@@ -415,11 +415,21 @@ class UserResource extends Resource
                     // menuju ke akar domain, bukan /demo-silogy/dashboard — sudah
                     // ditangani lewat route() di dalam helper tersebut.
                     ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart())
-                    // Eksplisit (bukan andalkan fallback referer bawaan package)
-                    // supaya "tinggalkan impersonate" (PilihPeranUnit/KeluarAction,
-                    // baca session 'impersonate.back_to') pasti kembali ke baris
-                    // tabel + filter ini, bukan bergantung header Referer browser.
-                    ->backTo(fn (): string => url()->full()),
+                    // url()->full() SALAH di sini — closure ini dievaluasi di
+                    // dalam request POST /livewire/update yang memicu aksi ini,
+                    // jadi url()->full() mengembalikan URL endpoint AJAX itu
+                    // sendiri, bukan URL baris tabel + filter yang sedang dibuka
+                    // browser. Efeknya baru terlihat belakangan saat "tinggalkan
+                    // impersonate" redirect ke /livewire/update dan dapat 405
+                    // (GET ke route yang cuma terima POST). Header Referer aman
+                    // dipakai: app ini tidak menyetel Referrer-Policy kustom,
+                    // browser default (strict-origin-when-cross-origin) mengirim
+                    // URL penuh + query string untuk request same-origin seperti
+                    // /livewire/update. Nullable — bila referer kosong, chain
+                    // fallback bawaan package (request('fingerprint.path', ...)
+                    // lalu URL panel) yang otomatis ambil alih, lihat
+                    // Impersonate::impersonate() baris 98.
+                    ->backTo(fn (): ?string => request()->header('referer')),
                 static::makeResetPasswordAction()
                     ->iconButton()
                     ->tooltip('Reset password'),

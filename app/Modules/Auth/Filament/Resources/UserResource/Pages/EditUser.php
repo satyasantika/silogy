@@ -22,7 +22,7 @@ class EditUser extends BaseEditRecord
                 // Closure — lihat catatan di UserResource.php pada action yang sama.
                 ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart())
                 // Lihat catatan di UserResource.php pada action yang sama.
-                ->backTo(fn (): string => url()->full()),
+                ->backTo(fn (): ?string => request()->header('referer')),
             DeleteAction::make(),
         ];
     }
