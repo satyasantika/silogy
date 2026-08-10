@@ -20,7 +20,9 @@ class EditUser extends BaseEditRecord
                 ->tooltip('Peniruan')
                 ->record($this->getRecord())
                 // Closure — lihat catatan di UserResource.php pada action yang sama.
-                ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart()),
+                ->redirectTo(fn (): string => PeranUnitFormFields::redirectUrlAfterImpersonateStart())
+                // Lihat catatan di UserResource.php pada action yang sama.
+                ->backTo(fn (): string => url()->full()),
             DeleteAction::make(),
         ];
     }

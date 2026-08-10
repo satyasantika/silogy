@@ -62,7 +62,7 @@ class KeluarAction
                             session()->forget(ActiveRole::SESSION_KEY);
                             session()->forget(AcademicUnitTerpilih::SESSION_KEY);
 
-                            return redirect()->to(url('/dashboard'));
+                            return redirect()->to(session()->pull('impersonate.back_to') ?? url('/dashboard'));
                         }),
 
                     Action::make('gantiPeranDariKeluar')

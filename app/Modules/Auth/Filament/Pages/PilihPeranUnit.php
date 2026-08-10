@@ -148,7 +148,7 @@ class PilihPeranUnit extends Page
         session()->forget(ActiveRole::SESSION_KEY);
         session()->forget(AcademicUnitTerpilih::SESSION_KEY);
 
-        $this->redirect(url('/dashboard'));
+        $this->redirect(session()->pull('impersonate.back_to') ?? url('/dashboard'));
     }
 
     /**
