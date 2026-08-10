@@ -9,7 +9,9 @@ use App\Modules\Penilaian\Filament\Pages\Concerns\HasLaporanKelasMk;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Services\InputNilaiMatrixClipboardService;
+use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
+use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
 use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
@@ -63,11 +65,22 @@ class InputNilai extends Page
      */
     public array $nilaiTersimpan = [];
 
+    /**
+     * Menu/akses "Input Nilai" baru muncul bila dosen punya minimal satu
+     * kelas yang sudah siap dinilai (asesmen MK sudah disusun koordinator)
+     * pada semester terpilih — mencegah menu tampil/terbuka sebelum ada
+     * satu pun kelas yang siap, walau belum ada kelas SPESIFIK dipilih
+     * (itu baru dicek per-kelas lewat penugasanSelesai() di loadMatrix()).
+     */
     public static function canAccess(): bool
     {
         $user = auth()->user();
 
-        return $user !== null && app(InputNilaiPolicy::class)->access($user);
+        if ($user === null || ! app(InputNilaiPolicy::class)->access($user)) {
+            return false;
+        }
+
+        return PenilaianDosenService::adaKelasSiap($user, PenilaianSemesterTerpilih::currentId());
     }
 
     protected function afterKelasBerubah(): void

@@ -17,6 +17,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource\Pages\ListPenilaianDosens;
 use App\Modules\Penilaian\Models\Evaluasi;
@@ -198,7 +199,7 @@ it('menampilkan status menunggu asesmen bila koordinator belum siap, tanpa badge
         ['mk_id' => $mk->id, 'academic_unit_id' => $this->prodi->id],
         MkUnit::factory()->make()->toArray(),
     );
-    KelasMk::query()->create([
+    $kelas = KelasMk::query()->create([
         'mk_unit_id' => $mkUnit->id,
         'semester_id' => $this->semesterAktif->id,
         'kode_kelas' => 'Z',
@@ -214,7 +215,57 @@ it('menampilkan status menunggu asesmen bila koordinator belum siap, tanpa badge
         ->toContain('MK Menunggu Asesmen')
         ->toContain('Menunggu persiapan asesmen MK oleh koordinator')
         ->toContain('silogy-penilaian-prodi__status--wait')
-        ->not->toContain('Belum dinilai');
+        ->not->toContain('Belum dinilai')
+        // Bukan cuma badge teks — pastikan sungguh tidak ada tautan ke
+        // Input Nilai sama sekali untuk kelas yang belum siap ini.
+        ->not->toContain(InputNilai::getUrl(['kelas_mk_id' => $kelas->id]));
+});
+
+it('menu Input Nilai tersembunyi dan tidak bisa diakses langsung bila dosen belum punya kelas siap', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Belum Siap']);
+    $mkUnit = MkUnit::query()->firstOrCreate(
+        ['mk_id' => $mk->id, 'academic_unit_id' => $this->prodi->id],
+        MkUnit::factory()->make()->toArray(),
+    );
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id,
+        'semester_id' => $this->semesterAktif->id,
+        'kode_kelas' => 'Y',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    expect(InputNilai::canAccess())->toBeFalse();
+
+    $this->get(InputNilai::getUrl())->assertForbidden();
+});
+
+it('menu Input Nilai muncul dan bisa diakses begitu dosen punya minimal satu kelas siap', function () {
+    // Satu kelas belum siap + satu kelas sudah siap milik dosen yang sama —
+    // membuktikan syaratnya "ada satu yang siap", bukan "semua harus siap".
+    $mkBelumSiap = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Belum Siap Lain']);
+    $mkUnitBelumSiap = MkUnit::query()->firstOrCreate(
+        ['mk_id' => $mkBelumSiap->id, 'academic_unit_id' => $this->prodi->id],
+        MkUnit::factory()->make()->toArray(),
+    );
+    KelasMk::query()->create([
+        'mk_unit_id' => $mkUnitBelumSiap->id,
+        'semester_id' => $this->semesterAktif->id,
+        'kode_kelas' => 'X',
+        'dosen_pengampu_id' => $this->dosen->id,
+    ]);
+
+    $mkSiap = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'nama' => 'MK Sudah Siap']);
+    buatKelasPenilaianDosen($this->dosen, $mkSiap, 'A', $this->semesterAktif->id, 1);
+
+    $this->actingAs($this->dosen);
+    PenilaianSemesterTerpilih::set($this->semesterAktif->id);
+
+    expect(InputNilai::canAccess())->toBeTrue();
+
+    $this->get(InputNilai::getUrl())->assertSuccessful();
 });
 
 it('service barisKelasUntukUnit menyertakan tautan input dan laporan tanpa tombol hapus bila sudah dinilai', function () {

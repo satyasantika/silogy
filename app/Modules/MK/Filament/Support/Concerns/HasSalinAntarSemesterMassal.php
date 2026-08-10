@@ -279,7 +279,7 @@ trait HasSalinAntarSemesterMassal
     /**
      * Badge status (Baru/Duplikat) + keterangan per baris, dipakai sebagai
      * description CheckboxList — warna mengikuti konvensi badge yang sudah
-     * dipakai di halaman lain (mis. PenilaianDosenService::ringkasanKelasHtml()).
+     * dipakai di halaman lain (mis. PenilaianDosenService::tabelKelasUnitHtml()).
      *
      * @return array<int, HtmlString>
      */

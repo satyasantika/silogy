@@ -145,6 +145,32 @@ class PenilaianDosenService
     }
 
     /**
+     * Dosen punya minimal satu kelas siap dinilai (asesmen MK sudah
+     * disusun koordinator) pada semester tsb — dipakai untuk menyembunyikan
+     * menu/akses "Input Nilai" selama BELUM ada satu pun kelas yang siap.
+     */
+    public static function adaKelasSiap(User $dosen, ?string $semesterId): bool
+    {
+        if (blank($semesterId)) {
+            return false;
+        }
+
+        $kelasList = KelasMk::query()
+            ->where('dosen_pengampu_id', $dosen->id)
+            ->where('semester_id', $semesterId)
+            ->with('mkUnit')
+            ->get();
+
+        if ($kelasList->isEmpty()) {
+            return false;
+        }
+
+        static::praMuatAsesmenSiap($kelasList);
+
+        return $kelasList->contains(fn (KelasMk $kelas): bool => static::asesmenSiapUntukKelas($kelas));
+    }
+
+    /**
      * Pra-muat cache kesiapan asesmen untuk sekumpulan kelas (hindari N+1).
      *
      * @param  Collection<int, KelasMk>|iterable<KelasMk>  $kelasList
@@ -541,40 +567,5 @@ class PenilaianDosenService
             'rata_rata' => $rataRata !== null ? round((float) $rataRata, 2) : null,
             'sudah_dinilai' => $rataRata !== null,
         ];
-    }
-
-    public static function ringkasanKelasHtml(Mk $mk, User $dosen, ?string $semesterId): HtmlString
-    {
-        $kelasList = static::kelasUntukMk($mk, $dosen, $semesterId);
-
-        if ($kelasList->isEmpty()) {
-            return new HtmlString(
-                '<div class="silogy-penilaian-card__kelas-empty">Tidak ada kelas pada semester ini.</div>'
-            );
-        }
-
-        $badges = $kelasList
-            ->map(function (KelasMk $kelas): string {
-                $ringkasan = static::ringkasanKelas($kelas);
-                $url = InputNilai::getUrl(['kelas_mk_id' => $kelas->id]);
-                $sudahDinilai = $ringkasan['sudah_dinilai'];
-                $statusClass = $sudahDinilai
-                    ? 'silogy-penilaian-card__kelas--ok'
-                    : 'silogy-penilaian-card__kelas--pending';
-
-                $keterangan = $sudahDinilai
-                    ? sprintf('%d mhs · rata-rata %s', $ringkasan['jumlah_mahasiswa'], $ringkasan['rata_rata'])
-                    : sprintf('%d mhs · Belum dinilai', $ringkasan['jumlah_mahasiswa']);
-
-                return '<a href="'.e($url).'" class="silogy-penilaian-card__kelas '.$statusClass.'">'
-                    .'<span class="silogy-penilaian-card__kelas-kode">'.e($ringkasan['kode_kelas']).'</span>'
-                    .'<span class="silogy-penilaian-card__kelas-meta">'.e($keterangan).'</span>'
-                    .'</a>';
-            })
-            ->implode('');
-
-        return new HtmlString(
-            '<div class="silogy-penilaian-card__kelas-list">'.$badges.'</div>'
-        );
     }
 }
