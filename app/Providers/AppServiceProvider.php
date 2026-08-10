@@ -22,10 +22,13 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Institusi\Observers\AcademicUnitUserObserver;
 use App\Modules\Institusi\Policies\AcademicUnitPolicy;
+use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kalender\Policies\SemesterPolicy;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Kurikulum\Listeners\LogStateTransition;
 use App\Modules\Kurikulum\Listeners\SyncKurikulumStateSubscriber;
+use App\Modules\Kurikulum\Livewire\KurikulumTerpilihBanner;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
@@ -87,7 +90,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Livewire::component('silogy.role-switcher', RoleSwitcher::class);
         Livewire::component('silogy.peran-unit-menu', PeranUnitMenu::class);
-        Livewire::component('silogy.kurikulum-terpilih-banner', \App\Modules\Kurikulum\Livewire\KurikulumTerpilihBanner::class);
+        Livewire::component('silogy.kurikulum-terpilih-banner', KurikulumTerpilihBanner::class);
 
         $this->configureFilamentActionIcons();
 
@@ -103,6 +106,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AnalisisAi::class, AnalisisAiPolicy::class);
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
+        Gate::policy(Semester::class, SemesterPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Permission::class, PermissionPolicy::class);
         Gate::policy(Mahasiswa::class, MahasiswaPolicy::class);

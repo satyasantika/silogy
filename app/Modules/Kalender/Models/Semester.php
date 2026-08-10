@@ -3,9 +3,11 @@
 namespace App\Modules\Kalender\Models;
 
 use App\Modules\Kalender\Observers\SemesterObserver;
+use App\Modules\Kelas\Models\KelasMk;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[ObservedBy(SemesterObserver::class)]
 class Semester extends Model
@@ -29,5 +31,19 @@ class Semester extends Model
             'tanggal_selesai' => 'date',
             'status_aktif' => 'boolean',
         ];
+    }
+
+    public function kelasMks(): HasMany
+    {
+        return $this->hasMany(KelasMk::class);
+    }
+
+    /**
+     * kelas_mk.semester_id -> semesters bersifat restrictOnDelete — cek ini
+     * dulu supaya penghapusan ditolak dengan UX yang jelas, bukan QueryException.
+     */
+    public function sedangDigunakan(): bool
+    {
+        return $this->kelasMks()->exists();
     }
 }

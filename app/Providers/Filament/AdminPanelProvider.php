@@ -123,6 +123,10 @@ class AdminPanelProvider extends PanelProvider
                 for: 'App\Modules\Institusi\Filament\Resources',
             )
             ->discoverResources(
+                in: app_path('Modules/Kalender/Filament/Resources'),
+                for: 'App\Modules\Kalender\Filament\Resources',
+            )
+            ->discoverResources(
                 in: app_path('Modules/Auth/Filament/Resources'),
                 for: 'App\Modules\Auth\Filament\Resources',
             )
