@@ -25,8 +25,13 @@ class CpmkCplPemetaanService
 
         $mkModel = $mk instanceof Mk ? $mk : Mk::query()->findOrFail($mk);
 
+        // kurikulum_id, BUKAN academic_unit_id — satu unit bisa punya beberapa
+        // kurikulum/generasi yang memakai ulang kode CPL yang sama (kode unik
+        // per (kurikulum_id, kode), lihat migrasi 2026_07_27_...cpl_bok_mk).
+        // Filter academic_unit_id saja bisa menemukan Cpl dari generasi
+        // kurikulum yang salah — ada, tapi tidak pernah dipetakan ke MK ini.
         $cpl = Cpl::query()
-            ->where('academic_unit_id', $mkModel->academic_unit_id)
+            ->where('kurikulum_id', $mkModel->kurikulum_id)
             ->where('kode', $kodeCpl)
             ->first();
 
@@ -65,8 +70,9 @@ class CpmkCplPemetaanService
 
         $cpmk->loadMissing('mk');
 
+        // kurikulum_id — lihat catatan pada validasiKodeCplUntukMk().
         $cpl = Cpl::query()
-            ->where('academic_unit_id', $cpmk->mk->academic_unit_id)
+            ->where('kurikulum_id', $cpmk->mk->kurikulum_id)
             ->where('kode', $kodeCpl)
             ->firstOrFail();
 
