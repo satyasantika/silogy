@@ -286,6 +286,70 @@ it('pilihan tindakan duplikat muncul bila mk sumber sudah pernah ditawarkan', fu
         ->assertMountedActionModalSee('Adaptasi sekarang');
 });
 
+it('pratinjau adaptasi memuat ulang html penuh saat sumber diubah setelah mount (bukan partial yang tidak match)', function () {
+    $kurikulumUnivLama = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Lama',
+        'tahun' => 2025,
+        'is_active' => true,
+    ]);
+    $kurikulumUnivBaru = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Baru',
+        'tahun' => 2026,
+        'is_active' => false,
+    ]);
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Reaktif',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    Mk::factory()->forKurikulum($kurikulumUnivBaru)->create(['nama' => 'MK Univ Baru Reaktif']);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    $halaman = Livewire::test(ListMkUnits::class)->mountAction('adaptasiMkMassal');
+
+    $halaman->set('mountedActions.0.data.kurikulum_univ_id', $kurikulumUnivBaru->id);
+
+    expect($halaman->effects)->toHaveKey('html');
+});
+
+it('mengosongkan pilihan sumber menghilangkan mk sumber itu dari pratinjau', function () {
+    $kurikulumUniv = Kurikulum::query()->create([
+        'academic_unit_id' => $this->univ->id,
+        'nama' => 'Kur Univ Dikosongkan',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    $kurikulumProdi = Kurikulum::query()->create([
+        'academic_unit_id' => $this->prodi->id,
+        'nama' => 'Kur Prodi Dikosongkan',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+
+    Mk::factory()->forKurikulum($kurikulumUniv)->create(['nama' => 'MK Harus Hilang']);
+
+    $this->actingAs(buatTimkurProdi($this->prodi));
+    KurikulumTerpilih::set($kurikulumProdi->id);
+
+    $halaman = Livewire::test(ListMkUnits::class)
+        ->mountAction('adaptasiMkMassal')
+        ->assertMountedActionModalSee('MK Harus Hilang');
+
+    $halaman->set('mountedActions.0.data.kurikulum_univ_id', null);
+
+    // Bukan assertMountedActionModalDontSee() — forceRender() (lihat fix
+    // HasAdaptasiMkMassal) membuat response ini render 'html' penuh, bukan
+    // partial 'action-modals.*' yang dicari helper itu. Cek langsung ke
+    // effects['html'] mentah.
+    expect($halaman->effects['html'] ?? '')->not->toContain('MK Harus Hilang');
+});
+
 it('tim kurikulum prodi dapat mengadaptasi mk universitas dengan kode dan semester sendiri', function () {
     $mkUniv = Mk::factory()->create([
         'academic_unit_id' => $this->univ->id,
