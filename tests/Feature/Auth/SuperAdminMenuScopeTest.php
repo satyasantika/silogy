@@ -8,10 +8,12 @@ use App\Modules\Auth\Filament\Resources\UserResource;
 use App\Modules\BoK\Filament\Resources\BokResource;
 use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\Institusi\Filament\Resources\AcademicUnitResource;
+use App\Modules\Kalender\Filament\Resources\SemesterResource;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource;
 use App\Modules\Kurikulum\Filament\Pages\AnalisisMkProdi;
 use App\Modules\Kurikulum\Filament\Pages\CplBokMatrix;
 use App\Modules\Kurikulum\Filament\Pages\CplMkMatrix;
+use App\Modules\Kurikulum\Filament\Pages\DaftarKurikulumSuperAdmin;
 use App\Modules\Kurikulum\Filament\Pages\ProfilCplMatrix;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource;
@@ -41,8 +43,10 @@ beforeEach(function () {
     $this->actingAs(User::query()->where('username', 'superadmin')->firstOrFail());
 });
 
-it('superadmin hanya bisa mengakses Unit Akademik, Pengguna, Mahasiswa, dan Log Aktivitas', function () {
+it('superadmin hanya bisa mengakses Unit Akademik, Semester, Kurikulum (lihat+reset), Pengguna, Mahasiswa, dan Log Aktivitas', function () {
     expect(AcademicUnitResource::canAccess())->toBeTrue()
+        ->and(SemesterResource::canAccess())->toBeTrue()
+        ->and(DaftarKurikulumSuperAdmin::canAccess())->toBeTrue()
         ->and(UserResource::canAccess())->toBeTrue()
         ->and(MahasiswaResource::canAccess())->toBeTrue();
     // Log Aktivitas (ActivityLogResource) sudah ditutupi ActivityLogPolicyTest.
