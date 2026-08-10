@@ -98,7 +98,11 @@ class KelasMk extends Model
             return false;
         }
 
-        if ((float) $komponens->sum('bobot') !== 100.0) {
+        // Toleransi kecil, bukan perbandingan float ketat: sum() atas nilai
+        // decimal:2 lewat operator + PHP bisa menghasilkan double seperti
+        // 99.99999999999998 walau totalnya genuinely 100.00, sehingga
+        // rencana yang sebenarnya sudah selesai bisa salah terblokir.
+        if (abs((float) $komponens->sum('bobot') - 100.0) > 0.005) {
             return false;
         }
 
