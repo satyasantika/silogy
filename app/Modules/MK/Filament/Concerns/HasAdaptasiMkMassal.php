@@ -14,6 +14,7 @@ use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\DB;
@@ -39,6 +40,19 @@ trait HasAdaptasiMkMassal
      */
     protected array $adaptasiBarisCache = [];
 
+    /**
+     * Salinan langsung nilai ketiga Select sumber, disinkronkan lewat
+     * afterStateUpdated() — BUKAN Get() murni untuk baca sibling state dari
+     * closure komponen lain. Lihat catatan HasSalinAntarSemesterMassal soal
+     * PartialsComponentHook Filament v4: partial key berbeda antara request
+     * mountAction pertama dan update berikutnya pada action yang sama bikin
+     * DOM browser gagal cocok, jadi HTML pratinjau baru dibuang diam-diam.
+     * Harus public supaya ikut disimpan/dipulihkan Livewire antar request.
+     *
+     * @var array<string, string|null>
+     */
+    public array $adaptasiSumberLive = [];
+
     protected function makeAdaptasiMkMassalAction(): Action
     {
         return Action::make('adaptasiMkMassal')
@@ -53,6 +67,25 @@ trait HasAdaptasiMkMassal
             ->modalSubmitAction(fn (Action $action): Action|bool => $this->adaptasiPratinjauSiap()
                 ? $action
                 : false)
+            // Kosongkan pratinjau saat modal dibuka (jaring aman) DAN saat
+            // ditutup (lihat ClearsImporModalPreviewOnUnmount) — properti
+            // $adaptasiSumberLive bertahan antar request, jadi tanpa reset
+            // ini pratinjau sesi sebelumnya bisa "nempel". method_exists()
+            // dipakai (bukan `use ClearsImporModalPreviewOnUnmount;`
+            // langsung) karena ListMkUnits sudah memakainya transitif lewat
+            // HasImporUpdateMkUnitMassal -> HasImporMassal; `use` kedua kali
+            // akan collision pada method unmountAction().
+            ->mountUsing(function (Schema $schema): void {
+                if (method_exists($this, 'kosongkanPreviewImporModal')) {
+                    $this->kosongkanPreviewImporModal();
+                }
+                $schema->fill();
+            })
+            ->after(function (): void {
+                if (method_exists($this, 'kosongkanPreviewImporModal')) {
+                    $this->kosongkanPreviewImporModal();
+                }
+            })
             // Satu tampilan: unit penawaran, pilihan kurikulum sumber,
             // pratinjau, dan konfirmasi duplikat tanpa tombol "Selanjutnya".
             ->schema([
@@ -130,6 +163,19 @@ trait HasAdaptasiMkMassal
                 ->default(fn (): ?string => $this->adaptasiKurikulumDefault($level['type']))
                 ->searchable()
                 ->live()
+                ->afterStateUpdated(function (?string $state) use ($key): void {
+                    // Sengaja TIDAK lewat Get()/Set() untuk membaca state —
+                    // lihat catatan pada properti $adaptasiSumberLive.
+                    $this->adaptasiSumberLive[$key] = $state;
+
+                    // Filament v4 PartialsComponentHook memakai partial key
+                    // berbeda antara request mountAction pertama kali dan
+                    // request update berikutnya pada action yang sama — paksa
+                    // full render agar morph memakai jalur Livewire standar.
+                    if (method_exists($this, 'forceRender')) {
+                        $this->forceRender();
+                    }
+                })
                 ->disabled(fn (): bool => $this->adaptasiKurikulumOptions($level['type']) === [])
                 ->placeholder(fn (): string => $this->adaptasiKurikulumOptions($level['type']) === []
                     ? 'Belum ada kurikulum '.$level['label']
@@ -170,6 +216,33 @@ trait HasAdaptasiMkMassal
     }
 
     /**
+     * Nilai terkini satu Select sumber. Properti live dipakai lebih dulu
+     * (termasuk bila sudah sengaja dikosongkan ke null — beda dari
+     * HasSalinAntarSemesterMassal karena field itu ->required() jadi tidak
+     * pernah benar-benar null, sedangkan ketiga Select sumber di sini boleh
+     * dikosongkan), lalu Get() (bila tersedia dalam schema), lalu state form
+     * modal (mountedActions.{i}.data.{key}) sebagai jaring aman terakhir —
+     * supaya pratinjau tetap muncul benar meski live belum sempat disentuh
+     * (mis. masih memakai nilai default awal).
+     */
+    protected function adaptasiSumberTerkini(string $key, ?Get $get = null): ?string
+    {
+        if (array_key_exists($key, $this->adaptasiSumberLive)) {
+            return $this->adaptasiSumberLive[$key];
+        }
+
+        if ($get !== null) {
+            $raw = $get($key);
+
+            return filled($raw) ? (string) $raw : null;
+        }
+
+        $fromMounted = $this->mountedActionDataTerkini()[$key] ?? null;
+
+        return filled($fromMounted) ? (string) $fromMounted : null;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function adaptasiContextDariGet(Get $get): array
@@ -177,7 +250,7 @@ trait HasAdaptasiMkMassal
         $sumber = [];
 
         foreach ($this->adaptasiContextKeys() as $key) {
-            $sumber[$key] = $get($key);
+            $sumber[$key] = $this->adaptasiSumberTerkini($key, $get);
         }
 
         return $this->adaptasiContext($sumber);
@@ -200,7 +273,13 @@ trait HasAdaptasiMkMassal
      */
     protected function adaptasiContextTerkini(): array
     {
-        return $this->adaptasiContext($this->mountedActionDataTerkini());
+        $sumber = [];
+
+        foreach ($this->adaptasiContextKeys() as $key) {
+            $sumber[$key] = $this->adaptasiSumberTerkini($key);
+        }
+
+        return $this->adaptasiContext($sumber);
     }
 
     /**
