@@ -35,5 +35,13 @@ trait ClearsImporModalPreviewOnUnmount
         if (property_exists($this, 'salinAntarSemesterBarisCache')) {
             $this->salinAntarSemesterBarisCache = [];
         }
+
+        if (property_exists($this, 'adaptasiSumberLive')) {
+            $this->adaptasiSumberLive = [];
+        }
+
+        if (property_exists($this, 'adaptasiBarisCache')) {
+            $this->adaptasiBarisCache = [];
+        }
     }
 }
