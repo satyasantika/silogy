@@ -5,7 +5,7 @@ namespace App\Modules\Kelas\Services;
 use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
-use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kelas\Support\PesertaKelasRekonsiliasi;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\Mahasiswa\Support\AngkatanDariNim;
 use App\Modules\MK\Models\MkUnit;
@@ -28,6 +28,7 @@ class PesertaKelasSintesysImportService
      *     kelas_diperbarui: int,
      *     peserta_terdaftar: int,
      *     peserta_sudah_terdaftar: int,
+     *     peserta_dihapus: int,
      *     mahasiswa_dibuat: int,
      *     errors: list<string>
      * }
@@ -46,6 +47,7 @@ class PesertaKelasSintesysImportService
         $kelasDiperbarui = 0;
         $pesertaTerdaftar = 0;
         $pesertaSudahTerdaftar = 0;
+        $pesertaDihapus = 0;
         $mahasiswaDibuat = 0;
         $errors = [];
 
@@ -124,6 +126,8 @@ class PesertaKelasSintesysImportService
                 continue;
             }
 
+            $mahasiswaIds = [];
+
             foreach ($peserta as $p) {
                 if (! is_array($p)) {
                     continue;
@@ -161,17 +165,13 @@ class PesertaKelasSintesysImportService
                     AngkatanDariNim::isiBilaKosong($mahasiswa);
                 }
 
-                $pivot = KelasMkMahasiswa::query()->firstOrCreate([
-                    'kelas_mk_id' => $kelas->id,
-                    'mahasiswa_id' => $mahasiswa->id,
-                ]);
-
-                if ($pivot->wasRecentlyCreated) {
-                    $pesertaTerdaftar++;
-                } else {
-                    $pesertaSudahTerdaftar++;
-                }
+                $mahasiswaIds[] = $mahasiswa->id;
             }
+
+            $rekon = PesertaKelasRekonsiliasi::terapkan($kelas, $mahasiswaIds);
+            $pesertaTerdaftar += $rekon['terdaftar'];
+            $pesertaSudahTerdaftar += $rekon['sudah_terdaftar'];
+            $pesertaDihapus += $rekon['dihapus'];
         }
 
         return [
@@ -179,6 +179,7 @@ class PesertaKelasSintesysImportService
             'kelas_diperbarui' => $kelasDiperbarui,
             'peserta_terdaftar' => $pesertaTerdaftar,
             'peserta_sudah_terdaftar' => $pesertaSudahTerdaftar,
+            'peserta_dihapus' => $pesertaDihapus,
             'mahasiswa_dibuat' => $mahasiswaDibuat,
             'errors' => $errors,
         ];
