@@ -5,10 +5,12 @@ namespace App\Modules\MK\Filament\Resources\CpmkResource\Pages;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Services\CpmkCplPemetaanService;
+use App\Modules\MK\Services\CpmkResetService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
-use Filament\Actions\CreateAction;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
@@ -22,6 +24,7 @@ class ListCpmks extends ListRecords
 {
     use HasImporMassal;
     use HasMkPipelineNav;
+    use HasResetTrigger;
 
     protected static string $resource = CpmkResource::class;
 
@@ -29,8 +32,8 @@ class ListCpmks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => CpmkResource::canCreate() && $this->adaCpmkMk()),
-            CreateAction::make(),
+                ->visible(fn (): bool => CpmkResource::canCreate()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -42,15 +45,31 @@ class ListCpmks extends ListRecords
         ];
     }
 
-    protected function adaCpmkMk(): bool
+    protected function resetEntitasLabel(): string
     {
-        $mkId = MkTerpilih::currentId();
+        return 'CPMK';
+    }
 
-        if (blank($mkId)) {
-            return false;
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh CPMK (beserta Sub-CPMK-nya) pada mata kuliah ini. '
+            .'Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
+    {
+        $mk = MkTerpilih::current();
+
+        return $mk instanceof Mk && app(CpmkResetService::class)->bisaDireset($mk);
+    }
+
+    protected function resetJalankan(): void
+    {
+        $mk = MkTerpilih::current();
+
+        if ($mk instanceof Mk) {
+            app(CpmkResetService::class)->reset($mk);
         }
-
-        return Cpmk::query()->where('mk_id', $mkId)->exists();
     }
 
     public function content(Schema $schema): Schema
