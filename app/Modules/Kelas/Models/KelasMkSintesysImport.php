@@ -30,6 +30,7 @@ class KelasMkSintesysImport extends Model
             'kelas_diperbarui' => 'integer',
             'peserta_terdaftar' => 'integer',
             'peserta_sudah_terdaftar' => 'integer',
+            'peserta_dihapus' => 'integer',
             'errors' => 'array',
         ];
     }
