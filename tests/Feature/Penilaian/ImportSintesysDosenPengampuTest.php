@@ -16,6 +16,7 @@ use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Filament\Notifications\Livewire\Notifications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
@@ -150,6 +151,116 @@ it('tarik dari sintesys mengirim email dosen pengampu dan mengimpor kelas lintas
             ->where('kelas_mk_id', $kelasProdi->id)
             ->where('mahasiswa_id', $mhs->id)
             ->exists())->toBeTrue();
+});
+
+it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pendaftaran kelas lama', function () {
+    // Http::fake() tidak mengganti stub lama (append-only) — pakai fakeSequence
+    // agar dua panggilan berturut ke endpoint yang sama mendapat respons beda.
+    Http::fakeSequence('sintesys.test/*')
+        ->push([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kode_prodi' => $this->prodi->code,
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nama' => $this->dosen->full_name, 'nidn' => $this->dosen->nidn],
+                'peserta' => [
+                    ['npm' => '259255111003', 'nama' => 'Peserta Uji Dosen'],
+                ],
+            ]],
+        ], 200)
+        ->push([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kode_prodi' => $this->prodi->code,
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nama' => $this->dosen->full_name, 'nidn' => $this->dosen->nidn],
+                'peserta' => [],
+            ], [
+                'kode_mk' => 'KP21514004',
+                'kode_prodi' => $this->prodi->code,
+                'kelas' => 'D',
+                'dosen_pengampu' => ['nama' => $this->dosen->full_name, 'nidn' => $this->dosen->nidn],
+                'peserta' => [
+                    ['npm' => '259255111003', 'nama' => 'Peserta Uji Dosen'],
+                ],
+            ]],
+        ], 200);
+
+    Livewire::test(ListPenilaianDosens::class)
+        ->mountTableAction('importSintesysDosenPengampu')
+        ->callMountedTableAction()
+        ->assertHasNoActionErrors();
+
+    $kelasA = KelasMk::query()
+        ->where('mk_unit_id', $this->mkUnit->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('kode_kelas', 'A')
+        ->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(1);
+
+    Cache::flush();
+
+    Livewire::test(ListPenilaianDosens::class)
+        ->mountTableAction('importSintesysDosenPengampu')
+        ->callMountedTableAction()
+        ->assertHasNoActionErrors();
+
+    $kelasD = KelasMk::query()
+        ->where('mk_unit_id', $this->mkUnit->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('kode_kelas', 'D')
+        ->firstOrFail();
+    $mahasiswa = Mahasiswa::query()->where('nim', '259255111003')->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(0)
+        ->and(KelasMkMahasiswa::query()
+            ->where('kelas_mk_id', $kelasD->id)
+            ->where('mahasiswa_id', $mahasiswa->id)
+            ->exists())->toBeTrue();
+});
+
+it('tidak menghapus peserta kelas lain yang tidak lagi ada di payload dosen ini karena kelas itu direassign ke dosen lain', function () {
+    $dosenLain = User::factory()->create(['nidn' => '0099998887']);
+
+    $kelasB = KelasMk::query()->create([
+        'mk_unit_id' => $this->mkUnit->id,
+        'semester_id' => $this->semester->id,
+        'kode_kelas' => 'B',
+        'dosen_pengampu_id' => $dosenLain->id,
+    ]);
+    $mahasiswaKelasB = Mahasiswa::factory()->create([
+        'nim' => '259255111099',
+        'academic_unit_id' => $this->prodi->id,
+    ]);
+    KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelasB->id,
+        'mahasiswa_id' => $mahasiswaKelasB->id,
+    ]);
+
+    Http::fake([
+        'sintesys.test/*' => Http::response([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kode_prodi' => $this->prodi->code,
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nama' => $this->dosen->full_name, 'nidn' => $this->dosen->nidn],
+                'peserta' => [
+                    ['npm' => '259255111003', 'nama' => 'Peserta Uji Dosen'],
+                ],
+            ]],
+        ], 200),
+    ]);
+
+    Livewire::test(ListPenilaianDosens::class)
+        ->mountTableAction('importSintesysDosenPengampu')
+        ->callMountedTableAction()
+        ->assertHasNoActionErrors();
+
+    expect(KelasMkMahasiswa::query()
+        ->where('kelas_mk_id', $kelasB->id)
+        ->where('mahasiswa_id', $mahasiswaKelasB->id)
+        ->exists())->toBeTrue();
 });
 
 it('tetap dapat tarik data dari sintesys walau nidn dosen kosong (memakai email)', function () {

@@ -5,6 +5,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\ListKelasMks;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kelas\Models\KelasMkSintesysImport;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
@@ -15,6 +16,7 @@ use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Filament\Notifications\Livewire\Notifications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
@@ -91,6 +93,73 @@ it('menampilkan pratinjau jumlah data yang tersedia lalu menjalankan impor sungg
     expect(KelasMk::query()->where('kode_kelas', 'A')->exists())->toBeTrue();
 
     expect($this->mahasiswa->fresh()->angkatan)->toBe('2025');
+});
+
+it('memindahkan mahasiswa dari kelas A ke kelas D pada pull kedua menghapus pendaftaran kelas lama', function () {
+    $this->actingAs($this->adminProdi);
+
+    // Http::fake() menambah stub baru tanpa mengganti yang lama (stub yang
+    // terdaftar lebih dulu tetap "menang" untuk pola URL yang sama), jadi dua
+    // respons berbeda untuk endpoint yang sama dalam satu tes harus didaftarkan
+    // sekaligus lewat fakeSequence agar terpakai berurutan.
+    Http::fakeSequence('sintesys.test/*')
+        ->push([
+            'tahun_akademik' => $this->semester->kode,
+            'kode_prodi' => $this->prodi->code,
+            'data' => [[
+                'kode_mk' => 'KP92552012',
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'peserta' => [['npm' => '259255111003']],
+            ]],
+        ], 200)
+        ->push([
+            'tahun_akademik' => $this->semester->kode,
+            'kode_prodi' => $this->prodi->code,
+            'data' => [[
+                'kode_mk' => 'KP92552012',
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'peserta' => [],
+            ], [
+                'kode_mk' => 'KP92552012',
+                'kelas' => 'D',
+                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'peserta' => [['npm' => '259255111003']],
+            ]],
+        ], 200);
+
+    Livewire::test(ListKelasMks::class)
+        ->mountAction('importSintesysKelasMk')
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    $kelasA = KelasMk::query()->where('kode_kelas', 'A')->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(1);
+
+    $idImportSebelumnya = KelasMkSintesysImport::query()->pluck('id');
+
+    Cache::flush();
+
+    Livewire::test(ListKelasMks::class)
+        ->mountAction('importSintesysKelasMk')
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    $kelasD = KelasMk::query()->where('kode_kelas', 'D')->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(0)
+        ->and(KelasMkMahasiswa::query()
+            ->where('kelas_mk_id', $kelasD->id)
+            ->where('mahasiswa_id', $this->mahasiswa->id)
+            ->exists())->toBeTrue();
+
+    $import = KelasMkSintesysImport::query()
+        ->whereNotIn('id', $idImportSebelumnya)
+        ->firstOrFail();
+
+    expect($import->peserta_dihapus)->toBe(1);
 });
 
 it('melaporkan tanpa membuat apa pun ketika sintesys tidak memiliki data untuk konteks tersebut', function () {

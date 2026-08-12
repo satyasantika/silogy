@@ -18,6 +18,7 @@ use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Filament\Notifications\Livewire\Notifications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
@@ -156,6 +157,72 @@ it('tarik dari sintesys mengirim kode_matakuliah pada request dan mengimpor pese
         ->and($mahasiswa->angkatan)->toBe('2025');
 
     expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelas->id)->where('mahasiswa_id', $mahasiswa->id)->exists())->toBeTrue();
+});
+
+it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pendaftaran kelas lama', function () {
+    User::factory()->create(['nidn' => '0027118602']);
+
+    // Http::fake() tidak mengganti stub lama (append-only) — pakai fakeSequence
+    // agar dua panggilan berturut ke endpoint yang sama mendapat respons beda.
+    Http::fakeSequence('sintesys.test/*')
+        ->push([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'peserta' => [
+                    ['nim' => '259255111003', 'nama' => 'Peserta Uji Sintesys'],
+                ],
+            ]],
+        ], 200)
+        ->push([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'peserta' => [],
+            ], [
+                'kode_mk' => 'KP21514004',
+                'kelas' => 'D',
+                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'peserta' => [
+                    ['nim' => '259255111003', 'nama' => 'Peserta Uji Sintesys'],
+                ],
+            ]],
+        ], 200);
+
+    Livewire::test(ListPesertaKelas::class)
+        ->mountTableAction('importSintesysPesertaKelas')
+        ->callMountedTableAction()
+        ->assertHasNoActionErrors();
+
+    $kelasA = KelasMk::query()
+        ->where('mk_unit_id', $this->mkUnit->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('kode_kelas', 'A')
+        ->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(1);
+
+    Cache::flush();
+
+    Livewire::test(ListPesertaKelas::class)
+        ->mountTableAction('importSintesysPesertaKelas')
+        ->callMountedTableAction()
+        ->assertHasNoActionErrors();
+
+    $kelasD = KelasMk::query()
+        ->where('mk_unit_id', $this->mkUnit->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('kode_kelas', 'D')
+        ->firstOrFail();
+    $mahasiswa = Mahasiswa::query()->where('nim', '259255111003')->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(0)
+        ->and(KelasMkMahasiswa::query()
+            ->where('kelas_mk_id', $kelasD->id)
+            ->where('mahasiswa_id', $mahasiswa->id)
+            ->exists())->toBeTrue();
 });
 
 it('mengabaikan baris data sintesys yang kode_mk-nya bukan mk terpilih', function () {

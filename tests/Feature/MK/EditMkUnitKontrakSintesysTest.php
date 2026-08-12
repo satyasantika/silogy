@@ -171,6 +171,71 @@ it('tarik data sintesys mengirim body tahun_akademik kode_prodi kode_matakuliah 
         ->assertDontSee('259255111003');
 });
 
+it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pendaftaran kelas lama', function () {
+    User::factory()->create(['nidn' => '0027118602', 'full_name' => 'SATYA SANTIKA']);
+
+    // Http::fake() tidak mengganti stub lama (append-only, stub pertama yang
+    // cocok tetap dipakai) — pakai fakeSequence agar dua panggilan berturut ke
+    // endpoint yang sama mendapat respons yang berbeda.
+    Http::fakeSequence('sintesys.test/*')
+        ->push([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'peserta' => [
+                    ['npm' => '259255111003', 'nama' => 'Peserta Kelas A'],
+                ],
+            ]],
+        ], 200)
+        ->push([
+            'data' => [[
+                'kode_mk' => 'KP21514004',
+                'kelas' => 'A',
+                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'peserta' => [],
+            ], [
+                'kode_mk' => 'KP21514004',
+                'kelas' => 'D',
+                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'peserta' => [
+                    ['npm' => '259255111003', 'nama' => 'Peserta Kelas A'],
+                ],
+            ]],
+        ], 200);
+
+    $page = Livewire::test(EditMkUnit::class, ['record' => $this->mkUnit->id])
+        ->set('semesterKontrakId', $this->semester->id)
+        ->mountAction('tarikKontrakKelas')
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    $kelasA = KelasMk::query()
+        ->where('mk_unit_id', $this->mkUnit->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('kode_kelas', 'A')
+        ->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(1);
+
+    $page->mountAction('tarikKontrakKelas')
+        ->callMountedAction()
+        ->assertHasNoActionErrors();
+
+    $kelasD = KelasMk::query()
+        ->where('mk_unit_id', $this->mkUnit->id)
+        ->where('semester_id', $this->semester->id)
+        ->where('kode_kelas', 'D')
+        ->firstOrFail();
+    $mahasiswa = Mahasiswa::query()->where('nim', '259255111003')->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(0)
+        ->and(KelasMkMahasiswa::query()
+            ->where('kelas_mk_id', $kelasD->id)
+            ->where('mahasiswa_id', $mahasiswa->id)
+            ->exists())->toBeTrue();
+});
+
 it('tarik kontrak semester simak memanggil endpoint simak bukan sintesys', function () {
     config(['services.simak.endpoint' => 'https://simak.test/api/kontrak']);
     config(['services.simak.token' => 'token-simak']);

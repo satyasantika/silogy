@@ -118,6 +118,37 @@ it('mengimpor ulang payload yang sama bersifat idempoten (kelas diperbarui, pese
         ->and($hasil['peserta_sudah_terdaftar'])->toBe(1);
 });
 
+it('memindahkan mahasiswa dari kelas A ke kelas D pada pull berikutnya menghapus pivot kelas lama beserta nilainya', function () {
+    $this->service->import(payloadDasarKelasMkJson($this));
+
+    $kelasA = KelasMk::query()->where('kode_kelas', 'A')->firstOrFail();
+
+    KelasMkMahasiswa::query()
+        ->where('kelas_mk_id', $kelasA->id)
+        ->where('mahasiswa_id', $this->mahasiswa->id)
+        ->update(['nilai_angka' => 88, 'nilai_huruf' => 'A']);
+
+    $payloadPindah = payloadDasarKelasMkJson($this);
+    $payloadPindah['data'][0]['peserta'] = [];
+
+    $barisKelasD = payloadDasarKelasMkJson($this)['data'][0];
+    $barisKelasD['kelas'] = 'D';
+    $payloadPindah['data'][] = $barisKelasD;
+
+    $hasil = $this->service->import($payloadPindah);
+
+    $kelasD = KelasMk::query()->where('kode_kelas', 'D')->firstOrFail();
+
+    expect(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasA->id)->count())->toBe(0)
+        ->and(KelasMkMahasiswa::query()
+            ->where('kelas_mk_id', $kelasD->id)
+            ->where('mahasiswa_id', $this->mahasiswa->id)
+            ->exists())->toBeTrue()
+        ->and(KelasMkMahasiswa::query()->where('mahasiswa_id', $this->mahasiswa->id)->count())->toBe(1)
+        ->and($hasil['peserta_dihapus'])->toBe(1)
+        ->and($hasil['peserta_terdaftar'])->toBe(1);
+});
+
 it('melaporkan nidn dan kode_mk yang tidak dikenali tanpa membatalkan seluruh impor', function () {
     $payload = payloadDasarKelasMkJson($this);
     $payload['data'][0]['dosen_pengampu']['nidn'] = '9999999999';
