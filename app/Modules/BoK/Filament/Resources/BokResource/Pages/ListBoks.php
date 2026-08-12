@@ -5,15 +5,15 @@ namespace App\Modules\BoK\Filament\Resources\BokResource\Pages;
 use App\Modules\BoK\Filament\Resources\BokResource;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\BoK\Models\BokKodeOverride;
+use App\Modules\BoK\Services\BokResetService;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
 use App\Modules\Kurikulum\Models\Kurikulum;
-use App\Modules\Kurikulum\Support\KurikulumPipeline;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
-use Filament\Actions\CreateAction;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -28,6 +28,7 @@ class ListBoks extends ListRecords
 {
     use HasImporMassal;
     use HasKurikulumPipelineNav;
+    use HasResetTrigger;
 
     protected static string $resource = BokResource::class;
 
@@ -35,8 +36,8 @@ class ListBoks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => BokResource::canCreate() && $this->adaBokKurikulum()),
-            CreateAction::make(),
+                ->visible(fn (): bool => BokResource::canCreate()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -103,12 +104,31 @@ class ListBoks extends ListRecords
         $this->getTable()->callAfterReordering($order);
     }
 
-    protected function adaBokKurikulum(): bool
+    protected function resetEntitasLabel(): string
+    {
+        return 'BoK';
+    }
+
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh BoK pada kurikulum ini. Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
     {
         $kurikulum = KurikulumTerpilih::current();
 
         return $kurikulum instanceof Kurikulum
-            && KurikulumPipeline::hasData('bok', $kurikulum);
+            && app(BokResetService::class)->bisaDireset($kurikulum);
+    }
+
+    protected function resetJalankan(): void
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        if ($kurikulum instanceof Kurikulum) {
+            app(BokResetService::class)->reset($kurikulum);
+        }
     }
 
     public function content(Schema $schema): Schema
