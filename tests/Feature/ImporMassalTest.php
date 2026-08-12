@@ -1041,7 +1041,7 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
         ->and(Cpl::query()->where('kode', 'CPL-TIMPA')->count())->toBe(1);
 });
 
-it('impor massal di empty-state saat data kosong, pindah ke header setelah ada data (CPL, BoK, MK, Profil, CPMK)', function () {
+it('impor massal selalu tampil di header baik data kosong maupun sudah ada (CPL, BoK, MK, Profil, CPMK)', function () {
     $timkur = User::where('username', 'timkur')->firstOrFail();
     $korma = User::where('username', 'korma')->firstOrFail();
 
@@ -1049,7 +1049,7 @@ it('impor massal di empty-state saat data kosong, pindah ke header setelah ada d
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     foreach ([ListCpls::class, ListBoks::class, ListMks::class, ListProfilLulusans::class] as $page) {
-        Livewire::test($page)->assertActionHidden('bulkImport');
+        Livewire::test($page)->assertActionVisible('bulkImport');
     }
 
     Livewire::test(ListCpls::class)
@@ -1068,7 +1068,7 @@ it('impor massal di empty-state saat data kosong, pindah ke header setelah ada d
     ]);
     MkTerpilih::set($mk->id);
 
-    Livewire::test(ListCpmks::class)->assertActionHidden('bulkImport');
+    Livewire::test(ListCpmks::class)->assertActionVisible('bulkImport');
 
     Livewire::test(ListCpmks::class)
         ->callAction(TestAction::make('bulkImport')->table(), [
