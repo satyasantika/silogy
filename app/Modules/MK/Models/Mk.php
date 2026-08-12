@@ -115,4 +115,11 @@ class Mk extends Model
     {
         return $this->hasMany(CplMk::class);
     }
+
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->mkUnits()->exists()
+            && ! $this->cpmks()->exists()
+            && ! $this->cplMks()->exists();
+    }
 }

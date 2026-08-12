@@ -9,12 +9,12 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
 use App\Modules\Kurikulum\Models\Kurikulum;
-use App\Modules\Kurikulum\Support\KurikulumPipeline;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Services\MkResetService;
 use App\Support\Filament\Concerns\HasImporMassal;
-use Filament\Actions\CreateAction;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -28,6 +28,7 @@ class ListMks extends ListRecords
 {
     use HasImporMassal;
     use HasKurikulumPipelineNav;
+    use HasResetTrigger;
 
     protected static string $resource = MkResource::class;
 
@@ -35,8 +36,8 @@ class ListMks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => MkResource::canCreate() && $this->adaMkKurikulum()),
-            CreateAction::make(),
+                ->visible(fn (): bool => MkResource::canCreate()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -48,12 +49,31 @@ class ListMks extends ListRecords
         ];
     }
 
-    protected function adaMkKurikulum(): bool
+    protected function resetEntitasLabel(): string
+    {
+        return 'Mata Kuliah';
+    }
+
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh Mata Kuliah pada kurikulum ini. Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
     {
         $kurikulum = KurikulumTerpilih::current();
 
         return $kurikulum instanceof Kurikulum
-            && KurikulumPipeline::hasData('mk', $kurikulum);
+            && app(MkResetService::class)->bisaDireset($kurikulum);
+    }
+
+    protected function resetJalankan(): void
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        if ($kurikulum instanceof Kurikulum) {
+            app(MkResetService::class)->reset($kurikulum);
+        }
     }
 
     public function content(Schema $schema): Schema
