@@ -18,14 +18,15 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Services\AsesmenImporService;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
+use App\Modules\Penilaian\Services\KomponenPenilaianResetService;
 use App\Modules\Penilaian\Services\KomponenPenilaianSalinSemesterService;
 use App\Modules\Penilaian\Services\NormalisasiBobotKomponenService;
-use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
+use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Support\Filament\Concerns\HasImporMassal;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Field;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
@@ -46,6 +47,7 @@ class ListKomponenPenilaians extends ListRecords
 {
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
+    use HasResetTrigger;
     use HasSalinAntarSemesterMassal;
 
     protected static string $resource = KomponenPenilaianResource::class;
@@ -54,8 +56,8 @@ class ListKomponenPenilaians extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => KomponenPenilaianResource::canCreate() && $this->adaKomponenPenilaianSemester()),
-            CreateAction::make(),
+                ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -329,6 +331,50 @@ class ListKomponenPenilaians extends ListRecords
             ->where('mk_id', $mkId)
             ->where('semester_id', $semesterId)
             ->exists();
+    }
+
+    protected function resetEntitasLabel(): string
+    {
+        return 'Asesmen';
+    }
+
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh Asesmen (komponen penilaian) mata kuliah ini pada semester '
+            .'yang sedang dipilih. Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
+    {
+        [$mk, $semesterId] = $this->resetKonteks();
+
+        return $mk instanceof Mk && filled($semesterId)
+            && app(KomponenPenilaianResetService::class)->bisaDireset($mk, $semesterId);
+    }
+
+    protected function resetJalankan(): void
+    {
+        [$mk, $semesterId] = $this->resetKonteks();
+
+        if ($mk instanceof Mk && filled($semesterId)) {
+            app(KomponenPenilaianResetService::class)->reset($mk, $semesterId);
+        }
+    }
+
+    /**
+     * @return array{0: ?Mk, 1: ?string}
+     */
+    protected function resetKonteks(): array
+    {
+        $mk = MkTerpilih::current();
+
+        if (! $mk instanceof Mk) {
+            return [null, null];
+        }
+
+        $semesterId = app(RencanaEvaluasiService::class)->resolveSemesterId($mk->id);
+
+        return [$mk, $semesterId];
     }
 
     protected function bolehNormalisasiBobot(): bool

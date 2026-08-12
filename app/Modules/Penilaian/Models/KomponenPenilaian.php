@@ -59,4 +59,9 @@ class KomponenPenilaian extends Model
     {
         return $this->hasMany(SubcpmkKomponenPenilaian::class, 'komponen_penilaian_id');
     }
+
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->subcpmkKomponens()->exists();
+    }
 }
