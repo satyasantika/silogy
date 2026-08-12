@@ -469,6 +469,10 @@ class ListPesertaKelas extends ListRecords
                     $totalGagal,
                 );
 
+                if ($hasil['peserta_dihapus'] > 0) {
+                    $ringkasan .= sprintf(' · Peserta dihapus (pindah/keluar kelas): %d', $hasil['peserta_dihapus']);
+                }
+
                 if ($hasil['mahasiswa_dibuat'] > 0) {
                     $ringkasan .= sprintf(' (%d mahasiswa baru dibuat)', $hasil['mahasiswa_dibuat']);
                 }

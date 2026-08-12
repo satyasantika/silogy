@@ -93,6 +93,7 @@ class MkUnitTarikKontrakService
      *         kelas_diperbarui: int,
      *         peserta_terdaftar: int,
      *         peserta_sudah_terdaftar: int,
+     *         peserta_dihapus: int,
      *         errors: list<string>
      *     }
      * }
@@ -176,6 +177,7 @@ class MkUnitTarikKontrakService
      *         kelas_diperbarui: int,
      *         peserta_terdaftar: int,
      *         peserta_sudah_terdaftar: int,
+     *         peserta_dihapus: int,
      *         errors: list<string>
      *     }
      * }  $result
@@ -210,6 +212,10 @@ class MkUnitTarikKontrakService
             $hasil['peserta_terdaftar'] + $hasil['peserta_sudah_terdaftar'],
             $totalGagal,
         );
+
+        if ($hasil['peserta_dihapus'] > 0) {
+            $ringkasan .= sprintf(' · Peserta dihapus (pindah/keluar kelas): %d', $hasil['peserta_dihapus']);
+        }
 
         $detailGagal = $hasil['errors'] === []
             ? ''

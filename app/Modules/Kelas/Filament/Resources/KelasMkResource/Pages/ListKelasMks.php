@@ -258,6 +258,7 @@ class ListKelasMks extends ListRecords
                     'kelas_diperbarui' => $hasil['kelas_diperbarui'],
                     'peserta_terdaftar' => $hasil['peserta_terdaftar'],
                     'peserta_sudah_terdaftar' => $hasil['peserta_sudah_terdaftar'],
+                    'peserta_dihapus' => $hasil['peserta_dihapus'],
                     'errors' => $hasil['errors'],
                     'dibuat_oleh' => auth()->id(),
                 ]);
@@ -273,6 +274,10 @@ class ListKelasMks extends ListRecords
                     $hasil['kelas_diperbarui'],
                     $hasil['peserta_terdaftar'] + $hasil['peserta_sudah_terdaftar'],
                 );
+
+                if ($hasil['peserta_dihapus'] > 0) {
+                    $ringkasan .= sprintf(' · Peserta dihapus (pindah/keluar kelas): %d', $hasil['peserta_dihapus']);
+                }
 
                 if ($hasil['mahasiswa_dibuat'] > 0) {
                     $ringkasan .= sprintf(' (%d mahasiswa baru dibuat)', $hasil['mahasiswa_dibuat']);
@@ -579,6 +584,10 @@ class ListKelasMks extends ListRecords
                     $hasil['kelas_diperbarui'],
                     $hasil['peserta_terdaftar'] + $hasil['peserta_sudah_terdaftar'],
                 );
+
+                if ($hasil['peserta_dihapus'] > 0) {
+                    $ringkasan .= sprintf(' · Peserta dihapus (pindah/keluar kelas): %d', $hasil['peserta_dihapus']);
+                }
 
                 if ($hasil['mahasiswa_dibuat'] > 0) {
                     $ringkasan .= sprintf(' (%d mahasiswa baru dibuat)', $hasil['mahasiswa_dibuat']);
