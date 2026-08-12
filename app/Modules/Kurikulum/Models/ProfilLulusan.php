@@ -2,6 +2,7 @@
 
 namespace App\Modules\Kurikulum\Models;
 
+use App\Modules\CPL\Models\CplProfilLulusan;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -41,5 +42,18 @@ class ProfilLulusan extends Model
     public function indikators(): HasMany
     {
         return $this->hasMany(ProfilIndikator::class, 'profil_id')->orderBy('urutan');
+    }
+
+    /**
+     * @return HasMany<CplProfilLulusan, $this>
+     */
+    public function cplProfilLulusan(): HasMany
+    {
+        return $this->hasMany(CplProfilLulusan::class);
+    }
+
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->cplProfilLulusan()->exists();
     }
 }

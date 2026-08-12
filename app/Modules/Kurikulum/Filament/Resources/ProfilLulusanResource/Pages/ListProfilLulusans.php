@@ -7,10 +7,10 @@ use App\Modules\Kurikulum\Filament\Resources\ProfilLulusanResource;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
 use App\Modules\Kurikulum\Models\Kurikulum;
-use App\Modules\Kurikulum\Support\KurikulumPipeline;
+use App\Modules\Kurikulum\Services\ProfilLulusanResetService;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
-use Filament\Actions\CreateAction;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -30,6 +30,7 @@ class ListProfilLulusans extends ListRecords
         HasImporProfilLulusanMassal::updateImportRow insteadof HasImporMassal;
     }
     use HasKurikulumPipelineNav;
+    use HasResetTrigger;
 
     protected static string $resource = ProfilLulusanResource::class;
 
@@ -54,8 +55,8 @@ class ListProfilLulusans extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => ProfilLulusanResource::bisaKelola() && $this->adaProfilLulusanKurikulum()),
-            CreateAction::make(),
+                ->visible(fn (): bool => ProfilLulusanResource::bisaKelola()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -67,12 +68,32 @@ class ListProfilLulusans extends ListRecords
         ];
     }
 
-    protected function adaProfilLulusanKurikulum(): bool
+    protected function resetEntitasLabel(): string
+    {
+        return 'Profil Lulusan';
+    }
+
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh Profil Lulusan (beserta indikatornya) pada kurikulum ini. '
+            .'Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
     {
         $kurikulum = KurikulumTerpilih::current();
 
         return $kurikulum instanceof Kurikulum
-            && KurikulumPipeline::hasData('profil_lulusan', $kurikulum);
+            && app(ProfilLulusanResetService::class)->bisaDireset($kurikulum);
+    }
+
+    protected function resetJalankan(): void
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        if ($kurikulum instanceof Kurikulum) {
+            app(ProfilLulusanResetService::class)->reset($kurikulum);
+        }
     }
 
     protected function importModalHeading(): string
