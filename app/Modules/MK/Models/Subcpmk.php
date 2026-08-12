@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Models;
 
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Factories\SubcpmkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property-read Cpmk|null $cpmk
@@ -61,5 +63,18 @@ class Subcpmk extends Model
     public function semester(): BelongsTo
     {
         return $this->belongsTo(Semester::class);
+    }
+
+    /**
+     * @return HasMany<SubcpmkKomponenPenilaian, $this>
+     */
+    public function subcpmkKomponens(): HasMany
+    {
+        return $this->hasMany(SubcpmkKomponenPenilaian::class);
+    }
+
+    public function belumDiinteraksikan(): bool
+    {
+        return ! $this->subcpmkKomponens()->exists();
     }
 }

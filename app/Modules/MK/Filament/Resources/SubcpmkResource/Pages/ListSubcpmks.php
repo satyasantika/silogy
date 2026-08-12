@@ -8,13 +8,15 @@ use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
 use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
 use App\Modules\MK\Filament\Support\Concerns\HasSalinAntarSemesterMassal;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Services\SubcpmkKompetensiParser;
+use App\Modules\MK\Services\SubcpmkResetService;
 use App\Modules\MK\Services\SubcpmkSalinSemesterService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
-use Filament\Actions\CreateAction;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -28,6 +30,7 @@ class ListSubcpmks extends ListRecords
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
     use HasMkPipelineNav;
+    use HasResetTrigger;
     use HasSalinAntarSemesterMassal;
 
     protected static string $resource = SubcpmkResource::class;
@@ -36,8 +39,8 @@ class ListSubcpmks extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => SubcpmkResource::canCreate() && $this->adaSubcpmkSemester()),
-            CreateAction::make(),
+                ->visible(fn (): bool => SubcpmkResource::canCreate()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -50,24 +53,48 @@ class ListSubcpmks extends ListRecords
         ];
     }
 
-    protected function adaSubcpmkSemester(): bool
+    protected function resetEntitasLabel(): string
     {
-        $mkId = MkTerpilih::currentId();
+        return 'Sub-CPMK';
+    }
 
-        if (blank($mkId)) {
-            return false;
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh Sub-CPMK mata kuliah ini pada semester yang sedang '
+            .'dipilih. Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
+    {
+        [$mk, $semesterId] = $this->resetKonteks();
+
+        return $mk instanceof Mk && filled($semesterId)
+            && app(SubcpmkResetService::class)->bisaDireset($mk, $semesterId);
+    }
+
+    protected function resetJalankan(): void
+    {
+        [$mk, $semesterId] = $this->resetKonteks();
+
+        if ($mk instanceof Mk && filled($semesterId)) {
+            app(SubcpmkResetService::class)->reset($mk, $semesterId);
+        }
+    }
+
+    /**
+     * @return array{0: ?Mk, 1: ?string}
+     */
+    protected function resetKonteks(): array
+    {
+        $mk = MkTerpilih::current();
+
+        if (! $mk instanceof Mk) {
+            return [null, null];
         }
 
-        $semesterId = SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
+        $semesterId = SemesterTerpilih::currentId($mk->id) ?? SemesterTerpilih::defaultId();
 
-        if (blank($semesterId)) {
-            return false;
-        }
-
-        return Subcpmk::query()
-            ->where('semester_id', $semesterId)
-            ->whereHas('mkCpmk.cpmk', fn ($query) => $query->where('mk_id', $mkId))
-            ->exists();
+        return [$mk, $semesterId];
     }
 
     protected function salinAntarSemesterEntitasLabel(): string
