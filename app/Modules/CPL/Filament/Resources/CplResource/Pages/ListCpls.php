@@ -6,14 +6,14 @@ use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\CPL\Models\CplProfilLulusan;
+use App\Modules\CPL\Services\CplResetService;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumPipelineNav;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
-use App\Modules\Kurikulum\Support\KurikulumPipeline;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
-use Filament\Actions\CreateAction;
+use App\Support\Filament\Concerns\HasResetTrigger;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -28,6 +28,7 @@ class ListCpls extends ListRecords
 {
     use HasImporMassal;
     use HasKurikulumPipelineNav;
+    use HasResetTrigger;
 
     protected static string $resource = CplResource::class;
 
@@ -35,8 +36,8 @@ class ListCpls extends ListRecords
     {
         return [
             $this->makeImporMassalAction()
-                ->visible(fn (): bool => CplResource::canCreate() && $this->adaCplKurikulum()),
-            CreateAction::make(),
+                ->visible(fn (): bool => CplResource::canCreate()),
+            $this->makeResetTriggerAction(),
         ];
     }
 
@@ -120,12 +121,31 @@ class ListCpls extends ListRecords
         $this->getTable()->callAfterReordering($order);
     }
 
-    protected function adaCplKurikulum(): bool
+    protected function resetEntitasLabel(): string
+    {
+        return 'CPL';
+    }
+
+    protected function resetModalDescription(): string
+    {
+        return 'Tindakan ini akan menghapus seluruh CPL pada kurikulum ini. Tindakan ini tidak dapat dibatalkan.';
+    }
+
+    protected function resetBisaDilakukan(): bool
     {
         $kurikulum = KurikulumTerpilih::current();
 
         return $kurikulum instanceof Kurikulum
-            && KurikulumPipeline::hasData('cpl', $kurikulum);
+            && app(CplResetService::class)->bisaDireset($kurikulum);
+    }
+
+    protected function resetJalankan(): void
+    {
+        $kurikulum = KurikulumTerpilih::current();
+
+        if ($kurikulum instanceof Kurikulum) {
+            app(CplResetService::class)->reset($kurikulum);
+        }
     }
 
     public function content(Schema $schema): Schema
