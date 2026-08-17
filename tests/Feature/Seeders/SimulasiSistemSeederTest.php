@@ -104,7 +104,7 @@ it('seeder simulasi mengadaptasi mk universitas dan fakultas ke prodi lewat kode
     $cplFak = Cpl::query()->where('academic_unit_id', $fkip->id)->where('kode', 'CPL-SIM-FAK')->firstOrFail();
     $bokFak = Bok::query()->where('academic_unit_id', $fkip->id)->where('kode', 'BOK-SIM-FAK')->firstOrFail();
 
-    $kurikulumProdi = \App\Modules\Kurikulum\Models\Kurikulum::query()
+    $kurikulumProdi = Kurikulum::query()
         ->where('academic_unit_id', $prodi->id)
         ->orderByDesc('is_active')
         ->firstOrFail();

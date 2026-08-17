@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Pages\Auth\EditProfile;
 use App\Models\User;
 use App\Modules\Auth\Livewire\PeranUnitMenu;
 use Database\Seeders\AcademicUnitSeeder;
@@ -57,7 +58,7 @@ it('halaman profil menampilkan gelar dan tombol ganti kata sandi tanpa isian pas
         ->assertSee('Gelar belakang')
         ->assertSee('Ganti kata sandi');
 
-    Livewire::test(\App\Filament\Pages\Auth\EditProfile::class)
+    Livewire::test(EditProfile::class)
         ->assertFormFieldExists('prefix')
         ->assertFormFieldExists('suffix')
         ->assertFormFieldExists('full_name')

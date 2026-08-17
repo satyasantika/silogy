@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
@@ -104,7 +105,7 @@ it('tidak mencabut role bila masih koordinator pada kelas_mk', function () {
         'koordinator_mk_id' => $this->dosen->id,
     ]);
     $mkUnit = MkUnit::factory()->forMk($mk)->forKurikulum($this->kurikulum)->create();
-    $semesterId = \App\Modules\Kalender\Models\Semester::query()->where('status_aktif', true)->value('id');
+    $semesterId = Semester::query()->where('status_aktif', true)->value('id');
 
     KelasMk::query()->create([
         'mk_unit_id' => $mkUnit->id,

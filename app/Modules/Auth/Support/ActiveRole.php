@@ -3,6 +3,7 @@
 namespace App\Modules\Auth\Support;
 
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -146,9 +147,9 @@ class ActiveRole
      * mengecualikan user yang sedang login dari daftarnya sendiri saat
      * role aktifnya bukan role yang dicari.
      *
-     * @return \Illuminate\Support\Collection<int, string>
+     * @return Collection<int, string>
      */
-    public static function userIdsWithRoleName(string $role): \Illuminate\Support\Collection
+    public static function userIdsWithRoleName(string $role): Collection
     {
         return DB::table('model_has_roles')
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')

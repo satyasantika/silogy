@@ -26,6 +26,7 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Policies\KelasMkPolicy;
 use App\Modules\Kurikulum\Listeners\LogStateTransition;
 use App\Modules\Kurikulum\Listeners\SyncKurikulumStateSubscriber;
+use App\Modules\Kurikulum\Livewire\KurikulumTerpilihBanner;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
@@ -87,7 +88,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Livewire::component('silogy.role-switcher', RoleSwitcher::class);
         Livewire::component('silogy.peran-unit-menu', PeranUnitMenu::class);
-        Livewire::component('silogy.kurikulum-terpilih-banner', \App\Modules\Kurikulum\Livewire\KurikulumTerpilihBanner::class);
+        Livewire::component('silogy.kurikulum-terpilih-banner', KurikulumTerpilihBanner::class);
 
         $this->configureFilamentActionIcons();
 

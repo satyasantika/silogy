@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalender\Support\SemesterTerpilih;
@@ -22,7 +23,7 @@ beforeEach(function () {
     $this->seed(SemesterSeeder::class);
 
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
-    $this->korma = \App\Models\User::query()->where('username', 'korma')->firstOrFail();
+    $this->korma = User::query()->where('username', 'korma')->firstOrFail();
     $this->semester = Semester::query()->where('status_aktif', true)->firstOrFail();
 
     $this->actingAs($this->korma);
@@ -60,7 +61,7 @@ it('semester terpilih tidak berlaku untuk peran selain koordinator mk murni', fu
     ]);
     MkTerpilih::set($mk->id);
 
-    $timkur = \App\Models\User::query()->where('username', 'timkur')->firstOrFail();
+    $timkur = User::query()->where('username', 'timkur')->firstOrFail();
     $this->actingAs($timkur);
 
     expect(SemesterTerpilih::berlakuUntukUser())->toBeFalse()

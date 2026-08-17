@@ -11,8 +11,6 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilIndikator;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\States\BokState;
-use App\Modules\Kurikulum\States\MkState;
-use App\Modules\Kurikulum\States\SetdosenmkState;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
