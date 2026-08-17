@@ -10,6 +10,7 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource;
+use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\CreateMkUnit;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\ListMkUnits;
@@ -36,6 +37,7 @@ beforeEach(function () {
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->first();
     $this->timkur = User::query()->where('username', 'timkur')->first();
     $this->korma = User::query()->where('username', 'korma')->first();
+    $this->dosen = User::query()->where('username', 'dosen')->first();
 });
 
 it('seeder menyediakan tim kurikulum terpisah per level dan dosentimkur lintas level', function () {
@@ -61,14 +63,24 @@ it('seeder menyediakan tim kurikulum terpisah per level dan dosentimkur lintas l
 it('tim kurikulum dapat menetapkan koordinator pada mk', function () {
     $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
 
+    // Kandidat koordinator dibatasi pemegang role Dosen Pengampu
+    // (MkResource::koordinatorMkOptions). Menetapkannya yang justru memberi role
+    // Koordinator Mata Kuliah, jadi calonnya belum tentu sudah menyandang role itu.
     $this->actingAs($this->timkur);
 
     Livewire::test(EditMk::class, ['record' => $mk->id])
-        ->fillForm(['koordinator_mk_id' => $this->korma->id])
+        ->fillForm(['koordinator_mk_id' => $this->dosen->id])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($mk->fresh()->koordinator_mk_id)->toBe($this->korma->id);
+    expect($mk->fresh()->koordinator_mk_id)->toBe($this->dosen->id);
+});
+
+it('kandidat koordinator mk hanya pemegang role dosen pengampu', function () {
+    $opsi = MkResource::koordinatorMkOptions();
+
+    expect($opsi)->toHaveKey($this->dosen->id)
+        ->and($opsi)->not->toHaveKey($this->korma->id);
 });
 
 it('kelas mk baru mewarisi koordinator default dari mk', function () {
