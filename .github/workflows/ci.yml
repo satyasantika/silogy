@@ -51,8 +51,11 @@ jobs:
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
       DB_DATABASE: silogy_test
-      DB_USERNAME: silogy
-      DB_PASSWORD: silogy
+      # root, bukan user silogy: `artisan test --parallel` membuat database
+      # per-proses (silogy_test_test_1, _2, ...) sehingga butuh hak CREATE/DROP
+      # DATABASE. Service MySQL di sini sekali pakai, jadi root aman.
+      DB_USERNAME: root
+      DB_PASSWORD: root
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: 6379
       CACHE_STORE: array
