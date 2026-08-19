@@ -70,6 +70,18 @@
         border-radius: 8px;
     }
 
+    /*
+     * fi-icon-btn bawaan Filament punya margin:-8px (trik perbesar area
+     * klik) yang memakan 8px dari margin-inline:16px milik .fi-sidebar-footer,
+     * sehingga jarak visual tombol Keluar ke tepi sidebar jadi 8px, bukan
+     * 16px. Kompensasi dengan padding-inline-end 8px saat sidebar terbuka
+     * (state collapsed sudah dipusatkan lewat margin-inline:auto, jangan
+     * disentuh agar tetap center).
+     */
+    .silogy-sidebar-user-row:not(.silogy-sidebar-user-row--collapsed) .silogy-sidebar-user-actions {
+        padding-inline-end: 8px;
+    }
+
     .silogy-sidebar-user-actions .fi-icon-btn:hover {
         background-color: #ef4444 !important;
         color: #ffffff !important;
