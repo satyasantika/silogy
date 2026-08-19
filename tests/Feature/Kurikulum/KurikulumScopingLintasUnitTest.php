@@ -13,10 +13,10 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Filament\Pages\CplBokMatrix;
 use App\Modules\Kurikulum\Filament\Pages\CplMkMatrix;
-use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikulum;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\RelationManagers\CplMkRelationManager;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
 use App\Modules\MK\Models\Mk;
@@ -25,7 +25,10 @@ use App\Modules\MK\Services\MkUnitUpdateMassalService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
+use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -37,7 +40,7 @@ uses(RefreshDatabase::class);
  * Select saat submit (yang untuk nilai di luar opsi bisa berujung pada
  * ErrorException internal Filament, bukan kegagalan yang bersih/mudah diuji).
  */
-function opsiAttachRecordIds(object $component, string $actionName = 'attach'): \Illuminate\Support\Collection
+function opsiAttachRecordIds(object $component, string $actionName = 'attach'): Collection
 {
     $action = $component->instance()->getTable()->getAction($actionName);
 
@@ -45,7 +48,7 @@ function opsiAttachRecordIds(object $component, string $actionName = 'attach'): 
     $ref->setAccessible(true);
     $closure = $ref->getValue($action);
 
-    $relationship = \Illuminate\Database\Eloquent\Relations\Relation::noConstraints(
+    $relationship = Relation::noConstraints(
         fn () => $component->instance()->getTable()->getRelationship(),
     );
     $related = $relationship->getRelated();
@@ -107,9 +110,9 @@ it('listcpls/listboks tidak bocor ke kurikulum lain meski unit punya adaptasi ak
     $cplB = Cpl::factory()->forKurikulum($kurikulumB)->create(['kode' => 'CPL-UNIV-B']);
     $bokB = Bok::factory()->forKurikulum($kurikulumB)->create(['kode' => 'BOK-UNIV-B']);
 
-    expect(\App\Modules\Kurikulum\Support\CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($this->univ->id))
+    expect(CplBokAdaptasiScope::adaptedCplIdsAcrossUnit($this->univ->id))
         ->not->toBeEmpty()
-        ->and(\App\Modules\Kurikulum\Support\CplBokAdaptasiScope::adaptedBokIdsAcrossUnit($this->univ->id))
+        ->and(CplBokAdaptasiScope::adaptedBokIdsAcrossUnit($this->univ->id))
         ->not->toBeEmpty();
 
     KurikulumTerpilih::set($kurikulumB->id);
@@ -265,7 +268,7 @@ it('picker pemetaan cpl-bok->mk pada halaman kurikulum hanya menawarkan cpl/bok/
     $rm = new CplMkRelationManager;
     $rm->ownerRecord = $kurikulumDiedit;
 
-    $schema = $rm->form(\Filament\Schemas\Schema::make($rm));
+    $schema = $rm->form(Schema::make($rm));
     $mkOptions = collect($schema->getComponent('mk_id')?->getOptions() ?? []);
     $cplBokOptions = collect($schema->getComponent('cpl_bok_id')?->getOptions() ?? []);
 

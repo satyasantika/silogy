@@ -1,31 +1,32 @@
 <?php
 
 use App\Models\User;
+use App\Modules\BoK\Models\Bok;
+use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplBok;
+use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
-use App\Modules\MK\Models\Mk;
-use App\Modules\MK\Models\MkUnit;
-use App\Modules\BoK\Models\Bok;
-use App\Modules\CPL\Models\Cpl;
-use App\Modules\CPL\Models\CplBok;
-use App\Modules\CPL\Models\CplMk;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
+use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
-use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\EditKomponenPenilaian;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\ListKomponenPenilaians;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
+use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -337,7 +338,7 @@ it('mengimpor satu baris asesmen menghasilkan satu komponen yang dipakai bersama
     // Header "Impor massal" hanya tampil bila sudah ada komponen; tabel kosong
     // memakai empty-state action dengan nama yang sama.
     Livewire::test(ListKomponenPenilaians::class)
-        ->callAction(\Filament\Actions\Testing\TestAction::make('bulkImport')->table(), data: [
+        ->callAction(TestAction::make('bulkImport')->table(), data: [
             'import_mk_id' => $this->mk->id,
             'import_semester_id' => $this->semester->id,
             'rows' => 'Asesmen01|Kuis Konseptual|100|Quiz|',

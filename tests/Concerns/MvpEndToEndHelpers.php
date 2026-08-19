@@ -21,6 +21,7 @@ trait MvpEndToEndHelpers
         'setdosenmk',
         'aktif',
     ];
+
     protected function loginUser(string $username): User
     {
         $user = User::query()->where('username', $username)->firstOrFail();

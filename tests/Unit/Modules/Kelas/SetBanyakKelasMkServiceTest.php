@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
@@ -88,7 +89,7 @@ it('melewati kelas duplikat saat mode lewati', function () {
 });
 
 it('membuat kelas dengan koordinator default dari mk', function () {
-    $korma = \App\Models\User::query()->where('username', 'korma')->firstOrFail();
+    $korma = User::query()->where('username', 'korma')->firstOrFail();
     $this->mkA->update(['koordinator_mk_id' => $korma->id]);
 
     $penawaran = [[

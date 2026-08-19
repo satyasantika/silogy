@@ -5,6 +5,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\PenawaranMkScope;
@@ -12,6 +13,7 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -117,7 +119,7 @@ it('validasi semester impor menolak semester tidak valid', function () {
 
     expect(PenawaranMkScope::validasiSemesterUntukMkImpor(
         $mk->id,
-        (string) \Illuminate\Support\Str::uuid(),
+        (string) Str::uuid(),
     ))->not->toBeNull();
 });
 
@@ -137,6 +139,6 @@ it('kurikulum filter koordinator hanya dari unit penawaran mk miliknya', functio
 
     $unitIds = PenawaranMkScope::unitIdsDariPenawaran($this->korma);
 
-    expect(\App\Modules\Kurikulum\Support\KurikulumTerpilih::optionsForUnits($unitIds))
+    expect(KurikulumTerpilih::optionsForUnits($unitIds))
         ->toHaveKey($kurikulum->id);
 });

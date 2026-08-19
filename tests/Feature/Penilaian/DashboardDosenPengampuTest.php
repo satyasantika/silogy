@@ -123,9 +123,17 @@ it('kpi dashboard dosen menampilkan mk dan kelas diampu tanpa card mk sedang dik
         ->assertDontSee('Pilih lewat widget di bawah', escape: false);
 });
 
-it('menu penilaian dosen diganti menjadi pengampu mk', function () {
+it('menu penilaian dosen diganti menjadi pengampu mk, tanpa kategori bagi peran operasional', function () {
     $this->actingAs($this->dosen);
 
+    // NavigationGroupPeran meratakan menu peran operasional (Dosen Pengampu dkk.)
+    // sejajar Dasbor — grup null di sini disengaja, bukan grup yang hilang.
     expect(PenilaianDosenResource::getNavigationLabel())->toBe('Pengampu MK')
-        ->and(PenilaianDosenResource::getNavigationGroup())->toBe('Pengampu MK');
+        ->and(PenilaianDosenResource::getNavigationGroup())->toBeNull();
+});
+
+it('menu pengampu mk tetap berkategori bagi peran non-operasional', function () {
+    $this->actingAs(User::query()->where('username', 'adminprodi')->firstOrFail());
+
+    expect(PenilaianDosenResource::getNavigationGroup())->toBe('Pengampu MK');
 });

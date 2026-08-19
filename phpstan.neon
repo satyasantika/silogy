@@ -1,5 +1,9 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    # 325 error level 6 yang sudah ada sebelum analisis ini dijadikan gate CI.
+    # Baseline menahan utang lama TANPA melonggarkan level: kode baru tetap
+    # dianalisis penuh. Kurangi isinya bertahap, jangan di-regenerate massal.
+    - phpstan-baseline.neon
 
 parameters:
     level: 6

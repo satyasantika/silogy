@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -78,7 +79,7 @@ return new class extends Migration
                 $kurikulum = $kurikulumByUnit->get($row->academic_unit_id);
 
                 if ($kurikulum === null) {
-                    throw new \RuntimeException(
+                    throw new RuntimeException(
                         "Backfill kurikulum_id gagal: tidak ada kurikulum untuk unit {$row->academic_unit_id} (tabel {$table}, id {$row->id})."
                     );
                 }
@@ -89,7 +90,7 @@ return new class extends Migration
             $orphan = DB::table($table)->whereNull('kurikulum_id')->count();
 
             if ($orphan > 0) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     "Backfill kurikulum_id gagal: masih ada {$orphan} baris orphan di {$table}."
                 );
             }
@@ -139,7 +140,7 @@ return new class extends Migration
     }
 
     /**
-     * @return \Illuminate\Support\Collection<string, object>
+     * @return Collection<string, object>
      */
     protected function kurikulumByUnitMap()
     {

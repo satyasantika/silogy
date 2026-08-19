@@ -27,6 +27,7 @@ pnpm-debug.log*
 .env.*
 !.env.example
 !.env.docker
+!.env.production.example
 
 # Node / Vite
 /node_modules

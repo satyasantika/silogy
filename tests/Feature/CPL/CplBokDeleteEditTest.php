@@ -8,15 +8,13 @@ use App\Modules\CPL\Filament\Resources\CplResource\Pages\EditCpl;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplKodeOverride;
-use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
-use App\Modules\MK\Models\Mk;
-use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -72,29 +70,8 @@ it('tombol hapus tersembunyi di edit bok bila sudah dipetakan ke cpl', function 
         ->assertActionHidden('delete');
 });
 
-/**
- * @return array{mk: Mk, cpl: Cpl, bok: Bok}
- */
-function siapkanAdaptasiCplBokUniv(object $context): array
-{
-    $kurikulumProdi = Kurikulum::query()->create([
-        'academic_unit_id' => $context->prodi->id,
-        'nama' => 'Kurikulum Uji Adaptasi CPL/BoK',
-        'tahun' => 2026,
-        'is_active' => true,
-    ]);
-    KurikulumTerpilih::set($kurikulumProdi->id);
-
-    $mkUniv = Mk::factory()->forAcademicUnit($context->univ)->create();
-    $cplUniv = Cpl::factory()->forAcademicUnit($context->univ)->create();
-    $bokUniv = Bok::factory()->forAcademicUnit($context->univ)->create();
-    $cplBokUniv = CplBok::query()->create(['cpl_id' => $cplUniv->id, 'bok_id' => $bokUniv->id]);
-    CplMk::query()->create(['cpl_bok_id' => $cplBokUniv->id, 'mk_id' => $mkUniv->id, 'bobot' => 60]);
-
-    MkUnit::factory()->forAcademicUnit($context->prodi)->forMk($mkUniv)->create(['is_active' => true]);
-
-    return ['mk' => $mkUniv, 'cpl' => $cplUniv, 'bok' => $bokUniv];
-}
+// siapkanAdaptasiCplBokUniv() sekarang tinggal di tests/Helpers.php agar berkas
+// test lain (mis. CplBokReorderTest) tetap bisa memakainya saat dijalankan sendiri.
 
 it('edit cpl adaptasi: field asli terkunci, kode alias tersimpan tanpa mengubah kode asli, tombol hapus tersembunyi', function () {
     $adaptasi = siapkanAdaptasiCplBokUniv($this);
@@ -148,4 +125,4 @@ it('cpl asing yang tidak teradaptasi sama sekali tidak bisa ditemukan lewat hala
     $cplUnivTanpaAdaptasi = Cpl::factory()->forAcademicUnit($this->univ)->create();
 
     Livewire::test(EditCpl::class, ['record' => $cplUnivTanpaAdaptasi->getKey()]);
-})->throws(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+})->throws(ModelNotFoundException::class);

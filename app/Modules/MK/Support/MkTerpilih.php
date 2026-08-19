@@ -9,8 +9,8 @@ use App\Modules\MK\Filament\Resources\MataKuliahKoordinatorResource;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Services\MataKuliahKoordinatorService;
-use Illuminate\Database\Eloquent\Builder;
 use App\Support\Filament\SilogyBannerPanel;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 /**

@@ -50,11 +50,16 @@ class HealthController extends Controller
         try {
             $pong = Redis::connection()->ping();
 
-            if ($pong === true || $pong === 'PONG' || $pong === '+PONG') {
+            // predis mengembalikan objek Predis\Response\Status (bukan string),
+            // phpredis mengembalikan true / '+PONG'. Normalisasi ke string dulu
+            // agar cek benar untuk kedua client.
+            if ($pong === true) {
                 return 'ok';
             }
 
-            return 'error';
+            $normalized = ltrim((string) $pong, '+');
+
+            return $normalized === 'PONG' ? 'ok' : 'error';
         } catch (Throwable) {
             return 'error';
         }

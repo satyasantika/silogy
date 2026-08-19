@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
@@ -50,7 +51,7 @@ it('update() true untuk cpl asing yang teradaptasi lewat manageKodeOnly, false b
 
     $cplBok = CplBok::query()->create([
         'cpl_id' => $cplUniv->id,
-        'bok_id' => \App\Modules\BoK\Models\Bok::factory()->forAcademicUnit($this->univ)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->univ)->create()->id,
     ]);
     CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mkUniv->id, 'bobot' => 60]);
 
@@ -72,7 +73,7 @@ it('update() true untuk cpl asing yang teradaptasi lewat manageKodeOnly, false b
 it('delete() tetap false untuk cpl asing meski sudah teradaptasi', function () {
     $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
     $cplUniv = Cpl::factory()->forAcademicUnit($this->univ)->create();
-    $bokUniv = \App\Modules\BoK\Models\Bok::factory()->forAcademicUnit($this->univ)->create();
+    $bokUniv = Bok::factory()->forAcademicUnit($this->univ)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cplUniv->id, 'bok_id' => $bokUniv->id]);
     CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mkUniv->id, 'bobot' => 60]);
     MkUnit::factory()->forAcademicUnit($this->prodi)->forMk($mkUniv)->create(['is_active' => true]);

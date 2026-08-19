@@ -1,0 +1,90 @@
+# syntax=docker/dockerfile:1
+#
+# SILOGY — Dockerfile PRODUKSI (multi-stage).
+# Beda dengan .docker/php/Dockerfile (dev) yang meng-mount source & tanpa build:
+# di sini kode + asset di-BAKE ke image, dependency --no-dev, dan opcache dioptimalkan.
+#
+# Build:  docker build -f .docker/php/Dockerfile.prod -t silogy-app:prod .
+
+# ─────────────────────────────────────────────────────────────
+# Stage 1 — Build asset frontend (Vite)
+# ─────────────────────────────────────────────────────────────
+FROM node:22-alpine AS assets
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY vite.config.js ./
+COPY resources ./resources
+# public/ diperlukan Vite untuk resolve path; salin agar build konsisten
+COPY public ./public
+RUN npm run build
+
+# ─────────────────────────────────────────────────────────────
+# Stage 2 — Dependency PHP (composer, tanpa dev)
+# ─────────────────────────────────────────────────────────────
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+# Skip script (butuh artisan/app penuh) — dijalankan ulang setelah kode lengkap disalin.
+# --ignore-platform-reqs: image composer (alpine) tak punya ext-intl/gd/dll;
+# ekstensi sungguhan tersedia di stage runtime (php:8.4-fpm) tempat autoload difinalisasi.
+RUN composer install \
+      --no-dev --no-scripts --no-autoloader \
+      --prefer-dist --no-interaction --no-progress \
+      --ignore-platform-reqs
+
+# ─────────────────────────────────────────────────────────────
+# Stage 3 — Runtime PHP-FPM
+# ─────────────────────────────────────────────────────────────
+FROM php:8.4-fpm-alpine AS runtime
+
+RUN apk add --no-cache \
+      git curl bash zip unzip libzip-dev \
+      icu-dev oniguruma-dev libxml2-dev \
+      mysql-client mariadb-connector-c-dev \
+      libpng-dev jpeg-dev freetype-dev
+
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install -j"$(nproc)" \
+      pdo pdo_mysql mysqli mbstring exif pcntl bcmath gd intl zip opcache
+
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+ && pecl install redis \
+ && docker-php-ext-enable redis \
+ && apk del .build-deps
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Konfigurasi PHP produksi (opcache + limit upload)
+COPY .docker/php/php.ini       /usr/local/etc/php/conf.d/silogy.ini
+COPY .docker/php/opcache.ini   /usr/local/etc/php/conf.d/opcache.ini
+
+WORKDIR /var/www/html
+
+# Kode aplikasi
+COPY . .
+# Vendor (dari stage) + asset build (dari stage)
+COPY --from=vendor /app/vendor ./vendor
+COPY --from=assets /app/public/build ./public/build
+
+# Selesaikan autoloader teroptimasi + discovery paket (butuh kode lengkap)
+RUN composer dump-autoload --no-dev --optimize --classmap-authoritative \
+ && composer run-script post-autoload-dump --no-dev || true
+
+# Salinan pristine public/ untuk disinkron ke named volume tiap start
+# (named volume tidak auto-refresh saat image baru di-deploy).
+RUN cp -a public /usr/local/share/silogy-public
+
+# Direktori writable + kepemilikan non-root
+RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+ && chown -R www-data:www-data storage bootstrap/cache \
+ && chmod -R 775 storage bootstrap/cache
+
+COPY .docker/php/entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+
+USER www-data
+EXPOSE 9000
+
+ENTRYPOINT ["entrypoint"]
+CMD ["php-fpm"]

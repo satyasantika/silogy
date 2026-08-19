@@ -1,0 +1,1711 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method App\\Auth\\Http\\Responses\\FilamentDefaultLoginRedirect\:\:toResponse\(\) never returns Livewire\\Features\\SupportRedirects\\Redirector so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Auth/Http/Responses/FilamentDefaultLoginRedirect.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>email" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Filament/Pages/Auth/Login.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Filament\\Pages\\Dashboard\) and ''getFiltersForm'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Filament/Pages/Dashboard.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Kalkulasi\\Models\\HasilCplMkUnit\:\:\$mk_kode\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/AI/Builders/AnalisisCplBuilder.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Kalkulasi\\Models\\HasilCplMkUnit\:\:\$mk_nama\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/AI/Builders/AnalisisCplBuilder.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Kalkulasi\\Models\\HasilCplUnit\:\:\$deskripsi\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/AI/Builders/AnalisisCplBuilder.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Kalkulasi\\Models\\HasilCplUnit\:\:\$kode\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/AI/Builders/AnalisisCplBuilder.php
+
+		-
+			message: '#^Method App\\Modules\\AI\\Builders\\AnalisisCplBuilder\:\:fetchHasilCplUnit\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{kode\: string, deskripsi\: string, rata_rata\: float\|null, persentase_tercapai\: float\|null, target\: int\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/AI/Builders/AnalisisCplBuilder.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\AI\\Filament\\Pages\\RequestAnalisis\:\:\$form\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/AI/Filament/Pages/RequestAnalisis.php
+
+		-
+			message: '#^Method App\\Modules\\AI\\Services\\GeminiClientService\:\:buildInput\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/AI/Services/GeminiClientService.php
+
+		-
+			message: '#^Method App\\Modules\\AI\\Services\\GeminiClientService\:\:call\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/AI/Services/GeminiClientService.php
+
+		-
+			message: '#^Method App\\Modules\\AI\\Services\\GeminiClientService\:\:generate\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/AI/Services/GeminiClientService.php
+
+		-
+			message: '#^Method App\\Modules\\AI\\Services\\GeminiClientService\:\:summarize\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/AI/Services/GeminiClientService.php
+
+		-
+			message: '#^Method App\\Modules\\AI\\Services\\GeminiCostGuard\:\:dailyRequestQuery\(\) has no return type specified\.$#'
+			identifier: missingType.return
+			count: 1
+			path: app/Modules/AI/Services/GeminiCostGuard.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Audit/Filament/Resources/ActivityLogResource.php
+
+		-
+			message: '#^Method App\\Modules\\Auth\\Filament\\Resources\\UserResource\:\:unitIdTerpilihDiRepeater\(\) should return Illuminate\\Support\\Collection\<int, string\> but returns Illuminate\\Support\\Collection\<int, non\-falsy\-string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Auth/Filament/Resources/UserResource.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Modules/Auth/Filament/Resources/UserResource.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Modules/Auth/Filament/Resources/UserResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_lengkap" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Auth/Filament/Resources/UserResource.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Auth\\Filament\\Resources\\UserResource\\Pages\\ListUsers\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Auth/Filament/Resources/UserResource/Pages/ListUsers.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Auth\\Filament\\Resources\\UserResource\\Pages\\ListUsers\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Auth/Filament/Resources/UserResource/Pages/ListUsers.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Auth\\Filament\\Resources\\UserResource\\Pages\\ListUsers\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Auth/Filament/Resources/UserResource/Pages/ListUsers.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Auth\\Filament\\Resources\\UserResource\\Pages\\ListUsers\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Auth/Filament/Resources/UserResource/Pages/ListUsers.php
+
+		-
+			message: '#^Call to function method_exists\(\) with App\\Models\\User and ''forgetCachedPermiss…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Auth/Support/ActiveRole.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\BoK\\Models\\Bok\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Modules\\Kurikulum\\Support\\CplBokAdaptasiScope\:\:scopeVisibleBok\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\BoK\\Models\\Bok\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource.php
+
+		-
+			message: '#^Parameter \#3 \$applyScope of static method App\\Modules\\BoK\\Filament\\Resources\\BokResource\:\:applyKurikulumTerpilihCardTable\(\) expects callable\(Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Closure\(Illuminate\\Database\\Eloquent\\Builder, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\BoK\\Models\\Bok\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kurikulum_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_lengkap" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\BoK\\Models\\Bok\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Method App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Method App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\:\:kurikulumPipelineNavMemo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Property App\\Modules\\BoK\\Filament\\Resources\\BokResource\\Pages\\ListBoks\:\:\$kurikulumPipelineNavMemo type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/BoK/Filament/Resources/BokResource/Pages/ListBoks.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\BoK\\Models\\Bok\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/BoK/Models/Bok.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$academicUnit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/BoK/Policies/BokPolicy.php
+
+		-
+			message: '#^Parameter \#2 \$bok of method App\\Modules\\BoK\\Policies\\BokPolicy\:\:delete\(\) expects App\\Modules\\BoK\\Models\\Bok, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/BoK/Policies/BokPolicy.php
+
+		-
+			message: '#^Parameter \#2 \$bok of method App\\Modules\\BoK\\Policies\\BokPolicy\:\:update\(\) expects App\\Modules\\BoK\\Models\\Bok, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/BoK/Policies/BokPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Modules\\Kurikulum\\Support\\CplBokAdaptasiScope\:\:scopeVisibleCpl\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\CPL\\Models\\Cpl\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource.php
+
+		-
+			message: '#^Parameter \#3 \$applyScope of static method App\\Modules\\CPL\\Filament\\Resources\\CplResource\:\:applyKurikulumTerpilihCardTable\(\) expects callable\(Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Closure\(Illuminate\\Database\\Eloquent\\Builder, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\CPL\\Models\\Cpl\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kurikulum_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_lengkap" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Method App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\:\:importColumnsForContext\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Method App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Method App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\:\:importInstructionsExtraForContext\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Method App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\:\:kurikulumPipelineNavMemo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Property App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\:\:\$kurikulumPipelineNavMemo type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/RelationManagers/BokRelationManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/CPL/Filament/Resources/CplResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/CPL/Models/Cpl.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$academicUnit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/CPL/Policies/CplPolicy.php
+
+		-
+			message: '#^Parameter \#2 \$cpl of method App\\Modules\\CPL\\Policies\\CplPolicy\:\:delete\(\) expects App\\Modules\\CPL\\Models\\Cpl, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/CPL/Policies/CplPolicy.php
+
+		-
+			message: '#^Parameter \#2 \$cpl of method App\\Modules\\CPL\\Policies\\CplPolicy\:\:update\(\) expects App\\Modules\\CPL\\Models\\Cpl, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/CPL/Policies/CplPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Institusi\\Filament\\Resources\\AcademicUnitResource\\Pages\\ListAcademicUnits\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Institusi\\Filament\\Resources\\AcademicUnitResource\\Pages\\ListAcademicUnits\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Institusi\\Filament\\Resources\\AcademicUnitResource\\Pages\\ListAcademicUnits\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Institusi\\Filament\\Resources\\AcademicUnitResource\\Pages\\ListAcademicUnits\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Method App\\Modules\\Institusi\\Filament\\Resources\\AcademicUnitResource\\Pages\\ListAcademicUnits\:\:parseImportRaw\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Method App\\Modules\\Institusi\\Filament\\Resources\\AcademicUnitResource\\Pages\\ListAcademicUnits\:\:parseImportRaw\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Institusi/Filament/Resources/AcademicUnitResource/Pages/ListAcademicUnits.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Institusi/Filament/Widgets/PimpinanCapaianTertinggiTable.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Kalkulasi/Filament/Widgets/CplPerMkUnitTable.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>bobot" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplMkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplMkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplMkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplMkUnitCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplMkUnitCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplUnitAggregator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CplUnitAggregator.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Kalkulasi\\Models\\HasilSubcpmk\:\:\$cpmk_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Kalkulasi/Services/CpmkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CpmkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/CpmkCalculator.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Kalkulasi\\Models\\HasilCplUnit\:\:\$kode\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Kalkulasi/Services/DashboardCplDataService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/DashboardCplDataService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/SubcpmkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kalkulasi/Services/SubcpmkCalculator.php
+
+		-
+			message: '#^Variable \$komponens in PHPDoc tag @var does not match any variable in the foreach loop\: \$kmmIds, \$kmmId$#'
+			identifier: varTag.differentVariable
+			count: 1
+			path: app/Modules/Kalkulasi/Services/SubcpmkCalculator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\Pages\\ListKelasMks\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/Pages/ListKelasMks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\Pages\\ListKelasMks\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/Pages/ListKelasMks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\Pages\\ListKelasMks\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/Pages/ListKelasMks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\Pages\\ListKelasMks\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/Pages/ListKelasMks.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/Pages/ListKelasMks.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 2
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/Pages/ListKelasMks.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\RelationManagers\\KelasMkMahasiswaRelationManager\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/RelationManagers/KelasMkMahasiswaRelationManager.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\RelationManagers\\KelasMkMahasiswaRelationManager\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/RelationManagers/KelasMkMahasiswaRelationManager.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\RelationManagers\\KelasMkMahasiswaRelationManager\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/RelationManagers/KelasMkMahasiswaRelationManager.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kelas\\Filament\\Resources\\KelasMkResource\\RelationManagers\\KelasMkMahasiswaRelationManager\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kelas/Filament/Resources/KelasMkResource/RelationManagers/KelasMkMahasiswaRelationManager.php
+
+		-
+			message: '#^Method App\\Modules\\Kelas\\Services\\SetBanyakKelasMkService\:\:semesterKontrolDefaultState\(\) should return array\<string, array\{dipilih_semua\: bool, jumlah_kelas\: int\}\> but returns array\{1\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 2\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 3\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 4\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 5\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 6\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 7\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}, 8\: array\{dipilih_semua\: false, jumlah_kelas\: int\<1, 26\>\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Kelas/Services/SetBanyakKelasMkService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kelas/Services/SetBanyakKelasMkService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Pages/AnalisisCplMahasiswa.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Pages\\DaftarKurikulumPimpinan\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Pages/DaftarKurikulumPimpinan.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Pages/GrafikCpl.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Pages/HasilAnalisisCpl.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/Pages/CreateKurikulum.php
+
+		-
+			message: '#^Parameter \#1 \$kurikulum of method App\\Modules\\Kurikulum\\Services\\KurikulumStateSyncService\:\:sync\(\) expects App\\Modules\\Kurikulum\\Models\\Kurikulum, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/Pages/CreateKurikulum.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:belumDigunakanDiTabelLain\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/Pages/EditKurikulum.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\Pages\\ListKurikulums\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/Pages/ListKurikulums.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\BaseKurikulumRelationManager\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/BaseKurikulumRelationManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$academicUnit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/CplRelationManager.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\ProfilLulusanRelationManager\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\ProfilLulusanRelationManager\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\ProfilLulusanRelationManager\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\ProfilLulusanRelationManager\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\ProfilLulusanRelationManager\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\ProfilLulusanRelationManager\:\:kurikulumIdUntukImporProfil\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/ProfilLulusanRelationManager.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:createImportRow\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:createImportRow\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:importColumns\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:resolveImportRow\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:resolveImportRow\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:resolveImportRow\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\EditProfilLulusan\:\:runImport\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/EditProfilLulusan.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\:\:kurikulumIdUntukImporProfil\(\) has parameter \$context with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\:\:kurikulumPipelineNavMemo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Property App\\Modules\\Kurikulum\\Filament\\Resources\\ProfilLulusanResource\\Pages\\ListProfilLulusans\:\:\$kurikulumPipelineNavMemo type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Resources/ProfilLulusanResource/Pages/ListProfilLulusans.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Support/ProfilIndikatorForm.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Widgets/KurikulumKpiWidget.php
+
+		-
+			message: '#^Cannot call method canTransitionTo\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Widgets/KurikulumStepperWidget.php
+
+		-
+			message: '#^Cannot call method getValue\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Widgets/KurikulumStepperWidget.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Kurikulum/Filament/Widgets/MkCapaianTertinggiTable.php
+
+		-
+			message: '#^Method App\\Modules\\Kurikulum\\Models\\Kurikulum\:\:cplBoks\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasManyThrough does not specify its types\: TRelatedModel, TIntermediateModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Kurikulum/Models/Kurikulum.php
+
+		-
+			message: '#^PHPDoc tag @return with type Illuminate\\Database\\Eloquent\\Relations\\HasMany\<App\\Modules\\CPL\\Models\\CplBok, \$this\(App\\Modules\\Kurikulum\\Models\\Kurikulum\)\> is incompatible with native type Illuminate\\Database\\Eloquent\\Relations\\HasManyThrough\.$#'
+			identifier: return.phpDocType
+			count: 1
+			path: app/Modules/Kurikulum/Models/Kurikulum.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_lengkap" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Kurikulum/Services/AnalisisMkProdiService.php
+
+		-
+			message: '#^Cannot call method canTransitionTo\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Kurikulum/Services/KurikulumStateSyncService.php
+
+		-
+			message: '#^Cannot call method transitionTo\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Kurikulum/Services/KurikulumStateSyncService.php
+
+		-
+			message: '#^Cannot call method transitionableStateInstances\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Modules/Kurikulum/Services/KurikulumStateSyncService.php
+
+		-
+			message: '#^Class App\\Modules\\Kurikulum\\States\\KurikulumState extends generic class Spatie\\ModelStates\\State but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Kurikulum/States/KurikulumState.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\BoK\\Models\\Bok\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Kurikulum/Support/CplBokAdaptasiScope.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Kurikulum/Support/CplBokAdaptasiScope.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-list and array\{\} will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Modules/Kurikulum/Support/KurikulumTerpilih.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Pages/CplCpmkMatrix.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Pages/CplCpmkMatrix.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Pages/SubcpmkAsesmenMatrix.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Pages/SubcpmkAsesmenMatrix.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\CpmkResource\:\:applyMkTerpilihCardTable\(\) has parameter \$contentGrid with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/CreateCpmk.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/CreateCpmk.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:belumDiinteraksikan\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/EditCpmk.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Modules/MK/Filament/Resources/CpmkResource/RelationManagers/MkCpmkRelationManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MataKuliahKoordinatorResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MataKuliahKoordinatorResource.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Modules\\MK\\Filament\\Resources\\MkResource\:\:withJumlahKelasDanMahasiswa\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\MK\\Models\\Mk\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource.php
+
+		-
+			message: '#^Parameter \#2 \$applyScope of static method App\\Modules\\MK\\Filament\\Resources\\MkResource\:\:applyKurikulumTerpilihTable\(\) expects callable\(Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Closure\(Illuminate\\Database\\Eloquent\\Builder, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\MK\\Models\\Mk\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>state" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/EditMk.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/EditMk.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_lengkap" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/EditMk.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\:\:kurikulumPipelineNavMemo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Property App\\Modules\\MK\\Filament\\Resources\\MkResource\\Pages\\ListMks\:\:\$kurikulumPipelineNavMemo type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkResource/Pages/ListMks.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\MK\\Models\\MkUnit\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkUnitResource.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\MK\\Models\\MkUnit\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource.php
+
+		-
+			message: '#^Parameter \#1 \$query of static method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\:\:withJumlahMahasiswaKontrak\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\MK\\Models\\MkUnit\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource.php
+
+		-
+			message: '#^Parameter \#2 \$applyScope of static method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\:\:applyKurikulumTerpilihTable\(\) expects callable\(Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>, Closure\(Illuminate\\Database\\Eloquent\\Builder, App\\Modules\\Kurikulum\\Models\\Kurikulum\)\: Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\MK\\Models\\MkUnit\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kurikulum_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkUnitResource.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\EditMkUnit\:\:kelasDetailTerpilih\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/EditMkUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>full_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/EditMkUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/EditMkUnit.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nim" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/EditMkUnit.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''kosongkanPreviewImp…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''adaptasiBarisCache'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''adaptasiSumberLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\:\:importColumns\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\:\:importInstructionsExtra\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\:\:kurikulumPipelineNavMemo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\:\:resolveImportRow\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Property App\\Modules\\MK\\Filament\\Resources\\MkUnitResource\\Pages\\ListMkUnits\:\:\$kurikulumPipelineNavMemo type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/MkUnitResource/Pages/ListMkUnits.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\:\:applyMkTerpilihCardTable\(\) has parameter \$contentGrid with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''salinAntarSemesterB…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''salinAntarSemesterS…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Widgets/KoordinatorMkAksesWidget.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Filament/Widgets/KoordinatorMkAksesWidget.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/MK/Filament/Widgets/KoordinatorMkCapaianTertinggiTable.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Models\\Mk\:\:totalSks\(\) should return Illuminate\\Database\\Eloquent\\Casts\\Attribute\<int, never\> but returns Illuminate\\Database\\Eloquent\\Casts\\Attribute\<int\<0, max\>, never\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/MK/Models/Mk.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Models\\Subcpmk\:\:cpmk\(\) should return Illuminate\\Database\\Eloquent\\Casts\\Attribute\<App\\Modules\\MK\\Models\\Cpmk\|null, never\> but returns Illuminate\\Database\\Eloquent\\Casts\\Attribute\<App\\Modules\\MK\\Models\\Cpmk\|null, never\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/MK/Models/Subcpmk.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Policies/CpmkPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Policies/CpmkPolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$academicUnit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/MK/Policies/MkPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Policies/SubcpmkPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Policies/SubcpmkPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_lengkap" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Services/AdaptasiMkMassalService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\MK\\Models\\Mk\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/MK/Services/CpmkCplPemetaanService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Services/DashboardKoordinatorMkService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Services/DashboardKoordinatorMkService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\MK\\Models\\MkUnit\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/MK/Services/MataKuliahKoordinatorService.php
+
+		-
+			message: '#^Method App\\Modules\\MK\\Services\\MkUnitTarikKontrakService\:\:tarik\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/MK/Services/MkUnitTarikKontrakService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Services/MkUnitTarikKontrakService.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$context$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Modules/MK/Services/MkUnitUpdateMassalService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\MK\\Models\\Mk\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/MK/Support/MkTerpilih.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\MK\\Models\\MkUnit\:\:\$kurikulum_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/MK/Support/MkTerpilih.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Support/MkTerpilih.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kurikulum_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Support/MkTerpilih.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Support/MkTerpilih.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Mahasiswa\\Filament\\Resources\\MahasiswaResource\\Pages\\ListMahasiswas\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Mahasiswa/Filament/Resources/MahasiswaResource/Pages/ListMahasiswas.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Mahasiswa\\Filament\\Resources\\MahasiswaResource\\Pages\\ListMahasiswas\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Mahasiswa/Filament/Resources/MahasiswaResource/Pages/ListMahasiswas.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Mahasiswa\\Filament\\Resources\\MahasiswaResource\\Pages\\ListMahasiswas\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Mahasiswa/Filament/Resources/MahasiswaResource/Pages/ListMahasiswas.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Mahasiswa\\Filament\\Resources\\MahasiswaResource\\Pages\\ListMahasiswas\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Mahasiswa/Filament/Resources/MahasiswaResource/Pages/ListMahasiswas.php
+
+		-
+			message: '#^Parameter \#3 \$nilai of method App\\Modules\\Penilaian\\Services\\PenilaianMatrixService\:\:rataRataKelas\(\) expects array\<string, array\<string, string\|null\>\>, array\<string, array\<string, float\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sks" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
+
+		-
+			message: '#^Parameter \#3 \$nilai of method App\\Modules\\Penilaian\\Services\\PenilaianMatrixService\:\:rataRataKelas\(\) expects array\<string, array\<string, string\|null\>\>, array\<string, array\<string, float\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sks" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>mk_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>semester_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''salinAntarSemesterB…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''salinAntarSemesterS…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/RelationManagers/SubcpmkKomponenPenilaianRelationManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource.php
+
+		-
+			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\PesertaKelasResource\\Pages\\ListPesertaKelas\) and ''forceRender'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource/Pages/ListPesertaKelas.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\PesertaKelasResource\\Pages\\ListPesertaKelas\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource/Pages/ListPesertaKelas.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\PesertaKelasResource\\Pages\\ListPesertaKelas\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource/Pages/ListPesertaKelas.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\PesertaKelasResource\\Pages\\ListPesertaKelas\) and ''mountedActions'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource/Pages/ListPesertaKelas.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Filament/Resources/PesertaKelasResource/Pages/ListPesertaKelas.php
+
+		-
+			message: '#^Anonymous function never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Penilaian/Filament/Widgets/DosenPengampuCapaianTertinggiTable.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Policies/KomponenPenilaianPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Policies/KomponenPenilaianPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Policies/PesertaKelasPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Policies/PesertaKelasPolicy.php
+
+		-
+			message: '#^Method App\\Modules\\Penilaian\\Services\\AsesmenImporService\:\:buatAtauPerbaruiKomponen\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Penilaian/Services/AsesmenImporService.php
+
+		-
+			message: '#^Method App\\Modules\\Penilaian\\Services\\AsesmenImporService\:\:perbarui\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Penilaian/Services/AsesmenImporService.php
+
+		-
+			message: '#^Method App\\Modules\\Penilaian\\Services\\AsesmenImporService\:\:resolveBaris\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Penilaian/Services/AsesmenImporService.php
+
+		-
+			message: '#^Method App\\Modules\\Penilaian\\Services\\AsesmenImporService\:\:terapkanPemetaanSubcpmk\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Penilaian/Services/AsesmenImporService.php
+
+		-
+			message: '#^Method App\\Modules\\Penilaian\\Services\\DosenPengampuSintesysImportService\:\:ringkasanPreviewHtml\(\) has parameter \$preview with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Penilaian/Services/DosenPengampuSintesysImportService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Services/EvaluasiCplService.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$lines$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Modules/Penilaian/Services/InputNilaiMatrixClipboardService.php
+
+		-
+			message: '#^Method App\\Modules\\Penilaian\\Services\\PenilaianDosenService\:\:barisKelasUntukUnit\(\) should return Illuminate\\Support\\Collection\<int, array\{kelas_mk_id\: string, kode\: string, nama_mk\: string, kode_kelas\: string, jumlah_mahasiswa\: int, rata_rata\: float\|null, sudah_dinilai\: bool, asesmen_siap\: bool, \.\.\.\}\> but returns Illuminate\\Support\\Collection\<int, array\{kelas_mk_id\: string, kode\: non\-falsy\-string, nama_mk\: non\-falsy\-string, kode_kelas\: string, jumlah_mahasiswa\: int, rata_rata\: float\|null, sudah_dinilai\: bool, asesmen_siap\: bool, \.\.\.\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Penilaian/Services/PenilaianDosenService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Services/PenilaianDosenService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>mk_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Services/PenilaianDosenService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Services/PenilaianDosenService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Penilaian/Services/PenilaianMatrixService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nim" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Penilaian/Services/PenilaianMatrixService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Providers/AppServiceProvider.php
