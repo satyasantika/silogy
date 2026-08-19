@@ -164,11 +164,36 @@ jobs:
       # dari salinan manual di ~/docker-apps/deploy.sh — supaya perubahan
       # prosedur deploy ikut ter-versioning dan tidak perlu disalin tangan.
       - name: Rilis via SSH
+        id: rilis
+        # Gagal di sini belum memerahkan job; percobaan kedua di bawah yang menentukan.
+        continue-on-error: true
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+            cd ~/docker-apps/silogy
+            git fetch --prune origin main
+            git reset --hard origin/main
+            bash scripts/deploy.sh
+
+      # 2026-08-19: rilis gagal dengan "dial tcp :22: i/o timeout" padahal server
+      # sehat (sshd aktif, tanpa fail2ban/ufw, responsif dari jaringan lain) dan
+      # menjalankan ulang job langsung berhasil — murni gangguan koneksi
+      # runner→server. scripts/deploy.sh idempoten sehingga aman diulang: bila
+      # percobaan pertama sempat setengah jalan, percobaan ini melanjutkannya.
+      - name: Rilis via SSH (percobaan 2)
+        if: steps.rilis.outcome == 'failure'
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 60s
           command_timeout: 25m
           script: |
             set -euo pipefail
