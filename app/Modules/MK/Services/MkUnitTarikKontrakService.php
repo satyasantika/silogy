@@ -269,6 +269,7 @@ class MkUnitTarikKontrakService
 
             try {
                 $response = Http::withToken($token)
+                    ->acceptJson()
                     ->timeout(60)
                     ->post($endpoint, $body);
             } catch (\Throwable $exception) {

@@ -45,6 +45,7 @@ class DosenPengampuSintesysImportService
 
             try {
                 $response = Http::withToken($token)
+                    ->acceptJson()
                     ->timeout(60)
                     ->post($endpoint, [
                         'tahun_akademik' => $semester->kode,
