@@ -33,6 +33,9 @@ class Semester extends Model
         ];
     }
 
+    /**
+     * @return HasMany<KelasMk, $this>
+     */
     public function kelasMks(): HasMany
     {
         return $this->hasMany(KelasMk::class);

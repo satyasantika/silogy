@@ -607,12 +607,6 @@ parameters:
 			path: app/Modules/Kurikulum/Filament/Pages/AnalisisCplMahasiswa.php
 
 		-
-			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Pages\\DaftarKurikulumPimpinan\) and ''forceRender'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/Modules/Kurikulum/Filament/Pages/DaftarKurikulumPimpinan.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>type" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
@@ -641,18 +635,6 @@ parameters:
 			identifier: method.notFound
 			count: 1
 			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/Pages/EditKurikulum.php
-
-		-
-			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\Pages\\ListKurikulums\) and ''forceRender'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/Pages/ListKurikulums.php
-
-		-
-			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Kurikulum\\Filament\\Resources\\KurikulumResource\\RelationManagers\\BaseKurikulumRelationManager\) and ''forceRender'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: app/Modules/Kurikulum/Filament/Resources/KurikulumResource/RelationManagers/BaseKurikulumRelationManager.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$academicUnit\.$#'
