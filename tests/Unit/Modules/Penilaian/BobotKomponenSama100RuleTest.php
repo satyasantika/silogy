@@ -4,7 +4,6 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\MK\Models\Mk;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Rules\BobotKomponenSama100Rule;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -37,9 +36,7 @@ it('menolak bobot jika total komponen bukan 100', function () {
     $semester = buatSemesterUjiBobot();
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -79,9 +76,7 @@ it('menjumlahkan bobot antar kode asesmen berbeda pada mata kuliah dan semester 
     $semester = buatSemesterUjiBobot();
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',

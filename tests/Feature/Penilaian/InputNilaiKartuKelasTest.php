@@ -18,7 +18,6 @@ use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Support\PenilaianMkTerpilih;
@@ -76,14 +75,17 @@ function buatKelasUntukMkInputNilai(
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SUB-'.$kodeKelas]);
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($semesterId)->create(['kode' => 'SUB-'.$kodeKelas]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->updateOrCreate(
-        ['mk_id' => $mk->id, 'semester_id' => $semesterId, 'kode' => 'UTS'],
-        ['evaluasi_id' => $evaluasi->id, 'nama' => 'UTS', 'bobot' => 100],
-    );
+    $komponen = komponenUntukSemester($mk->id, $semesterId, [
+        'kode' => 'UTS',
+        'evaluasi_id' => $evaluasi->id,
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,

@@ -14,7 +14,6 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\EditKomponenPenilaian;
@@ -79,9 +78,7 @@ it('toolbar asesmen: filter semester tanpa indikator filter aktif dan tanpa urut
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'ASES-01',
         'nama' => 'Kuis 1',
@@ -109,16 +106,12 @@ it('kode subcpmk pada card asesmen menjadi trigger keterangan tanpa membuka edit
         'deskripsi' => 'Deskripsi CPMK trigger.',
     ]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
-    $sub = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    $sub = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK-TRG',
         'deskripsi' => 'Deskripsi Sub-CPMK untuk trigger di card asesmen.',
     ]);
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'ASES-TRG',
         'nama' => 'Asesmen Trigger',
@@ -126,6 +119,7 @@ it('kode subcpmk pada card asesmen menjadi trigger keterangan tanpa membuka edit
     ]);
 
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $sub->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -159,16 +153,12 @@ it('Tabel Rencana Evaluasi memakai trigger keterangan untuk kode CPL dan CPMK', 
         'deskripsi' => 'Deskripsi CPMK di rencana evaluasi.',
     ]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
-    $sub = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    $sub = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK-RE',
         'deskripsi' => 'Sub untuk rantai CPL-CPMK.',
     ]);
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'ASES-RE',
         'nama' => 'Asesmen Rencana Evaluasi',
@@ -176,6 +166,7 @@ it('Tabel Rencana Evaluasi memakai trigger keterangan untuk kode CPL dan CPMK', 
     ]);
 
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $sub->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -212,8 +203,9 @@ it('membuat asesmen baru menghasilkan satu baris untuk mk dan semester terpilih,
 
     expect($komponens)->toHaveCount(1)
         ->and($komponens->first()->mk_id)->toBe($this->mk->id)
-        ->and($komponens->first()->semester_id)->toBe($this->semester->id)
-        ->and($komponens->first()->nama)->toBe('UTS Teori');
+        ->and($komponens->first()->nama)->toBe('UTS Teori')
+        // Berlakunya asesmen ada di lampiran semester, bukan kolom barisnya.
+        ->and($komponens->first()->semesters->pluck('id')->all())->toBe([$this->semester->id]);
 });
 
 it('label field pada form adalah mata kuliah, bukan kelas mk', function () {
@@ -226,9 +218,7 @@ it('label field pada form adalah mata kuliah, bukan kelas mk', function () {
 });
 
 it('mengedit satu-satunya asesmen langsung berlaku untuk seluruh kelas mk terkait', function () {
-    $uts = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $uts = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -251,9 +241,7 @@ it('mengedit satu-satunya asesmen langsung berlaku untuk seluruh kelas mk terkai
 });
 
 it('total bobot dihitung dari satu baris per kode, bukan dijumlah per kelas', function () {
-    $utsA = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $utsA = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -268,9 +256,7 @@ it('total bobot dihitung dari satu baris per kode, bukan dijumlah per kelas', fu
 });
 
 it('tombol Normalisasi Bobot tampil bila total bobot belum 100%', function () {
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -287,9 +273,7 @@ it('tombol Normalisasi Bobot tampil bila total bobot belum 100%', function () {
 });
 
 it('tombol Normalisasi Bobot disembunyikan bila total bobot sudah 100%', function () {
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -315,9 +299,7 @@ it('banner bobot dan card rencana evaluasi tidak tampil jika komponen semester b
 });
 
 it('card Tabel Rencana Evaluasi tampil setelah komponen penilaian semester diisi', function () {
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -349,7 +331,7 @@ it('mengimpor satu baris asesmen menghasilkan satu komponen yang dipakai bersama
 
     expect($komponens)->toHaveCount(1)
         ->and($komponens->first()->mk_id)->toBe($this->mk->id)
-        ->and($komponens->first()->semester_id)->toBe($this->semester->id);
+        ->and($komponens->first()->semesters->pluck('id')->all())->toBe([$this->semester->id]);
 });
 
 it('mengosongkan preview import dari semester lain saat modal ditutup', function () {
@@ -362,9 +344,7 @@ it('mengosongkan preview import dari semester lain saat modal ditutup', function
         'status_aktif' => false,
     ]);
 
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $semesterSumber->id,
+    komponenUntukSemester($this->mk->id, $semesterSumber->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'SUMBER-01',
         'nama' => 'Kuis sumber',
@@ -375,13 +355,13 @@ it('mengosongkan preview import dari semester lain saat modal ditutup', function
     MkTerpilih::set($this->mk->id);
 
     $halaman = Livewire::test(ListKomponenPenilaians::class)
-        ->set('salinAntarSemesterSumberLive', $semesterSumber->id);
+        ->set('pakaiUlangSumberLive', $semesterSumber->id);
 
-    expect($halaman->get('salinAntarSemesterSumberLive'))->toBe($semesterSumber->id);
+    expect($halaman->get('pakaiUlangSumberLive'))->toBe($semesterSumber->id);
 
     $halaman
         ->call('unmountAction')
-        ->assertSet('salinAntarSemesterSumberLive', null);
+        ->assertSet('pakaiUlangSumberLive', null);
 });
 
 it('mengosongkan preview impor massal asesmen saat modal ditutup', function () {

@@ -23,7 +23,6 @@ use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
@@ -62,24 +61,23 @@ function siapkanFixtureDuaAngkatan(AcademicUnit $prodi, Kurikulum $kurikulum, Us
     $kmmLama = KelasMkMahasiswa::query()->create(['kelas_mk_id' => $kelas->id, 'mahasiswa_id' => $mahasiswaLama->id]);
     $kmmBaru = KelasMkMahasiswa::query()->create(['kelas_mk_id' => $kelas->id, 'mahasiswa_id' => $mahasiswaBaru->id]);
 
-    $cpmk = Cpmk::factory()->forMk($mk)->create();
+    $cpmk = Cpmk::factory()->forMk($mk)->untukSemester($semester->id)->create();
     $cpl = Cpl::factory()->forAcademicUnit($prodi)->create(['kode' => 'CPL02']);
     $bok = Bok::factory()->forAcademicUnit($prodi)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['semester_id' => $semester->id]);
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($semester->id)->create();
 
     $evaluasi = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
         'bobot' => 100,
     ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -139,19 +137,18 @@ function buatMkPenyumbangCpl(
     ]);
 
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => $bobotCplMk]);
-    $cpmk = Cpmk::factory()->forMk($mk)->create();
+    $cpmk = Cpmk::factory()->forMk($mk)->untukSemester($semester->id)->create();
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['semester_id' => $semester->id]);
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($semester->id)->create();
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => Evaluasi::query()->where('kode', 'quiz')->value('id'),
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
         'bobot' => 100,
     ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,

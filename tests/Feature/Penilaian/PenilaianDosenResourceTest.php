@@ -80,14 +80,17 @@ function buatKelasPenilaianDosen(
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create();
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($semesterId)->create();
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->updateOrCreate(
-        ['mk_id' => $mk->id, 'semester_id' => $semesterId, 'kode' => 'UTS'],
-        ['evaluasi_id' => $evaluasi->id, 'nama' => 'UTS', 'bobot' => 100],
-    );
+    $komponen = komponenUntukSemester($mk->id, $semesterId, [
+        'kode' => 'UTS',
+        'evaluasi_id' => $evaluasi->id,
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -341,7 +344,7 @@ it('dosen pengampu dapat menghapus kelas belum dinilai dari halaman penilaian be
         ->and(KelasMkMahasiswa::query()->whereIn('id', $kmmIds)->count())->toBe(0)
         ->and(KomponenPenilaian::query()
             ->where('mk_id', $mk->id)
-            ->where('semester_id', $this->semesterAktif->id)
+            ->untukSemester($this->semesterAktif->id)
             ->exists())->toBeTrue();
 });
 

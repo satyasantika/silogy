@@ -79,15 +79,14 @@ function siapkanPenugasanLaporanKoordinator(Mk $mk, AcademicUnit $prodi, string 
     $subcpmk = Subcpmk::factory()->for($mkCpmk)->create();
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semesterId,
+    $komponen = komponenUntukSemester($mk->id, $semesterId, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 100,
     ]);
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,

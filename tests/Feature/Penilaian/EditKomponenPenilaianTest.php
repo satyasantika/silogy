@@ -11,7 +11,6 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\EditKomponenPenilaian;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -58,9 +57,7 @@ it('korma dapat menyimpan perubahan komponen penilaian yang valid', function () 
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS Awal',
@@ -79,17 +76,13 @@ it('tetap menyimpan perubahan bobot walau total komponen bukan 100', function ()
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
-    $uts = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $uts = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 50,
     ]);
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UAS',
         'nama' => 'UAS',
@@ -101,24 +94,20 @@ it('tetap menyimpan perubahan bobot walau total komponen bukan 100', function ()
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect((float) $uts->fresh()->bobot)->toBe(70.0);
+    expect($uts->bobotUntukSemester($this->semester->id))->toBe(70.0);
 });
 
 it('menampilkan total bobot secara realtime saat bobot sedang diisi', function () {
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
-    $uts = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $uts = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 50,
     ]);
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UAS',
         'nama' => 'UAS',
@@ -137,9 +126,7 @@ it('menampilkan total bobot secara realtime saat bobot sedang diisi', function (
 it('field mata kuliah pada edit tetap terisi sesuai komponen walau mk terpilih berbeda', function () {
     $mkLain = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
 
-    $uts = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $uts = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $this->evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',

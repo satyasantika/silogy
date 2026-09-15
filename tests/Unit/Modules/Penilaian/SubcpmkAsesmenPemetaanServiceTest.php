@@ -11,9 +11,7 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use Database\Seeders\AcademicUnitSeeder;
@@ -45,25 +43,13 @@ beforeEach(function () {
     $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
-    $cpmk = Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK-01', 'deskripsi' => 'Uji']);
+    $cpmk = cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK-01']);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $this->sub1 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id,
-        'semester_id' => $this->semester->id,
-        'kode' => 'SubCPMK01.1',
-        'deskripsi' => 'Sub 1',
-    ]);
-    $this->sub2 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id,
-        'semester_id' => $this->semester->id,
-        'kode' => 'SubCPMK01.2',
-        'deskripsi' => 'Sub 2',
-    ]);
+    $this->sub1 = subcpmkUntukSemester($mkCpmk, $this->semester, ['kode' => 'SubCPMK01.1', 'deskripsi' => 'Sub 1']);
+    $this->sub2 = subcpmkUntukSemester($mkCpmk, $this->semester, ['kode' => 'SubCPMK01.2', 'deskripsi' => 'Sub 2']);
 
-    $this->komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $this->komponen = komponenUntukSemester($this->mk, $this->semester, [
         'evaluasi_id' => Evaluasi::query()->where('kode', 'quiz')->value('id'),
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
@@ -72,8 +58,8 @@ beforeEach(function () {
 });
 
 it('membagi bobot pivot subcpmk merata setelah pemetaan', function () {
-    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1);
-    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub2);
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1, $this->semester->id);
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub2, $this->semester->id);
 
     $bobots = SubcpmkKomponenPenilaian::query()
         ->where('komponen_penilaian_id', $this->komponen->id)
@@ -95,18 +81,18 @@ it('mencari subcpmk berdasarkan kode pada mk dan semester', function () {
 });
 
 it('bobot subcpmk dihitung ulang otomatis setiap interaksi dengan komponen penilaian', function () {
-    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1);
-    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub2);
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1, $this->semester->id);
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub2, $this->semester->id);
 
     // Komponen bobot 8%, dipetakan merata ke 2 Sub-CPMK (50% masing-masing) => 8 * 50% = 4.
-    expect((float) $this->sub1->fresh()->bobot)->toBe(4.0)
-        ->and((float) $this->sub2->fresh()->bobot)->toBe(4.0);
+    expect($this->sub1->bobotUntukSemester($this->semester->id))->toBe(4.0)
+        ->and($this->sub2->bobotUntukSemester($this->semester->id))->toBe(4.0);
 });
 
 it('bobot subcpmk kembali ke 0 setelah satu-satunya interaksinya dihapus', function () {
-    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1);
+    SubcpmkAsesmenPemetaanService::petakanSubcpmk($this->komponen, $this->sub1, $this->semester->id);
 
-    expect((float) $this->sub1->fresh()->bobot)->toBe(8.0);
+    expect($this->sub1->bobotUntukSemester($this->semester->id))->toBe(8.0);
 
     SubcpmkKomponenPenilaian::query()
         ->where('subcpmk_id', $this->sub1->id)
@@ -114,5 +100,5 @@ it('bobot subcpmk kembali ke 0 setelah satu-satunya interaksinya dihapus', funct
         ->firstOrFail()
         ->delete();
 
-    expect((float) $this->sub1->fresh()->bobot)->toBe(0.0);
+    expect($this->sub1->bobotUntukSemester($this->semester->id))->toBe(0.0);
 });

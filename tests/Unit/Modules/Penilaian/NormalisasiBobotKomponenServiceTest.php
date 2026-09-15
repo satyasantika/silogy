@@ -8,6 +8,7 @@ use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Mk;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Services\NormalisasiBobotKomponenService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -47,17 +48,13 @@ it('menormalisasi bobot walau belum ada kelas MK', function () {
     $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
     $evaluasiUts = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasiQuiz->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
         'bobot' => 30,
     ]);
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasiUts->id,
         'kode' => 'Asesmen02',
         'nama' => 'UTS',
@@ -71,9 +68,14 @@ it('menormalisasi bobot walau belum ada kelas MK', function () {
         ->and($hasil['jumlah_asesmen'])->toBe(2)
         ->and($hasil['total_sebelum'])->toBe(60.0);
 
-    $totalSesudah = (float) KomponenPenilaian::query()
-        ->where('mk_id', $this->mk->id)
+    // Bobot dibaca dari pivot semester: baris Asesmen sendiri tidak lagi
+    // menyimpan bobot karena satu Asesmen bisa dipakai beberapa semester.
+    $totalSesudah = (float) KomponenPenilaianSemester::query()
         ->where('semester_id', $this->semester->id)
+        ->whereIn(
+            'komponen_penilaian_id',
+            KomponenPenilaian::query()->select('id')->where('mk_id', $this->mk->id),
+        )
         ->sum('bobot');
 
     expect($totalSesudah)->toBe(100.0);

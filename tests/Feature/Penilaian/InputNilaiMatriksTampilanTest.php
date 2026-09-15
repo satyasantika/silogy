@@ -17,7 +17,6 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
@@ -62,7 +61,7 @@ function siapkanFixtureTampilanMatriks(User $dosen): array
         'mahasiswa_id' => $mahasiswaDua->id,
     ]);
 
-    $cpmk = Cpmk::factory()->forMk($mk)->create();
+    $cpmk = Cpmk::factory()->forMk($mk)->untukSemester($semester->id)->create();
     $cpl = Cpl::factory()->forAcademicUnit($prodi)->create(['kode' => 'CPL06']);
     $bok = Bok::factory()->forAcademicUnit($prodi)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
@@ -71,15 +70,14 @@ function siapkanFixtureTampilanMatriks(User $dosen): array
     $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SubCPMK04.1']);
 
     $evaluasi = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis Konseptual',
         'bobot' => 8,
     ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -87,15 +85,14 @@ function siapkanFixtureTampilanMatriks(User $dosen): array
 
     // Asesmen kedua hanya untuk menggenapkan total bobot komponen MK ini
     // menjadi 100% (syarat penugasanSelesai()), tidak diasersikan lebih jauh.
-    $komponenPenggenap = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponenPenggenap = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'Asesmen02',
         'nama' => 'Tugas Lainnya',
         'bobot' => 92,
     ]);
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponenPenggenap->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponenPenggenap->id,
         'bobot' => 100,

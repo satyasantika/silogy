@@ -2,16 +2,17 @@
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
-use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\MkTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -22,6 +23,7 @@ beforeEach(function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
     $this->seed(AcademicUnitSeeder::class);
     $this->seed(RolePermissionSeeder::class);
+    $this->seed(SemesterSeeder::class);
 
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $this->korma = User::query()->where('username', 'korma')->firstOrFail();
@@ -155,16 +157,10 @@ it('cpmk hanya menampilkan data mk terpilih', function () {
     ]);
     MkUnit::factory()->forMk($mkLain)->forAcademicUnit($this->prodi)->create(['kode' => 'SEL102']);
 
-    Cpmk::query()->create([
-        'mk_id' => $mkTerpilih->id,
-        'kode' => 'CPMK-SEL',
-        'deskripsi' => 'Hanya MK terpilih.',
-    ]);
-    Cpmk::query()->create([
-        'mk_id' => $mkLain->id,
-        'kode' => 'CPMK-LAIN',
-        'deskripsi' => 'MK lain.',
-    ]);
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+
+    cpmkUntukSemester($mkTerpilih, $semester, ['kode' => 'CPMK-SEL', 'deskripsi' => 'Hanya MK terpilih.']);
+    cpmkUntukSemester($mkLain, $semester, ['kode' => 'CPMK-LAIN', 'deskripsi' => 'MK lain.']);
 
     MkTerpilih::set($mkTerpilih->id);
 

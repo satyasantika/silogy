@@ -20,7 +20,6 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -159,9 +158,7 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
         'bobot' => 100,
     ]);
 
-    $subcpmk = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    $subcpmk = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
         'kode' => 'SUB-INT',
         'deskripsi' => 'Sub uji.',
         'bobot' => 100,
@@ -175,9 +172,7 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
     ]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'nama' => 'UTS Interaksi',
         'bobot' => 100,
@@ -195,7 +190,7 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
         ->and($pivot?->semester_id)->toBe($this->semester->id);
 
     // Bobot Sub-CPMK dihitung ulang otomatis: komponen 100% x pivot 40% = 40.
-    expect((float) $subcpmk->fresh()->bobot)->toBe(40.0);
+    expect($subcpmk->bobotUntukSemester($this->semester->id))->toBe(40.0);
 
     Livewire::test(SubcpmkAsesmenMatrix::class)
         ->call('updateBobot', $komponen->id, $subcpmk->id, null);
@@ -204,7 +199,7 @@ it('matriks subcpmk asesmen menyimpan bobot pivot', function () {
         ->where('komponen_penilaian_id', $komponen->id)
         ->where('subcpmk_id', $subcpmk->id)
         ->exists())->toBeFalse()
-        ->and((float) $subcpmk->fresh()->bobot)->toBe(0.0);
+        ->and($subcpmk->bobotUntukSemester($this->semester->id))->toBe(0.0);
 });
 
 it('matriks subcpmk asesmen membatasi bobot pivot maksimal sisa kapasitas Asesmen', function () {
@@ -218,11 +213,13 @@ it('matriks subcpmk asesmen membatasi bobot pivot maksimal sisa kapasitas Asesme
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $subcpmk1 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-CAP-1', 'deskripsi' => 'Sub 1',
+    $subcpmk1 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-CAP-1',
+        'deskripsi' => 'Sub 1',
     ]);
-    $subcpmk2 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-CAP-2', 'deskripsi' => 'Sub 2',
+    $subcpmk2 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-CAP-2',
+        'deskripsi' => 'Sub 2',
     ]);
 
     KelasMk::query()->create([
@@ -230,8 +227,10 @@ it('matriks subcpmk asesmen membatasi bobot pivot maksimal sisa kapasitas Asesme
     ]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Kapasitas', 'bobot' => 10,
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => $evaluasi->id,
+        'nama' => 'UTS Kapasitas',
+        'bobot' => 10,
     ]);
 
     Livewire::test(SubcpmkAsesmenMatrix::class)
@@ -253,7 +252,7 @@ it('matriks subcpmk asesmen membatasi bobot pivot maksimal sisa kapasitas Asesme
 it('menandai warna badge total bobot sesuai perbandingan dengan bobot Asesmen', function () {
     $mk = seedMkKoordinatorContext($this);
     $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
-    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-WARNA', 'deskripsi' => 'Warna badge.']);
+    $cpmk = cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-WARNA', 'deskripsi' => 'Warna badge.']);
 
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
     $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
@@ -261,17 +260,41 @@ it('menandai warna badge total bobot sesuai perbandingan dengan bobot Asesmen', 
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $subKurang = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-KURANG', 'deskripsi' => 'Sub kurang.']);
-    $subLebih = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-LEBIH', 'deskripsi' => 'Sub lebih.']);
-    $subPas = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-PAS', 'deskripsi' => 'Sub pas.']);
+    $subKurang = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-KURANG',
+        'deskripsi' => 'Sub kurang.',
+    ]);
+    $subLebih = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-LEBIH',
+        'deskripsi' => 'Sub lebih.',
+    ]);
+    $subPas = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-PAS',
+        'deskripsi' => 'Sub pas.',
+    ]);
 
     KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    $komponenKurang = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Kurang', 'bobot' => 8]);
-    $komponenLebih = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Lebih', 'bobot' => 8]);
-    $komponenPas = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Pas', 'bobot' => 8]);
+    $komponenKurang = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS-KURANG',
+        'nama' => 'UTS Kurang',
+        'bobot' => 8,
+    ]);
+    $komponenLebih = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS-LEBIH',
+        'nama' => 'UTS Lebih',
+        'bobot' => 8,
+    ]);
+    $komponenPas = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS-PAS',
+        'nama' => 'UTS Pas',
+        'bobot' => 8,
+    ]);
 
     // 7 dari 8 (kurang) → warning; 9 dari 8 (lebih) → danger; 8 dari 8 (pas) → success.
     SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenKurang->id, 'subcpmk_id' => $subKurang->id, 'semester_id' => $this->semester->id, 'bobot' => 7]);
@@ -292,7 +315,7 @@ it('menandai warna badge total bobot sesuai perbandingan dengan bobot Asesmen', 
 it('menampilkan tombol Normalisasi hanya untuk asesmen yang totalnya belum sama dengan bobotnya, dan menormalisasi saat dipanggil', function () {
     $mk = seedMkKoordinatorContext($this);
     $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
-    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-NORM', 'deskripsi' => 'Normalisasi.']);
+    $cpmk = cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-NORM', 'deskripsi' => 'Normalisasi.']);
 
     $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
     $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
@@ -300,15 +323,31 @@ it('menampilkan tombol Normalisasi hanya untuk asesmen yang totalnya belum sama 
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $subKurang = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-N-KURANG', 'deskripsi' => 'Sub kurang.']);
-    $subPas = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-N-PAS', 'deskripsi' => 'Sub pas.']);
+    $subKurang = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-N-KURANG',
+        'deskripsi' => 'Sub kurang.',
+    ]);
+    $subPas = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-N-PAS',
+        'deskripsi' => 'Sub pas.',
+    ]);
 
     KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    $komponenKurang = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Kurang Norm', 'bobot' => 8]);
-    $komponenPas = KomponenPenilaian::query()->create(['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id, 'nama' => 'UTS Pas Norm', 'bobot' => 8]);
+    $komponenKurang = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS-KURANG-NORM',
+        'nama' => 'UTS Kurang Norm',
+        'bobot' => 8,
+    ]);
+    $komponenPas = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS-PAS-NORM',
+        'nama' => 'UTS Pas Norm',
+        'bobot' => 8,
+    ]);
 
     $pivotKurang = SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenKurang->id, 'subcpmk_id' => $subKurang->id, 'semester_id' => $this->semester->id, 'bobot' => 7]);
     SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponenPas->id, 'subcpmk_id' => $subPas->id, 'semester_id' => $this->semester->id, 'bobot' => 8]);
@@ -351,11 +390,13 @@ it('rekap Σ asesmen ikut terbarui setelah updateBobot dan bobot 0 menghapus piv
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $sub1 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-REKAP-1', 'deskripsi' => 'Sub 1',
+    $sub1 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-REKAP-1',
+        'deskripsi' => 'Sub 1',
     ]);
-    $sub2 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-REKAP-2', 'deskripsi' => 'Sub 2',
+    $sub2 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-REKAP-2',
+        'deskripsi' => 'Sub 2',
     ]);
 
     KelasMk::query()->create([
@@ -363,9 +404,7 @@ it('rekap Σ asesmen ikut terbarui setelah updateBobot dan bobot 0 menghapus piv
     ]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'ASES-REKAP',
         'nama' => 'UTS Rekap',
@@ -413,11 +452,13 @@ it('rekap Σ menjadi 10 setelah turun 10 ke 8 lalu isi sisa 2 pada Sub-CPMK lain
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $sub1 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-8PLUS2-A', 'deskripsi' => 'A',
+    $sub1 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-8PLUS2-A',
+        'deskripsi' => 'A',
     ]);
-    $sub2 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-8PLUS2-B', 'deskripsi' => 'B',
+    $sub2 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-8PLUS2-B',
+        'deskripsi' => 'B',
     ]);
 
     KelasMk::query()->create([
@@ -425,9 +466,7 @@ it('rekap Σ menjadi 10 setelah turun 10 ke 8 lalu isi sisa 2 pada Sub-CPMK lain
     ]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'ASES-8PLUS2',
         'nama' => 'UTS 8+2',
@@ -463,11 +502,13 @@ it('kuota penuh mengunci sel Sub-CPMK kosong (readonly) hingga bobot terisi ditu
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $subIsi = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-ISI', 'deskripsi' => 'Terisi',
+    $subIsi = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-ISI',
+        'deskripsi' => 'Terisi',
     ]);
-    $subKosong = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-KOSONG', 'deskripsi' => 'Kosong',
+    $subKosong = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-KOSONG',
+        'deskripsi' => 'Kosong',
     ]);
 
     KelasMk::query()->create([
@@ -475,9 +516,7 @@ it('kuota penuh mengunci sel Sub-CPMK kosong (readonly) hingga bobot terisi ditu
     ]);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'ASES-KUNCI',
         'nama' => 'UTS Kunci',

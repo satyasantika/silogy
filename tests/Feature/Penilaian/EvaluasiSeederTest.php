@@ -6,7 +6,6 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use Database\Seeders\EvaluasiSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +30,7 @@ it('mengisi 9 evaluasi default', function () {
         ]);
 });
 
-it('komponen_penilaian memiliki default bobot 100.00', function () {
+it('komponen_penilaian_semester memiliki default bobot 100.00', function () {
     $this->seed(EvaluasiSeeder::class);
 
     $prodi = AcademicUnit::factory()->create();
@@ -52,17 +51,17 @@ it('komponen_penilaian memiliki default bobot 100.00', function () {
     ]);
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'nama' => 'UTS Teori',
     ]);
 
-    expect((string) $komponen->fresh()->bobot)->toBe('100.00');
+    // Bobot pindah ke lampiran semester: satu asesmen bisa berbobot beda
+    // di semester yang berbeda.
+    expect($komponen->bobotUntukSemester($semester->id))->toBe(100.0);
 
     if (DB::connection()->getDriverName() === 'mysql') {
-        $ddl = DB::selectOne('SHOW CREATE TABLE komponen_penilaian')->{'Create Table'} ?? '';
+        $ddl = DB::selectOne('SHOW CREATE TABLE komponen_penilaian_semester')->{'Create Table'} ?? '';
 
         expect($ddl)->toContain('`bobot` decimal(5,2) NOT NULL DEFAULT 100.00');
     }

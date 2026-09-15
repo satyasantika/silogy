@@ -29,12 +29,15 @@ use App\Modules\Kurikulum\States\ProfilLulusanState;
 use App\Modules\Kurikulum\States\SetdosenmkState;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\CpmkSemester;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Models\SubcpmkSemester;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Illuminate\Support\Collection;
@@ -200,6 +203,8 @@ class SimulasiAkademikBuilder
             ],
         );
 
+        $this->berlakukanCpmk($cpmk);
+
         $cplMk = CplMk::query()->where('mk_id', $mk->id)->firstOrFail();
 
         $mkCpmk = MkCpmk::query()->firstOrCreate(
@@ -207,14 +212,7 @@ class SimulasiAkademikBuilder
             ['id' => (string) Str::uuid(), 'bobot' => 100],
         );
 
-        $subcpmk = Subcpmk::query()->firstOrCreate(
-            ['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-'.$definisi['kode']],
-            [
-                'id' => (string) Str::uuid(),
-                'deskripsi' => 'Sub-CPMK simulasi',
-                'bobot' => 100,
-            ],
-        );
+        $subcpmk = $this->buatSubcpmk($mkCpmk, 'SUB-'.$definisi['kode'], 'Sub-CPMK simulasi', 100);
 
         $uts = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
         $uas = Evaluasi::query()->where('kode', 'uas')->firstOrFail();
@@ -228,8 +226,15 @@ class SimulasiAkademikBuilder
             // sendiri — satu-satunya Sub-CPMK yang dipetakan ke komponen
             // ini, jadi seluruh bobot komponen jadi kontribusinya.
             $skp = SubcpmkKomponenPenilaian::query()->firstOrCreate(
-                ['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponen->id],
-                ['id' => (string) Str::uuid(), 'bobot' => (float) $komponen->bobot],
+                [
+                    'subcpmk_id' => $subcpmk->id,
+                    'komponen_penilaian_id' => $komponen->id,
+                    'semester_id' => $this->semester->id,
+                ],
+                [
+                    'id' => (string) Str::uuid(),
+                    'bobot' => $komponen->bobotUntukSemester((string) $this->semester->id),
+                ],
             );
             $skpIds[] = $skp->id;
         }
@@ -529,6 +534,8 @@ class SimulasiAkademikBuilder
             ],
         );
 
+        $this->berlakukanCpmk($cpmk);
+
         $cplMk = CplMk::query()->where('mk_id', $mk->id)->firstOrFail();
 
         $mkCpmk = MkCpmk::query()->firstOrCreate(
@@ -538,18 +545,7 @@ class SimulasiAkademikBuilder
 
         $subcpmkIds = [];
         foreach (['A', 'B'] as $suffix) {
-            $sub = Subcpmk::query()->firstOrCreate(
-                [
-                    'mk_cpmk_id' => $mkCpmk->id,
-                    'semester_id' => $this->semester->id,
-                    'kode' => 'SUB-'.$kodeMk.'-'.$suffix,
-                ],
-                [
-                    'id' => (string) Str::uuid(),
-                    'deskripsi' => 'Sub-CPMK simulasi '.$suffix,
-                    'bobot' => 50,
-                ],
-            );
+            $sub = $this->buatSubcpmk($mkCpmk, 'SUB-'.$kodeMk.'-'.$suffix, 'Sub-CPMK simulasi '.$suffix, 50);
             $subcpmkIds[] = $sub->id;
         }
 
@@ -572,8 +568,18 @@ class SimulasiAkademikBuilder
                 // sama-sama dipetakan ke komponen ini (bobot komponen ÷ 2),
                 // meniru SubcpmkAsesmenPemetaanService::redistribusiBobotMerata().
                 $skp = SubcpmkKomponenPenilaian::query()->firstOrCreate(
-                    ['subcpmk_id' => $subcpmkId, 'komponen_penilaian_id' => $komponen->id],
-                    ['id' => (string) Str::uuid(), 'bobot' => round((float) $komponen->bobot / count($subcpmkIds), 2)],
+                    [
+                        'subcpmk_id' => $subcpmkId,
+                        'komponen_penilaian_id' => $komponen->id,
+                        'semester_id' => $this->semester->id,
+                    ],
+                    [
+                        'id' => (string) Str::uuid(),
+                        'bobot' => round(
+                            $komponen->bobotUntukSemester((string) $this->semester->id) / count($subcpmkIds),
+                            2,
+                        ),
+                    ],
                 );
                 $skpIds[] = $skp->id;
             }
@@ -629,17 +635,58 @@ class SimulasiAkademikBuilder
         });
     }
 
+    /**
+     * Berlakukan CPMK pada semester simulasi. Tanpa lampiran ini CPMK tidak
+     * berlaku di mana pun, sehingga tidak muncul di daftar maupun kalkulasi.
+     */
+    protected function berlakukanCpmk(Cpmk $cpmk): void
+    {
+        CpmkSemester::query()->firstOrCreate([
+            'cpmk_id' => $cpmk->id,
+            'semester_id' => $this->semester->id,
+        ], ['id' => (string) Str::uuid()]);
+    }
+
+    /**
+     * Sub-CPMK beserta lampiran semesternya. Identitasnya (mk_cpmk, kode);
+     * berlakunya dan bobotnya milik pasangan (sub-cpmk, semester).
+     */
+    protected function buatSubcpmk(MkCpmk $mkCpmk, string $kode, string $deskripsi, float $bobot): Subcpmk
+    {
+        $subcpmk = Subcpmk::query()->firstOrCreate(
+            ['mk_cpmk_id' => $mkCpmk->id, 'kode' => $kode],
+            ['id' => (string) Str::uuid(), 'deskripsi' => $deskripsi],
+        );
+
+        SubcpmkSemester::query()->updateOrCreate(
+            ['subcpmk_id' => $subcpmk->id, 'semester_id' => $this->semester->id],
+            ['id' => (string) Str::uuid(), 'bobot' => $bobot],
+        );
+
+        return $subcpmk;
+    }
+
     protected function buatKomponen(Mk $mk, Evaluasi $evaluasi, string $nama, float $bobot): KomponenPenilaian
     {
-        return KomponenPenilaian::query()->firstOrCreate(
-            ['mk_id' => $mk->id, 'semester_id' => $this->semester->id, 'kode' => $nama],
+        $komponen = KomponenPenilaian::query()->firstOrCreate(
+            ['mk_id' => $mk->id, 'kode' => $nama],
             [
                 'id' => (string) Str::uuid(),
                 'evaluasi_id' => $evaluasi->id,
                 'nama' => $nama,
-                'bobot' => $bobot,
             ],
         );
+
+        // Berlakunya asesmen pada semester ini, beserta bobotnya, ada di pivot.
+        KomponenPenilaianSemester::query()->updateOrCreate(
+            [
+                'komponen_penilaian_id' => $komponen->id,
+                'semester_id' => $this->semester->id,
+            ],
+            ['id' => (string) Str::uuid(), 'bobot' => $bobot],
+        );
+
+        return $komponen;
     }
 
     /**

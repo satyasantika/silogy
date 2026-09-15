@@ -87,8 +87,7 @@ beforeEach(function () {
 
 function buatCpmkDenganPemetaan(): Cpmk
 {
-    $cpmk = Cpmk::query()->create([
-        'mk_id' => test()->mk->id,
+    $cpmk = cpmkUntukSemester(test()->mk, test()->semester, [
         'kode' => 'CPMK-01',
         'deskripsi' => 'Mahasiswa memahami konsep dasar',
     ]);
@@ -106,9 +105,7 @@ function buatSubcpmk(Cpmk $cpmk): Subcpmk
 {
     $mkCpmk = MkCpmk::query()->where('cpmk_id', $cpmk->id)->firstOrFail();
 
-    return Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id,
-        'semester_id' => test()->semester->id,
+    return subcpmkUntukSemester($mkCpmk->id, test()->semester->id, [
         'kode' => 'SUB-01',
         'deskripsi' => 'Menjelaskan definisi',
     ]);
@@ -118,9 +115,7 @@ function buatAsesmen(): KomponenPenilaian
 {
     $evaluasi = Evaluasi::query()->firstOrFail();
 
-    return KomponenPenilaian::query()->create([
-        'mk_id' => test()->mk->id,
-        'semester_id' => test()->semester->id,
+    return komponenUntukSemester(test()->mk->id, test()->semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'ASES-01',
         'nama' => 'Kuis 1',
@@ -200,9 +195,7 @@ it('asesmen: tombol Laporan/Mahasiswa hanya muncul bila ada komponen penilaian p
     // Komponen penilaian dibuat untuk semester LAIN, bukan semester yang
     // sedang dipilih ($this->semester, aktif) — tombol lanjutan tidak boleh
     // muncul karena secara semester belum ada asesmen.
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $semesterLain->id,
+    komponenUntukSemester($this->mk->id, $semesterLain->id, [
         'evaluasi_id' => Evaluasi::query()->firstOrFail()->id,
         'kode' => 'ASES-LAIN',
         'nama' => 'Kuis semester lain',

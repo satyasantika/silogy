@@ -14,10 +14,8 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -66,9 +64,7 @@ beforeEach(function () {
 });
 
 it('toolbar subcpmk: filter semester tanpa indikator filter aktif dan tanpa urutkan menurut', function () {
-    Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK04.1',
         'deskripsi' => 'Uji toolbar',
     ]);
@@ -82,9 +78,7 @@ it('toolbar subcpmk: filter semester tanpa indikator filter aktif dan tanpa urut
 });
 
 it('menampilkan badge taksonomi bloom pada tabel subcpmk', function () {
-    Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK04.1',
         'deskripsi' => 'Uji taksonomi',
         'bloom_kognitif' => 'C2',
@@ -99,9 +93,7 @@ it('menampilkan badge taksonomi bloom pada tabel subcpmk', function () {
 });
 
 it('menampilkan rekap bobot evaluasi berdekatan dengan kolom bobot subcpmk', function () {
-    $subcpmk = Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    $subcpmk = subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK04.1',
         'deskripsi' => 'Uji rekap bobot',
         'bobot' => 15,
@@ -111,26 +103,32 @@ it('menampilkan rekap bobot evaluasi berdekatan dengan kolom bobot subcpmk', fun
     $proyek = Evaluasi::query()->where('kode', 'proyek_individu')->firstOrFail();
     $partisipasi = Evaluasi::query()->where('kode', 'partisipasi_individu')->firstOrFail();
 
-    $komponenTugas = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id,
-        'evaluasi_id' => $tugas->id, 'kode' => 'T1', 'nama' => 'Tugas 1', 'bobot' => 25,
+    $komponenTugas = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $tugas->id,
+        'kode' => 'T1',
+        'nama' => 'Tugas 1',
+        'bobot' => 25,
     ]);
-    $komponenProyek = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id,
-        'evaluasi_id' => $proyek->id, 'kode' => 'PR1', 'nama' => 'Proyek 1', 'bobot' => 15,
+    $komponenProyek = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $proyek->id,
+        'kode' => 'PR1',
+        'nama' => 'Proyek 1',
+        'bobot' => 15,
     ]);
-    $komponenPartisipasi = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id,
-        'evaluasi_id' => $partisipasi->id, 'kode' => 'PT1', 'nama' => 'Partisipasi 1', 'bobot' => 10,
+    $komponenPartisipasi = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $partisipasi->id,
+        'kode' => 'PT1',
+        'nama' => 'Partisipasi 1',
+        'bobot' => 10,
     ]);
 
     // Bobot pivot langsung berupa kontribusi nyata ke nilai akhir (bukan lagi
     // "% bagian" dari komponen) — masing-masing komponen di sini punya
     // satu-satunya Sub-CPMK, jadi bebas diisi berapa pun hingga maks bobot
     // komponen itu sendiri (Tugas 25, Proyek 15, Partisipasi 10).
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenTugas->id, 'bobot' => 5]);
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenProyek->id, 'bobot' => 3]);
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenPartisipasi->id, 'bobot' => 2]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => semesterAsesmen($komponenTugas->id), 'subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenTugas->id, 'bobot' => 5]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => semesterAsesmen($komponenProyek->id), 'subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenProyek->id, 'bobot' => 3]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => semesterAsesmen($komponenPartisipasi->id), 'subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponenPartisipasi->id, 'bobot' => 2]);
 
     Livewire::test(ListSubcpmks::class)->loadTable()
         ->assertSee('Bobot evaluasi: 10%', escape: false)
@@ -140,9 +138,7 @@ it('menampilkan rekap bobot evaluasi berdekatan dengan kolom bobot subcpmk', fun
 });
 
 it('menampilkan keterangan belum ada asesmen terpetakan bila subcpmk belum dipetakan ke komponen penilaian', function () {
-    Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK04.2',
         'deskripsi' => 'Belum dipetakan',
     ]);
@@ -152,9 +148,7 @@ it('menampilkan keterangan belum ada asesmen terpetakan bila subcpmk belum dipet
 });
 
 it('tidak lagi menampilkan kolom semester pada tabel subcpmk', function () {
-    Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id,
-        'semester_id' => $this->semester->id,
+    subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
         'kode' => 'SubCPMK04.3',
         'deskripsi' => 'Uji tanpa semester',
     ]);

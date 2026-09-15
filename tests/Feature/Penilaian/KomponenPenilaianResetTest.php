@@ -13,11 +13,9 @@ use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\ListKomponenPenilaians;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -56,7 +54,10 @@ beforeEach(function () {
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
     $cpmk = Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK01', 'deskripsi' => 'Deskripsi.']);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
-    $this->subcpmk = Subcpmk::query()->create(['mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB01', 'deskripsi' => 'Deskripsi.']);
+    $this->subcpmk = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB01',
+        'deskripsi' => 'Deskripsi.',
+    ]);
 
     $this->actingAs($this->korma);
     KurikulumTerpilih::set($this->kurikulum->id);
@@ -71,9 +72,11 @@ it('tombol buat tidak lagi ada, impor massal selalu tampil', function () {
 });
 
 it('tombol reset aktif saat belum ada asesmen yang dipetakan ke subcpmk', function () {
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
     ]);
 
     Livewire::test(ListKomponenPenilaians::class)
@@ -81,9 +84,11 @@ it('tombol reset aktif saat belum ada asesmen yang dipetakan ke subcpmk', functi
 });
 
 it('tombol reset nonaktif saat asesmen sudah dipetakan ke subcpmk', function () {
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
     ]);
     SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->subcpmk->id, 'komponen_penilaian_id' => $komponen->id, 'semester_id' => $this->semester->id, 'bobot' => 100]);
 
@@ -91,24 +96,53 @@ it('tombol reset nonaktif saat asesmen sudah dipetakan ke subcpmk', function () 
         ->assertActionDisabled('resetData');
 });
 
-it('reset menghapus asesmen semester ini saja, tidak menyentuh semester lain', function () {
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
+it('reset melepas asesmen dari semester ini saja, barisnya tetap dipakai semester lain', function () {
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
     ]);
 
     $semesterLain = Semester::query()->create([
         'kode' => 'SMLN2', 'nama' => 'Semester Lain', 'jenis' => 'genap',
         'tahun_mulai' => 2025, 'tahun_selesai' => 2026, 'status_aktif' => false,
     ]);
-    $komponenLain = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $semesterLain->id, 'evaluasi_id' => $this->evaluasi->id,
-        'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
+    $komponenLain = komponenUntukSemester($this->mk->id, $semesterLain->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
+
+    // Kode asesmen unik per MK, jadi memakai kode yang sama untuk semester
+    // lain memang MEMAKAI ULANG baris yang sama — inti fitur ini.
+    expect($komponenLain->id)->toBe($komponen->id);
+
+    Livewire::test(ListKomponenPenilaians::class)
+        ->callAction('resetData');
+
+    $this->assertDatabaseMissing('komponen_penilaian_semester', [
+        'komponen_penilaian_id' => $komponen->id,
+        'semester_id' => $this->semester->id,
+    ]);
+    $this->assertDatabaseHas('komponen_penilaian_semester', [
+        'komponen_penilaian_id' => $komponen->id,
+        'semester_id' => $semesterLain->id,
+    ]);
+    $this->assertDatabaseHas('komponen_penilaian', ['id' => $komponen->id]);
+});
+
+it('reset menghapus asesmen yang tidak lagi dipakai semester mana pun', function () {
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
     ]);
 
     Livewire::test(ListKomponenPenilaians::class)
         ->callAction('resetData');
 
     $this->assertDatabaseMissing('komponen_penilaian', ['id' => $komponen->id]);
-    $this->assertDatabaseHas('komponen_penilaian', ['id' => $komponenLain->id]);
 });
