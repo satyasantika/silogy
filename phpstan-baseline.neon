@@ -951,25 +951,37 @@ parameters:
 		-
 			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''forceRender'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
+			count: 2
 			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
 
 		-
 			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''importMassalParseCa…'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
+			count: 2
 			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
 
 		-
 			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''importMassalRowsLive'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
+			count: 2
 			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
 
 		-
 			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''mountedActions'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 1
+			count: 2
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''pakaiUlangBarisCache'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
+			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
+
+		-
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\CpmkResource\\Pages\\ListCpmks\) and ''pakaiUlangSumberLive'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 2
 			path: app/Modules/MK/Filament/Resources/CpmkResource/Pages/ListCpmks.php
 
 		-
@@ -1249,13 +1261,13 @@ parameters:
 			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
 
 		-
-			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''salinAntarSemesterB…'' will always evaluate to true\.$#'
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''pakaiUlangBarisCache'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
 			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
 
 		-
-			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''salinAntarSemesterS…'' will always evaluate to true\.$#'
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\MK\\Filament\\Resources\\SubcpmkResource\\Pages\\ListSubcpmks\) and ''pakaiUlangSumberLive'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
 			path: app/Modules/MK/Filament/Resources/SubcpmkResource/Pages/ListSubcpmks.php
@@ -1307,6 +1319,18 @@ parameters:
 			identifier: property.notFound
 			count: 1
 			path: app/Modules/MK/Policies/MkPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Policies/PerubahanCpmkRequestPolicy.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/MK/Policies/PerubahanCpmkRequestPolicy.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -1489,12 +1513,6 @@ parameters:
 			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>semester_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 2
-			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource.php
-
-		-
 			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''forceRender'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
@@ -1519,13 +1537,13 @@ parameters:
 			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
 
 		-
-			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''salinAntarSemesterB…'' will always evaluate to true\.$#'
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''pakaiUlangBarisCache'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
 			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php
 
 		-
-			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''salinAntarSemesterS…'' will always evaluate to true\.$#'
+			message: '#^Call to function property_exists\(\) with \$this\(App\\Modules\\Penilaian\\Filament\\Resources\\KomponenPenilaianResource\\Pages\\ListKomponenPenilaians\) and ''pakaiUlangSumberLive'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
 			path: app/Modules/Penilaian/Filament/Resources/KomponenPenilaianResource/Pages/ListKomponenPenilaians.php

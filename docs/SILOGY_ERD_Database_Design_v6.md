@@ -474,8 +474,72 @@ UQ `(cpl_mk_id, cpmk_id)`
 | bloom_psikomotorik | ENUM('P1','P2','P3','P4','P5','P6','P7') | YES | | |
 | created_at / updated_at | TIMESTAMP | YES | | |
 
-**FK:** `mk_cpmk_id → mk_cpmk.id (CASCADE)` · `semester_id → semesters.id (SET NULL)`
-**Indeks:** `idx_subcpmk_mkcpmk (mk_cpmk_id)` · `idx_subcpmk_semester (semester_id)`
+**FK:** `mk_cpmk_id → mk_cpmk.id (CASCADE)`
+**Indeks:** `idx_subcpmk_mkcpmk (mk_cpmk_id)` · UQ `uq_subcpmk_mkcpmk_kode (mk_cpmk_id, kode)`
+
+> **v6.3:** kolom `semester_id` dan `bobot` DIHAPUS dari `subcpmk`. Keduanya pindah ke pivot `subcpmk_semester`, sehingga satu baris Sub-CPMK dapat berlaku di banyak semester dengan bobot masing-masing. `kode` menjadi identitas kanonik per pemetaan CPMK, karena itu diberi UNIQUE.
+
+---
+
+### Tabel: `cpmk_semester` *(BARU v6.3)*
+
+| Kolom | Tipe | NULL | Key | Deskripsi |
+|---|---|---|---|---|
+| id | CHAR(36) | NO | PK | UUID v4 |
+| cpmk_id | CHAR(36) | NO | FK | → `cpmk.id` (CASCADE) |
+| semester_id | CHAR(36) | NO | FK | → `semesters.id` (RESTRICT) |
+| created_at / updated_at | TIMESTAMP | YES | | |
+
+UQ `uq_cpmk_sem (cpmk_id, semester_id)` · IDX `idx_cpmk_sem_semester`
+
+### Tabel: `subcpmk_semester` *(BARU v6.3)*
+
+| Kolom | Tipe | NULL | Key | Deskripsi |
+|---|---|---|---|---|
+| id | CHAR(36) | NO | PK | UUID v4 |
+| subcpmk_id | CHAR(36) | NO | FK | → `subcpmk.id` (CASCADE) |
+| semester_id | CHAR(36) | NO | FK | → `semesters.id` (RESTRICT) |
+| bobot | DOUBLE | YES | | Turunan: jumlah bobot pemetaan ke Asesmen **pada semester ini** |
+| created_at / updated_at | TIMESTAMP | YES | | |
+
+UQ `uq_subcpmk_sem (subcpmk_id, semester_id)` · IDX `idx_subcpmk_sem_semester`
+
+### Tabel: `komponen_penilaian_semester` *(BARU v6.3)*
+
+| Kolom | Tipe | NULL | Key | Deskripsi |
+|---|---|---|---|---|
+| id | CHAR(36) | NO | PK | UUID v4 |
+| komponen_penilaian_id | CHAR(36) | NO | FK | → `komponen_penilaian.id` (CASCADE) |
+| semester_id | CHAR(36) | NO | FK | → `semesters.id` (RESTRICT) |
+| bobot | DECIMAL(5,2) | NO | | Default 100.00; bobot Asesmen terhadap nilai akhir MK **pada semester ini** |
+| created_at / updated_at | TIMESTAMP | YES | | |
+
+UQ `uq_kp_sem (komponen_penilaian_id, semester_id)` · IDX `idx_kp_sem_semester`
+
+> **Kenapa `semester_id` di ketiga pivot memakai RESTRICT, bukan CASCADE.** `komponen_penilaian.semester_id` yang lama sudah RESTRICT: semester yang berisi data tidak boleh dihapus. Memakai CASCADE pada pivot akan diam-diam menurunkan jaminan itu menjadi "menghapus semester ikut menghapus datanya".
+
+### Tabel: `perubahan_cpmk_requests` *(BARU v6.3)*
+
+Usulan Koordinator MK untuk mengubah CPMK satu mata kuliah pada satu semester, yang harus disetujui Tim Kurikulum unit pemilik MK (atau unit induknya).
+
+| Kolom | Tipe | NULL | Key | Deskripsi |
+|---|---|---|---|---|
+| id | CHAR(36) | NO | PK | UUID v4 |
+| mk_id | CHAR(36) | NO | FK | → `mk.id` (CASCADE) |
+| semester_id | CHAR(36) | NO | FK | → `semesters.id` (RESTRICT) |
+| academic_unit_id | CHAR(36) | NO | FK | Disalin dari `mk.academic_unit_id` saat diajukan — penentu rute persetujuan |
+| diajukan_oleh_id | CHAR(36) | NO | FK | → `users.id` (RESTRICT) |
+| status | VARCHAR(20) | NO | | `diajukan` / `disetujui` / `ditolak` / `dibatalkan` |
+| alasan | TEXT | NO | | Argumen koordinator |
+| ringkasan_usulan | JSON | YES | | Potret CPMK yang berlaku saat pengajuan |
+| ditinjau_oleh_id | CHAR(36) | YES | FK | → `users.id` (SET NULL) |
+| ditinjau_pada | TIMESTAMP | YES | | |
+| catatan_peninjau | TEXT | YES | | Wajib diisi saat menolak |
+| created_at / updated_at | TIMESTAMP | YES | | |
+
+IDX `idx_pcr_mk_semester_status` · `idx_pcr_unit_status`
+
+> Aturan "satu usulan terbuka per (MK, semester)" ditegakkan di `PerubahanCpmkService::ajukan()`, bukan di UNIQUE — MySQL tidak punya partial unique index. Riwayat keputusannya ditulis ke `state_transitions` yang memang polimorfik.
 
 ---
 
@@ -521,7 +585,7 @@ UQ `(kelas_mk_id, mahasiswa_id)`
 | nama | VARCHAR(150) | NO | |
 | timestamps | | | |
 
-### Tabel: `komponen_penilaian` *(v6: default bobot = 100; v6.2: `kelas_mk_id` → `mk_id`+`semester_id`)*
+### Tabel: `komponen_penilaian` *(v6: default bobot = 100; v6.2: `kelas_mk_id` → `mk_id`+`semester_id`; v6.3: `semester_id`+`bobot` → pivot)*
 
 > Catatan v6.2: komponen penilaian tidak lagi milik satu kelas MK, melainkan satu definisi per **MK + semester**, dipakai bersama oleh semua kelas MK pada kombinasi tersebut (migration `2026_07_13_000001_ubah_komponen_penilaian_ke_mk_semester.php`).
 
@@ -536,8 +600,10 @@ UQ `(kelas_mk_id, mahasiswa_id)`
 | bobot | DECIMAL(5,2) | NO | | **Default 100.00** |
 | created_at / updated_at | TIMESTAMP | YES | | |
 
-**FK:** `mk_id → mk.id (CASCADE)` · `semester_id → semesters.id (RESTRICT)`
-**Indeks:** UQ `(mk_id, semester_id, kode)` — `uq_komponen_mk_semester_kode`
+**FK:** `mk_id → mk.id (CASCADE)`
+**Indeks:** UQ `(mk_id, kode)` — `uq_komponen_mk_kode`
+
+> **v6.3:** `semester_id` dan `bobot` DIHAPUS, pindah ke `komponen_penilaian_semester`. `kode` kini NOT NULL — UNIQUE di MySQL mengizinkan NULL berulang, sehingga baris tanpa kode tidak akan pernah bisa dicocokkan atau dipakai ulang.
 
 ### Tabel: `subcpmk_komponenpenilaian`
 
@@ -546,11 +612,13 @@ UQ `(kelas_mk_id, mahasiswa_id)`
 | id | CHAR(36) | NO | PK |
 | subcpmk_id | CHAR(36) | NO | FK → subcpmk.id |
 | komponen_penilaian_id | CHAR(36) | NO | FK → komponen_penilaian.id |
-| semester_id | CHAR(36) | YES | FK → semesters.id |
+| semester_id | CHAR(36) | **NO** | FK → semesters.id (RESTRICT) |
 | bobot | DOUBLE | NO | Default 100 |
 | timestamps | | | |
 
-UQ `(subcpmk_id, komponen_penilaian_id)`
+UQ `(subcpmk_id, komponen_penilaian_id, semester_id)` — `uq_skp_semester`
+
+> **v6.3:** `semester_id` menjadi NOT NULL dan masuk UNIQUE. Sejak Sub-CPMK dan Asesmen dipakai ulang lintas semester, kolom inilah satu-satunya penentu semester berlakunya sebuah pemetaan — dan yang dipakai `SubcpmkCalculator` untuk menyaring.
 
 ### Tabel: `nilai_mahasiswas` *(v6: kolom `subcpmk_komponenpenilaian_id`)*
 

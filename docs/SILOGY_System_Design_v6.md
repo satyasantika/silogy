@@ -77,8 +77,8 @@ academic_units (universitas/fakultas/jurusan/study_program)
         │     └─ cpl_bok  (cpl_id + bok_id)
         │           └─ cpl_mk  (cpl_bok_id + mk_id)
         │                 └─ mk_cpmk  (cpl_mk_id + cpmk_id)
-        │                       └─ subcpmk  (mk_cpmk_id + semester_id)
-        │                             └─ subcpmk_komponenpenilaian
+        │                       └─ subcpmk  (mk_cpmk_id)
+        │                             └─ subcpmk_komponenpenilaian  (+ semester_id)
         │                                   └─ nilai_mahasiswas
         │
         └─ mk_units (academic_unit_id + mk_id + kode + semester_ke)
@@ -87,6 +87,27 @@ academic_units (universitas/fakultas/jurusan/study_program)
 ```
 
 Rantai ini memastikan setiap nilai mahasiswa dapat ditelusuri balik hingga CPL asal, melewati BoK, MK, CPMK, dan SubCPMK secara eksplisit.
+
+### 3.1 Berlakunya per semester (v6.3)
+
+Sejak v6.3, **semester bukan lagi kolom pada baris entitas, melainkan lampiran**:
+
+```text
+cpmk                ──< cpmk_semester                >── semesters
+subcpmk             ──< subcpmk_semester (+bobot)    >── semesters
+komponen_penilaian  ──< komponen_penilaian_semester (+bobot) >── semesters
+```
+
+Satu baris karena itu dapat berlaku di banyak semester **dengan ID yang sama**. Inilah yang membuat "pakai CPMK/Sub-CPMK/Asesmen semester lalu" benar-benar memakai ulang identitas lama, bukan menyalin baris baru berisi kode lama — sehingga capaian satu Sub-CPMK dapat ditelusuri lintas semester lewat satu ID.
+
+Konsekuensi yang harus dipegang setiap kode baru:
+
+| Hal | Aturan |
+|---|---|
+| Menyaring daftar per semester | `->untukSemester($semesterId)` (scope pada `Cpmk`, `Subcpmk`, `KomponenPenilaian`) |
+| Membaca bobot | `bobotUntukSemester($semesterId)` — kolom `bobot` pada baris induk sudah dihapus, dan pengaksesnya sengaja melempar `LogicException` agar pemanggil lama gagal nyaring, bukan diam-diam membaca 0 |
+| Mengosongkan satu semester | **Lepas lampirannya (`detach`), jangan hapus barisnya** — menghapus baris yang dipakai ulang akan menghapus data semester lain beserta nilainya |
+| Menyunting isi | Suntingan berlaku ke SEMUA semester yang memakainya; inilah alasan perubahan CPMK diberi gerbang persetujuan |
 
 ```php
 // Contoh query — nilai mahasiswa → CPL
@@ -134,7 +155,24 @@ Cpl::find($cplId)
 | penilaian | Nilai mahasiswa diinput | selesai |
 | selesai | Kalkulasi CPL selesai | — |
 
-### 4.3 Contoh State `SetdosenmkState`
+### 4.3 Alur Perubahan CPMK (v6.3)
+
+Setiap awal semester, Koordinator MK ditanya per langkah pipeline (CPMK → Sub-CPMK → Asesmen): pakai set semester sebelumnya, atau susun yang baru?
+
+| Keputusan | Yang terjadi | Persetujuan |
+|---|---|---|
+| Pakai yang lama | Baris lama dilampirkan ke semester berjalan (ID tetap), sepaket atau pilih sebagian | Tidak perlu |
+| Susun baru — semester masih kosong | Pengisian pertama, tidak ada rumusan berjalan yang diubah | Tidak perlu |
+| **Ubah CPMK** yang sudah berjalan | Koordinator mengajukan `perubahan_cpmk_requests`; CPMK terkunci sampai diputuskan | **Wajib Tim Kurikulum** unit pemilik MK (atau unit induknya) |
+| Ubah Sub-CPMK / Asesmen | Wewenang Koordinator MK | Tidak perlu |
+
+Kaskade bergranularitas **per-CPMK** (`App\Modules\MK\Support\KaskadeReuseSemester`): turunan hanya boleh dipakai ulang bila induknya juga dipakai ulang. CPMK yang baru disusun untuk semester berjalan mengukur hal yang berbeda, jadi Sub-CPMK dan Asesmen di bawahnya wajib baru — sementara CPMK yang dipertahankan boleh mewarisi seluruh turunannya.
+
+Gerbangnya dipusatkan di `App\Modules\MK\Support\GerbangPerubahanCpmk` karena dipakai policy, form Filament, matriks CPL↔CPMK, dan tombol reset sekaligus.
+
+> **Kenapa enum, bukan `spatie/laravel-model-states` seperti Kurikulum?** State machine Kurikulum punya tujuh tahap dengan penjaga berbasis kelengkapan data (`canTransition()`). Usulan perubahan CPMK hanya satu keputusan manusia dengan tiga akhir, dan penjaganya adalah *siapa* yang bertindak — itu ranah policy. Riwayatnya tetap terekam di `state_transitions` yang memang polimorfik.
+
+### 4.4 Contoh State `SetdosenmkState`
 
 ```php
 <?php

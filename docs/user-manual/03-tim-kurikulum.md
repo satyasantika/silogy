@@ -56,3 +56,33 @@ Ikuti urutan OBE agar keterkaitan data konsisten:
 
 - Pengelolaan **Profil Lulusan** hanya tersedia di unit prodi tempat Anda terdaftar sebagai anggota Tim Kurikulum.
 - Penyusunan CPMK/Sub-CPMK dan komponen penilaian dilakukan oleh **Koordinator Mata Kuliah**, bukan Tim Kurikulum.
+
+## Menyetujui perubahan CPMK
+
+CPMK terpetakan ke CPL lewat `mk_cpmk`, jadi mengubahnya menyentuh kontrak kurikulum —
+bukan urusan satu mata kuliah saja. Karena itu Koordinator MK boleh **memakai ulang** CPMK
+semester sebelumnya kapan saja, tetapi **mengubah** CPMK yang sudah berjalan pada suatu
+semester harus lewat persetujuan Anda.
+
+### Kotak masuk
+
+Menu **Kurikulum → Usulan Perubahan CPMK** menampilkan usulan pada unit Anda. Badge angka
+di sampingnya adalah jumlah usulan yang masih menunggu keputusan.
+
+Cakupannya mengikuti penugasan unit: Tim Kurikulum prodi menangani mata kuliah prodinya,
+Tim Kurikulum fakultas/universitas menangani mata kuliah di seluruh unit di bawahnya.
+
+### Meninjau
+
+1. Buka usulannya. Anda akan melihat alasan koordinator dan **potret CPMK yang berlaku saat
+   usulan diajukan** — inilah yang hendak diganti.
+2. **Setujui** bila perubahan itu wajar. Sesudahnya koordinator boleh menyusun ulang CPMK
+   mata kuliah tersebut untuk semester itu.
+3. **Tolak** bila belum layak. Alasan penolakan **wajib diisi**: tanpa itu koordinator tidak
+   tahu apa yang perlu diperbaiki sebelum mengajukan lagi.
+
+### Catatan
+
+- Anda tidak bisa menyetujui usulan yang Anda ajukan sendiri.
+- Hanya boleh ada satu usulan terbuka per (mata kuliah, semester).
+- Seluruh keputusan tercatat di riwayat transisi dan audit log.
