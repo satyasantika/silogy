@@ -5,7 +5,7 @@ namespace App\Support\Filament\Concerns;
 /**
  * Kosongkan state pratinjau impor saat modal aksi ditutup (Cancel, ESC,
  * klik di luar, atau setelah submit) — properti Livewire seperti
- * $importMassalRowsLive / $salinAntarSemesterSumberLive bertahan antar
+ * $importMassalRowsLive / $pakaiUlangSumberLive bertahan antar
  * request, jadi tanpa reset di unmount, pratinjau sesi sebelumnya bisa
  * "nempel" sampai mountUsing berikutnya sempat jalan.
  */
@@ -28,12 +28,12 @@ trait ClearsImporModalPreviewOnUnmount
             $this->importMassalParseCache = [];
         }
 
-        if (property_exists($this, 'salinAntarSemesterSumberLive')) {
-            $this->salinAntarSemesterSumberLive = null;
+        if (property_exists($this, 'pakaiUlangSumberLive')) {
+            $this->pakaiUlangSumberLive = null;
         }
 
-        if (property_exists($this, 'salinAntarSemesterBarisCache')) {
-            $this->salinAntarSemesterBarisCache = [];
+        if (property_exists($this, 'pakaiUlangBarisCache')) {
+            $this->pakaiUlangBarisCache = [];
         }
 
         if (property_exists($this, 'adaptasiSumberLive')) {
