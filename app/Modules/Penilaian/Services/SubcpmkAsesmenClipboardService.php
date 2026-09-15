@@ -75,6 +75,7 @@ class SubcpmkAsesmenClipboardService
         Collection $asesmen,
         Collection $subcpmks,
         Collection $currentBobots,
+        string $semesterId,
     ): array {
         $lines = preg_split('/\r\n|\r|\n/', trim($raw)) ?: [];
         $lines = array_values(array_filter(
@@ -200,7 +201,7 @@ class SubcpmkAsesmenClipboardService
                 }
 
                 $numeric = $this->parseNumeric($rawValue);
-                $bobotAsesmen = (float) $komponen->bobot;
+                $bobotAsesmen = $komponen->bobotUntukSemester($semesterId);
 
                 if ($numeric === null || $numeric < 0 || $numeric > $bobotAsesmen) {
                     $ringkasan['sel_invalid']++;
@@ -233,7 +234,16 @@ class SubcpmkAsesmenClipboardService
                 ];
             }
 
-            $selBaris = $this->terapkanBatasBaris($selBaris, $komponen, $currentBobots, $kolom, $lineNumber, $ringkasan, $errors);
+            $selBaris = $this->terapkanBatasBaris(
+                $selBaris,
+                $komponen,
+                $currentBobots,
+                $kolom,
+                $lineNumber,
+                $semesterId,
+                $ringkasan,
+                $errors,
+            );
 
             $baris[] = [
                 'baris_ke' => $lineNumber,
@@ -266,13 +276,13 @@ class SubcpmkAsesmenClipboardService
      * @param  array<string, mixed>  $preview  hasil parsePaste()
      * @return array{diperbarui: int, dihapus: int, gagal: int}
      */
-    public function terapkan(array $preview): array
+    public function terapkan(array $preview, string $semesterId): array
     {
         $diperbarui = 0;
         $dihapus = 0;
         $gagal = 0;
 
-        DB::transaction(function () use ($preview, &$diperbarui, &$dihapus, &$gagal): void {
+        DB::transaction(function () use ($preview, $semesterId, &$diperbarui, &$dihapus, &$gagal): void {
             foreach ($preview['baris'] as $baris) {
                 if (! $baris['dikenali']) {
                     continue;
@@ -295,11 +305,9 @@ class SubcpmkAsesmenClipboardService
                             [
                                 'komponen_penilaian_id' => $komponen->id,
                                 'subcpmk_id' => $sel['subcpmk_id'],
+                                'semester_id' => $semesterId,
                             ],
-                            [
-                                'bobot' => (float) $sel['bobot'],
-                                'semester_id' => $komponen->semester_id,
-                            ],
+                            ['bobot' => (float) $sel['bobot']],
                         );
                         $diperbarui++;
 
@@ -343,6 +351,7 @@ class SubcpmkAsesmenClipboardService
         Collection $currentBobots,
         array $kolom,
         int $lineNumber,
+        string $semesterId,
         array &$ringkasan,
         array &$errors,
     ): array {
@@ -359,7 +368,7 @@ class SubcpmkAsesmenClipboardService
             ->sum();
 
         $totalBaris = (float) $existingUntouched + (float) $totalBaru;
-        $bobotAsesmen = (float) $komponen->bobot;
+        $bobotAsesmen = $komponen->bobotUntukSemester($semesterId);
 
         if ($totalBaris <= $bobotAsesmen + 0.01) {
             return $selBaris;

@@ -25,10 +25,20 @@ class PenilaianMatrixService
     {
         $mkId = $kelasMk->mkUnit?->mk_id;
 
+        // Pemetaan Sub-CPMK dibatasi ke semester kelas ini. Satu Asesmen kini
+        // bisa berlaku di beberapa semester, jadi tanpa batas ini matriks
+        // nilai akan memuat kolom milik semester lain — dan penyimpanan nilai
+        // (InputNilai) memvalidasi kolomnya lewat daftar yang sama.
+        $semesterId = (string) $kelasMk->semester_id;
+
         return KomponenPenilaian::query()
             ->where('mk_id', $mkId)
-            ->where('semester_id', $kelasMk->semester_id)
-            ->with(['evaluasi', 'subcpmkKomponens.subcpmk.mkCpmk.cplMk.cplBok.cpl'])
+            ->untukSemester($semesterId)
+            ->with([
+                'evaluasi',
+                'subcpmkKomponens' => fn ($query) => $query->where('semester_id', $semesterId),
+                'subcpmkKomponens.subcpmk.mkCpmk.cplMk.cplBok.cpl',
+            ])
             ->orderBy('kode')
             ->get();
     }
@@ -37,10 +47,10 @@ class PenilaianMatrixService
      * @param  Collection<int, KomponenPenilaian>  $komponens
      * @return list<array{id: string, label: string, asesmen: string, subcpmk: string, evaluasi_kode: string|null, cpl: string|null, bobot: float}>
      */
-    public function kolomDariKomponens(Collection $komponens): array
+    public function kolomDariKomponens(Collection $komponens, string $semesterId): array
     {
         return $komponens
-            ->map(fn (KomponenPenilaian $komponen): array => $this->kolomDariKomponen($komponen))
+            ->map(fn (KomponenPenilaian $komponen): array => $this->kolomDariKomponen($komponen, $semesterId))
             ->values()
             ->all();
     }
@@ -173,11 +183,11 @@ class PenilaianMatrixService
      * @param  Collection<int, KomponenPenilaian>  $komponens
      * @return list<array{id: string, label: string, bobot: float, cpl: string|null, komponen_ids: list<string>}>
      */
-    public function kolomEvaluasiDariKomponens(Collection $komponens): array
+    public function kolomEvaluasiDariKomponens(Collection $komponens, string $semesterId): array
     {
         return $komponens
             ->groupBy('evaluasi_id')
-            ->map(function (Collection $group): array {
+            ->map(function (Collection $group) use ($semesterId): array {
                 /** @var KomponenPenilaian $pertama */
                 $pertama = $group->first();
 
@@ -191,7 +201,10 @@ class PenilaianMatrixService
                 return [
                     'id' => $pertama->evaluasi_id,
                     'label' => $pertama->evaluasi?->nama ?? '—',
-                    'bobot' => round((float) $group->sum(fn (KomponenPenilaian $k): float => (float) $k->bobot), 2),
+                    'bobot' => round(
+                        (float) $group->sum(fn (KomponenPenilaian $k): float => $k->bobotUntukSemester($semesterId)),
+                        2,
+                    ),
                     'cpl' => $cplKodes->isNotEmpty() ? $cplKodes->implode(', ') : null,
                     'komponen_ids' => $group->pluck('id')->all(),
                 ];
@@ -341,7 +354,7 @@ class PenilaianMatrixService
     /**
      * @return array{id: string, label: string, asesmen: string, subcpmk: string, evaluasi_kode: string|null, cpl: string|null, bobot: float}
      */
-    protected function kolomDariKomponen(KomponenPenilaian $komponen): array
+    protected function kolomDariKomponen(KomponenPenilaian $komponen, string $semesterId): array
     {
         $subcpmkKodes = $komponen->subcpmkKomponens
             ->pluck('subcpmk.kode')
@@ -362,7 +375,7 @@ class PenilaianMatrixService
             'subcpmk' => $subcpmkKodes->isNotEmpty() ? $subcpmkKodes->implode(', ') : '—',
             'evaluasi_kode' => $komponen->evaluasi?->kode,
             'cpl' => $cplKodes->isNotEmpty() ? $cplKodes->implode(', ') : null,
-            'bobot' => round((float) $komponen->bobot, 2),
+            'bobot' => round($komponen->bobotUntukSemester($semesterId), 2),
         ];
     }
 }

@@ -32,8 +32,11 @@ class CpmkCalculator
             return;
         }
 
+        // Hanya CPMK yang berlaku pada semester kelas ini — CPMK yang dilepas
+        // untuk semester berjalan tidak boleh ikut menghidupkan hasil lama.
         $cpmkIds = Cpmk::query()
             ->where('mk_id', $mkId)
+            ->untukSemester((string) $kelasMk->semester_id)
             ->pluck('id');
 
         if ($cpmkIds->isEmpty()) {

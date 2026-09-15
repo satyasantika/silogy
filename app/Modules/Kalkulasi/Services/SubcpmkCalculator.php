@@ -33,10 +33,14 @@ class SubcpmkCalculator
             return;
         }
 
+        // Semester pemetaan dibaca dari subcpmk_komponenpenilaian.semester_id,
+        // bukan lagi dari komponen induknya: satu Asesmen kini boleh berlaku
+        // di beberapa semester, jadi komponen tidak lagi menentukan semester.
         $komponenPerSubcpmk = SubcpmkKomponenPenilaian::query()
+            ->where('semester_id', $kelasMk->semester_id)
             ->whereHas(
                 'komponenPenilaian',
-                fn ($query) => $query->where('mk_id', $mkId)->where('semester_id', $kelasMk->semester_id),
+                fn ($query) => $query->where('mk_id', $mkId),
             )
             ->with([
                 'komponenPenilaian',

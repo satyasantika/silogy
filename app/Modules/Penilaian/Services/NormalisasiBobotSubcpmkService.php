@@ -7,20 +7,22 @@ use App\Modules\Penilaian\Support\BobotNormalizer;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Menormalisasi bobot interaksi Sub-CPMK ↔ Asesmen milik satu komponen
- * penilaian, secara proporsional dan dibulatkan ke N desimal (default: satuan),
- * agar totalnya tepat sama dengan bobot Asesmen itu sendiri.
+ * Menormalisasi bobot interaksi Sub-CPMK ↔ Asesmen milik satu Asesmen PADA
+ * SATU SEMESTER, secara proporsional dan dibulatkan ke N desimal (default:
+ * satuan), agar totalnya tepat sama dengan bobot Asesmen itu di semester
+ * tersebut. Semester wajib disebut karena satu Asesmen kini boleh dipakai di
+ * beberapa semester dengan bobot dan pemetaan yang berbeda.
  */
 class NormalisasiBobotSubcpmkService
 {
     /**
      * @return array{status: 'kosong'|'sudah_pas'|'dinormalisasi', jumlah: int, total_sebelum: float}
      */
-    public function normalisasi(KomponenPenilaian $komponen, int $desimal = 0): array
+    public function normalisasi(KomponenPenilaian $komponen, string $semesterId, int $desimal = 0): array
     {
-        $target = (float) $komponen->bobot;
+        $target = $komponen->bobotUntukSemester($semesterId);
 
-        $rows = $komponen->subcpmkKomponens()->get();
+        $rows = $komponen->subcpmkKomponens()->where('semester_id', $semesterId)->get();
 
         $total = (float) $rows->sum('bobot');
 

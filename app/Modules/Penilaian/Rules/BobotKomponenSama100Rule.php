@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Rules;
 
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
@@ -33,12 +34,19 @@ class BobotKomponenSama100Rule implements ValidationRule
      */
     public static function totalBobot(string $mkId, string $semesterId, ?string $kodeAsesmen, float $tambahan = 0): float
     {
-        $existing = KomponenPenilaian::query()
-            ->where('mk_id', $mkId)
-            ->where('semester_id', $semesterId)
-            ->when(
-                filled($kodeAsesmen),
-                fn ($query) => $query->where('kode', '!=', $kodeAsesmen),
+        // Bobot dijumlahkan dari pivot semester: satu Asesmen kini boleh
+        // berlaku di beberapa semester dengan bobot berbeda-beda.
+        $existing = KomponenPenilaianSemester::query()
+            ->where('komponen_penilaian_semester.semester_id', $semesterId)
+            ->whereIn(
+                'komponen_penilaian_semester.komponen_penilaian_id',
+                KomponenPenilaian::query()
+                    ->select('id')
+                    ->where('mk_id', $mkId)
+                    ->when(
+                        filled($kodeAsesmen),
+                        fn ($query) => $query->where('kode', '!=', $kodeAsesmen),
+                    ),
             )
             ->sum('bobot');
 

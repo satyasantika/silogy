@@ -3,26 +3,34 @@
 namespace App\Modules\Penilaian\Services;
 
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Models\SubcpmkSemester;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Illuminate\Support\Collection;
 
+/**
+ * Semua operasi di sini BERCAKUPAN SEMESTER. Sejak satu baris Sub-CPMK dan
+ * satu baris Asesmen boleh dipakai ulang di beberapa semester, menjumlahkan
+ * pemetaan tanpa menyaring semester akan mencampur bobot antar semester —
+ * dan, lebih buruk, menimpa angka semester yang nilainya sudah terkunci.
+ */
 class SubcpmkAsesmenPemetaanService
 {
     /**
-     * Rincian kontribusi Sub-CPMK ke nilai akhir mata kuliah, dikelompokkan
-     * per jenis evaluasi (mis. Tugas, Proyek Individu). Bobot pivot Sub-CPMK
-     * SUDAH berupa kontribusi nyata (skala sama dengan bobot komponen
-     * penilaian, bukan lagi persentase bagian dari 100) — jadi kontribusi
-     * per jenis = jumlah bobot pivot itu sendiri, tanpa dikalikan ulang.
-     * Dipakai untuk tampilan rekap maupun untuk menghitung ulang subcpmk.bobot.
+     * Rincian kontribusi Sub-CPMK ke nilai akhir mata kuliah pada satu
+     * semester, dikelompokkan per jenis evaluasi (mis. Tugas, Proyek
+     * Individu). Bobot pivot Sub-CPMK SUDAH berupa kontribusi nyata (skala
+     * sama dengan bobot Asesmen, bukan lagi persentase bagian dari 100) —
+     * jadi kontribusi per jenis = jumlah bobot pivot itu sendiri, tanpa
+     * dikalikan ulang.
      *
      * @return Collection<string, float> nama evaluasi => bobot (%)
      */
-    public static function rincianBobotEvaluasi(string $subcpmkId): Collection
+    public static function rincianBobotEvaluasi(string $subcpmkId, string $semesterId): Collection
     {
         return SubcpmkKomponenPenilaian::query()
             ->where('subcpmk_id', $subcpmkId)
+            ->where('semester_id', $semesterId)
             ->with('komponenPenilaian.evaluasi')
             ->get()
             ->filter(fn (SubcpmkKomponenPenilaian $pivot): bool => $pivot->komponenPenilaian?->evaluasi !== null)
@@ -34,43 +42,48 @@ class SubcpmkAsesmenPemetaanService
     }
 
     /**
-     * Hitung ulang subcpmk.bobot dari seluruh interaksinya dengan komponen
-     * penilaian — dipanggil otomatis setiap interaksi Sub-CPMK ↔ penugasan
-     * berubah (lihat SubcpmkKomponenPenilaianObserver), agar bobot Sub-CPMK
-     * selalu mencerminkan kontribusi asesmen yang sebenarnya.
+     * Hitung ulang bobot Sub-CPMK PADA SATU SEMESTER dari seluruh
+     * interaksinya dengan Asesmen di semester itu — dipanggil otomatis
+     * setiap pemetaan berubah (lihat SubcpmkKomponenPenilaianObserver).
+     * Hasilnya disimpan di subcpmk_semester.bobot, bukan pada baris
+     * Sub-CPMK, supaya semester lain tidak ikut berubah.
      */
-    public static function recalculateBobotSubcpmk(string $subcpmkId): void
+    public static function recalculateBobotSubcpmk(string $subcpmkId, string $semesterId): void
     {
-        $total = round((float) self::rincianBobotEvaluasi($subcpmkId)->sum(), 2);
+        $total = round((float) self::rincianBobotEvaluasi($subcpmkId, $semesterId)->sum(), 2);
 
-        Subcpmk::query()->whereKey($subcpmkId)->update(['bobot' => $total]);
+        SubcpmkSemester::query()->updateOrCreate(
+            [
+                'subcpmk_id' => $subcpmkId,
+                'semester_id' => $semesterId,
+            ],
+            ['bobot' => $total],
+        );
     }
 
     /**
-     * Petakan Sub-CPMK ke asesmen (komponen penilaian) lalu bagi bobot pivot
-     * merata (bobot Asesmen ÷ jumlah Sub-CPMK).
+     * Petakan Sub-CPMK ke Asesmen pada satu semester, lalu bagi bobot pivot
+     * merata (bobot Asesmen di semester itu ÷ jumlah Sub-CPMK).
      */
-    public static function petakanSubcpmk(KomponenPenilaian $komponen, Subcpmk $subcpmk): void
+    public static function petakanSubcpmk(KomponenPenilaian $komponen, Subcpmk $subcpmk, string $semesterId): void
     {
         SubcpmkKomponenPenilaian::query()->updateOrCreate(
             [
                 'komponen_penilaian_id' => $komponen->id,
                 'subcpmk_id' => $subcpmk->id,
+                'semester_id' => $semesterId,
             ],
-            [
-                'semester_id' => $komponen->semester_id,
-                'bobot' => 0,
-            ],
+            ['bobot' => 0],
         );
 
-        self::redistribusiBobotMerata($komponen);
+        self::redistribusiBobotMerata($komponen, $semesterId);
     }
 
     /**
-     * Bagi bobot pivot Sub-CPMK ↔ asesmen secara merata agar total = bobot
-     * Asesmen itu sendiri (bukan lagi selalu 100).
+     * Bagi bobot pivot Sub-CPMK ↔ Asesmen secara merata agar total = bobot
+     * Asesmen itu sendiri pada semester tersebut (bukan lagi selalu 100).
      */
-    public static function redistribusiBobotMerata(KomponenPenilaian|string $komponen): void
+    public static function redistribusiBobotMerata(KomponenPenilaian|string $komponen, string $semesterId): void
     {
         $komponen = $komponen instanceof KomponenPenilaian ? $komponen : KomponenPenilaian::query()->find($komponen);
 
@@ -80,6 +93,7 @@ class SubcpmkAsesmenPemetaanService
 
         $pivots = SubcpmkKomponenPenilaian::query()
             ->where('komponen_penilaian_id', $komponen->id)
+            ->where('semester_id', $semesterId)
             ->get();
 
         $jumlah = $pivots->count();
@@ -88,7 +102,7 @@ class SubcpmkAsesmenPemetaanService
             return;
         }
 
-        $bobotPerSubcpmk = round((float) $komponen->bobot / $jumlah, 2);
+        $bobotPerSubcpmk = round($komponen->bobotUntukSemester($semesterId) / $jumlah, 2);
 
         foreach ($pivots as $pivot) {
             $pivot->update(['bobot' => $bobotPerSubcpmk]);
@@ -96,24 +110,29 @@ class SubcpmkAsesmenPemetaanService
     }
 
     /**
-     * Sisa kapasitas bobot yang masih tersedia pada suatu Asesmen — bobot
-     * Asesmen dikurangi jumlah bobot pivot Sub-CPMK LAIN yang sudah
-     * berinteraksi dengannya (di luar pivot $excludeSubcpmkKomponenId, bila
-     * sedang mengedit pivot yang sudah ada). Satu sumber kebenaran dipakai
-     * baik oleh form interaksi (RelationManager) maupun halaman
-     * Matrix/Clipboard, supaya batasnya konsisten di semua tempat.
+     * Sisa kapasitas bobot yang masih tersedia pada suatu Asesmen di satu
+     * semester — bobot Asesmen dikurangi jumlah bobot pivot Sub-CPMK LAIN
+     * yang sudah berinteraksi dengannya pada semester itu (di luar pivot
+     * $excludeSubcpmkKomponenId, bila sedang mengedit pivot yang sudah ada).
+     * Satu sumber kebenaran dipakai baik oleh form interaksi
+     * (RelationManager) maupun halaman Matrix/Clipboard, supaya batasnya
+     * konsisten di semua tempat.
      */
-    public static function sisaBobotTersedia(KomponenPenilaian $komponen, ?string $excludeSubcpmkKomponenId = null): float
-    {
+    public static function sisaBobotTersedia(
+        KomponenPenilaian $komponen,
+        string $semesterId,
+        ?string $excludeSubcpmkKomponenId = null,
+    ): float {
         $terpakai = (float) SubcpmkKomponenPenilaian::query()
             ->where('komponen_penilaian_id', $komponen->id)
+            ->where('semester_id', $semesterId)
             ->when(
                 $excludeSubcpmkKomponenId !== null,
                 fn ($query) => $query->whereKeyNot($excludeSubcpmkKomponenId),
             )
             ->sum('bobot');
 
-        return round(max((float) $komponen->bobot - $terpakai, 0), 2);
+        return round(max($komponen->bobotUntukSemester($semesterId) - $terpakai, 0), 2);
     }
 
     /**
@@ -129,7 +148,7 @@ class SubcpmkAsesmenPemetaanService
 
         return Subcpmk::query()
             ->where('kode', $kodeSubcpmk)
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->whereHas(
                 'mkCpmk.cpmk',
                 fn ($query) => $query->where('mk_id', $mkId),
