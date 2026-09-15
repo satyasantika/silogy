@@ -35,6 +35,9 @@ class RolePermissionSeeder extends Seeder
 
             // ---- CPMK / SubCPMK / Komponen ----
             'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
+            // Perubahan CPMK menyentuh pemetaan ke CPL, jadi keputusannya
+            // ada di Tim Kurikulum unit pemilik MK, bukan di koordinator.
+            'setujui_perubahan_cpmk',
 
             // ---- Kelas & Penilaian ----
             'kelola_kelas', 'setdosen_mk', 'input_nilai', 'import_nilai', 'kelola_peserta_kelas',
@@ -68,6 +71,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_kurikulum', 'kelola_profil_lulusan',
             'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit', // penawaran mk hanya level prodi
             'kelola_cpmk', 'kelola_subcpmk', 'kelola_komponen_penilaian',
+            'setujui_perubahan_cpmk',
             'kelola_kelas', 'kelola_peserta_kelas',
             'setdosen_mk',
             'lihat_laporan', 'ekspor_data', 'lihat_dashboard',
@@ -79,6 +83,7 @@ class RolePermissionSeeder extends Seeder
             'kelola_kurikulum',
             'kelola_profil_lulusan', // hanya berlaku ketika status_tim_kurikulum=1 pada unit study_program
             'kelola_cpl', 'kelola_bok', 'kelola_mk', 'kelola_mk_unit', // penawaran mk hanya level prodi
+            'setujui_perubahan_cpmk', // kotak masuk usulan perubahan CPMK dari Koordinator MK
             'kelola_kelas', // kelas MK prodi (penugasan prodi)
             'setdosen_mk',
             'lihat_laporan', 'lihat_dashboard',

@@ -36,11 +36,13 @@ use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Models\PerubahanCpmkRequest;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Observers\MkObserver;
 use App\Modules\MK\Policies\CpmkPolicy;
 use App\Modules\MK\Policies\MkPolicy;
 use App\Modules\MK\Policies\MkUnitPolicy;
+use App\Modules\MK\Policies\PerubahanCpmkRequestPolicy;
 use App\Modules\MK\Policies\SubcpmkPolicy;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
@@ -119,6 +121,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Cpmk::class, CpmkPolicy::class);
         Gate::policy(Subcpmk::class, SubcpmkPolicy::class);
         Gate::policy(KomponenPenilaian::class, KomponenPenilaianPolicy::class);
+        Gate::policy(PerubahanCpmkRequest::class, PerubahanCpmkRequestPolicy::class);
 
         Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
 

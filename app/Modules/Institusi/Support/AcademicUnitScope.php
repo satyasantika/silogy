@@ -192,6 +192,38 @@ class AcademicUnitScope
     }
 
     /**
+     * Seperti userIsTimKurikulumOnUnit(), tetapi Tim Kurikulum unit INDUK
+     * juga dihitung berwenang.
+     *
+     * Dipakai untuk persetujuan perubahan CPMK: MK milik prodi disetujui tim
+     * kurikulum prodi, tetapi tim kurikulum fakultas/universitas di atasnya
+     * juga berwenang atas MK di lingkungannya. userIsTimKurikulumOnUnit()
+     * sengaja tidak diubah karena pemakainya menuntut penugasan persis pada
+     * unit tersebut.
+     */
+    public static function userIsTimKurikulumOnUnitOrAncestor(User $user, AcademicUnit $unit): bool
+    {
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        if ($user->hasRole('Admin') && static::userHasPivotToUnitOrAncestor($user, $unit)) {
+            return true;
+        }
+
+        $unitIds = static::timKurikulumPivotUnitIdsFor($user);
+
+        if ($unitIds->isEmpty()) {
+            return false;
+        }
+
+        return (bool) array_intersect(
+            $unitIds->all(),
+            static::ancestorIdsIncludingSelf($unit),
+        );
+    }
+
+    /**
      * Unit prodi tempat user boleh mengelola penawaran MK (`mk_units`).
      * Hanya penugasan langsung pada program studi — tim kurikulum
      * fakultas/universitas tidak termasuk; Admin prodi tetap termasuk.
