@@ -6,14 +6,15 @@ use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
 use App\Modules\MK\Filament\Support\Concerns\HasMkPipelineNav;
-use App\Modules\MK\Filament\Support\Concerns\HasSalinAntarSemesterMassal;
+use App\Modules\MK\Filament\Support\Concerns\HasPakaiUlangAntarSemester;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Models\SubcpmkSemester;
 use App\Modules\MK\Services\SubcpmkKompetensiParser;
+use App\Modules\MK\Services\SubcpmkPakaiUlangSemesterService;
 use App\Modules\MK\Services\SubcpmkResetService;
-use App\Modules\MK\Services\SubcpmkSalinSemesterService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use App\Support\Filament\Concerns\HasResetTrigger;
@@ -30,14 +31,15 @@ class ListSubcpmks extends ListRecords
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
     use HasMkPipelineNav;
+    use HasPakaiUlangAntarSemester;
     use HasResetTrigger;
-    use HasSalinAntarSemesterMassal;
 
     protected static string $resource = SubcpmkResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            $this->makePakaiUlangAction(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => SubcpmkResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -47,9 +49,9 @@ class ListSubcpmks extends ListRecords
     protected function getTableEmptyStateActions(): array
     {
         return [
+            $this->makePakaiUlangAction(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => SubcpmkResource::canCreate()),
-            $this->makeSalinAntarSemesterAction(),
         ];
     }
 
@@ -97,17 +99,17 @@ class ListSubcpmks extends ListRecords
         return [$mk, $semesterId];
     }
 
-    protected function salinAntarSemesterEntitasLabel(): string
+    protected function pakaiUlangEntitasLabel(): string
     {
         return 'Sub-CPMK';
     }
 
-    protected function salinAntarSemesterMkId(): ?string
+    protected function pakaiUlangMkId(): ?string
     {
         return MkTerpilih::currentId();
     }
 
-    protected function salinAntarSemesterTargetSemesterId(): ?string
+    protected function pakaiUlangTargetSemesterId(): ?string
     {
         $mkId = MkTerpilih::currentId();
 
@@ -118,19 +120,19 @@ class ListSubcpmks extends ListRecords
         return SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
     }
 
-    protected function salinAntarSemesterResolveBaris(string $sumberSemesterId, string $mkId, string $targetSemesterId): array
+    protected function pakaiUlangResolveBaris(string $sumberSemesterId, string $mkId, string $targetSemesterId): array
     {
-        return app(SubcpmkSalinSemesterService::class)->resolveBaris($sumberSemesterId, $mkId, $targetSemesterId);
+        return app(SubcpmkPakaiUlangSemesterService::class)->resolveBaris($sumberSemesterId, $mkId, $targetSemesterId);
     }
 
-    protected function salinAntarSemesterJalankan(array $rows, string $modeDuplikat, string $mkId, string $targetSemesterId): array
+    protected function pakaiUlangJalankan(array $rows, string $sumberSemesterId, string $mkId, string $targetSemesterId): array
     {
-        return app(SubcpmkSalinSemesterService::class)->jalankan($rows, $modeDuplikat, $mkId, $targetSemesterId);
+        return app(SubcpmkPakaiUlangSemesterService::class)->jalankan($rows, $mkId, $targetSemesterId);
     }
 
-    protected function salinAntarSemesterSemesterIdsDenganData(string $mkId): array
+    protected function pakaiUlangSemesterIdsDenganData(string $mkId): array
     {
-        return app(SubcpmkSalinSemesterService::class)->semesterIdsDenganData($mkId);
+        return app(SubcpmkPakaiUlangSemesterService::class)->semesterIdsDenganData($mkId);
     }
 
     public function content(Schema $schema): Schema
@@ -229,7 +231,7 @@ class ListSubcpmks extends ListRecords
 
         $existing = Subcpmk::query()
             ->where('mk_cpmk_id', $mkCpmk->id)
-            ->where('semester_id', $context['import_semester_id'])
+            ->untukSemester((string) $context['import_semester_id'])
             ->where('kode', $data['kode'])
             ->first();
 
@@ -255,14 +257,25 @@ class ListSubcpmks extends ListRecords
             ? SubcpmkKompetensiParser::parse($data['kompetensi'])
             : [];
 
-        Subcpmk::query()->create([
-            'mk_cpmk_id' => $mkCpmk?->id,
+        // Kode Sub-CPMK unik per pemetaan CPMK (uq_subcpmk_mkcpmk_kode): bila
+        // barisnya sudah ada untuk semester lain, yang ditambahkan cukup
+        // lampiran semesternya — bukan baris baru berisi kode yang sama.
+        $subcpmk = Subcpmk::query()->firstOrCreate(
+            [
+                'mk_cpmk_id' => $mkCpmk?->id,
+                'kode' => $data['kode'],
+            ],
+            [
+                'deskripsi' => $data['deskripsi'],
+                'indikator' => $data['indikator'] ?: null,
+                'evaluasi' => $data['evaluasi'] ?: null,
+                ...$bloom,
+            ],
+        );
+
+        SubcpmkSemester::query()->firstOrCreate([
+            'subcpmk_id' => $subcpmk->id,
             'semester_id' => $context['import_semester_id'],
-            'kode' => $data['kode'],
-            'deskripsi' => $data['deskripsi'],
-            'indikator' => $data['indikator'] ?: null,
-            'evaluasi' => $data['evaluasi'] ?: null,
-            ...$bloom,
         ]);
     }
 

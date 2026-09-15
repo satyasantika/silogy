@@ -241,7 +241,7 @@
                                     @foreach ($asesmen as $komponen)
                                         @php
                                             $total = (float) ($totals[$komponen->id] ?? 0);
-                                            $bobotAsesmen = (float) $komponen->bobot;
+                                            $bobotAsesmen = (float) ($bobotAsesmenPerKomponen[$komponen->id] ?? 0);
                                             $selisih = $total - $bobotAsesmen;
                                             $warnaBadge = match (true) {
                                                 $total <= 0 => '#9ca3af',

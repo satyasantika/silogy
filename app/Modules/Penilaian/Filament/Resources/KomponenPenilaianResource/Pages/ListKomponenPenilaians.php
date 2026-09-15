@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasImporMkSemesterKonteks;
-use App\Modules\MK\Filament\Support\Concerns\HasSalinAntarSemesterMassal;
+use App\Modules\MK\Filament\Support\Concerns\HasPakaiUlangAntarSemester;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkPipeline;
@@ -18,8 +18,8 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Services\AsesmenImporService;
 use App\Modules\Penilaian\Services\EvaluasiResolverService;
+use App\Modules\Penilaian\Services\KomponenPenilaianPakaiUlangSemesterService;
 use App\Modules\Penilaian\Services\KomponenPenilaianResetService;
-use App\Modules\Penilaian\Services\KomponenPenilaianSalinSemesterService;
 use App\Modules\Penilaian\Services\NormalisasiBobotKomponenService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
@@ -47,14 +47,15 @@ class ListKomponenPenilaians extends ListRecords
 {
     use HasImporMassal;
     use HasImporMkSemesterKonteks;
+    use HasPakaiUlangAntarSemester;
     use HasResetTrigger;
-    use HasSalinAntarSemesterMassal;
 
     protected static string $resource = KomponenPenilaianResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
+            $this->makePakaiUlangAction(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -64,18 +65,20 @@ class ListKomponenPenilaians extends ListRecords
     protected function getTableEmptyStateActions(): array
     {
         return [
+            $this->makePakaiUlangAction(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
             $this->makeIsiSubcpmkDuluAction(),
-            $this->makeSalinAntarSemesterAction(),
         ];
     }
 
     /**
-     * Muncul menggantikan "Import dari Semester Lain" ketika Sub-CPMK
-     * semester tujuan belum diisi — pemetaan Sub-CPMK pada komponen
-     * penilaian yang disalin baru bisa terpasang kalau Sub-CPMK-nya sudah
-     * ada dulu di semester itu (lihat KomponenPenilaianSalinSemesterService).
+     * Muncul menggantikan "Gunakan data semester lain" ketika Sub-CPMK
+     * semester tujuan masih kosong sama sekali — asesmen yang dipakai ulang
+     * membawa pemetaan Sub-CPMK-nya, jadi Sub-CPMK harus lebih dulu berlaku
+     * di semester itu. Penyaringan per-asesmen ada di resolveBaris()
+     * KomponenPenilaianPakaiUlangSemesterService; yang di sini hanya kasus
+     * benar-benar kosong.
      */
     protected function makeIsiSubcpmkDuluAction(): Action
     {
@@ -84,38 +87,38 @@ class ListKomponenPenilaians extends ListRecords
             ->icon(Heroicon::OutlinedExclamationTriangle)
             ->color('warning')
             ->url(fn (): string => SubcpmkResource::getUrl('index'))
-            ->visible(fn (): bool => $this->salinAntarSemesterMkId() !== null
-                && $this->salinAntarSemesterTargetSemesterId() !== null
-                && $this->salinAntarSemesterOpsiSumber() !== []
-                && ! $this->salinAntarSemesterPrasyaratTerpenuhi());
+            ->visible(fn (): bool => $this->pakaiUlangMkId() !== null
+                && $this->pakaiUlangTargetSemesterId() !== null
+                && $this->pakaiUlangOpsiSumber() !== []
+                && ! $this->pakaiUlangPrasyaratTerpenuhi());
     }
 
-    protected function salinAntarSemesterPrasyaratTerpenuhi(): bool
+    protected function pakaiUlangPrasyaratTerpenuhi(): bool
     {
         $mkId = MkTerpilih::currentId();
-        $semesterId = $this->salinAntarSemesterTargetSemesterId();
+        $semesterId = $this->pakaiUlangTargetSemesterId();
 
         if (blank($mkId) || blank($semesterId)) {
             return false;
         }
 
         return Subcpmk::query()
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->whereHas('mkCpmk.cpmk', fn ($query) => $query->where('mk_id', $mkId))
             ->exists();
     }
 
-    protected function salinAntarSemesterEntitasLabel(): string
+    protected function pakaiUlangEntitasLabel(): string
     {
-        return 'komponen penilaian';
+        return 'Asesmen';
     }
 
-    protected function salinAntarSemesterMkId(): ?string
+    protected function pakaiUlangMkId(): ?string
     {
         return MkTerpilih::currentId();
     }
 
-    protected function salinAntarSemesterTargetSemesterId(): ?string
+    protected function pakaiUlangTargetSemesterId(): ?string
     {
         $mkId = MkTerpilih::currentId();
 
@@ -126,19 +129,21 @@ class ListKomponenPenilaians extends ListRecords
         return SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
     }
 
-    protected function salinAntarSemesterResolveBaris(string $sumberSemesterId, string $mkId, string $targetSemesterId): array
+    protected function pakaiUlangResolveBaris(string $sumberSemesterId, string $mkId, string $targetSemesterId): array
     {
-        return app(KomponenPenilaianSalinSemesterService::class)->resolveBaris($sumberSemesterId, $mkId, $targetSemesterId);
+        return app(KomponenPenilaianPakaiUlangSemesterService::class)
+            ->resolveBaris($sumberSemesterId, $mkId, $targetSemesterId);
     }
 
-    protected function salinAntarSemesterJalankan(array $rows, string $modeDuplikat, string $mkId, string $targetSemesterId): array
+    protected function pakaiUlangJalankan(array $rows, string $sumberSemesterId, string $mkId, string $targetSemesterId): array
     {
-        return app(KomponenPenilaianSalinSemesterService::class)->jalankan($rows, $modeDuplikat, $mkId, $targetSemesterId);
+        return app(KomponenPenilaianPakaiUlangSemesterService::class)
+            ->jalankan($rows, $mkId, $sumberSemesterId, $targetSemesterId);
     }
 
-    protected function salinAntarSemesterSemesterIdsDenganData(string $mkId): array
+    protected function pakaiUlangSemesterIdsDenganData(string $mkId): array
     {
-        return app(KomponenPenilaianSalinSemesterService::class)->semesterIdsDenganData($mkId);
+        return app(KomponenPenilaianPakaiUlangSemesterService::class)->semesterIdsDenganData($mkId);
     }
 
     public function content(Schema $schema): Schema
@@ -329,7 +334,7 @@ class ListKomponenPenilaians extends ListRecords
 
         return KomponenPenilaian::query()
             ->where('mk_id', $mkId)
-            ->where('semester_id', $semesterId)
+            ->untukSemester((string) $semesterId)
             ->exists();
     }
 

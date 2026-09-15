@@ -66,7 +66,14 @@ final class MkPipeline
 
     public static function hasData(string $key, Mk $mk, User $user): bool
     {
-        $menu = MataKuliahKoordinatorService::ketersediaanPenilaian($mk, $user);
+        // Langkah CPMK/Sub-CPMK/Asesmen dinilai terhadap semester terpilih,
+        // bukan MK secara keseluruhan — data semester lalu tidak boleh
+        // membuka langkah berikutnya untuk semester yang masih kosong.
+        $semesterId = SemesterTerpilih::berlakuUntukUser($user)
+            ? SemesterTerpilih::currentId($mk->id)
+            : null;
+
+        $menu = MataKuliahKoordinatorService::ketersediaanPenilaian($mk, $user, $semesterId);
 
         return match ($key) {
             'cpmk' => $menu['cpmk'],
@@ -126,10 +133,10 @@ final class MkPipeline
     }
 
     /**
-     * Ketersediaan komponen penilaian pada MK + SEMESTER TERPILIH (beda dari
-     * hasData('asesmen', ...) yang MK-wide) — dipakai khusus untuk
-     * menampilkan tombol Laporan/Mahasiswa pada langkah Asesmen, supaya
-     * keduanya benar-benar mengikuti semester yang sedang dipilih.
+     * Ketersediaan komponen penilaian pada MK + SEMESTER TERPILIH — dipakai
+     * khusus untuk menampilkan tombol Laporan/Mahasiswa pada langkah
+     * Asesmen. Sejak hasData() ikut bercakupan semester, ini tinggal
+     * pembacaan langsung tanpa lewat ketersediaanPenilaian().
      */
     public static function hasAsesmenDataUntukSemesterTerpilih(Mk $mk, User $user): bool
     {
@@ -139,7 +146,7 @@ final class MkPipeline
 
         return KomponenPenilaian::query()
             ->where('mk_id', $mk->id)
-            ->when(filled($semesterId), fn ($query) => $query->where('semester_id', $semesterId))
+            ->when(filled($semesterId), fn ($query) => $query->untukSemester((string) $semesterId))
             ->exists();
     }
 }
