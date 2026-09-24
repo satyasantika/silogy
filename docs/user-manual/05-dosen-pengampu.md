@@ -1,5 +1,7 @@
 # Panduan Dosen Pengampu
 
+Alamat SILOGY: **https://silogy.unsil.ac.id/login**
+
 Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai komponen penilaian yang telah disiapkan Koordinator Mata Kuliah.
 
 ## Kewenangan utama
@@ -14,6 +16,10 @@ Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai kompon
 - **Penilaian → Input Nilai**: halaman utama pengisian nilai dan laporan kelas yang diampu.
 - Menu **Kelas MK** tidak ditampilkan untuk Dosen Pengampu (pengelolaan struktur kelas tetap di Admin Prodi / Koordinator).
 
+![Menu Dosen Pengampu](aset/sidebar-dosen.png)
+
+![Dasbor Dosen Pengampu](aset/dosen-dasbor.png)
+
 ## Alur kerja
 
 ### 1. Buka kelas yang diampu
@@ -21,11 +27,15 @@ Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai kompon
 2. Pilih **kelas** (dan mata kuliah) yang diampu dari pemilih kelas.
 3. Pastikan kelas, mata kuliah, dan semester sudah benar. Bila ada kekeliruan penugasan, hubungi Admin Prodi/Koordinator MK.
 
+![Kelas yang Anda ampu](aset/dosen-pengampu.png)
+
 ### 2. Input nilai
 1. Pada halaman **Input Nilai**, pastikan kelas yang benar sudah terpilih.
 2. Akan tampil daftar mahasiswa beserta **komponen penilaian** (mis. Tugas, UTS, UAS) yang telah ditetapkan Koordinator.
 3. Isikan nilai tiap mahasiswa per komponen.
 4. Klik **Simpan**. Nilai akan dihitung dan dipetakan ke ketercapaian CPMK/Sub-CPMK.
+
+![Halaman input nilai](aset/dosen-input-nilai.png)
 
 ### 3. Import nilai (opsional, untuk jumlah besar)
 1. Pada halaman penilaian, pilih **Import**.

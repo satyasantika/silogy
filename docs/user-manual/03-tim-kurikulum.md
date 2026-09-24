@@ -1,88 +1,231 @@
 # Panduan Tim Kurikulum
 
-Tim Kurikulum bertanggung jawab menyusun **isi kurikulum berbasis OBE**: dari Profil Lulusan, Capaian Pembelajaran Lulusan (CPL), Body of Knowledge (BoK), hingga struktur Mata Kuliah (MK) dan pemetaannya antar unit.
+Cara masuk: [indeks panduan](00-README.md). Buku ini dimulai setelah kartu **Tim Kurikulum** aktif.
 
-## Kewenangan utama
+Tim Kurikulum menulis **kontrak capaian lulusan**: Kurikulum, Profil Lulusan (prodi), CPL, BoK, Mata Kuliah, Penawaran MK, dan matriks pemetaan. CPMK, asesmen, dan nilai dikerjakan Koordinator MK dan Dosen.
 
-- Mengelola **Kurikulum**.
-- Mengelola **Profil Lulusan** — aktif hanya pada unit Program Studi tempat Anda berstatus anggota Tim Kurikulum.
-- Mengelola **CPL**, **BoK**, **MK**, dan **MK per unit (MK Unit)**.
-- Menugaskan dosen ke MK (set dosen MK).
-- Melihat laporan dan dashboard.
 
-## Menu yang tersedia (kelompok **Kurikulum**)
+## Siapa Anda, menurut unit
 
-- **Kurikulum**: definisi kurikulum yang berlaku.
-- **CPL**: capaian pembelajaran lulusan.
-- **BoK**: body of knowledge / bahan kajian.
-- **MK** & **MK Unit**: daftar mata kuliah dan penempatannya pada unit.
+Nama peran sama: **Tim Kurikulum**. Yang membedakan adalah unit di kartu *Pilih peran & unit* dan centang *status tim kurikulum* pada akun.
 
-## Alur kerja yang disarankan
+![Cakupan Tim Kurikulum mengikuti unit](aset/tk-unit.png)
 
-Ikuti urutan OBE agar keterkaitan data konsisten:
+| Unit penugasan | Yang boleh Anda tulis | Yang tidak tampil |
+|----------------|----------------------|-------------------|
+| Program studi | Profil Lulusan, CPL, BoK, MK, Penawaran MK, matriks Profil↔CPL, Kelas MK, Analisis MK, usulan CPMK prodi | — |
+| Fakultas / Jurusan / Universitas | CPL, BoK, MK milik unit itu (dan anaknya), matriks CPL↔BoK dan CPL↔MK, usulan CPMK di lingkup unit | Profil Lulusan dan Penawaran MK — hanya level prodi |
 
-### 1. Definisikan Kurikulum
-1. Buka **Kurikulum → New**.
-2. Isi nama, tahun berlaku, dan prodi terkait. Simpan.
+Bila Anda merangkap Dosen, pilih kartu **Tim Kurikulum** dulu. Menu Input Nilai tidak campur dengan menu ini.
 
-### 2. Susun Profil Lulusan (pada prodi Anda)
-1. Buka pengelolaan **Profil Lulusan**.
-2. Tambahkan setiap profil lulusan beserta deskripsinya.
+## Menu yang tampil
 
-### 3. Rumuskan CPL
-1. Buka **Kurikulum → CPL → New**.
-2. Tuliskan kode dan rumusan CPL, kaitkan dengan profil lulusan.
+Sidebar rata, tanpa kelompok. Item aktif kuning. Urutan di prodi:
 
-### 4. Tetapkan BoK
-1. Buka **BoK → New**.
-2. Tambahkan bahan kajian dan kaitkan ke CPL yang relevan.
+Dasbor → Kurikulum → Profil Lulusan → CPL → BoK → MK → Penawaran MK → Profil ↔ CPL → CPL ↔ BoK → CPL ↔ MK → Kelas MK → Usulan Perubahan CPMK → Analisis MK (paling bawah).
 
-### 5. Susun Mata Kuliah & pemetaannya
-1. Buka **MK → New**: tambahkan mata kuliah (kode, nama, SKS).
-2. Buka **MK Unit**: tempatkan MK pada unit/prodi dan semester yang tepat.
-3. Petakan MK ke CPL/BoK sesuai matriks kurikulum.
+Badge angka di Usulan Perubahan CPMK = jumlah usulan berstatus Diajukan.
 
-### 6. Tugaskan dosen ke MK
-- Gunakan fitur **set dosen MK** untuk menetapkan pengampu setiap mata kuliah.
+![Sidebar Tim Kurikulum](aset/sidebar-tim-kurikulum.png)
 
-## Praktik baik
+![Dasbor Tim Kurikulum](aset/timkur-dasbor.png)
 
-- Selesaikan CPL sebelum BoK dan MK, karena keduanya merujuk ke CPL.
-- Pastikan setiap MK terpetakan ke minimal satu CPL agar laporan ketercapaian lengkap.
-- Periksa kembali matriks CPL–MK sebelum kurikulum digunakan untuk penilaian.
-- Gunakan dashboard untuk memantau kelengkapan pemetaan.
+## Pilih kurikulum dulu
 
-## Catatan
+Cara masuk dan pilih peran ada di [indeks panduan](00-README.md).
 
-- Pengelolaan **Profil Lulusan** hanya tersedia di unit prodi tempat Anda terdaftar sebagai anggota Tim Kurikulum.
-- Penyusunan CPMK/Sub-CPMK dan komponen penilaian dilakukan oleh **Koordinator Mata Kuliah**, bukan Tim Kurikulum.
+1. Di dasbor atau menu **Kurikulum**, klik kurikulum yang akan diisi. Pilihan tersimpan di sesi: semua menu Profil, CPL, BoK, MK, dan matriks mengikuti kurikulum itu.
 
-## Menyetujui perubahan CPMK
+   ![Kartu kurikulum terpilih](aset/tk-kurikulum-kartu.png)
 
-CPMK terpetakan ke CPL lewat `mk_cpmk`, jadi mengubahnya menyentuh kontrak kurikulum —
-bukan urusan satu mata kuliah saja. Karena itu Koordinator MK boleh **memakai ulang** CPMK
-semester sebelumnya kapan saja, tetapi **mengubah** CPMK yang sudah berjalan pada suatu
-semester harus lewat persetujuan Anda.
+2. Banner di atas halaman menampilkan kurikulum terpilih.
 
-### Kotak masuk
+   ![Banner kurikulum terpilih](aset/tk-banner-kurikulum.png)
 
-Menu **Kurikulum → Usulan Perubahan CPMK** menampilkan usulan pada unit Anda. Badge angka
-di sampingnya adalah jumlah usulan yang masih menunggu keputusan.
+Tanpa kurikulum terpilih, daftar CPL/MK bisa kosong meski datanya ada di kurikulum lain.
 
-Cakupannya mengikuti penugasan unit: Tim Kurikulum prodi menangani mata kuliah prodinya,
-Tim Kurikulum fakultas/universitas menangani mata kuliah di seluruh unit di bawahnya.
+## Urutan OBE yang wajib
 
-### Meninjau
+Profil → CPL → BoK → MK → (lalu Koordinator: CPMK → Asesmen → Dosen: Nilai).
 
-1. Buka usulannya. Anda akan melihat alasan koordinator dan **potret CPMK yang berlaku saat
-   usulan diajukan** — inilah yang hendak diganti.
-2. **Setujui** bila perubahan itu wajar. Sesudahnya koordinator boleh menyusun ulang CPMK
-   mata kuliah tersebut untuk semester itu.
-3. **Tolak** bila belum layak. Alasan penolakan **wajib diisi**: tanpa itu koordinator tidak
-   tahu apa yang perlu diperbaiki sebelum mengajukan lagi.
+![Rantai OBE](aset/alur-obe.svg)
 
-### Catatan
+Jangan menulis MK sebelum CPL ada. Jangan menawar MK di prodi sebelum MK induk (universitas/fakultas) selesai bila mata kuliah itu milik unit atas.
 
-- Anda tidak bisa menyetujui usulan yang Anda ajukan sendiri.
-- Hanya boleh ada satu usulan terbuka per (mata kuliah, semester).
-- Seluruh keputusan tercatat di riwayat transisi dan audit log.
+## 1. Kurikulum
+
+1. Buka **Kurikulum** → buat.
+
+   ![Tombol buat kurikulum](aset/tk-kurikulum-buat.png)
+
+2. Isi **Unit akademik** (terkunci bila hanya satu unit), **Nama**, **Kode** (contoh `KUR-2025-PMAT`), **Tahun**.
+
+   ![Formulir kurikulum](aset/tk-kurikulum-form.png)
+
+3. Geser **Target capaian lulusan (%)** — acuan dasbor pimpinan. Default 75.
+
+   ![Penggeser target capaian](aset/tk-kurikulum-target.png)
+
+4. Isi deskripsi bila perlu. Nyalakan **Kurikulum aktif** hanya untuk yang sedang dipakai.
+
+   ![Sakelar kurikulum aktif](aset/tk-kurikulum-aktif.png)
+
+5. Simpan. Klik kartu kurikulum itu agar menjadi kurikulum terpilih.
+
+   ![Kartu kurikulum setelah simpan](aset/tk-kurikulum-kartu.png)
+
+Status di kartu (Draft → Profil → CPL → BoK → MK → Set dosen → Aktif) menandai kelengkapan. Isi datanya; status mengikuti.
+
+## 2. Profil Lulusan (hanya prodi)
+
+Menu hilang jika kurikulum terpilih bukan prodi, atau status tim kurikulum Anda di fakultas/universitas.
+
+1. Buka **Profil Lulusan** → buat.
+
+   ![Daftar profil lulusan](aset/tk-profil-buat.png)
+
+2. Isi **Kode**, **Nama**, **Urutan**, dan **Deskripsi** (wajib).
+
+   ![Formulir profil lulusan](aset/tk-profil-form.png)
+
+3. Tambah **indikator** pada repeater.
+
+   ![Repeater indikator profil](aset/tk-profil-indikator.png)
+
+4. Ulangi untuk setiap profil.
+
+   ![Beberapa profil tersimpan](aset/tk-profil-daftar.png)
+
+## 3. CPL
+
+1. Buka **CPL** → buat. Isi kode unik per kurikulum, deskripsi, dan **Domain** (boleh lebih dari satu: kognitif, afektif, psikomotorik).
+
+   ![Formulir CPL](aset/tk-cpl-form.png)
+
+2. CPL milik unit induk bisa tampil di prodi sebagai adaptasi. Rumusan asli tidak diubah — hanya **Kode (alias di unit ini)**.
+
+   ![Alias CPL unit induk](aset/tk-cpl-alias.png)
+
+3. Petakan ke profil di matriks **Profil ↔ CPL**.
+
+   ![Matriks Profil dan CPL](aset/tk-matriks-profil-cpl.png)
+
+## 4. BoK
+
+1. Buka **BoK** → buat. Isi kode dan rumusan bahan kajian.
+
+   ![Formulir BoK](aset/tk-bok-form.png)
+
+2. BoK unit induk bisa diadaptasi; rumusan asli tidak diubah di prodi.
+
+   ![Adaptasi BoK unit induk](aset/tk-bok-adaptasi.png)
+
+3. Petakan ke CPL di **CPL ↔ BoK**.
+
+   ![Matriks CPL dan BoK](aset/tk-matriks-cpl-bok.png)
+
+## 5. Mata kuliah
+
+1. Buka **MK** → buat. Isi **Unit pemilik**, **Nama**, SKS teori/praktik/lapangan (total terhitung sendiri), **Jenis** (wajib/pilihan), status aktif.
+
+   ![Formulir mata kuliah](aset/tk-mk-form.png)
+
+2. Isi **Koordinator MK** dari daftar dosen. Pilihan ini memberi role Koordinator Mata Kuliah — tanpa ini koordinator tidak punya menu CPMK untuk MK tersebut.
+
+   ![Pilih Koordinator MK](aset/tk-mk-koordinator.png)
+
+3. Kode MK di prodi diisi di Penawaran MK, bukan di form ini.
+
+   ![Kode prodi masih kosong sampai Penawaran](aset/tk-mk-simpan.png)
+
+MK penciri universitas/fakultas dibuat oleh Tim Kurikulum unit pemiliknya. Prodi hanya menawarkannya.
+
+## 6. Penawaran MK (hanya prodi)
+
+1. Buka **Penawaran MK** → buat.
+
+   ![Daftar penawaran MK](aset/tk-penawaran-buat.png)
+
+2. Pilih MK milik prodi atau MK unit induk. Isi **Kode MK di unit** (unik per kurikulum) dan **Semester ke-** (1–14).
+
+   ![Formulir penawaran MK](aset/tk-penawaran-form.png)
+
+3. Satu MK hanya sekali per kurikulum.
+
+   ![Peringatan satu MK sekali per kurikulum](aset/tk-penawaran-unik.png)
+
+## 7. Matriks pemetaan
+
+Kerjakan berurutan. Kotak tercentang = ada pemetaan.
+
+1. **Profil ↔ CPL** (prodi) — setiap profil dan setiap CPL saling menyentuh minimal sekali.
+
+   ![Matriks Profil dan CPL](aset/tk-matriks-profil-cpl.png)
+
+2. **CPL ↔ BoK** — setiap BoK menopang minimal satu CPL.
+
+   ![Matriks CPL dan BoK](aset/tk-matriks-cpl-bok.png)
+
+3. **CPL ↔ MK** — setiap MK yang ditawarkan mengukur minimal satu CPL. Tanpa ini laporan capaian MK kosong.
+
+   ![Matriks CPL dan MK](aset/matriks-cpl-mk.png)
+
+Jangan mencentang semua kotak; hanya yang memang diukur.
+
+## 8. Kelas MK
+
+Anda punya wewenang kelas di unit prodi. Biasanya Admin Prodi yang membuat rombongan, pengampu, dan peserta.
+
+1. Pastikan **Semester** aktif sudah benar (Super Admin).
+
+   ![Semester aktif diatur Super Admin](aset/tk-semester.png)
+
+2. Buka **Kelas MK** → buat. Pilih MK yang sudah ditawarkan, semester, dan pengampu.
+
+   ![Formulir kelas MK](aset/tk-kelas-form.png)
+
+## 9. Analisis MK
+
+Menu paling bawah. Ringkasan capaian setelah nilai masuk — bukan tempat menulis rumusan. Jika grafik kosong: cek pemetaan CPL, asesmen 100%, dan nilai tersimpan.
+
+![Dasbor analisis MK](aset/tk-analisis.png)
+
+## Kotak masuk usulan CPMK
+
+Koordinator boleh **memakai ulang** CPMK semester lalu tanpa izin. **Mengubah** CPMK yang sudah berjalan di suatu semester harus lewat Anda, karena CPMK terikat ke CPL.
+
+![Kotak masuk usulan CPMK](aset/usulan-cpmk.png)
+
+1. Buka **Usulan Perubahan CPMK**. Baca alasan dan potret CPMK saat diajukan.
+
+   ![Detail usulan dan potret CPMK](aset/tk-usulan-detail.png)
+
+2. **Setujui** jika wajar — koordinator boleh menyusun ulang.
+
+   ![Tombol setujui usulan](aset/tk-usulan-setujui.png)
+
+3. **Tolak** hanya dengan alasan tertulis.
+
+   ![Modal tolak dengan alasan wajib](aset/tk-usulan-tolak.png)
+
+Anda tidak bisa menyetujui usulan yang Anda ajukan sendiri. Satu usulan terbuka per mata kuliah per semester. Tim Kurikulum fakultas/universitas melihat usulan MK di unit anak.
+
+## Impor massal
+
+Di daftar Profil, CPL, BoK, dan MK biasanya ada **Impor massal**. Unduh templat, isi tanpa mengubah nama kolom, unggah, perbaiki baris yang ditolak. Impor terikat kurikulum terpilih.
+
+![Impor massal CPL](aset/tk-impor.png)
+
+## Jika menu kosong atau tombol hilang
+
+| Gejala | Penyebab lazim | Yang dilakukan |
+|--------|----------------|----------------|
+| Profil Lulusan / Penawaran MK tidak ada | Kurikulum terpilih bukan prodi, atau status tim kurikulum di fakultas | Pilih kurikulum prodi, atau minta Admin mengaktifkan status di prodi |
+| Daftar CPL/MK kosong | Belum memilih kurikulum | Klik kurikulum yang benar |
+| Koordinator tidak bisa buka CPMK | Kolom Koordinator MK kosong | Isi Koordinator MK di form MK |
+| Matriks CPL↔MK kosong | MK belum ditawarkan di prodi | Isi Penawaran MK |
+| Usulan tidak bisa disetujui | Anda pengusulnya, atau sudah diputus | Minta anggota tim lain meninjau |
+
+## Bukan tugas Anda
+
+Sub-CPMK, asesmen (bobot komponen), dan nilai mahasiswa. Itu Koordinator MK dan Dosen Pengampu.
