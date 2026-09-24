@@ -30,6 +30,7 @@
             <a class="hero-tab on" href="#why"><i class="bi bi-lightbulb"></i> Mengapa SILOGY?</a>
             <a class="hero-tab" href="#pillars"><i class="bi bi-columns-gap"></i> Tiga Pilar</a>
             <a class="hero-tab" href="#ecosystem"><i class="bi bi-diagram-3"></i> Ekosistem</a>
+            <a class="hero-tab" href="#panduan"><i class="bi bi-book"></i> Panduan Peran</a>
             <a class="hero-tab" href="#impact"><i class="bi bi-trophy"></i> Dampak &amp; Target</a>
         </div>
         <p class="hero-scroll-hint">Scroll untuk menjelajahi</p>
@@ -180,6 +181,39 @@
 <div class="divider"></div>
 
 <!-- ── IMPACT ── -->
+
+<!-- ── PANDUAN PER PERAN ── -->
+<section class="sec" id="panduan" style="background: var(--sec-alt);">
+    <div class="sec-c">
+        <div class="hd">
+            <span class="eyebrow"><i class="bi bi-book-half"></i> Panduan Pengguna</span>
+            <h2 class="sh">Pelajari SILOGY sesuai peran Anda</h2>
+            <p class="sp">
+                Setiap peran mengerjakan satu ruas rantai capaian pembelajaran yang sama.
+                Buka panduan yang sesuai dengan tugas Anda &mdash; lengkap dengan tangkapan
+                layar sistem yang sebenarnya dan penunjuk langkah demi langkah.
+            </p>
+        </div>
+
+        <div class="panduan-grid">
+            @foreach (\App\Modules\Panduan\Support\PeranPanduan::semua() as $slugPanduan => $definisiPanduan)
+                <a class="panduan-card" href="{{ route('panduan.peran', ['peran' => $slugPanduan]) }}">
+                    <span class="panduan-ico"><i class="bi {{ $definisiPanduan['ikon'] }}"></i></span>
+                    <div>
+                        <div class="panduan-name">{{ $definisiPanduan['label'] }}</div>
+                        <p class="panduan-desc">{{ $definisiPanduan['ringkas'] }}</p>
+                    </div>
+                </a>
+            @endforeach
+        </div>
+
+        <div style="text-align:center;margin-top:2.2rem;">
+            <a class="tbtn-g" href="{{ route('panduan.indeks') }}">
+                <i class="bi bi-arrow-right"></i> Buka indeks panduan
+            </a>
+        </div>
+    </div>
+</section>
 
 <section class="sec impact-bg" id="impact">
     <div class="sec-c">

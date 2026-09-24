@@ -143,6 +143,13 @@
             transition: color .2s;
         }
         .nav-r { display: flex; align-items: center; gap: .5rem; }
+        .nav-panduan {
+            display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .85rem;
+            border-radius: 9px; font-size: .78rem; font-weight: 800; letter-spacing: .05em;
+            color: var(--c-nav-link); border: 1px solid transparent;
+        }
+        .nav-panduan:hover { color: var(--g500); border-color: var(--c-card-border2); background: rgba(0,153,0,.06); }
+        @media (max-width: 560px) { .nav-panduan span { display: none; } }
         .nbtn {
             display: inline-flex; align-items: center; gap: .4rem;
             padding: .5rem 1.1rem; border-radius: 9px;
@@ -387,7 +394,23 @@
 
         /* ── FOOTER (always dark) ── */
         .footer { background: var(--ink); border-top: 1px solid var(--bd-d); }
-        .footer-c { width: min(1200px,92%); margin: 0 auto; padding: 4rem 0 2.5rem; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 3.5rem; }
+        /* ── Kartu panduan per peran (seksi #panduan) ── */
+        .panduan-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(270px,1fr)); gap: 1.1rem; }
+        .panduan-card {
+            display: flex; gap: .95rem; align-items: flex-start; padding: 1.4rem;
+            border-radius: var(--R); background: var(--c-card);
+            border: 1px solid var(--c-card-border);
+        }
+        .panduan-card:hover { border-color: var(--c-card-hover-border); box-shadow: 0 8px 26px var(--c-shadow); transform: translateY(-2px); }
+        .panduan-ico {
+            flex: 0 0 auto; width: 42px; height: 42px; border-radius: 11px;
+            display: grid; place-items: center; font-size: 1.15rem;
+            color: var(--g500); background: var(--c-eyebrow-bg); border: 1px solid var(--c-eyebrow-border);
+        }
+        .panduan-name { font-family: 'Nunito',sans-serif; font-weight: 800; color: var(--c-text); font-size: 1.02rem; }
+        .panduan-desc { color: var(--c-muted); font-size: .86rem; line-height: 1.6; margin-top: .3rem; }
+
+        .footer-c { width: min(1200px,92%); margin: 0 auto; padding: 4rem 0 2.5rem; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.6rem; }
         .fb p { color: var(--tws); font-size: .87rem; line-height: 1.72; margin-top: .9rem; max-width: 290px; }
         .fb-line { display: flex; align-items: center; gap: .5rem; color: var(--twss); font-size: .82rem; margin-top: .8rem; }
         .fb-line i { color: var(--g600); }

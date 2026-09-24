@@ -11,6 +11,9 @@
             </span>
         </a>
         <div class="nav-r">
+            <a class="nav-panduan" href="{{ route('panduan.indeks') }}">
+                <i class="bi bi-book"></i> <span>PANDUAN</span>
+            </a>
             <button class="theme-toggle" id="themeToggle" onclick="cycleTheme()" title="Ganti tema">
                 <i class="bi bi-circle-half" id="themeIcon"></i>
             </button>

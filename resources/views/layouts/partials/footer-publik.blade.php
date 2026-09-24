@@ -15,10 +15,20 @@
             <h4>Fitur</h4>
             <nav class="fl">
                 <a href="{{ route('filament.admin.pages.dashboard') }}">Dashboard Analitik</a>
-                <a href="#">Pemetaan CPL&ndash;CPMK</a>
-                <a href="#">Manajemen Kurikulum</a>
-                <a href="#">Pengisian Nilai</a>
-                <a href="#">Laporan Mutu</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'koordinator-mk']) }}">Pemetaan CPL&ndash;CPMK</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'tim-kurikulum']) }}">Manajemen Kurikulum</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'dosen-pengampu']) }}">Pengisian Nilai</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'pimpinan']) }}">Laporan Mutu</a>
+            </nav>
+        </div>
+        <div class="fc">
+            <h4>Panduan Peran</h4>
+            <nav class="fl">
+                <a href="{{ route('panduan.indeks') }}">Semua panduan</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'super-admin']) }}">Super Admin</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'admin-unit']) }}">Admin Unit</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'auditor-mutu']) }}">Auditor Mutu</a>
+                <a href="{{ route('panduan.peran', ['peran' => 'alur-end-to-end']) }}">Alur end-to-end</a>
             </nav>
         </div>
         <div class="fc">
