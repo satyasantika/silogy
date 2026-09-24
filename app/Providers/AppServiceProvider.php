@@ -51,6 +51,7 @@ use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Observers\SubcpmkKomponenPenilaianObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
+use App\Modules\Simulasi\Support\PencatatArtefak;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -83,6 +84,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FilamentLoginResponseContract::class, FilamentDefaultLoginRedirect::class);
         $this->app->bind(FilamentVendorLoginResponse::class, FilamentDefaultLoginRedirect::class);
         $this->app->bind(FilamentResetPasswordNotification::class, ResetPasswordNotification::class);
+
+        // Singleton: pencatat menyimpan penyangga artefak dan daftar model tak
+        // dikenal selama satu jalan pembangunan berlangsung.
+        $this->app->singleton(PencatatArtefak::class);
     }
 
     /**
