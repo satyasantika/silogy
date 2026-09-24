@@ -105,19 +105,90 @@ Password default semua akun: **`siliwangi`**
 
 Sumber lengkap: [PreVibeCoding §7.2](docs/SILOGY_PreVibeCoding_v6.md).
 
-### Seeder Simulasi Sistem
+### Pusat Simulasi (data latihan yang bisa dibuat & dihapus kapan saja)
 
-`make fresh` menjalankan `SimulasiSistemSeeder` — seeder mandiri yang mengisi
-seluruh kebutuhan simulasi end-to-end pada **Prodi S1 Pendidikan Matematika
-dengan FKIP sebagai induk langsung** (jurusan bersifat opsional dalam hierarki):
-unit akademik, role + akun, semester, mahasiswa, kurikulum aktif, profil lulusan,
-CPL, BoK, MK (prodi + universitas + fakultas), CPMK, Sub-CPMK, kelas, komponen
-penilaian, nilai, hingga hasil kalkulasi CPL beserta agregasinya ke FKIP dan
-universitas. Untuk menjalankannya sendiri:
+Super Admin dapat menyalakan dan mematikan satu program studi contoh yang lengkap —
+dari kurikulum sampai nilai dan hasil kalkulasi — lewat menu **Simulasi** (`/simulasi`).
+Gunanya supaya siapa pun bisa berlatih memakai SILOGY tanpa menyentuh data yang
+sesungguhnya, dan supaya tangkapan layar manual punya isi yang masuk akal.
 
 ```bash
-docker compose exec app php artisan db:seed --class=SimulasiSistemSeeder
+docker compose exec app php artisan simulasi:status
+docker compose exec app php artisan simulasi:buat
+docker compose exec app php artisan simulasi:hapus            # laporan saja
+docker compose exec app php artisan simulasi:hapus --terapkan # benar-benar hapus
 ```
+
+**Yang dimiliki simulasi.** Pohon unit tersendiri — Universitas Simulasi → Fakultas
+Simulasi → Prodi Simulasi — beserta akun `sim-*` (kata sandi `siliwangi`), mahasiswa,
+kurikulum, profil lulusan, CPL, BoK, mata kuliah, CPMK, Sub-CPMK, komponen asesmen,
+kelas, nilai, hasil kalkulasi, dan satu usulan perubahan CPMK yang menunggu keputusan.
+
+**Yang dipinjam, tidak pernah dihapus.** Peran, izin, semester, dan master evaluasi.
+Seluruh foreign key ke `semesters` dan `evaluasi` bersifat RESTRICT, jadi baris yang
+terlanjur dibuat simulasi tidak akan pernah bisa dibongkar dengan aman — karena itu
+simulasi menolak jalan bila belum ada semester aktif.
+
+**Mengapa penghapusannya aman.** Tabel `simulasi_artefak` mencatat setiap baris yang
+BENAR-BENAR dibuat simulasi. Baris yang hanya diadopsi `firstOrCreate` tidak pernah
+memancarkan event `created`, sehingga tidak pernah tercatat dan tidak mungkin ikut
+terhapus. Pembongkaran berjalan mundur menurut urutan pembuatan, dan urutan terbalik itu
+sendirilah yang memenuhi setiap batasan RESTRICT di skema. Baris yang masih dirujuk data
+di luar buku besar tidak dipaksa hapus, melainkan dilaporkan.
+
+Uji yang menjaga jaminan itu: `tests/Feature/Simulasi/SimulasiServiceTest.php`
+membandingkan **cap jari seluruh tabel** sebelum dan sesudah siklus buat→hapus.
+
+### Panduan pengguna publik
+
+Panduan per peran terbit di **`/panduan`**, tertaut dari beranda, dan dirender langsung
+dari `docs/user-manual/*.md` sehingga tidak pernah menyimpang dari sumbernya.
+
+Gambarnya adalah **tangkapan layar aplikasi yang sebenarnya**, diambil Playwright dari
+instans yang berjalan, bukan ilustrasi tiruan:
+
+```bash
+docker compose exec app php artisan simulasi:buat   # isi dulu datanya
+npm install && npx playwright install chromium
+APP_URL=http://localhost:8017 npm run tangkap-layar
+npm run tangkap-layar -- --periksa                  # manifes vs Markdown
+docker compose exec app php artisan panduan:tautkan-aset
+```
+
+Di produksi langkah terakhir itu sudah dijalankan entrypoint dengan `--salin`: nginx
+berjalan di container terpisah yang hanya me-mount volume `public/`, jadi tautan simbolik
+ke `docs/` akan menggantung di sana.
+
+Angka merah penunjuk tombol tidak dibakar ke dalam PNG. Runner menghitung kotak batas
+tiap selector saat memotret dan menyimpannya sebagai persentase di
+`docs/user-manual/aset/manifes.json`; halaman panduan menggambarnya sebagai overlay CSS.
+Akibatnya, ketika sebuah tombol berpindah di antarmuka, penunjuknya ikut berpindah
+sendiri pada penangkapan berikutnya. Semua selector hidup di satu berkas:
+`scripts/tangkap-layar/adegan.mjs`.
+
+#### Mode latihan: sakelarnya di basis data, bukan di `.env`
+
+Tombol "Coba sebagai ‹peran›" adalah jalur masuk **tanpa kata sandi**, dan **tertutup
+secara bawaan**. Membukanya dilakukan Super Admin dari menu **Simulasi** → **Buka mode
+latihan**, bukan dengan menyunting `.env`. Alasannya praktis: orang yang berwenang
+memutuskan hal ini sering kali tidak punya akses ke berkas konfigurasi di peladen — dan
+sakelar yang bisa dicabut dalam hitungan detik lebih aman daripada yang butuh deploy.
+
+Sakelarnya menempel pada **jalan simulasi** (`simulasi_jalan.coba_peran`), sehingga:
+
+- **Menghapus data simulasi otomatis menutup jalur ini.** Tidak ada sakelar yatim yang
+  tertinggal menyala tanpa ada yang menyadarinya.
+- **Simulasi yang baru dibuat selalu mulai tertutup.** "Bangun Ulang" membawa sakelar
+  yang sedang menyala, karena menyegarkan data latihan bukan berarti menutup pintunya.
+
+`SIMULASI_IZINKAN_COBA_PERAN` di `.env` adalah **pemutus keras**, bukan sakelar: ia hanya
+bisa *melarang*, tidak pernah *mengizinkan*. Setel `false` bila sebuah instans tidak boleh
+membuka mode latihan sama sekali, apa pun yang ditekan Super Admin.
+
+Pagar lengkap jalur masuk itu: instans mengizinkan, Super Admin membukanya, ada simulasi
+berjalan, akun sasaran **tercatat di buku besar sebagai buatan simulasi**, dan surelnya di
+domain simulasi. Isolasi sebenarnya ada di lapisan data — akun `sim-*` hanya ditugaskan ke
+pohon unit simulasi, sehingga seluruh policy berbasis unit memagarinya dari data nyata.
 
 Catatan: pengaturan pengguna (`/users`) kini eksklusif untuk `superadmin`.
 
