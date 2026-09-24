@@ -110,6 +110,11 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->id ?? $request->ip());
         });
 
+        RateLimiter::for('panduan-coba-peran', function (Request $request): Limit {
+            return Limit::perMinute((int) config('simulasi.batas_coba_per_menit', 10))
+                ->by($request->ip());
+        });
+
         Gate::policy(AnalisisAi::class, AnalisisAiPolicy::class);
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);

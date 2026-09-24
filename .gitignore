@@ -84,3 +84,6 @@ phpunit.xml.bak
 *.swp
 *.swo
 *.bak
+
+# Gambar panduan ditautkan dari docs/user-manual/aset oleh `panduan:tautkan-aset`
+/public/manual
