@@ -15,6 +15,20 @@ class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
+        self::seedPeranDanIzin();
+
+        $this->seedAkunDemo();
+    }
+
+    /**
+     * Bagian permission + role saja — idempoten dan tidak menyentuh akun.
+     *
+     * Dipisahkan supaya pemicu dari antarmuka (Pusat Simulasi) bisa memastikan
+     * peran tersedia TANPA ikut menjalankan bagian akun, yang menyinkronkan
+     * kata sandi dan menimpa peran pengguna yang sudah ada.
+     */
+    public static function seedPeranDanIzin(): void
+    {
         // =========================================================
         // 1. PERMISSIONS
         // =========================================================
@@ -115,15 +129,28 @@ class RolePermissionSeeder extends Seeder
             'lihat_laporan', 'ekspor_data', 'lihat_audit_log', 'lihat_dashboard',
         ]);
 
-        // =========================================================
-        // 3. AKUN SEMENTARA + PENETAPAN UNIT
-        // =========================================================
-        // Asumsi: AcademicUnitSeeder sudah dijalankan dan menyediakan
-        //         minimal satu unit pada tiap level.
-        $univ = AcademicUnit::where('type', 'university')->first();
-        $fak = AcademicUnit::where('type', 'faculty')->first();
-        $jur = AcademicUnit::where('type', 'department')->first();
-        $prodi = AcademicUnit::where('type', 'study_program')->first();
+    }
+
+    /**
+     * =========================================================
+     * 3. AKUN SEMENTARA + PENETAPAN UNIT
+     * =========================================================
+     * Asumsi: AcademicUnitSeeder sudah dijalankan dan menyediakan
+     *         minimal satu unit pada tiap level.
+     */
+    protected function seedAkunDemo(): void
+    {
+        // Unit bercode SIM-* milik Pusat Simulasi dan bisa muncul/hilang
+        // kapan saja; akun demo tetap harus menempel pada unit nyata.
+        $nyata = fn (string $type) => AcademicUnit::where('type', $type)
+            ->where('code', 'not like', 'SIM-%')
+            ->oldest()
+            ->first();
+
+        $univ = $nyata('university');
+        $fak = $nyata('faculty');
+        $jur = $nyata('department');
+        $prodi = $nyata('study_program');
 
         $accounts = [
             // Super
@@ -227,6 +254,23 @@ class RolePermissionSeeder extends Seeder
                     'email_verified_at' => now(),
                 ]
             );
+
+            // Akun ini hanya boleh disentuh bila memang milik seeder: baru saja
+            // dibuat, atau surelnya persis pola demo. Tanpa pagar ini sebuah akun
+            // NYATA yang kebetulan memakai username yang sama (mis. seorang dosen
+            // ber-username "dosen") akan kehilangan kata sandinya dan seluruh
+            // perannya ditimpa begitu seeder dijalankan.
+            $surelDemo = $a['username'].'@silogy.test';
+            $milikSeeder = $user->wasRecentlyCreated || $user->email === $surelDemo;
+
+            if (! $milikSeeder) {
+                $this->command?->warn(
+                    "Lewati akun demo '{$a['username']}': sudah dipakai akun lain ({$user->email}). "
+                    .'Kata sandi dan peran akun itu tidak diubah.'
+                );
+
+                continue;
+            }
 
             if ($user->email_verified_at === null) {
                 $user->forceFill(['email_verified_at' => now()])->save();
