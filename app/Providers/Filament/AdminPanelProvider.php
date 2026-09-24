@@ -183,6 +183,10 @@ class AdminPanelProvider extends PanelProvider
                 in: app_path('Modules/MK/Filament/Pages'),
                 for: 'App\Modules\MK\Filament\Pages',
             )
+            ->discoverPages(
+                in: app_path('Modules/Simulasi/Filament/Pages'),
+                for: 'App\Modules\Simulasi\Filament\Pages',
+            )
             ->pages([
                 Dashboard::class,
                 PilihPeranUnit::class,
