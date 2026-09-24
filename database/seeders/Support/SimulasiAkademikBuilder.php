@@ -95,7 +95,7 @@ class SimulasiAkademikBuilder
     }
 
     /**
-     * @param  array{unit: AcademicUnit, kode: string, nama: string, dosen: User, koordinator: User}  $definisi
+     * @param  array{unit: AcademicUnit, kode: string, nama: string, dosen: User, koordinator: User, prodi_sumber?: AcademicUnit}  $definisi
      */
     public function seedMkUnitRingkas(array $definisi): void
     {
@@ -112,7 +112,12 @@ class SimulasiAkademikBuilder
             return;
         }
 
-        $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+        // Prodi sumber peserta WAJIB bisa ditentukan pemanggil. Tanpa itu baris
+        // ini memungut prodi mana pun yang kebetulan pertama ditemukan — pada
+        // basis data berisi data nyata, artinya mahasiswa sungguhan ikut
+        // terdaftar ke kelas simulasi.
+        $prodi = $definisi['prodi_sumber']
+            ?? AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
         $mahasiswaSample = Mahasiswa::query()
             ->where('academic_unit_id', $prodi->id)
             ->limit(10)
