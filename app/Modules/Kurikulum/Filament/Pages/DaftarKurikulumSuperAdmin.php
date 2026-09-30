@@ -117,18 +117,36 @@ class DaftarKurikulumSuperAdmin extends Page implements HasActions, HasTable
             ->requiresConfirmation()
             ->modalHeading(fn (Kurikulum $record): string => 'Reset kurikulum '.$record->nama.'?')
             ->modalDescription(function (Kurikulum $record): string {
-                $record->loadCount(['profilLulusan', 'cpls', 'boks', 'mks', 'mkUnits']);
+                $record->loadCount(['profilLulusan', 'cpls', 'boks', 'mks']);
+
+                // Hanya mkUnits yang MK-nya milik kurikulum ini sendiri yang
+                // benar-benar dihapus — bukan withCount('mkUnits') polos,
+                // supaya angka di modal cocok dengan yang sungguh terjadi
+                // (lihat KurikulumResetService::reset()).
+                $mkUnitsSendiri = $record->mkUnits()
+                    ->whereHas('mk', fn ($query) => $query->where('mk.kurikulum_id', $record->id))
+                    ->count();
+                $mkUnitsAdaptasi = $record->mkUnits()->count() - $mkUnitsSendiri;
+
+                $keteranganAdaptasi = $mkUnitsAdaptasi > 0
+                    ? sprintf(
+                        ' %d penawaran MK hasil Adaptasi MK Massal (dari universitas/fakultas) TIDAK ikut dihapus, '
+                        .'supaya CPL/BoK unit induk tetap terlihat di prodi ini.',
+                        $mkUnitsAdaptasi,
+                    )
+                    : '';
 
                 return sprintf(
                     'Tindakan ini akan menghapus %d profil lulusan, %d CPL, %d BoK, %d mata kuliah, dan %d penawaran MK '
                     .'beserta seluruh data turunannya (pemetaan CPL-BoK, CPL-MK, CPMK, Sub-CPMK, komponen asesmen, '
                     .'kelas, dan nilai mahasiswa) pada kurikulum ini. Baris kurikulum itu sendiri TIDAK dihapus — '
-                    .'kurikulum kembali seperti baru dibuat. Tindakan ini tidak dapat dibatalkan.',
+                    .'kurikulum kembali seperti baru dibuat.%s Tindakan ini tidak dapat dibatalkan.',
                     $record->profil_lulusan_count,
                     $record->cpls_count,
                     $record->boks_count,
                     $record->mks_count,
-                    $record->mk_units_count,
+                    $mkUnitsSendiri,
+                    $keteranganAdaptasi,
                 );
             })
             ->modalSubmitActionLabel('Ya, reset kurikulum ini')

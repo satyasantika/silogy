@@ -217,24 +217,35 @@ it('reset kurikulum menghapus seluruh data turunan tapi menyisakan baris kurikul
     expect($pohonB['koordinator']->fresh()->hasRole('Koordinator Mata Kuliah'))->toBeTrue();
 });
 
-it('mkunit lintas kurikulum ancestor ikut terhapus saat reset', function () {
+it('mkunit hasil adaptasi lintas unit dipertahankan saat reset agar cpl/bok unit induk tetap terlihat', function () {
     $univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
     $kurikulumUniv = buatKurikulumUntuk($univ, 'Kurikulum Universitas Sumber');
     $kurikulumProdi = buatKurikulumUntuk($this->prodi, 'Kurikulum Prodi Adaptasi');
 
     // MK "diadaptasi" dari universitas: mk.kurikulum_id = univ, tapi
-    // mk_units.kurikulum_id = prodi (unit penawaran).
+    // mk_units.kurikulum_id = prodi (unit penawaran) — persis hasil
+    // AdaptasiMkMassalService.
     $mkUniv = Mk::factory()->forKurikulum($kurikulumUniv)->create();
     $mkUnitAdaptasi = MkUnit::factory()->forMk($mkUniv)->forKurikulum($kurikulumProdi)->create();
+
+    // MK asli milik prodi sendiri — HARUS tetap direset seperti biasa.
+    $mkProdi = Mk::factory()->forKurikulum($kurikulumProdi)->create();
+    $mkUnitProdi = MkUnit::factory()->forMk($mkProdi)->forKurikulum($kurikulumProdi)->create();
 
     $this->actingAs($this->superAdmin);
 
     Livewire::test(DaftarKurikulumSuperAdmin::class)
         ->callTableAction('resetKurikulum', $kurikulumProdi);
 
-    $this->assertDatabaseMissing('mk_units', ['id' => $mkUnitAdaptasi->id]);
-    // MK sumber (milik kurikulum lain) tidak ikut terhapus.
+    // mkUnit hasil adaptasi lintas unit TIDAK ikut dihapus — jalur satu-
+    // satunya yang membuat CPL/BoK universitas tetap terlihat di prodi
+    // (lihat CplBokAdaptasiScope) tidak boleh putus akibat reset.
+    $this->assertDatabaseHas('mk_units', ['id' => $mkUnitAdaptasi->id]);
     $this->assertDatabaseHas('mk', ['id' => $mkUniv->id]);
+
+    // mkUnit + MK milik prodi sendiri tetap direset seperti biasa.
+    $this->assertDatabaseMissing('mk_units', ['id' => $mkUnitProdi->id]);
+    $this->assertDatabaseMissing('mk', ['id' => $mkProdi->id]);
 });
 
 it('role selain super admin tidak bisa mengakses atau memicu reset kurikulum', function () {

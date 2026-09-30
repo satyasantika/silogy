@@ -19,7 +19,20 @@ class KurikulumResetService
             // MkUnit.mk_id menunjuk Mk milik kurikulum ANCESTOR lain, jadi
             // cascade dari mks() di bawah tidak selalu menyapu semua
             // mkUnits() milik kurikulum ini.
-            $kurikulum->mkUnits()->get()->each->delete();
+            //
+            // HANYA mkUnits yang MK-nya milik kurikulum INI SENDIRI yang
+            // dihapus. mkUnits hasil Adaptasi MK Massal (mk.kurikulum_id
+            // menunjuk kurikulum universitas/fakultas ancestor) SENGAJA
+            // dipertahankan: baris itu satu-satunya jalur yang membuat
+            // CPL/BoK unit induk terlihat di prodi (lihat
+            // CplBokAdaptasiScope). CPL/BoK asli tidak pernah diduplikasi
+            // ke kurikulum prodi, jadi menghapus mkUnits adaptasi hanya
+            // memutus visibilitasnya tanpa benar-benar membersihkan apa
+            // pun — kerugian tanpa manfaat.
+            $kurikulum->mkUnits()
+                ->whereHas('mk', fn ($query) => $query->where('mk.kurikulum_id', $kurikulum->id))
+                ->get()
+                ->each->delete();
 
             // Satu per satu (BUKAN bulk query delete) — MkObserver::deleted()
             // yang mencabut role Koordinator Mata Kuliah hanya terpicu delete
