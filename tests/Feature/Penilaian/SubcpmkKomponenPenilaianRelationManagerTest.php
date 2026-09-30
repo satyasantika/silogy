@@ -14,12 +14,10 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\EditKomponenPenilaian;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\RelationManagers\SubcpmkKomponenPenilaianRelationManager;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -69,25 +67,26 @@ beforeEach(function () {
     $this->actingAs($this->korma);
     MkTerpilih::set($this->mk->id);
 
-    $this->komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $this->komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => Evaluasi::query()->where('kode', 'uts')->value('id'),
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 10,
     ]);
 
-    $this->sub1 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-01', 'deskripsi' => 'Sub 1',
+    $this->sub1 = subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-01',
+        'deskripsi' => 'Sub 1',
     ]);
-    $this->sub2 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $this->mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB-02', 'deskripsi' => 'Sub 2',
+    $this->sub2 = subcpmkUntukSemester($this->mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-02',
+        'deskripsi' => 'Sub 2',
     ]);
 });
 
 it('menolak bobot yang melebihi sisa kapasitas Asesmen saat menambah Sub-CPMK', function () {
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($this->komponen->id),
         'subcpmk_id' => $this->sub1->id,
         'komponen_penilaian_id' => $this->komponen->id,
         'bobot' => 6,
@@ -105,6 +104,7 @@ it('menolak bobot yang melebihi sisa kapasitas Asesmen saat menambah Sub-CPMK', 
 
 it('menerima bobot dalam batas sisa kapasitas Asesmen saat menambah Sub-CPMK', function () {
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($this->komponen->id),
         'subcpmk_id' => $this->sub1->id,
         'komponen_penilaian_id' => $this->komponen->id,
         'bobot' => 6,
@@ -122,6 +122,7 @@ it('menerima bobot dalam batas sisa kapasitas Asesmen saat menambah Sub-CPMK', f
 
 it('mengizinkan mengedit pivot yang sama hingga bobot Asesmen penuh (mengecualikan bobotnya sendiri)', function () {
     $pivot = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($this->komponen->id),
         'subcpmk_id' => $this->sub1->id,
         'komponen_penilaian_id' => $this->komponen->id,
         'bobot' => 6,
@@ -139,6 +140,7 @@ it('mengizinkan mengedit pivot yang sama hingga bobot Asesmen penuh (mengecualik
 
 it('memperbarui visibilitas tombol Normalisasi begitu bobot Asesmen diubah di halaman edit, tanpa reload', function () {
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($this->komponen->id),
         'subcpmk_id' => $this->sub1->id,
         'komponen_penilaian_id' => $this->komponen->id,
         'bobot' => 10,

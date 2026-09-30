@@ -19,6 +19,7 @@ use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
@@ -74,28 +75,24 @@ function siapkanFixtureTabLaporan(User $dosen): array
         'mahasiswa_id' => $mahasiswaBelakangan->id,
     ]);
 
-    $cpmk = Cpmk::factory()->forMk($mk)->create(['kode' => 'CPMK-1']);
+    $cpmk = Cpmk::factory()->forMk($mk)->untukSemester($semester->id)->create(['kode' => 'CPMK-1']);
     $cpl = Cpl::factory()->forAcademicUnit($prodi)->create(['kode' => 'CPL06']);
     $bok = Bok::factory()->forAcademicUnit($prodi)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create([
-        'kode' => 'SubCPMK04.1',
-        'semester_id' => $semester->id,
-        'indikator' => 'Mampu menjelaskan konsep dasar',
-    ]);
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($semester->id)->create(['kode' => 'SubCPMK04.1',
+        'indikator' => 'Mampu menjelaskan konsep dasar']);
 
     $evaluasi = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis Konseptual',
         'bobot' => 100,
     ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -193,18 +190,22 @@ it('mengelompokkan kolom Portofolio per jenis penilaian dan mengakumulasi nilai 
     // Portofolio harus menggabungkan keduanya jadi satu kolom "Quiz" dengan
     // nilai terakumulasi, bukan dua kolom terpisah.
     $komponenSatu = KomponenPenilaian::query()->where('kode', 'Asesmen01')->firstOrFail();
-    $komponenSatu->update(['bobot' => 60]);
+    // Bobot Asesmen milik pasangan (asesmen, semester), jadi diubah di
+    // lampiran semesternya — baris asesmen sendiri tidak menyimpannya lagi.
+    KomponenPenilaianSemester::query()
+        ->where('komponen_penilaian_id', $komponenSatu->id)
+        ->where('semester_id', semesterAsesmen($komponenSatu->id))
+        ->update(['bobot' => 60]);
 
     $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
-    $komponenDua = KomponenPenilaian::query()->create([
-        'mk_id' => $komponenSatu->mk_id,
-        'semester_id' => $komponenSatu->semester_id,
+    $komponenDua = komponenUntukSemester($komponenSatu->mk_id, semesterAsesmen($komponenSatu->id), [
         'evaluasi_id' => $evaluasiQuiz->id,
         'kode' => 'Asesmen02',
         'nama' => 'Kuis Praktik',
         'bobot' => 40,
     ]);
     $skpDua = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponenDua->id),
         'subcpmk_id' => $fixtures['subcpmk']->id,
         'komponen_penilaian_id' => $komponenDua->id,
         'bobot' => 100,
@@ -309,7 +310,12 @@ it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, 
     // ("Quiz") — kontribusinya harus digabung jadi SATU baris "Quiz" dengan
     // bobot terjumlah, bukan tampil sebagai dua baris "Quiz" terpisah.
     $komponenSatu = KomponenPenilaian::query()->where('kode', 'Asesmen01')->firstOrFail();
-    $komponenSatu->update(['bobot' => 60]);
+    // Bobot Asesmen milik pasangan (asesmen, semester), jadi diubah di
+    // lampiran semesternya — baris asesmen sendiri tidak menyimpannya lagi.
+    KomponenPenilaianSemester::query()
+        ->where('komponen_penilaian_id', $komponenSatu->id)
+        ->where('semester_id', semesterAsesmen($komponenSatu->id))
+        ->update(['bobot' => 60]);
 
     // Bobot pivot Sub-CPMK <> Asesmen01 sekarang langsung berupa kontribusi
     // nyata (bukan lagi "% bagian" dari 100) — satu-satunya Sub-CPMK yang
@@ -320,22 +326,23 @@ it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, 
         ->update(['bobot' => 60]);
 
     $mkCpmk = $fixtures['subcpmk']->mkCpmk;
-    $subcpmkDua = Subcpmk::factory()->for($mkCpmk)->create([
-        'kode' => 'SubCPMK04.2',
-        'semester_id' => $fixtures['kelas']->semester_id,
-        'indikator' => 'Mampu menerapkan konsep dasar',
-    ]);
+    $subcpmkDua = Subcpmk::factory()
+        ->for($mkCpmk)
+        ->untukSemester($fixtures['kelas']->semester_id)
+        ->create([
+            'kode' => 'SubCPMK04.2',
+            'indikator' => 'Mampu menerapkan konsep dasar',
+        ]);
 
     $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
-    $komponenDua = KomponenPenilaian::query()->create([
-        'mk_id' => $komponenSatu->mk_id,
-        'semester_id' => $komponenSatu->semester_id,
+    $komponenDua = komponenUntukSemester($komponenSatu->mk_id, semesterAsesmen($komponenSatu->id), [
         'evaluasi_id' => $evaluasiQuiz->id,
         'kode' => 'Asesmen02',
         'nama' => 'Kuis Praktik',
         'bobot' => 40,
     ]);
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponenDua->id),
         'subcpmk_id' => $subcpmkDua->id,
         'komponen_penilaian_id' => $komponenDua->id,
         'bobot' => 40,

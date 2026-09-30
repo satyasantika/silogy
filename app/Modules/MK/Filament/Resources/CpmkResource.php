@@ -3,11 +3,13 @@
 namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\EditCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Filament\Support\Concerns\HasMkTerpilihScope;
+use App\Modules\MK\Filament\Support\Concerns\HasSemesterTerpilihFilter;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Policies\CpmkPolicy;
 use App\Modules\MK\Support\MkTerpilih;
@@ -37,6 +39,7 @@ class CpmkResource extends Resource
 {
     use HasKoordinatorMkScope;
     use HasMkTerpilihScope;
+    use HasSemesterTerpilihFilter;
 
     protected static ?string $model = Cpmk::class;
 
@@ -148,6 +151,16 @@ class CpmkResource extends Resource
 
     public static function table(Table $table): Table
     {
+        // CPMK kini berlaku per semester lewat cpmk_semester. Daftar untuk
+        // Koordinator MK disaring ke semester terpilih supaya pertanyaan
+        // "pakai CPMK lama atau susun baru?" punya jawaban yang jelas; peran
+        // lain (Admin/Tim Kurikulum/Auditor) tetap melihat lintas semester
+        // karena mereka butuh pandangan menyeluruh.
+        $table = static::applySemesterTerpilihTable(
+            $table,
+            fn (Builder $query, string $semesterId): Builder => Cpmk::saringSemester($query, $semesterId),
+        );
+
         return static::applyMkTerpilihCardTable(
             $table
                 ->recordActions([
@@ -179,6 +192,16 @@ class CpmkResource extends Resource
                         : '—')
                     ->size('sm')
                     ->color('gray'),
+
+                TextColumn::make('semesters.kode')
+                    ->label('Berlaku pada semester')
+                    ->badge()
+                    ->separator(',')
+                    ->placeholder('—')
+                    ->size('sm')
+                    // Hanya perlu saat daftar tidak disaring per semester —
+                    // bagi Koordinator MK kolom ini cuma mengulang filternya.
+                    ->visible(fn (): bool => ! SemesterTerpilih::berlakuUntukUser()),
             ],
             fn (Builder $query, string $mkId): Builder => $query->where('mk_id', $mkId),
         );

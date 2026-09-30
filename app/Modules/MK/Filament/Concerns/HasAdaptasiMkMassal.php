@@ -43,7 +43,7 @@ trait HasAdaptasiMkMassal
     /**
      * Salinan langsung nilai ketiga Select sumber, disinkronkan lewat
      * afterStateUpdated() — BUKAN Get() murni untuk baca sibling state dari
-     * closure komponen lain. Lihat catatan HasSalinAntarSemesterMassal soal
+     * closure komponen lain. Lihat catatan HasPakaiUlangAntarSemester soal
      * PartialsComponentHook Filament v4: partial key berbeda antara request
      * mountAction pertama dan update berikutnya pada action yang sama bikin
      * DOM browser gagal cocok, jadi HTML pratinjau baru dibuang diam-diam.
@@ -218,7 +218,7 @@ trait HasAdaptasiMkMassal
     /**
      * Nilai terkini satu Select sumber. Properti live dipakai lebih dulu
      * (termasuk bila sudah sengaja dikosongkan ke null — beda dari
-     * HasSalinAntarSemesterMassal karena field itu ->required() jadi tidak
+     * HasPakaiUlangAntarSemester karena field itu ->required() jadi tidak
      * pernah benar-benar null, sedangkan ketiga Select sumber di sini boleh
      * dikosongkan), lalu Get() (bila tersedia dalam schema), lalu state form
      * modal (mountedActions.{i}.data.{key}) sebagai jaring aman terakhir —

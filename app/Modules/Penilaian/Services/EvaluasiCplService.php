@@ -111,7 +111,7 @@ class EvaluasiCplService
 
                 $subcpmks = Subcpmk::query()
                     ->whereIn('mk_cpmk_id', $mkCpmkIds)
-                    ->where('semester_id', $kelasMk->semester_id)
+                    ->untukSemester((string) $kelasMk->semester_id)
                     ->get();
 
                 // Direkap per jenis penugasan (Evaluasi) dulu, baru dijumlah
@@ -122,7 +122,12 @@ class EvaluasiCplService
                 $bobotPerJenis = [];
 
                 foreach ($subcpmks as $subcpmk) {
-                    foreach (SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi($subcpmk->id) as $nama => $bobot) {
+                    $rincian = SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi(
+                        (string) $subcpmk->id,
+                        (string) $kelasMk->semester_id,
+                    );
+
+                    foreach ($rincian as $nama => $bobot) {
                         $bobotPerJenis[$nama] = ($bobotPerJenis[$nama] ?? 0.0) + $bobot;
                     }
                 }
@@ -283,14 +288,14 @@ class EvaluasiCplService
 
             $subcpmks = Subcpmk::query()
                 ->where('mk_cpmk_id', $mkCpmk->id)
-                ->where('semester_id', $kelasMk->semester_id)
+                ->untukSemester((string) $kelasMk->semester_id)
                 ->get();
 
             $nodes[] = [
                 'kode' => $cpmk->kode,
                 'deskripsi' => $cpmk->deskripsi,
                 'rata_rata' => $cpmkRataRata !== null ? round((float) $cpmkRataRata, 2) : null,
-                'subcpmks' => $this->susunSubcpmkNodes($subcpmks, $kmmIds),
+                'subcpmks' => $this->susunSubcpmkNodes($subcpmks, $kmmIds, (string) $kelasMk->semester_id),
             ];
         }
 
@@ -299,7 +304,7 @@ class EvaluasiCplService
                 'kode' => '—',
                 'deskripsi' => '—',
                 'rata_rata' => null,
-                'subcpmks' => $this->susunSubcpmkNodes(collect(), $kmmIds),
+                'subcpmks' => $this->susunSubcpmkNodes(collect(), $kmmIds, (string) $kelasMk->semester_id),
             ];
         }
 
@@ -311,7 +316,7 @@ class EvaluasiCplService
      * @param  Collection<int, string>  $kmmIds
      * @return list<array{kode: string, deskripsi: string, rata_rata: float|null, baris: list<array{indikator: string, sumber_data: string, pk: float|null, rn: float|null, pk_x_rn: float|null}>}>
      */
-    private function susunSubcpmkNodes(Collection $subcpmks, Collection $kmmIds): array
+    private function susunSubcpmkNodes(Collection $subcpmks, Collection $kmmIds, string $semesterId): array
     {
         $nodes = [];
 
@@ -324,6 +329,7 @@ class EvaluasiCplService
 
             $pivots = SubcpmkKomponenPenilaian::query()
                 ->where('subcpmk_id', $subcpmk->id)
+                ->where('semester_id', $semesterId)
                 ->with('komponenPenilaian.evaluasi')
                 ->get();
 

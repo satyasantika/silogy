@@ -1,5 +1,7 @@
 # Panduan Admin Unit (Universitas / Fakultas / Jurusan / Program Studi)
 
+Alamat SILOGY: **https://silogy.unsil.ac.id/login**
+
 Admin Unit mengelola **pengguna dan sub-unit di bawah cakupannya** serta mendukung operasional akademik (penugasan dosen, laporan). Cakupan kewenangan mengikuti tingkat unit Anda — semakin tinggi unit, semakin luas jangkauannya.
 
 ## Ringkasan kewenangan per tingkat
@@ -20,6 +22,10 @@ Admin Unit mengelola **pengguna dan sub-unit di bawah cakupannya** serta menduku
 - **Kelas → Kelas MK** (khusus Admin Prodi): buat dan atur kelas.
 - **Laporan / Dashboard**: pantau capaian dan ekspor data.
 
+![Menu Admin Unit](aset/sidebar-admin.png)
+
+![Dasbor Admin Program Studi](aset/admin-dasbor.png)
+
 ## Tugas yang sering dilakukan
 
 ### 1. Mengelola akun pengguna di unit Anda
@@ -39,6 +45,10 @@ Admin Unit mengelola **pengguna dan sub-unit di bawah cakupannya** serta menduku
 1. Buka **Kelas → Kelas MK → New**.
 2. Pilih mata kuliah, semester aktif, dan dosen pengampu.
 3. Tambahkan mahasiswa/peserta kelas bila diperlukan.
+
+![Daftar kelas MK](aset/admin-kelas.png)
+
+![Formulir kelas MK](aset/tk-kelas-form.png)
 
 ### 5. Laporan & ekspor
 - Buka **Dashboard/Laporan** untuk melihat ringkasan capaian.

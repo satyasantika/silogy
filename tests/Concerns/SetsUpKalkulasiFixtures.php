@@ -16,12 +16,14 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\States\DraftState;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\CpmkSemester;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
@@ -71,7 +73,7 @@ trait SetsUpKalkulasiFixtures
             'mahasiswa_id' => $mahasiswa->id,
         ]);
 
-        $cpmk = Cpmk::factory()->forMk($mk)->create();
+        $cpmk = Cpmk::factory()->forMk($mk)->untukSemester($semester->id)->create();
         $cpl = Cpl::factory()->forAcademicUnit($prodi)->create();
         $bok = Bok::factory()->forAcademicUnit($prodi)->create();
         $cplBok = CplBok::query()->create([
@@ -85,7 +87,18 @@ trait SetsUpKalkulasiFixtures
             'bobot' => 100,
         ]);
         $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-        $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SUB-01']);
+
+        // CPMK & Sub-CPMK berlaku per semester lewat pivot, bukan kolom —
+        // tanpa lampiran ini kalkulasi tidak akan menemukan keduanya.
+        CpmkSemester::query()->firstOrCreate([
+            'cpmk_id' => $cpmk->id,
+            'semester_id' => $semester->id,
+        ]);
+
+        $subcpmk = Subcpmk::factory()
+            ->for($mkCpmk)
+            ->untukSemester($semester)
+            ->create(['kode' => 'SUB-01']);
 
         $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
@@ -148,16 +161,24 @@ trait SetsUpKalkulasiFixtures
 
         $komponen = KomponenPenilaian::query()->create([
             'mk_id' => $kelas->mkUnit?->mk_id,
-            'semester_id' => $kelas->semester_id,
             'evaluasi_id' => $evaluasi->id,
             'kode' => $kode,
             'nama' => $kode,
-            'bobot' => $bobotKomponen,
         ]);
+
+        // Berlakunya asesmen dan bobotnya milik pasangan (asesmen, semester).
+        KomponenPenilaianSemester::query()->updateOrCreate(
+            [
+                'komponen_penilaian_id' => $komponen->id,
+                'semester_id' => $kelas->semester_id,
+            ],
+            ['bobot' => $bobotKomponen],
+        );
 
         return SubcpmkKomponenPenilaian::query()->create([
             'subcpmk_id' => $subcpmk->id,
             'komponen_penilaian_id' => $komponen->id,
+            'semester_id' => $kelas->semester_id,
             'bobot' => $bobotSubcpmk,
         ]);
     }
@@ -176,10 +197,17 @@ trait SetsUpKalkulasiFixtures
         );
     }
 
-    protected function buatSubcpmkKedua(Subcpmk $subcpmkPertama, string $kode = 'SUB-02'): Subcpmk
-    {
+    protected function buatSubcpmkKedua(
+        Subcpmk $subcpmkPertama,
+        string $kode = 'SUB-02',
+        ?string $semesterId = null,
+    ): Subcpmk {
         $mkCpmk = MkCpmk::query()->findOrFail($subcpmkPertama->mk_cpmk_id);
+        $semesterId ??= (string) Semester::query()->where('status_aktif', true)->firstOrFail()->id;
 
-        return Subcpmk::factory()->for($mkCpmk)->create(['kode' => $kode]);
+        return Subcpmk::factory()
+            ->for($mkCpmk)
+            ->untukSemester($semesterId)
+            ->create(['kode' => $kode]);
     }
 }

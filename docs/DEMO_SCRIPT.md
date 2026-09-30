@@ -1,8 +1,15 @@
 # Skrip Demo SILOGY (15 Menit)
 
 **Audiens:** Kaprodi, dekan, tim mutu, stakeholder akademik  
-**Prasyarat:** `make up` + `make fresh` selesai · URL: http://localhost:8008/admin  
+**Prasyarat:** `make up` selesai, lalu **Simulasi dinyalakan** — masuk sebagai
+`superadmin` → menu **Simulasi** → **Buat Simulasi**, atau `make simulasi` dari terminal.  
 **Password semua akun demo:** `siliwangi`
+
+> Skrip ini memakai akun demo bawaan (`timkur`, `korma`, `dosen`, …) pada unit nyata.
+> Untuk demo di hadapan audiens luar, pertimbangkan memakai akun **`sim-*`** pada
+> Prodi Simulasi: datanya lengkap sampai nilai dan hasil kalkulasi, dan bisa dibuang
+> lalu dibangun ulang kapan saja lewat menu Simulasi tanpa menyentuh data yang
+> sesungguhnya. Panduan tiap peran juga sudah terbit di `/panduan`.
 
 ---
 

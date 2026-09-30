@@ -17,7 +17,6 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -84,9 +83,7 @@ it('tim kurikulum dapat mereset cpmk subcpmk dan asesmen sebuah mk', function ()
 
     $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
     $evaluasi = Evaluasi::query()->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',

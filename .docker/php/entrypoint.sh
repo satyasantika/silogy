@@ -26,6 +26,15 @@ if [ "${RUN_RELEASE:-0}" = "1" ]; then
   # storage:link (idempotent) — abaikan bila sudah ada
   php artisan storage:link 2>/dev/null || true
 
+  # Gambar panduan ke public/manual. Tanpa ini seluruh gambar 404: nginx
+  # menangkap permintaan berakhiran .png sebelum sampai ke PHP, jadi rute
+  # Laravel tidak pernah dipanggil untuk berkas gambar.
+  #
+  # WAJIB --salin, bukan tautan simbolik: nginx berjalan di container terpisah
+  # yang hanya me-mount volume public/. Tautan ke /var/www/html/docs/... akan
+  # menggantung di sana dan tetap berujung 404.
+  php artisan panduan:tautkan-aset --salin 2>/dev/null || true
+
   echo "[entrypoint] Membangun cache konfigurasi/route/view + Filament"
   php artisan config:cache
   php artisan route:cache

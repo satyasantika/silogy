@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Services;
 
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 
 class AsesmenImporService
@@ -16,16 +17,22 @@ class AsesmenImporService
     {
         $evaluasi = EvaluasiResolverService::cariDariKodeAtauNama($data['komponen_penilaian']);
 
-        $payload = [
-            'evaluasi_id' => $evaluasi?->id,
-            'nama' => $data['nama_tugas'],
-            'bobot' => (float) $data['bobot_tugas'],
-        ];
-
-        return KomponenPenilaian::query()->updateOrCreate(
-            ['mk_id' => $mkId, 'semester_id' => $semesterId, 'kode' => $data['kode_asesmen']],
-            $payload,
+        // Identitas Asesmen kini (mk_id, kode) — tanpa semester. Yang
+        // bersemester adalah berlakunya dan bobotnya, di pivot.
+        $komponen = KomponenPenilaian::query()->updateOrCreate(
+            ['mk_id' => $mkId, 'kode' => $data['kode_asesmen']],
+            [
+                'evaluasi_id' => $evaluasi?->id,
+                'nama' => $data['nama_tugas'],
+            ],
         );
+
+        KomponenPenilaianSemester::query()->updateOrCreate(
+            ['komponen_penilaian_id' => $komponen->id, 'semester_id' => $semesterId],
+            ['bobot' => (float) $data['bobot_tugas']],
+        );
+
+        return $komponen;
     }
 
     /**
@@ -45,7 +52,7 @@ class AsesmenImporService
             return;
         }
 
-        SubcpmkAsesmenPemetaanService::petakanSubcpmk($komponen, $subcpmk);
+        SubcpmkAsesmenPemetaanService::petakanSubcpmk($komponen, $subcpmk, $semesterId);
     }
 
     /**
@@ -63,7 +70,7 @@ class AsesmenImporService
 
         $komponen = KomponenPenilaian::query()
             ->where('mk_id', $mkId)
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->where('kode', $kodeAsesmen)
             ->first();
 
@@ -86,6 +93,7 @@ class AsesmenImporService
             if ($subcpmk && SubcpmkKomponenPenilaian::query()
                 ->where('komponen_penilaian_id', $komponen->id)
                 ->where('subcpmk_id', $subcpmk->id)
+                ->where('semester_id', $semesterId)
                 ->exists()) {
                 return [
                     'status' => 'duplikat',
@@ -108,7 +116,7 @@ class AsesmenImporService
 
         $komponen = KomponenPenilaian::query()
             ->where('mk_id', $mkId)
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->where('kode', $kodeAsesmen)
             ->first();
 
@@ -119,8 +127,12 @@ class AsesmenImporService
         $komponen->update([
             'evaluasi_id' => $evaluasi?->id,
             'nama' => $data['nama_tugas'],
-            'bobot' => (float) $data['bobot_tugas'],
         ]);
+
+        KomponenPenilaianSemester::query()
+            ->where('komponen_penilaian_id', $komponen->id)
+            ->where('semester_id', $semesterId)
+            ->update(['bobot' => (float) $data['bobot_tugas']]);
 
         self::terapkanPemetaanSubcpmk($komponen->fresh(), $data, $mkId, $semesterId);
     }

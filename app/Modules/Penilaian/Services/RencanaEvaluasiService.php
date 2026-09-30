@@ -43,9 +43,10 @@ class RencanaEvaluasiService
 
         $komponensByEvaluasi = KomponenPenilaian::query()
             ->where('mk_id', $mkId)
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->with([
                 'evaluasi',
+                'subcpmkKomponens' => fn ($query) => $query->where('semester_id', $semesterId),
                 'subcpmkKomponens.subcpmk.mkCpmk.cpmk',
                 'subcpmkKomponens.subcpmk.mkCpmk.cplMk.cplBok.cpl',
             ])
@@ -72,12 +73,14 @@ class RencanaEvaluasiService
                     ->map(fn (KomponenPenilaian $komponen): array => [
                         'kode' => $komponen->kode ?: '—',
                         'nama' => $komponen->nama,
-                        'bobot' => (float) $komponen->bobot,
+                        'bobot' => $komponen->bobotUntukSemester($semesterId),
                     ])
                     ->values()
                     ->all();
 
-                $bobotTotal = $komponens->sum(fn (KomponenPenilaian $komponen): float => (float) $komponen->bobot);
+                $bobotTotal = $komponens->sum(
+                    fn (KomponenPenilaian $komponen): float => $komponen->bobotUntukSemester($semesterId),
+                );
                 $grupBobot += $bobotTotal;
                 $totalBobot += $bobotTotal;
 

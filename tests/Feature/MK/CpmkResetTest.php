@@ -6,6 +6,8 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
@@ -15,6 +17,7 @@ use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -25,7 +28,9 @@ beforeEach(function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
     $this->seed(AcademicUnitSeeder::class);
     $this->seed(RolePermissionSeeder::class);
+    $this->seed(SemesterSeeder::class);
 
+    $this->semester = Semester::query()->where('status_aktif', true)->firstOrFail();
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $this->korma = User::query()->where('username', 'korma')->firstOrFail();
 
@@ -41,6 +46,7 @@ beforeEach(function () {
     $this->actingAs($this->korma);
     KurikulumTerpilih::set($this->kurikulum->id);
     MkTerpilih::set($this->mk->id);
+    SemesterTerpilih::set($this->mk->id, $this->semester->id);
 });
 
 function buatCplMkUntukCpmkTest(Kurikulum $kurikulum, Mk $mk): CplMk
@@ -52,21 +58,31 @@ function buatCplMkUntukCpmkTest(Kurikulum $kurikulum, Mk $mk): CplMk
     return CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
 }
 
-it('tombol buat tidak lagi ada, impor massal selalu tampil', function () {
+it('tombol buat tidak lagi ada, impor massal tampil saat CPMK semester ini masih kosong', function () {
     Livewire::test(ListCpmks::class)
         ->assertActionDoesNotExist('create')
         ->assertActionExists('bulkImport');
 });
 
+it('impor massal terkunci dan tombol ajukan perubahan muncul saat CPMK semester ini sudah ada', function () {
+    cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
+
+    // Mengubah CPMK yang sudah berjalan butuh persetujuan Tim Kurikulum;
+    // jalan keluarnya adalah mengajukan usulan, bukan mengimpor diam-diam.
+    Livewire::test(ListCpmks::class)
+        ->assertActionHidden('bulkImport')
+        ->assertActionVisible('ajukanPerubahanCpmk');
+});
+
 it('tombol reset aktif saat belum ada cpmk yang dipetakan ke cpl-mk', function () {
-    Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK01', 'deskripsi' => 'Deskripsi.']);
+    cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
 
     Livewire::test(ListCpmks::class)
         ->assertActionEnabled('resetData');
 });
 
 it('tombol reset nonaktif saat cpmk sudah dipetakan ke cpl-mk', function () {
-    $cpmk = Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK01', 'deskripsi' => 'Deskripsi.']);
+    $cpmk = cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
     $cplMk = buatCplMkUntukCpmkTest($this->kurikulum, $this->mk);
     MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
@@ -74,11 +90,11 @@ it('tombol reset nonaktif saat cpmk sudah dipetakan ke cpl-mk', function () {
         ->assertActionDisabled('resetData');
 });
 
-it('reset menghapus seluruh cpmk mk ini tanpa menyentuh mk lain', function () {
-    $cpmk = Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK01', 'deskripsi' => 'Deskripsi.']);
+it('reset melepas cpmk mk ini dari semester terpilih tanpa menyentuh mk lain', function () {
+    $cpmk = cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
 
     $mkLain = Mk::factory()->forKurikulum($this->kurikulum)->create(['koordinator_mk_id' => $this->korma->id]);
-    $cpmkLain = Cpmk::query()->create(['mk_id' => $mkLain->id, 'kode' => 'CPMK01', 'deskripsi' => 'Deskripsi.']);
+    $cpmkLain = cpmkUntukSemester($mkLain, $this->semester, ['kode' => 'CPMK01']);
 
     Livewire::test(ListCpmks::class)
         ->callAction('resetData');

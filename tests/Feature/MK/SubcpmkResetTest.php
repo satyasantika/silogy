@@ -14,10 +14,7 @@ use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\ListSubcpmks;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
-use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -53,7 +50,7 @@ beforeEach(function () {
     $bok = Bok::factory()->forKurikulum($this->kurikulum)->create();
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
-    $cpmk = Cpmk::query()->create(['mk_id' => $this->mk->id, 'kode' => 'CPMK01', 'deskripsi' => 'Deskripsi.']);
+    $cpmk = cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
     $this->mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
     $this->actingAs($this->korma);
@@ -69,37 +66,55 @@ it('tombol buat tidak lagi ada, impor massal selalu tampil', function () {
 });
 
 it('tombol reset aktif saat belum ada subcpmk yang dipetakan ke asesmen', function () {
-    Subcpmk::query()->create(['mk_cpmk_id' => $this->mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB01', 'deskripsi' => 'Deskripsi.']);
+    subcpmkUntukSemester($this->mkCpmk, $this->semester, ['kode' => 'SUB01']);
 
     Livewire::test(ListSubcpmks::class)
         ->assertActionEnabled('resetData');
 });
 
 it('tombol reset nonaktif saat subcpmk sudah dipetakan ke asesmen', function () {
-    $subcpmk = Subcpmk::query()->create(['mk_cpmk_id' => $this->mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB01', 'deskripsi' => 'Deskripsi.']);
-    $evaluasi = Evaluasi::query()->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id, 'semester_id' => $this->semester->id, 'evaluasi_id' => $evaluasi->id,
-        'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
-    ]);
+    $subcpmk = subcpmkUntukSemester($this->mkCpmk, $this->semester, ['kode' => 'SUB01']);
+    $komponen = komponenUntukSemester($this->mk, $this->semester, ['kode' => 'UTS']);
     SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $subcpmk->id, 'komponen_penilaian_id' => $komponen->id, 'semester_id' => $this->semester->id, 'bobot' => 100]);
 
     Livewire::test(ListSubcpmks::class)
         ->assertActionDisabled('resetData');
 });
 
-it('reset menghapus subcpmk semester ini saja, tidak menyentuh semester lain', function () {
-    $subcpmk = Subcpmk::query()->create(['mk_cpmk_id' => $this->mkCpmk->id, 'semester_id' => $this->semester->id, 'kode' => 'SUB01', 'deskripsi' => 'Deskripsi.']);
-
+it('reset melepas subcpmk dari semester ini saja, barisnya tetap dipakai semester lain', function () {
     $semesterLain = Semester::query()->create([
         'kode' => 'SMLN1', 'nama' => 'Semester Lain', 'jenis' => 'genap',
         'tahun_mulai' => 2025, 'tahun_selesai' => 2026, 'status_aktif' => false,
     ]);
-    $subcpmkLain = Subcpmk::query()->create(['mk_cpmk_id' => $this->mkCpmk->id, 'semester_id' => $semesterLain->id, 'kode' => 'SUB01', 'deskripsi' => 'Deskripsi.']);
+
+    // Satu baris Sub-CPMK yang sama dipakai di dua semester — inti fitur
+    // "pakai yang lama": ID-nya tidak digandakan.
+    $subcpmk = subcpmkUntukSemester($this->mkCpmk, $this->semester, ['kode' => 'SUB01']);
+    $subcpmkLain = subcpmkUntukSemester($this->mkCpmk, $semesterLain, ['kode' => 'SUB01']);
+
+    expect($subcpmkLain->id)->toBe($subcpmk->id);
+
+    Livewire::test(ListSubcpmks::class)
+        ->callAction('resetData');
+
+    // Lampiran semester ini lepas, tapi barisnya WAJIB bertahan karena
+    // semester lain masih memakainya.
+    $this->assertDatabaseMissing('subcpmk_semester', [
+        'subcpmk_id' => $subcpmk->id,
+        'semester_id' => $this->semester->id,
+    ]);
+    $this->assertDatabaseHas('subcpmk_semester', [
+        'subcpmk_id' => $subcpmk->id,
+        'semester_id' => $semesterLain->id,
+    ]);
+    $this->assertDatabaseHas('subcpmk', ['id' => $subcpmk->id]);
+});
+
+it('reset menghapus subcpmk yang tidak lagi dipakai semester mana pun', function () {
+    $subcpmk = subcpmkUntukSemester($this->mkCpmk, $this->semester, ['kode' => 'SUB01']);
 
     Livewire::test(ListSubcpmks::class)
         ->callAction('resetData');
 
     $this->assertDatabaseMissing('subcpmk', ['id' => $subcpmk->id]);
-    $this->assertDatabaseHas('subcpmk', ['id' => $subcpmkLain->id]);
 });

@@ -92,6 +92,12 @@ class SubcpmkAsesmenMatrix extends Page
 
     public function updateBobot(string $komponenPenilaianId, string $subcpmkId, ?string $bobot): void
     {
+        $semesterId = $this->semesterMatriks();
+
+        if ($semesterId === null) {
+            return;
+        }
+
         $bobot = trim((string) $bobot);
 
         if ($bobot === '' || ! is_numeric($bobot) || (float) $bobot <= 0) {
@@ -105,9 +111,10 @@ class SubcpmkAsesmenMatrix extends Page
         $existing = SubcpmkKomponenPenilaian::query()
             ->where('komponen_penilaian_id', $komponenPenilaianId)
             ->where('subcpmk_id', $subcpmkId)
+            ->where('semester_id', $semesterId)
             ->first();
 
-        $batas = SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $existing?->getKey());
+        $batas = SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $semesterId, $existing?->getKey());
         $nilai = round(min((float) $bobot, $batas), 2);
 
         // Bobot 0 (atau terpotong ke 0 karena kapasitas habis) = hapus pivot,
@@ -122,21 +129,37 @@ class SubcpmkAsesmenMatrix extends Page
             [
                 'komponen_penilaian_id' => $komponenPenilaianId,
                 'subcpmk_id' => $subcpmkId,
+                'semester_id' => $semesterId,
             ],
-            [
-                'bobot' => $nilai,
-                'semester_id' => $komponen->semester_id,
-            ],
+            ['bobot' => $nilai],
         );
     }
 
     protected function hapusPivotBobot(string $komponenPenilaianId, string $subcpmkId): void
     {
+        $semesterId = $this->semesterMatriks();
+
+        if ($semesterId === null) {
+            return;
+        }
+
+        // Dibatasi semester matriks: pemetaan dengan pasangan yang sama bisa
+        // juga dipakai semester lain, dan itu bukan urusan halaman ini.
         SubcpmkKomponenPenilaian::query()
             ->where('komponen_penilaian_id', $komponenPenilaianId)
             ->where('subcpmk_id', $subcpmkId)
+            ->where('semester_id', $semesterId)
             ->get()
             ->each(fn (SubcpmkKomponenPenilaian $pivot) => $pivot->delete());
+    }
+
+    /**
+     * Semester yang sedang ditampilkan matriks — satu-satunya cakupan yang
+     * boleh disentuh operasi tulis di halaman ini.
+     */
+    protected function semesterMatriks(): ?string
+    {
+        return $this->resolveMkSemesterId()['semesterId'] ?? null;
     }
 
     /**
@@ -161,7 +184,9 @@ class SubcpmkAsesmenMatrix extends Page
                     return 'Asesmen tidak ditemukan.';
                 }
 
-                $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+                $semesterId = $this->semesterMatriks() ?? '';
+                $bobotAsesmen = app(RencanaEvaluasiService::class)
+                    ->formatBobot($komponen->bobotUntukSemester($semesterId));
 
                 return 'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
                     .'secara proporsional lalu dibulatkan sesuai pilihan di bawah, sehingga totalnya tepat sama '
@@ -178,9 +203,16 @@ class SubcpmkAsesmenMatrix extends Page
                     return;
                 }
 
+                $semesterId = $this->semesterMatriks();
+
+                if ($semesterId === null) {
+                    return;
+                }
+
                 $desimal = NormalisasiBobotDesimal::dariData($data);
-                $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen, $desimal);
-                $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+                $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen, $semesterId, $desimal);
+                $bobotAsesmen = app(RencanaEvaluasiService::class)
+                    ->formatBobot($komponen->bobotUntukSemester($semesterId));
 
                 match ($hasil['status']) {
                     'dinormalisasi' => Notification::make()
@@ -321,7 +353,13 @@ class SubcpmkAsesmenMatrix extends Page
         $service = app(SubcpmkAsesmenClipboardService::class);
 
         try {
-            $preview = $service->parsePaste($raw, $context['asesmen'], $context['subcpmks'], $context['bobots']);
+            $preview = $service->parsePaste(
+                $raw,
+                $context['asesmen'],
+                $context['subcpmks'],
+                $context['bobots'],
+                $context['semesterId'],
+            );
         } catch (ValidationException $exception) {
             Notification::make()
                 ->title('Data tempel tidak valid')
@@ -333,7 +371,7 @@ class SubcpmkAsesmenMatrix extends Page
             return;
         }
 
-        $hasil = $service->terapkan($preview);
+        $hasil = $service->terapkan($preview, $context['semesterId']);
         $ringkasan = $preview['ringkasan'];
 
         $body = sprintf(
@@ -480,6 +518,7 @@ class SubcpmkAsesmenMatrix extends Page
                 $context['asesmen'],
                 $context['subcpmks'],
                 $context['bobots'],
+                $context['semesterId'],
             );
         } catch (ValidationException $exception) {
             $pesan = collect($exception->errors())->flatten()->join(' ');
@@ -596,6 +635,7 @@ class SubcpmkAsesmenMatrix extends Page
         }
 
         $pivotRows = SubcpmkKomponenPenilaian::query()
+            ->where('semester_id', $semesterId)
             ->whereIn('komponen_penilaian_id', $asesmen->pluck('id'))
             ->whereIn('subcpmk_id', $subcpmks->pluck('id'))
             ->get();
@@ -656,7 +696,7 @@ class SubcpmkAsesmenMatrix extends Page
     {
         return Subcpmk::query()
             ->with(['mkCpmk.cpmk'])
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->whereHas(
                 'mkCpmk.cpmk',
                 fn (Builder $cpmkQuery): Builder => $cpmkQuery->where('mk_id', $mk->id),
@@ -674,7 +714,7 @@ class SubcpmkAsesmenMatrix extends Page
         return KomponenPenilaian::query()
             ->with(['mk', 'evaluasi'])
             ->where('mk_id', $mk->id)
-            ->where('semester_id', $semesterId)
+            ->untukSemester($semesterId)
             ->when(
                 $user instanceof User
                     && PenawaranMkScope::isKoordinatorMkOnly($user)
@@ -695,6 +735,7 @@ class SubcpmkAsesmenMatrix extends Page
             'asesmen' => collect(),
             'subcpmks' => collect(),
             'bobots' => collect(),
+            'bobotAsesmenPerKomponen' => collect(),
             'totals' => collect(),
             'evaluasiOptions' => [],
             'adaAsesmenSemua' => false,
@@ -744,7 +785,7 @@ class SubcpmkAsesmenMatrix extends Page
 
         $subcpmks = Subcpmk::query()
             ->with(['mkCpmk.cpmk'])
-            ->where('semester_id', $semesterId)
+            ->untukSemester((string) $semesterId)
             ->whereHas(
                 'mkCpmk.cpmk',
                 fn ($cpmkQuery) => $cpmkQuery->where('mk_id', $mk->id),
@@ -780,6 +821,7 @@ class SubcpmkAsesmenMatrix extends Page
             ->get();
 
         $pivotRows = SubcpmkKomponenPenilaian::query()
+            ->where('semester_id', $semesterId)
             ->whereIn('komponen_penilaian_id', $asesmen->pluck('id'))
             ->whereIn('subcpmk_id', $subcpmks->pluck('id'))
             ->get();
@@ -804,6 +846,15 @@ class SubcpmkAsesmenMatrix extends Page
             )
             ->values();
 
+        // Bobot Asesmen kini ada di pivot semester, jadi dihitung sekali di
+        // sini dan dikirim sebagai peta — kalau dibaca per baris di Blade,
+        // tiap sel akan memicu query sendiri.
+        $bobotAsesmenPerKomponen = $asesmen->mapWithKeys(
+            fn (KomponenPenilaian $komponen): array => [
+                $komponen->id => $komponen->bobotUntukSemester((string) $semesterId),
+            ],
+        );
+
         return array_merge($defaults, [
             'kurikulum' => $kurikulum,
             'semesterOptions' => $semesterOptions,
@@ -811,6 +862,7 @@ class SubcpmkAsesmenMatrix extends Page
             'asesmen' => $asesmen,
             'subcpmks' => $subcpmks,
             'bobots' => $bobots,
+            'bobotAsesmenPerKomponen' => $bobotAsesmenPerKomponen,
             'totals' => $totals,
             'evaluasiOptions' => $evaluasiOptions,
             'adaAsesmenSemua' => $asesmenSemua->isNotEmpty(),

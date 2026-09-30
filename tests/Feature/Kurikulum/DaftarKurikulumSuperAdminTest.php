@@ -109,9 +109,7 @@ function bangunPohonKurikulum(Kurikulum $kurikulum, AcademicUnit $prodi): array
     ]);
 
     $evaluasi = Evaluasi::query()->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',

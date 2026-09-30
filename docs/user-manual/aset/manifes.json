@@ -1,0 +1,698 @@
+{
+  "versi": 1,
+  "lebarTangkap": 1440,
+  "gambar": {
+    "login.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Halaman masuk SILOGY",
+      "akun": null,
+      "sorot": [
+        {
+          "label": 1,
+          "x": 75,
+          "y": 50.8,
+          "teks": "Ketik <b>username</b>, email, NIDN, NIP, atau NUPTK."
+        },
+        {
+          "label": 2,
+          "x": 75,
+          "y": 60.8,
+          "teks": "Ketik kata sandi."
+        },
+        {
+          "label": 3,
+          "x": 75,
+          "y": 68.7,
+          "teks": "Klik <b>Masuk ke SILOGY</b>."
+        }
+      ]
+    },
+    "superadmin-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Super Admin",
+      "akun": "sim-superadmin",
+      "sorot": []
+    },
+    "sidebar-super-admin.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Super Admin",
+      "akun": "sim-superadmin",
+      "sorot": []
+    },
+    "superadmin-unit.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Hirarki unit akademik",
+      "akun": "sim-superadmin",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 61.1,
+          "y": 35.9,
+          "teks": "Unit tersusun berjenjang: universitas → fakultas → jurusan → program studi."
+        }
+      ]
+    },
+    "superadmin-pengguna.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar pengguna",
+      "akun": "sim-superadmin",
+      "sorot": []
+    },
+    "tk-semester.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Semester aktif diatur Super Admin",
+      "akun": "sim-superadmin",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 61.1,
+          "y": 37,
+          "teks": "Hanya satu semester boleh berstatus <b>aktif</b>; seluruh kelas dan nilai mengikutinya."
+        }
+      ]
+    },
+    "superadmin-simulasi.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Pusat Simulasi",
+      "akun": "sim-superadmin",
+      "sorot": []
+    },
+    "superadmin-log.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Log aktivitas",
+      "akun": "sim-superadmin",
+      "sorot": []
+    },
+    "sidebar-admin.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Admin Unit",
+      "akun": "sim-adminprodi",
+      "sorot": []
+    },
+    "admin-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Admin Program Studi",
+      "akun": "sim-adminprodi",
+      "sorot": []
+    },
+    "tk-kelas-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir kelas MK",
+      "akun": "sim-adminprodi",
+      "sorot": []
+    },
+    "admin-kelas.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar kelas MK",
+      "akun": "sim-adminprodi",
+      "sorot": []
+    },
+    "sidebar-tim-kurikulum.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Tim Kurikulum",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "timkur-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Tim Kurikulum",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-unit.png": {
+      "lebar": 1088,
+      "tinggi": 82,
+      "judul": "Cakupan Tim Kurikulum mengikuti unit penugasan",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-banner-kurikulum.png": {
+      "lebar": 1088,
+      "tinggi": 82,
+      "judul": "Banner kurikulum yang sedang dikerjakan",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-kurikulum-kartu.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Kartu kurikulum",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 31.1,
+          "y": 45.4,
+          "teks": "Kartu bertanda <b>Sedang dikerjakan</b> adalah kurikulum yang sedang Anda susun."
+        }
+      ]
+    },
+    "tk-kurikulum-buat.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Tombol buat kurikulum",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 93.7,
+          "y": 15.8,
+          "teks": "Klik <b>Buat kurikulum</b>."
+        }
+      ]
+    },
+    "tk-kurikulum-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir kurikulum",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 61.1,
+          "y": 45.2,
+          "teks": "Isi <b>Nama kurikulum</b>, mis. \"Kurikulum OBE 2025\"."
+        },
+        {
+          "label": 2,
+          "x": 42.6,
+          "y": 55,
+          "teks": "Isi <b>Kode</b> yang unik di unit Anda."
+        },
+        {
+          "label": 3,
+          "x": 79.6,
+          "y": 55,
+          "teks": "Isi <b>Tahun berlaku</b>."
+        }
+      ]
+    },
+    "tk-kurikulum-target.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Penggeser target capaian lulusan",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-kurikulum-aktif.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Sakelar kurikulum aktif",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-profil-buat.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar profil lulusan",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-profil-daftar.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Profil lulusan yang sudah tersimpan",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-profil-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir profil lulusan",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 79.6,
+          "y": 35.4,
+          "teks": "Isi <b>Kode</b> profil, mis. PL-01."
+        },
+        {
+          "label": 2,
+          "x": 42.6,
+          "y": 45.2,
+          "teks": "Tulis <b>nama profil lulusan</b>."
+        },
+        {
+          "label": 3,
+          "x": 26.1,
+          "y": 97.9,
+          "teks": "Klik <b>Simpan</b>."
+        }
+      ]
+    },
+    "tk-profil-indikator.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Indikator profil lulusan",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 61.1,
+          "y": 80.1,
+          "teks": "Tiap profil dirinci menjadi beberapa <b>indikator</b> yang terukur."
+        }
+      ]
+    },
+    "tk-cpl-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir CPL",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 79.6,
+          "y": 35.4,
+          "teks": "Isi <b>Kode CPL</b>, mis. CPL-01."
+        },
+        {
+          "label": 2,
+          "x": 26.1,
+          "y": 71.1,
+          "teks": "Klik <b>Simpan</b>."
+        }
+      ]
+    },
+    "tk-cpl-alias.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "CPL adaptasi dari unit induk",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-bok-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir bahan kajian (BoK)",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-bok-adaptasi.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "BoK adaptasi dari unit induk",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-mk-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir mata kuliah",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-mk-koordinator.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Memilih Koordinator MK",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-mk-simpan.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar mata kuliah",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-penawaran-buat.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar penawaran MK",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-penawaran-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir penawaran MK",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-penawaran-unik.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Satu MK hanya boleh ditawarkan sekali per kurikulum",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-matriks-profil-cpl.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Matriks Profil Lulusan × CPL",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-matriks-cpl-bok.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Matriks CPL × BoK",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "matriks-cpl-mk.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Matriks CPL × Mata Kuliah",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-analisis.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Analisis MK program studi",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-impor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Impor massal CPL",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "usulan-cpmk.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Kotak masuk usulan perubahan CPMK",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "tk-usulan-detail.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Detail usulan dan potret CPMK berjalan",
+      "akun": "sim-timkur",
+      "sorot": []
+    },
+    "sidebar-koordinator.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Koordinator MK",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "korma-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Koordinator MK",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-siapa.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Mata kuliah yang Anda koordinasikan",
+      "akun": "sim-korma",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 31.1,
+          "y": 47.5,
+          "teks": "Klik <b>Kerjakan</b> pada MK yang ingin Anda susun."
+        }
+      ]
+    },
+    "korma-pilih-mk.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Memilih mata kuliah",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-banner-mk.png": {
+      "lebar": 1088,
+      "tinggi": 82,
+      "judul": "Banner MK dan semester terpilih",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-pilih-semester.png": {
+      "lebar": 1088,
+      "tinggi": 82,
+      "judul": "Semester yang sedang dikerjakan",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-cpmk-list.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar CPMK semester berjalan",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-cpmk-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir CPMK",
+      "akun": "sim-korma",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 79.6,
+          "y": 35.4,
+          "teks": "Isi <b>Kode CPMK</b>."
+        },
+        {
+          "label": 2,
+          "x": 26.1,
+          "y": 62.6,
+          "teks": "Klik <b>Simpan</b>."
+        }
+      ]
+    },
+    "km-sub-list.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar Sub-CPMK",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-sub-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir Sub-CPMK",
+      "akun": "sim-korma",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 79.6,
+          "y": 35.4,
+          "teks": "Isi <b>Kode Sub-CPMK</b>."
+        }
+      ]
+    },
+    "korma-asesmen.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar komponen asesmen",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-asesmen-form.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Formulir komponen asesmen",
+      "akun": "sim-korma",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 79.6,
+          "y": 48.3,
+          "teks": "Isi <b>Kode komponen</b>, mis. UTS."
+        },
+        {
+          "label": 2,
+          "x": 26.1,
+          "y": 70.6,
+          "teks": "Klik <b>Simpan</b>."
+        }
+      ]
+    },
+    "km-asesmen-100.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Total bobot asesmen harus tepat 100%",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-matriks-cpl-cpmk.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Matriks CPL × CPMK",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-matriks-sub-asesmen.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Matriks Sub-CPMK × Asesmen",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-mahasiswa.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Peserta kelas",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-usulan-status.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Status usulan perubahan CPMK",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "km-reset.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Menu reset satu semester",
+      "akun": "sim-korma",
+      "sorot": []
+    },
+    "sidebar-dosen.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Dosen Pengampu",
+      "akun": "sim-dosen",
+      "sorot": []
+    },
+    "dosen-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Dosen Pengampu",
+      "akun": "sim-dosen",
+      "sorot": []
+    },
+    "dosen-pengampu.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Kelas yang Anda ampu",
+      "akun": "sim-dosen",
+      "sorot": []
+    },
+    "dosen-input-nilai.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Halaman input nilai",
+      "akun": "sim-dosen",
+      "sorot": []
+    },
+    "sidebar-pimpinan.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Pimpinan",
+      "akun": "sim-kaprodi",
+      "sorot": []
+    },
+    "pimpinan-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Pimpinan",
+      "akun": "sim-kaprodi",
+      "sorot": []
+    },
+    "pimpinan-kurikulum.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar kurikulum untuk Pimpinan",
+      "akun": "sim-kaprodi",
+      "sorot": []
+    },
+    "pimpinan-hasil-cpl.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Hasil analisis CPL",
+      "akun": "sim-kaprodi",
+      "sorot": []
+    },
+    "pimpinan-grafik-cpl.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Grafik capaian CPL",
+      "akun": "sim-kaprodi",
+      "sorot": []
+    },
+    "pimpinan-mahasiswa.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Analisis CPL per mahasiswa",
+      "akun": "sim-kaprodi",
+      "sorot": []
+    },
+    "sidebar-auditor.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Auditor Mutu",
+      "akun": "sim-auditor",
+      "sorot": []
+    },
+    "auditor-dasbor.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Dasbor Auditor Mutu",
+      "akun": "sim-auditor",
+      "sorot": []
+    },
+    "auditor-log.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Log aktivitas sebagai bukti audit",
+      "akun": "sim-auditor",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 61.1,
+          "y": 36.6,
+          "teks": "Tiap baris mencatat <b>siapa</b> mengubah <b>apa</b> dan <b>kapan</b>."
+        }
+      ]
+    },
+    "auditor-analisis.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Riwayat analisis AI",
+      "akun": "sim-auditor",
+      "sorot": []
+    },
+    "tk-usulan-setujui.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Menyetujui usulan perubahan CPMK",
+      "akun": "sim-timkur",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 99.4,
+          "y": 51.3,
+          "teks": "Klik <b>Setujui</b> untuk membuka kunci CPMK bagi Koordinator."
+        }
+      ]
+    },
+    "tk-usulan-tolak.png": {
+      "lebar": 896,
+      "tinggi": 268,
+      "judul": "Menolak usulan wajib disertai alasan",
+      "akun": "sim-timkur",
+      "sorot": []
+    }
+  },
+  "dibuat": "2026-09-23T22:52:26.589Z"
+}

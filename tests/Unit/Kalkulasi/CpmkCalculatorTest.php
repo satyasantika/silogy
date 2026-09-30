@@ -9,6 +9,7 @@ use App\Modules\Kalkulasi\Services\CpmkCalculator;
 use App\Modules\Kalkulasi\Services\SubcpmkCalculator;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\CpmkSemester;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
@@ -93,11 +94,16 @@ it('meng-update hasil cpmk yang sudah ada', function () {
 
 it('menghitung cpmk terpisah untuk tiap cpmk di mk yang sama', function () {
     $dasar = $this->createKelasPenilaianDasar();
+    $semesterId = (string) $dasar['kelas']->semester_id;
+
     $cpmk2 = Cpmk::factory()->forMk($dasar['mk'])->create();
+    // CPMK dan Sub-CPMK harus diberlakukan pada semester kelas ini; yang
+    // tidak berlaku di semester mana pun memang tidak ikut dihitung.
+    CpmkSemester::query()->create(['cpmk_id' => $cpmk2->id, 'semester_id' => $semesterId]);
 
     $cplMk = CplMk::query()->where('mk_id', $dasar['mk']->id)->firstOrFail();
     $mkCpmk2 = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk2)->create();
-    $subcpmk2 = Subcpmk::factory()->for($mkCpmk2)->create(['kode' => 'SUB-B']);
+    $subcpmk2 = Subcpmk::factory()->for($mkCpmk2)->untukSemester($semesterId)->create(['kode' => 'SUB-B']);
 
     $skp1 = $this->buatKomponenSkp($dasar['kelas'], $dasar['subcpmk'], $dasar['evaluasi'], 'A', 100, 100);
     $skp2 = $this->buatKomponenSkp($dasar['kelas'], $subcpmk2, $dasar['evaluasi'], 'B', 100, 100);

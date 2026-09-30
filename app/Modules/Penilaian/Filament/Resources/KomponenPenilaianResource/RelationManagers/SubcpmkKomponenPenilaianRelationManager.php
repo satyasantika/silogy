@@ -2,7 +2,9 @@
 
 namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\RelationManagers;
 
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
@@ -37,6 +39,20 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
         $this->resetTable();
     }
 
+    /**
+     * Semester yang sedang dikerjakan. Satu Asesmen kini boleh berlaku di
+     * beberapa semester, jadi setiap pemetaan Sub-CPMK harus menyebut
+     * semesternya — tanpa itu pemetaan semester lain ikut terbaca dan
+     * terhitung dalam kuota bobot.
+     */
+    protected function semesterKonteks(): string
+    {
+        $semesterId = SemesterTerpilih::currentId(MkTerpilih::currentId())
+            ?? SemesterTerpilih::defaultId();
+
+        return (string) $semesterId;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -54,6 +70,7 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                         }
 
                         return Subcpmk::query()
+                            ->untukSemester($this->semesterKonteks())
                             ->whereHas(
                                 'mkCpmk.cpmk',
                                 fn (Builder $query): Builder => $query->where('mk_id', $mkId),
@@ -81,18 +98,28 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
 
-                        return SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $record?->getKey());
+                        return SubcpmkAsesmenPemetaanService::sisaBobotTersedia(
+                            $komponen,
+                            $this->semesterKonteks(),
+                            $record?->getKey(),
+                        );
                     })
                     ->helperText(function (?SubcpmkKomponenPenilaian $record): string {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
 
-                        $sisa = SubcpmkAsesmenPemetaanService::sisaBobotTersedia($komponen, $record?->getKey());
+                        $sisa = SubcpmkAsesmenPemetaanService::sisaBobotTersedia(
+                            $komponen,
+                            $this->semesterKonteks(),
+                            $record?->getKey(),
+                        );
 
                         return sprintf(
                             'Sisa bobot tersedia: %s dari total bobot Asesmen ini (%s).',
                             app(RencanaEvaluasiService::class)->formatBobot($sisa),
-                            app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot),
+                            app(RencanaEvaluasiService::class)->formatBobot(
+                                $komponen->bobotUntukSemester($this->semesterKonteks()),
+                            ),
                         );
                     })
                     ->required(),
@@ -114,10 +141,21 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                     ->label('Bobot (%)')
                     ->suffix('%'),
             ])
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['subcpmk.mkCpmk.cpmk']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->where('semester_id', $this->semesterKonteks())
+                ->with(['subcpmk.mkCpmk.cpmk']))
             ->headerActions([
                 CreateAction::make()
-                    ->label('Tambah Sub-CPMK'),
+                    ->label('Tambah Sub-CPMK')
+                    // Relasi HasMany tidak tahu apa-apa soal semester —
+                    // sebelumnya baris pivot lahir dengan semester_id NULL.
+                    // Kolom itu kini NOT NULL dan menentukan semester mana
+                    // yang memakai pemetaan ini, jadi disuntikkan di sini.
+                    ->mutateDataUsing(function (array $data): array {
+                        $data['semester_id'] = $this->semesterKonteks();
+
+                        return $data;
+                    }),
                 Action::make('normalisasiBobotSubcpmk')
                     ->label('Normalisasi Bobot')
                     ->icon('heroicon-o-scale')
@@ -127,7 +165,9 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                     ->modalDescription(function (): string {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
-                        $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+                        $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot(
+                            $komponen->bobotUntukSemester($this->semesterKonteks()),
+                        );
 
                         return 'Bobot tiap Sub-CPMK yang berinteraksi dengan asesmen ini akan disesuaikan '
                             .'secara proporsional lalu dibulatkan sesuai pilihan di bawah, sehingga totalnya tepat sama '
@@ -140,17 +180,24 @@ class SubcpmkKomponenPenilaianRelationManager extends RelationManager
                     ->visible(function (): bool {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
-                        $total = (float) $komponen->subcpmkKomponens()->sum('bobot');
+                        $semesterId = $this->semesterKonteks();
+                        $total = (float) $komponen->subcpmkKomponens()
+                            ->where('semester_id', $semesterId)
+                            ->sum('bobot');
 
-                        return $total > 0 && abs($total - (float) $komponen->bobot) > 0.01;
+                        return $total > 0 && abs($total - $komponen->bobotUntukSemester($semesterId)) > 0.01;
                     })
                     ->action(function (array $data): void {
                         /** @var KomponenPenilaian $komponen */
                         $komponen = $this->getOwnerRecord();
 
+                        $semesterId = $this->semesterKonteks();
                         $desimal = NormalisasiBobotDesimal::dariData($data);
-                        $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($komponen, $desimal);
-                        $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot((float) $komponen->bobot);
+                        $hasil = app(NormalisasiBobotSubcpmkService::class)
+                            ->normalisasi($komponen, $semesterId, $desimal);
+                        $bobotAsesmen = app(RencanaEvaluasiService::class)->formatBobot(
+                            $komponen->bobotUntukSemester($semesterId),
+                        );
 
                         match ($hasil['status']) {
                             'dinormalisasi' => Notification::make()

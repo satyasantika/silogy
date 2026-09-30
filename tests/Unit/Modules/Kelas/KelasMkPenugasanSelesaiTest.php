@@ -14,6 +14,7 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -49,7 +50,7 @@ it('bobot komponen yang genuinely berjumlah 100.00 tetap dianggap selesai walau 
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create();
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($this->semester)->create();
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
@@ -60,9 +61,7 @@ it('bobot komponen yang genuinely berjumlah 100.00 tetap dianggap selesai walau 
     $bobotList = array_merge(array_fill(0, 9, 10.10), [9.10]);
 
     foreach ($bobotList as $i => $bobot) {
-        $komponen = KomponenPenilaian::query()->create([
-            'mk_id' => $mk->id,
-            'semester_id' => $this->semester->id,
+        $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
             'evaluasi_id' => $evaluasi->id,
             'kode' => 'K'.$i,
             'nama' => 'Komponen '.$i,
@@ -70,6 +69,7 @@ it('bobot komponen yang genuinely berjumlah 100.00 tetap dianggap selesai walau 
         ]);
 
         SubcpmkKomponenPenilaian::query()->create([
+            'semester_id' => $this->semester->id,
             'subcpmk_id' => $subcpmk->id,
             'komponen_penilaian_id' => $komponen->id,
             'bobot' => 100,
@@ -80,9 +80,12 @@ it('bobot komponen yang genuinely berjumlah 100.00 tetap dianggap selesai walau 
     // yang mengagregasi via SQL dan presisi karena DECIMAL di MySQL) —
     // meniru persis jalur kode penugasanSelesai(), yang mengambil model
     // lebih dulu lalu menjumlah atribut decimal:2 (string) lewat PHP.
-    $sumMentah = (float) KomponenPenilaian::query()
-        ->where('mk_id', $mk->id)
+    $sumMentah = (float) KomponenPenilaianSemester::query()
         ->where('semester_id', $this->semester->id)
+        ->whereIn(
+            'komponen_penilaian_id',
+            KomponenPenilaian::query()->select('id')->where('mk_id', $mk->id),
+        )
         ->get()
         ->sum('bobot');
 
@@ -105,13 +108,11 @@ it('bobot komponen yang genuinely kurang dari 100 tetap dianggap belum selesai',
     $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id, 'bobot' => 100]);
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
-    $subcpmk = Subcpmk::factory()->for($mkCpmk)->create();
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($this->semester)->create();
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
@@ -119,6 +120,7 @@ it('bobot komponen yang genuinely kurang dari 100 tetap dianggap belum selesai',
     ]);
 
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => $this->semester->id,
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,

@@ -2,12 +2,15 @@
 
 namespace App\Modules\MK\Models;
 
+use App\Modules\Kalender\Models\Semester;
 use Database\Factories\CpmkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -50,6 +53,47 @@ class Cpmk extends Model
     public function subcpmks(): HasManyThrough
     {
         return $this->hasManyThrough(Subcpmk::class, MkCpmk::class);
+    }
+
+    /**
+     * Semester tempat CPMK ini berlaku. Satu baris CPMK boleh terlampir di
+     * banyak semester — itulah bentuk "pakai CPMK semester lalu".
+     *
+     * @return BelongsToMany<Semester, $this>
+     */
+    public function semesters(): BelongsToMany
+    {
+        return $this->belongsToMany(Semester::class, 'cpmk_semester')
+            ->withTimestamps();
+    }
+
+    /**
+     * @param  Builder<Cpmk>  $query
+     * @return Builder<Cpmk>
+     */
+    public function scopeUntukSemester(Builder $query, string $semesterId): Builder
+    {
+        return $query->whereHas(
+            'semesters',
+            fn (Builder $semester): Builder => $semester->whereKey($semesterId),
+        );
+    }
+
+    /**
+     * Saringan semester untuk Builder yang tipe generiknya sudah luruh jadi
+     * Builder<Model> — terjadi pada callback tabel Filament, di mana scope
+     * tidak bisa diresolusi. Satu implementasi dipakai keduanya supaya nama
+     * relasi pivot tidak tersebar.
+     *
+     * @param  Builder<Model>  $query
+     * @return Builder<Model>
+     */
+    public static function saringSemester(Builder $query, string $semesterId): Builder
+    {
+        return $query->whereHas(
+            'semesters',
+            fn (Builder $semester): Builder => $semester->whereKey($semesterId),
+        );
     }
 
     /**

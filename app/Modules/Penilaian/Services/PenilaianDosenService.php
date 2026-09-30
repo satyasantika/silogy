@@ -199,16 +199,22 @@ class PenilaianDosenService
         $mkIds = $pairs->pluck('mk_id')->unique()->values();
         $semesterIds = $pairs->pluck('semester_id')->unique()->values();
 
+        // Berlakunya Asesmen dan bobotnya ada di pivot semester, jadi
+        // pengelompokan (mk, semester) dibaca dari sana — satu baris Asesmen
+        // kini bisa muncul untuk beberapa semester sekaligus.
         $komponens = KomponenPenilaian::query()
             ->whereIn('mk_id', $mkIds)
-            ->whereIn('semester_id', $semesterIds)
-            ->withCount('subcpmkKomponens')
-            ->get()
-            ->groupBy(fn (KomponenPenilaian $k): string => $k->mk_id.'|'.$k->semester_id);
+            ->whereHas('semesters', fn ($query) => $query->whereIn('semesters.id', $semesterIds))
+            ->with(['semesters' => fn ($query) => $query->whereIn('semesters.id', $semesterIds)])
+            ->get();
 
         foreach ($pairs as $pair) {
             $key = $pair['mk_id'].'|'.$pair['semester_id'];
-            $grup = $komponens->get($key, collect());
+            $semesterId = (string) $pair['semester_id'];
+
+            $grup = $komponens
+                ->where('mk_id', $pair['mk_id'])
+                ->filter(fn (KomponenPenilaian $k): bool => $k->semesters->contains('id', $semesterId));
 
             if ($grup->isEmpty()) {
                 static::$cacheAsesmenSiap[$key] = false;
@@ -216,8 +222,14 @@ class PenilaianDosenService
                 continue;
             }
 
-            static::$cacheAsesmenSiap[$key] = (float) $grup->sum('bobot') === 100.0
-                && $grup->every(fn (KomponenPenilaian $k): bool => $k->subcpmk_komponens_count > 0);
+            $totalBobot = $grup->sum(
+                fn (KomponenPenilaian $k): float => $k->bobotUntukSemester($semesterId),
+            );
+
+            static::$cacheAsesmenSiap[$key] = (float) $totalBobot === 100.0
+                && $grup->every(fn (KomponenPenilaian $k): bool => $k->subcpmkKomponens()
+                    ->where('semester_id', $semesterId)
+                    ->exists());
         }
     }
 

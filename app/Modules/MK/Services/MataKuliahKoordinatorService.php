@@ -21,11 +21,19 @@ class MataKuliahKoordinatorService
     /**
      * @return array{cpmk: bool, subcpmk: bool, asesmen: bool, mahasiswa: bool}
      */
-    public static function ketersediaanPenilaian(Mk $mk, User $user): array
+    public static function ketersediaanPenilaian(Mk $mk, User $user, ?string $semesterId = null): array
     {
-        $hasCpmk = Cpmk::query()->where('mk_id', $mk->id)->exists();
+        // Bila semester disebut, ketersediaan dinilai per semester: CPMK,
+        // Sub-CPMK, dan Asesmen kini berlaku per semester lewat pivot, jadi
+        // "sudah ada di MK ini" bukan lagi jawaban yang benar untuk langkah
+        // pipeline yang sedang dikerjakan koordinator.
+        $hasCpmk = Cpmk::query()
+            ->where('mk_id', $mk->id)
+            ->when(filled($semesterId), fn ($query) => $query->untukSemester((string) $semesterId))
+            ->exists();
 
         $hasSubcpmk = Subcpmk::query()
+            ->when(filled($semesterId), fn ($query) => $query->untukSemester((string) $semesterId))
             ->whereHas(
                 'mkCpmk.cpmk',
                 fn ($query) => $query->where('mk_id', $mk->id),
@@ -34,6 +42,7 @@ class MataKuliahKoordinatorService
 
         $hasAsesmen = KomponenPenilaian::query()
             ->where('mk_id', $mk->id)
+            ->when(filled($semesterId), fn ($query) => $query->untukSemester((string) $semesterId))
             ->exists();
 
         $hasMahasiswa = KelasMk::query()

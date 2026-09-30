@@ -63,7 +63,7 @@ function setupInputNilaiFixtures(User $dosen, string $kodeMkUnit = 'IF101', stri
         'mahasiswa_id' => $mahasiswa->id,
     ]);
 
-    $cpmk = Cpmk::factory()->forMk($mk)->create();
+    $cpmk = Cpmk::factory()->forMk($mk)->untukSemester($semester->id)->create();
     $cpl = Cpl::factory()->forAcademicUnit($prodi)->create();
     $bok = Bok::factory()->forAcademicUnit($prodi)->create();
     $cplBok = CplBok::query()->create([
@@ -80,15 +80,14 @@ function setupInputNilaiFixtures(User $dosen, string $kodeMkUnit = 'IF101', stri
     $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SUB-01']);
 
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => 'UTS',
         'nama' => 'UTS',
         'bobot' => 100,
     ]);
     $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,

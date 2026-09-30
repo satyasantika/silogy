@@ -36,11 +36,13 @@ use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Models\PerubahanCpmkRequest;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Observers\MkObserver;
 use App\Modules\MK\Policies\CpmkPolicy;
 use App\Modules\MK\Policies\MkPolicy;
 use App\Modules\MK\Policies\MkUnitPolicy;
+use App\Modules\MK\Policies\PerubahanCpmkRequestPolicy;
 use App\Modules\MK\Policies\SubcpmkPolicy;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
@@ -49,6 +51,7 @@ use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Observers\SubcpmkKomponenPenilaianObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
+use App\Modules\Simulasi\Support\PencatatArtefak;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -81,6 +84,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(FilamentLoginResponseContract::class, FilamentDefaultLoginRedirect::class);
         $this->app->bind(FilamentVendorLoginResponse::class, FilamentDefaultLoginRedirect::class);
         $this->app->bind(FilamentResetPasswordNotification::class, ResetPasswordNotification::class);
+
+        // Singleton: pencatat menyimpan penyangga artefak dan daftar model tak
+        // dikenal selama satu jalan pembangunan berlangsung.
+        $this->app->singleton(PencatatArtefak::class);
     }
 
     /**
@@ -103,6 +110,11 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->id ?? $request->ip());
         });
 
+        RateLimiter::for('panduan-coba-peran', function (Request $request): Limit {
+            return Limit::perMinute((int) config('simulasi.batas_coba_per_menit', 10))
+                ->by($request->ip());
+        });
+
         Gate::policy(AnalisisAi::class, AnalisisAiPolicy::class);
         Gate::policy(Activity::class, ActivityLogPolicy::class);
         Gate::policy(AcademicUnit::class, AcademicUnitPolicy::class);
@@ -119,6 +131,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Cpmk::class, CpmkPolicy::class);
         Gate::policy(Subcpmk::class, SubcpmkPolicy::class);
         Gate::policy(KomponenPenilaian::class, KomponenPenilaianPolicy::class);
+        Gate::policy(PerubahanCpmkRequest::class, PerubahanCpmkRequestPolicy::class);
 
         Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
 

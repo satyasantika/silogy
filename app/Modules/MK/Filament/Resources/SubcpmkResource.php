@@ -24,6 +24,7 @@ use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -130,6 +131,47 @@ class SubcpmkResource extends Resource
     }
 
     /**
+     * Sub-CPMK yang dipakai ulang adalah baris yang SAMA, bukan salinan —
+     * menyuntingnya mengubah semua semester yang memakainya, termasuk yang
+     * nilainya sudah final. Peringatan ini muncul persis ketika risiko itu
+     * nyata, bukan sebagai catatan umum yang cepat diabaikan.
+     */
+    protected static function peringatanDipakaiUlang(?Subcpmk $record): HtmlString
+    {
+        if ($record === null) {
+            return new HtmlString('');
+        }
+
+        $semester = $record->semesters()
+            ->orderBy('kode')
+            ->pluck('nama')
+            ->join(', ');
+
+        return new HtmlString(
+            '<div class="rounded-lg border border-warning-600/40 bg-warning-50 p-4 text-sm '
+            .'text-warning-900 dark:border-warning-500/40 dark:bg-warning-950/40 dark:text-warning-100">'
+            .'<p class="font-semibold">Sub-CPMK ini dipakai di lebih dari satu semester.</p>'
+            .'<p class="mt-1">Perubahan di sini berlaku untuk semua semester berikut: <strong>'
+            .e($semester).'</strong> — termasuk semester yang nilainya sudah final. '
+            .'Bila yang Anda perlukan sebenarnya rumusan berbeda, buat Sub-CPMK baru.</p>'
+            .'</div>',
+        );
+    }
+
+    /**
+     * Semester yang sedang menjadi konteks daftar. Bobot dan rekap evaluasi
+     * Sub-CPMK selalu milik satu semester, jadi tanpa konteks ini angkanya
+     * tidak punya arti.
+     */
+    protected static function semesterKonteks(): ?string
+    {
+        $mkId = MkTerpilih::currentId();
+        $semesterId = SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
+
+        return filled($semesterId) ? (string) $semesterId : null;
+    }
+
+    /**
      * Rekap bobot evaluasi Sub-CPMK ini terhadap nilai akhir mata kuliah,
      * dikelompokkan per jenis evaluasi (mis. Tugas, Proyek Individu), agar
      * mudah dibaca berdekatan dengan kolom Bobot pada baris yang sama.
@@ -137,7 +179,15 @@ class SubcpmkResource extends Resource
      */
     protected static function bobotEvaluasiHtml(Subcpmk $record): HtmlString
     {
-        $perEvaluasi = SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi($record->id);
+        $semesterId = static::semesterKonteks();
+
+        if ($semesterId === null) {
+            return new HtmlString(
+                '<p style="font-size:12px;opacity:.6;">Pilih semester untuk melihat rekap bobot.</p>',
+            );
+        }
+
+        $perEvaluasi = SubcpmkAsesmenPemetaanService::rincianBobotEvaluasi((string) $record->id, $semesterId);
 
         if ($perEvaluasi->isEmpty()) {
             return new HtmlString(
@@ -217,7 +267,7 @@ class SubcpmkResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['mkCpmk.cpmk', 'semester']);
+            ->with(['mkCpmk.cpmk', 'semesters']);
 
         $user = Auth::user();
 
@@ -247,6 +297,12 @@ class SubcpmkResource extends Resource
 
         return $schema
             ->components([
+                Placeholder::make('peringatan_dipakai_ulang')
+                    ->hiddenLabel()
+                    ->content(fn (?Subcpmk $record): HtmlString => static::peringatanDipakaiUlang($record))
+                    ->visible(fn (?Subcpmk $record): bool => $record !== null
+                        && $record->semesters()->count() > 1)
+                    ->columnSpanFull(),
                 Section::make('Sub-CPMK')
                     ->schema([
                         Select::make('mk_cpmk_id')
@@ -257,16 +313,6 @@ class SubcpmkResource extends Resource
                             ->default(count($mkCpmkOptions) === 1 ? array_key_first($mkCpmkOptions) : null)
                             ->disabled(count($mkCpmkOptions) === 1)
                             ->dehydrated(),
-
-                        Select::make('semester_id')
-                            ->label('Semester')
-                            ->relationship(
-                                'semester',
-                                'nama',
-                                fn (Builder $query): Builder => $query->orderBy('kode'),
-                            )
-                            ->searchable()
-                            ->preload(),
 
                         TextInput::make('kode')
                             ->label('Kode')
@@ -358,7 +404,12 @@ class SubcpmkResource extends Resource
                         ->suffix('%')
                         ->placeholder('—')
                         ->size('sm')
-                        ->weight(FontWeight::Bold),
+                        ->weight(FontWeight::Bold)
+                        ->getStateUsing(function (Subcpmk $record): ?float {
+                            $semesterId = static::semesterKonteks();
+
+                            return $semesterId === null ? null : $record->bobotUntukSemester($semesterId);
+                        }),
 
                     TextColumn::make('bobot_evaluasi')
                         ->label('')
@@ -373,7 +424,7 @@ class SubcpmkResource extends Resource
             ])
             ->filters([
                 static::semesterTerpilihFilter(
-                    fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
+                    fn (Builder $query, string $semesterId): Builder => Subcpmk::saringSemester($query, $semesterId),
                     ['indikator' => false, 'labelTersembunyi' => true],
                 ),
             ])
@@ -400,8 +451,7 @@ class SubcpmkResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                return $query
-                    ->where('semester_id', $semesterId)
+                return Subcpmk::saringSemester($query, $semesterId)
                     ->whereHas(
                         'mkCpmk.cpmk',
                         fn (Builder $cpmkQuery): Builder => $cpmkQuery->where('mk_id', $mkId),

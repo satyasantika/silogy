@@ -4,6 +4,7 @@ namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pag
 
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -36,10 +37,32 @@ class CreateKomponenPenilaian extends BaseCreateRecord
     }
 
     /**
+     * semester_id dan bobot bukan kolom komponen_penilaian lagi: keduanya
+     * milik pasangan (asesmen, semester) dan ditulis ke pivot, supaya satu
+     * asesmen bisa dipakai ulang di semester lain dengan bobot berbeda.
+     *
      * @param  array<string, mixed>  $data
      */
     protected function handleRecordCreation(array $data): Model
     {
-        return static::getModel()::create($data);
+        $semesterId = (string) ($data['semester_id'] ?? '');
+        $bobot = (float) ($data['bobot'] ?? 100);
+
+        unset($data['semester_id'], $data['bobot']);
+
+        /** @var KomponenPenilaian $record */
+        $record = static::getModel()::create($data);
+
+        if ($semesterId !== '') {
+            KomponenPenilaianSemester::query()->updateOrCreate(
+                [
+                    'komponen_penilaian_id' => $record->id,
+                    'semester_id' => $semesterId,
+                ],
+                ['bobot' => $bobot],
+            );
+        }
+
+        return $record;
     }
 }

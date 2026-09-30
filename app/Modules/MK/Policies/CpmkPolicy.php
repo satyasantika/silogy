@@ -3,8 +3,12 @@
 namespace App\Modules\MK\Policies;
 
 use App\Models\User;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
+use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Support\GerbangPerubahanCpmk;
+use App\Modules\MK\Support\MkTerpilih;
 
 class CpmkPolicy
 {
@@ -25,19 +29,25 @@ class CpmkPolicy
         return $this->manage($user, $cpmk);
     }
 
+    /**
+     * Menyusun CPMK baru untuk semester berjalan adalah bentuk perubahan
+     * CPMK — butuh persetujuan Tim Kurikulum bila semester itu sudah punya
+     * CPMK. Memakai ulang CPMK semester lalu tidak lewat sini.
+     */
     public function create(User $user): bool
     {
-        return $this->viewAny($user);
+        return $this->viewAny($user) && $this->gerbangTerbuka($user);
     }
 
     public function update(User $user, Cpmk $cpmk): bool
     {
-        return $this->manage($user, $cpmk);
+        return $this->manage($user, $cpmk)
+            && $this->gerbangTerbuka($user, $cpmk);
     }
 
     public function delete(User $user, Cpmk $cpmk): bool
     {
-        if (! $this->manage($user, $cpmk)) {
+        if (! $this->manage($user, $cpmk) || ! $this->gerbangTerbuka($user, $cpmk)) {
             return false;
         }
 
@@ -77,6 +87,26 @@ class CpmkPolicy
     public function reorder(User $user): bool
     {
         return false;
+    }
+
+    /**
+     * Gerbang persetujuan untuk MK + semester yang sedang dikerjakan. Hanya
+     * berlaku pada konteks Koordinator MK — peran lain tidak punya semester
+     * terpilih, dan kewenangan mereka sudah diperiksa di dalam gerbang.
+     */
+    protected function gerbangTerbuka(User $user, ?Cpmk $cpmk = null): bool
+    {
+        $mk = $cpmk instanceof Cpmk ? $cpmk->mk : MkTerpilih::current();
+
+        if (! $mk instanceof Mk) {
+            return true;
+        }
+
+        if (! SemesterTerpilih::berlakuUntukUser($user)) {
+            return true;
+        }
+
+        return GerbangPerubahanCpmk::bolehUbah($mk, SemesterTerpilih::currentId($mk->id), $user);
     }
 
     protected function manage(User $user, Cpmk $cpmk): bool

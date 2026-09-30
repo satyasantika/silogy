@@ -14,6 +14,7 @@ use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\Lis
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\RelationManagers\SubcpmkKomponenPenilaianRelationManager;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Penilaian\Rules\BobotKomponenSama100Rule;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
@@ -24,6 +25,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -86,7 +88,7 @@ class KomponenPenilaianResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery()
-            ->with(['mk', 'semester', 'evaluasi', 'subcpmkKomponens.subcpmk']);
+            ->with(['mk', 'semesters', 'evaluasi', 'subcpmkKomponens.subcpmk']);
 
         $user = Auth::user();
 
@@ -123,6 +125,12 @@ class KomponenPenilaianResource extends Resource
 
         return $schema
             ->components([
+                Placeholder::make('peringatan_dipakai_ulang')
+                    ->hiddenLabel()
+                    ->content(fn (?KomponenPenilaian $record): HtmlString => static::peringatanDipakaiUlang($record))
+                    ->visible(fn (?KomponenPenilaian $record): bool => $record !== null
+                        && $record->semesters()->count() > 1)
+                    ->columnSpanFull(),
                 Section::make('Komponen Penilaian')
                     ->schema([
                         Select::make('mk_id')
@@ -146,11 +154,14 @@ class KomponenPenilaianResource extends Resource
                             ->options(SemesterTerpilih::optionsSemua())
                             ->searchable()
                             ->required()
-                            ->default(fn (?KomponenPenilaian $record): ?string => $record?->semester_id
-                                ?? $semesterTerpilih
-                                ?? SemesterTerpilih::defaultId())
+                            // Untuk record yang sudah ada, nilainya diisi
+                            // EditKomponenPenilaian::mutateFormDataBeforeFill()
+                            // dari pivot semester — bukan dari kolom baris.
+                            ->default(fn (): ?string => $semesterTerpilih ?? SemesterTerpilih::defaultId())
                             ->disabled(fn (?KomponenPenilaian $record): bool => $record !== null || filled($semesterTerpilih))
                             ->dehydrated()
+                            // Bukan kolom model lagi: semester dan bobot ditulis
+                            // ke komponen_penilaian_semester oleh Create/Edit page.
                             ->helperText('Asesmen ini berlaku untuk semua kelas pada mata kuliah dan semester ini.'),
 
                         Select::make('evaluasi_id')
@@ -204,6 +215,11 @@ class KomponenPenilaianResource extends Resource
                         TextColumn::make('bobot')
                             ->label('Bobot (%)')
                             ->suffix('%')
+                            ->getStateUsing(function (KomponenPenilaian $record): ?float {
+                                $semesterId = static::semesterKonteks();
+
+                                return $semesterId === null ? null : $record->bobotUntukSemester($semesterId);
+                            })
                             ->icon('heroicon-o-pencil-square')
                             ->iconPosition(IconPosition::After)
                             ->disabledClick(fn (KomponenPenilaian $record): bool => ! Auth::user()?->can('update', $record))
@@ -229,7 +245,13 @@ class KomponenPenilaianResource extends Resource
                         ->getStateUsing(function (KomponenPenilaian $record): string|HtmlString {
                             $service = app(RencanaEvaluasiService::class);
 
+                            $semesterKonteks = static::semesterKonteks();
+
                             $items = $record->subcpmkKomponens
+                                ->when(
+                                    $semesterKonteks !== null,
+                                    fn ($pivots) => $pivots->where('semester_id', $semesterKonteks),
+                                )
                                 ->filter(fn ($pivot) => $pivot->subcpmk !== null)
                                 ->sortBy(fn ($pivot) => $pivot->subcpmk->kode)
                                 ->map(function ($pivot) use ($service): string {
@@ -267,7 +289,7 @@ class KomponenPenilaianResource extends Resource
             ])
             ->filters([
                 static::semesterTerpilihFilter(
-                    fn (Builder $query, string $semesterId): Builder => $query->where('semester_id', $semesterId),
+                    fn (Builder $query, string $semesterId): Builder => KomponenPenilaian::saringSemester($query, $semesterId),
                     ['indikator' => false, 'labelTersembunyi' => true],
                 ),
             ])
@@ -291,7 +313,7 @@ class KomponenPenilaianResource extends Resource
                     return $query->whereRaw('1 = 0');
                 }
 
-                return $query->where('mk_id', $mkId)->where('semester_id', $semesterId);
+                return KomponenPenilaian::saringSemester($query->where('mk_id', $mkId), $semesterId);
             })
             ->recordActions([
                 EditAction::make(),
@@ -301,6 +323,46 @@ class KomponenPenilaianResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Asesmen yang dipakai ulang adalah baris yang SAMA. Nama dan jenis
+     * evaluasinya berlaku untuk semua semester yang memakainya; hanya bobot
+     * dan pemetaan Sub-CPMK yang per semester.
+     */
+    protected static function peringatanDipakaiUlang(?KomponenPenilaian $record): HtmlString
+    {
+        if ($record === null) {
+            return new HtmlString('');
+        }
+
+        $semester = $record->semesters()
+            ->orderBy('kode')
+            ->pluck('nama')
+            ->join(', ');
+
+        return new HtmlString(
+            '<div class="rounded-lg border border-warning-600/40 bg-warning-50 p-4 text-sm '
+            .'text-warning-900 dark:border-warning-500/40 dark:bg-warning-950/40 dark:text-warning-100">'
+            .'<p class="font-semibold">Asesmen ini dipakai di lebih dari satu semester.</p>'
+            .'<p class="mt-1">Perubahan kode, nama, dan jenis evaluasi berlaku untuk semua semester '
+            .'berikut: <strong>'.e($semester).'</strong>. Bobotnya sendiri tetap milik masing-masing '
+            .'semester, jadi mengubahnya di sini hanya memengaruhi semester yang sedang dipilih.</p>'
+            .'</div>',
+        );
+    }
+
+    /**
+     * Semester yang sedang menjadi konteks daftar/form. Bobot Asesmen hanya
+     * bermakna berpasangan dengan semester, jadi tanpa ini tidak ada angka
+     * yang benar untuk ditampilkan.
+     */
+    protected static function semesterKonteks(): ?string
+    {
+        $mkId = MkTerpilih::currentId();
+        $semesterId = SemesterTerpilih::currentId($mkId) ?? SemesterTerpilih::defaultId();
+
+        return filled($semesterId) ? (string) $semesterId : null;
     }
 
     protected static function editBobotAction(): Action
@@ -319,11 +381,29 @@ class KomponenPenilaianResource extends Resource
                     ->step(0.01)
                     ->required(),
             ])
-            ->fillForm(fn (KomponenPenilaian $record): array => ['bobot' => $record->bobot])
+            ->fillForm(fn (KomponenPenilaian $record): array => [
+                'bobot' => static::semesterKonteks() === null
+                    ? null
+                    : $record->bobotUntukSemester((string) static::semesterKonteks()),
+            ])
             ->action(function (array $data, KomponenPenilaian $record): void {
+                $semesterId = static::semesterKonteks();
+
+                if ($semesterId === null) {
+                    return;
+                }
+
                 $bobot = min(max((float) $data['bobot'], 0), 100);
 
-                $record->update(['bobot' => $bobot]);
+                // Bobot milik pasangan (asesmen, semester): mengubahnya di sini
+                // tidak boleh menyentuh semester lain yang memakai asesmen sama.
+                KomponenPenilaianSemester::query()->updateOrCreate(
+                    [
+                        'komponen_penilaian_id' => $record->id,
+                        'semester_id' => $semesterId,
+                    ],
+                    ['bobot' => $bobot],
+                );
             });
     }
 
@@ -357,7 +437,7 @@ class KomponenPenilaianResource extends Resource
     protected static function bobotHelperText(Get $get, ?KomponenPenilaian $record): HtmlString
     {
         $mkId = $record?->mk_id ?? $get('mk_id');
-        $semesterId = $record?->semester_id ?? $get('semester_id');
+        $semesterId = $get('semester_id') ?? static::semesterKonteks();
 
         if (blank($mkId) || blank($semesterId)) {
             return new HtmlString('Pilih mata kuliah dan semester untuk melihat total bobot komponen.');

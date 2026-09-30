@@ -2,6 +2,8 @@
 
 Dokumen ini menyajikan **alur simulasi berurutan** penggunaan sistem SILOGY dari nol hingga menghasilkan laporan dan analisis. Setiap tahap menyebutkan **role pelaksana**, **menu**, dan **langkah**. Ikuti urutannya karena setiap tahap menjadi prasyarat tahap berikutnya.
 
+Alamat resmi: **https://silogy.unsil.ac.id/login**
+
 > Akun contoh (hasil seeding) — password awal `siliwangi`:
 > `superadmin`, `adminuniv`, `adminfak`, `adminjur`, `adminprodi`, `timkur`, `korma`, `dosen`, `kaprodi`, `dekan`, `rektor`, `auditor`.
 
@@ -22,6 +24,10 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 **Login sebagai `superadmin`.**
 
+![Halaman masuk SILOGY](aset/login.png)
+
+![Menu Super Admin](aset/sidebar-super-admin.png)
+
 1. **Institusi → Unit Akademik**: buat hirarki
    - Buat Universitas (tipe *university*).
    - Buat Fakultas (induk: Universitas).
@@ -30,6 +36,10 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 2. **Semester**: buat dan **aktifkan** semester berjalan (mis. Ganjil 2026/2027).
 3. **Autentikasi → Roles**: pastikan seluruh role tersedia dan permission-nya sesuai (hasil seeding sudah menyiapkan ini).
 4. (Opsional) **Autentikasi → Users**: buat akun admin tiap unit bila belum ada.
+
+![Hirarki unit akademik](aset/superadmin-unit.png)
+
+![Semester aktif](aset/tk-semester.png)
 
 ✅ *Output tahap ini:* struktur institusi lengkap + semester aktif.
 
@@ -46,6 +56,8 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 2. **Mahasiswa**: input/import data mahasiswa prodi.
 3. *(Kelas dibuat setelah MK tersedia — lihat Tahap 3.)*
 
+![Daftar pengguna](aset/superadmin-pengguna.png)
+
 ✅ *Output:* akun pelaku akademik & data mahasiswa siap.
 
 ---
@@ -61,6 +73,12 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 5. **MK**: tambahkan mata kuliah (kode, nama, SKS).
 6. **MK Unit**: tempatkan MK pada prodi & semester; petakan MK ke CPL/BoK.
 
+![Menu Tim Kurikulum](aset/sidebar-tim-kurikulum.png)
+
+![Banner kurikulum yang sedang dikerjakan](aset/tk-banner-kurikulum.png)
+
+![Matriks CPL × Mata Kuliah](aset/matriks-cpl-mk.png)
+
 ✅ *Output:* matriks kurikulum (Profil → CPL → BoK → MK) lengkap.
 
 ---
@@ -69,6 +87,8 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 1. **Admin Prodi** — **Kelas → Kelas MK**: buat kelas untuk tiap MK pada semester aktif, tambahkan peserta (mahasiswa).
 2. **Set dosen MK** (Admin/Tim Kurikulum): tetapkan **Dosen Pengampu** untuk setiap kelas/MK.
+
+![Daftar kelas MK](aset/admin-kelas.png)
 
 ✅ *Output:* kelas terbentuk dengan dosen pengampu.
 
@@ -82,6 +102,12 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 2. **Mata Kuliah → Sub-CPMK**: rincikan Sub-CPMK di bawah tiap CPMK.
 3. **Penilaian → Komponen Penilaian**: tetapkan komponen (Tugas, Kuis, UTS, UAS, dll.) + **bobot (%)**, kaitkan ke Sub-CPMK/CPMK. Pastikan total bobot = 100%.
 
+![Menu Koordinator MK](aset/sidebar-koordinator.png)
+
+![Daftar CPMK](aset/km-cpmk-list.png)
+
+![Total bobot asesmen harus 100%](aset/km-asesmen-100.png)
+
 ✅ *Output:* struktur penilaian siap diisi nilai.
 
 ---
@@ -94,6 +120,8 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 2. **Penilaian → Input Nilai**: pilih kelas & MK, isi nilai tiap mahasiswa per komponen, **Simpan**.
 3. *(Alternatif massal)* **Import Nilai**: unduh template → isi → unggah → konfirmasi → periksa baris gagal.
 
+![Halaman input nilai](aset/dosen-input-nilai.png)
+
 ✅ *Output:* nilai mahasiswa lengkap; ketercapaian CPMK/Sub-CPMK terhitung.
 
 ---
@@ -104,6 +132,12 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 2. **Pimpinan** — **AI Analisis → Minta Analisis**: ajukan analisis (pilih lingkup unit/semester/MK) → cek hasil di **Riwayat Analisis**.
 3. **Pimpinan/Admin** — **Ekspor data**: unduh laporan untuk akreditasi/rapat.
 4. **Auditor Mutu** (`auditor`) — **Audit → Log Aktivitas**: telusuri jejak perubahan; **Laporan**: telaah kelengkapan & kepatuhan.
+
+![Dasbor Pimpinan](aset/pimpinan-dasbor.png)
+
+![Grafik capaian CPL](aset/pimpinan-grafik-cpl.png)
+
+![Log aktivitas sebagai bukti audit](aset/auditor-log.png)
 
 ✅ *Output:* laporan ketercapaian, analisis AI, dan bukti audit.
 

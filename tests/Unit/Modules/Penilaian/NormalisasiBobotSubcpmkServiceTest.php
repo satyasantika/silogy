@@ -9,9 +9,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\NormalisasiBobotSubcpmkService;
 use Database\Seeders\AcademicUnitSeeder;
@@ -31,6 +29,7 @@ beforeEach(function () {
 
     $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+    $this->semester = $semester;
     $mk = Mk::factory()->create(['academic_unit_id' => $prodi->id]);
     $cpl = Cpl::factory()->forAcademicUnit($prodi)->create();
     $bok = Bok::factory()->forAcademicUnit($prodi)->create();
@@ -39,28 +38,28 @@ beforeEach(function () {
     $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-01', 'deskripsi' => 'Uji']);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
 
-    $this->komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id,
-        'semester_id' => $semester->id,
+    $this->komponen = komponenUntukSemester($mk->id, $semester->id, [
         'evaluasi_id' => Evaluasi::query()->where('kode', 'quiz')->value('id'),
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
         'bobot' => 7.5,
     ]);
 
-    $this->sub1 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $semester->id, 'kode' => 'SUB-01', 'deskripsi' => 'Sub 1',
+    $this->sub1 = subcpmkUntukSemester($mkCpmk->id, $semester->id, [
+        'kode' => 'SUB-01',
+        'deskripsi' => 'Sub 1',
     ]);
-    $this->sub2 = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $semester->id, 'kode' => 'SUB-02', 'deskripsi' => 'Sub 2',
+    $this->sub2 = subcpmkUntukSemester($mkCpmk->id, $semester->id, [
+        'kode' => 'SUB-02',
+        'deskripsi' => 'Sub 2',
     ]);
 });
 
 it('menormalisasi bobot pivot dengan 2 desimal agar total tepat bobot Asesmen desimal', function () {
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id, 'subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id, 'subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
 
-    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, desimal: 2);
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, $this->semester->id, desimal: 2);
 
     expect($hasil['status'])->toBe('dinormalisasi')
         ->and($hasil['jumlah'])->toBe(2);
@@ -76,10 +75,10 @@ it('menormalisasi bobot pivot dengan 2 desimal agar total tepat bobot Asesmen de
 });
 
 it('menormalisasi default ke satuan: target 7.5 menjadi 8', function () {
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id, 'subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id, 'subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 1]);
 
-    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen);
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, $this->semester->id);
 
     expect($hasil['status'])->toBe('dinormalisasi');
 
@@ -94,16 +93,16 @@ it('menormalisasi default ke satuan: target 7.5 menjadi 8', function () {
 });
 
 it('mengembalikan status sudah_pas bila total dan desimal sudah sesuai', function () {
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 5]);
-    SubcpmkKomponenPenilaian::query()->create(['subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 2.5]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id, 'subcpmk_id' => $this->sub1->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 5]);
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id, 'subcpmk_id' => $this->sub2->id, 'komponen_penilaian_id' => $this->komponen->id, 'bobot' => 2.5]);
 
-    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, desimal: 2);
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, $this->semester->id, desimal: 2);
 
     expect($hasil['status'])->toBe('sudah_pas');
 });
 
 it('mengembalikan status kosong bila belum ada Sub-CPMK yang berinteraksi', function () {
-    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen);
+    $hasil = app(NormalisasiBobotSubcpmkService::class)->normalisasi($this->komponen, $this->semester->id);
 
     expect($hasil['status'])->toBe('kosong');
 });

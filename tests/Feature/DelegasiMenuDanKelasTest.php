@@ -26,12 +26,10 @@ use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
-use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Filament\Resources\PesertaKelasResource;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use Database\Seeders\AcademicUnitSeeder;
@@ -187,20 +185,24 @@ it('dosen baru dapat menilai setelah penugasan koordinator selesai', function ()
     $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
     $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-1', 'deskripsi' => 'Uji']);
     $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
-    $sub = Subcpmk::query()->create([
-        'mk_cpmk_id' => $mkCpmk->id, 'semester_id' => $this->semester->id,
-        'kode' => 'SUB-1', 'deskripsi' => 'Uji', 'bobot' => 100,
+    $sub = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, [
+        'kode' => 'SUB-1',
+        'deskripsi' => 'Uji',
+        'bobot' => 100,
     ]);
     $evaluasi = Evaluasi::query()->where('kode', 'uts')->firstOrFail();
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $mk->id, 'semester_id' => $kelas->semester_id, 'evaluasi_id' => $evaluasi->id,
-        'kode' => 'UTS', 'nama' => 'UTS', 'bobot' => 100,
+    $komponen = komponenUntukSemester($mk->id, $kelas->semester_id, [
+        'evaluasi_id' => $evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
     ]);
 
     // Komponen ada tapi belum terpetakan → tetap belum boleh.
     expect($kelas->fresh()->penugasanSelesai())->toBeFalse();
 
     SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
         'subcpmk_id' => $sub->id, 'komponen_penilaian_id' => $komponen->id, 'bobot' => 100,
     ]);
 

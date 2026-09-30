@@ -88,21 +88,32 @@ class KelasMk extends Model
             return false;
         }
 
+        $semesterId = (string) $this->semester_id;
+
+        // Bobot maupun pemetaan Sub-CPMK disaring per semester: satu Asesmen
+        // boleh dipakai ulang di semester lain dengan bobot dan pemetaan
+        // berbeda, jadi menghitung lintas semester akan salah.
         $komponens = KomponenPenilaian::query()
             ->where('mk_id', $mkId)
-            ->where('semester_id', $this->semester_id)
-            ->withCount('subcpmkKomponens')
+            ->untukSemester($semesterId)
+            ->withCount([
+                'subcpmkKomponens' => fn ($query) => $query->where('semester_id', $semesterId),
+            ])
             ->get();
 
         if ($komponens->isEmpty()) {
             return false;
         }
 
+        $totalBobot = $komponens->sum(
+            fn (KomponenPenilaian $komponen): float => $komponen->bobotUntukSemester($semesterId),
+        );
+
         // Toleransi kecil, bukan perbandingan float ketat: sum() atas nilai
         // decimal:2 lewat operator + PHP bisa menghasilkan double seperti
         // 99.99999999999998 walau totalnya genuinely 100.00, sehingga
         // rencana yang sebenarnya sudah selesai bisa salah terblokir.
-        if (abs((float) $komponens->sum('bobot') - 100.0) > 0.005) {
+        if (abs((float) $totalBobot - 100.0) > 0.005) {
             return false;
         }
 

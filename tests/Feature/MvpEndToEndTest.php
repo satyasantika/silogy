@@ -311,6 +311,7 @@ it('completes full mvp journey for prodi', function () {
         foreach ($subcpmkPerKelas[$kelas->id] as $subcpmk) {
             foreach ([$komponenUts, $komponenUas] as $komponen) {
                 $skpIds[] = SubcpmkKomponenPenilaian::query()->create([
+                    'semester_id' => semesterAsesmen($komponen->id),
                     'subcpmk_id' => $subcpmk->id,
                     'komponen_penilaian_id' => $komponen->id,
                     'bobot' => 100,
@@ -452,9 +453,7 @@ function buatKomponenPenilaian(KelasMk $kelas, Evaluasi $evaluasi, string $nama,
 {
     $kelas->loadMissing('mkUnit');
 
-    return KomponenPenilaian::query()->create([
-        'mk_id' => $kelas->mkUnit?->mk_id,
-        'semester_id' => $kelas->semester_id,
+    return komponenUntukSemester($kelas->mkUnit?->mk_id, $kelas->semester_id, [
         'evaluasi_id' => $evaluasi->id,
         'kode' => $nama,
         'nama' => $nama,

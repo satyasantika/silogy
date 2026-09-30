@@ -108,8 +108,10 @@ trait HasLaporanKelasMk
         $matrix = app(PenilaianMatrixService::class);
         $komponens = $matrix->komponenUntukKelas($kelasMk);
 
-        $this->columns = $matrix->kolomDariKomponens($komponens);
-        $this->kolomEvaluasi = $matrix->kolomEvaluasiDariKomponens($komponens);
+        $semesterId = (string) $kelasMk->semester_id;
+
+        $this->columns = $matrix->kolomDariKomponens($komponens, $semesterId);
+        $this->kolomEvaluasi = $matrix->kolomEvaluasiDariKomponens($komponens, $semesterId);
 
         $this->rows = $matrix->barisUntukKelas($kelasMk);
         $this->portofolioRows = $matrix->barisUntukKelas($kelasMk, 'mahasiswas.nim');

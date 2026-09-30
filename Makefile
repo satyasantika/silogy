@@ -1,4 +1,4 @@
-.PHONY: up down logs sh migrate fresh test pint stan seed
+.PHONY: up down logs sh migrate fresh test pint stan seed simulasi simulasi-hapus panduan-aset
 
 up:
 	docker compose up -d --build
@@ -31,3 +31,12 @@ stan:
 
 seed:
 	docker compose exec app php artisan db:seed
+
+simulasi:
+	docker compose exec app php artisan simulasi:buat
+
+simulasi-hapus:
+	docker compose exec app php artisan simulasi:hapus --terapkan
+
+panduan-aset:
+	docker compose exec app php artisan panduan:tautkan-aset

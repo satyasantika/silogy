@@ -17,7 +17,6 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Models\Evaluasi;
-use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use Database\Seeders\AcademicUnitSeeder;
@@ -88,16 +87,14 @@ it('menyusun rencana evaluasi per grup kategori evaluasi', function () {
     $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
     $subcpmk = Subcpmk::factory()->for($mkCpmk)->create(['kode' => 'SUB-01']);
 
-    $komponen = KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasiQuiz->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis Konseptual dan Ringkasan Tertulis Terstruktur',
         'bobot' => 8,
     ]);
 
-    SubcpmkKomponenPenilaian::query()->create([
+    SubcpmkKomponenPenilaian::query()->create(['semester_id' => $this->semester->id,
         'subcpmk_id' => $subcpmk->id,
         'komponen_penilaian_id' => $komponen->id,
         'bobot' => 100,
@@ -126,9 +123,7 @@ it('tetap menghitung total bobot walau belum ada kelas MK', function () {
 
     $evaluasiQuiz = Evaluasi::query()->where('kode', 'quiz')->firstOrFail();
 
-    KomponenPenilaian::query()->create([
-        'mk_id' => $this->mk->id,
-        'semester_id' => $this->semester->id,
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
         'evaluasi_id' => $evaluasiQuiz->id,
         'kode' => 'Asesmen01',
         'nama' => 'Kuis',
