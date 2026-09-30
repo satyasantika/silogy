@@ -89,3 +89,6 @@ phpunit.xml.bak
 /public/manual
 /scripts/tangkap-layar/.state
 /scripts/tangkap-layar/.regresi
+
+# Output tool analisis kode pihak ketiga (graphify)
+/graphify-out
