@@ -32,6 +32,17 @@ it('menolak slug peran yang tidak dikenal', function () {
 });
 
 /**
+ * Super Admin sengaja disembunyikan dari panduan publik: siapa pun yang
+ * butuh peran ini wajib login sungguhan, tidak lewat halaman panduan anonim.
+ */
+it('menyembunyikan panduan Super Admin dari publik', function () {
+    $this->get('/panduan/super-admin')->assertNotFound();
+
+    $respons = $this->get(route('panduan.indeks'))->assertSuccessful();
+    $respons->assertDontSee('Struktur kampus, akun, semester, dan jejak sistem.', escape: false);
+});
+
+/**
  * Rute Filament terdaftar LEBIH DULU daripada routes/web.php, jadi sebuah
  * resource atau page bersiput 'panduan' di masa depan akan membajak halaman
  * ini tanpa suara. Tes ini yang akan berteriak lebih dulu.

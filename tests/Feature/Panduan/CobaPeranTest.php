@@ -132,7 +132,6 @@ it('bekerja untuk setiap peran yang punya akun latihan', function (string $slug,
 
     expect(auth()->user()->username)->toBe($username);
 })->with([
-    ['super-admin', 'sim-superadmin'],
     ['admin-unit', 'sim-adminprodi'],
     ['tim-kurikulum', 'sim-timkur'],
     ['koordinator-mk', 'sim-korma'],
@@ -189,6 +188,18 @@ it('menolak slug peran tanpa akun latihan', function () {
     bangunSimulasi();
 
     $this->post(route('panduan.coba', ['peran' => 'alur-end-to-end']))->assertNotFound();
+});
+
+/**
+ * Peran 'super-admin' sengaja disembunyikan dari peta publik â lihat catatan
+ * di PeranPanduan::semua(). Rutenya memakai whereIn(PeranPanduan::slug()),
+ * jadi slug yang tak terdaftar di sana gagal tertutup (404) di sisi routing,
+ * sebelum sempat menyentuh pagar lain di CobaPeranController.
+ */
+it('menolak mencoba sebagai Super Admin karena slugnya tidak lagi terdaftar', function () {
+    bangunSimulasi();
+
+    $this->post('/panduan/super-admin/coba')->assertNotFound();
 });
 
 it('membatasi jumlah percobaan per menit', function () {

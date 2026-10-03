@@ -20,12 +20,11 @@ final class PeranPanduan
     public static function semua(): array
     {
         return [
-            'super-admin' => [
-                'berkas' => '01-super-admin.md',
-                'label' => 'Super Admin',
-                'ringkas' => 'Struktur kampus, akun, semester, dan jejak sistem.',
-                'ikon' => 'bi-shield-lock',
-            ],
+            // 'super-admin' sengaja disembunyikan dari peta peran publik: Boss
+            // minta halaman panduan dan tombol "Coba sebagai" untuk peran ini
+            // tidak tampil ke pengunjung anonim sampai diminta tampil kembali.
+            // Berkas 01-super-admin.md tetap ada di docs/user-manual/, jadi
+            // memulihkannya tinggal mengembalikan entri ini.
             'admin-unit' => [
                 'berkas' => '02-admin-unit.md',
                 'label' => 'Admin Unit',

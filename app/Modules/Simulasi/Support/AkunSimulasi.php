@@ -122,7 +122,11 @@ final class AkunSimulasi
     public static function akunPanduan(): array
     {
         return [
-            'super-admin' => 'sim-superadmin',
+            // Tanpa pemetaan untuk 'super-admin': jalur masuk-otomatis TANPA
+            // KATA SANDI tidak boleh pernah bisa dipakai memasuki peran ini,
+            // terlepas dari apakah slugnya nanti dimunculkan lagi di
+            // PeranPanduan::semua(). Siapa pun yang butuh peran Super Admin
+            // wajib login sungguhan dengan kredensial asli.
             'admin-unit' => 'sim-adminprodi',
             'tim-kurikulum' => 'sim-timkur',
             'koordinator-mk' => 'sim-korma',

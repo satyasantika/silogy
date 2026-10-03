@@ -25,7 +25,6 @@
             <h4>Panduan Peran</h4>
             <nav class="fl">
                 <a href="{{ route('panduan.indeks') }}">Semua panduan</a>
-                <a href="{{ route('panduan.peran', ['peran' => 'super-admin']) }}">Super Admin</a>
                 <a href="{{ route('panduan.peran', ['peran' => 'admin-unit']) }}">Admin Unit</a>
                 <a href="{{ route('panduan.peran', ['peran' => 'auditor-mutu']) }}">Auditor Mutu</a>
                 <a href="{{ route('panduan.peran', ['peran' => 'alur-end-to-end']) }}">Alur end-to-end</a>
