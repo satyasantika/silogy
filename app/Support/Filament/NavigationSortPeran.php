@@ -33,6 +33,8 @@ final class NavigationSortPeran
         'bok' => 40,
         'mata-kuliah' => 50,
         'penawaran-mk' => 60,
+        // Kotak masuk usulan CPMK: tepat di bawah Penawaran MK, sebelum Profil CPL.
+        'usulan-perubahan-cpmk' => 65,
         'profil-cpl' => 70,
         'cpl-bok' => 80,
         'cpl-mk' => 90,
@@ -51,6 +53,9 @@ final class NavigationSortPeran
         'mata-kuliah' => 40,
         'cpl-bok' => 50,
         'cpl-mk' => 60,
+        // Level non-prodi tidak punya Penawaran MK; usulan CPMK mengisi
+        // posisi setelah CPL-MK, sebelum Kelas MK.
+        'usulan-perubahan-cpmk' => 65,
         // Sama alasannya dengan tabel prodi di atas.
         'kelas-mk' => 70,
         'analisis-mk' => self::SORT_ANALISIS_MK,

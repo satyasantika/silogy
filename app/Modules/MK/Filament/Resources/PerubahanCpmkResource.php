@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\MK\Enums\StatusPerubahanCpmk;
 use App\Modules\MK\Filament\Resources\PerubahanCpmkResource\Pages\ListPerubahanCpmks;
@@ -11,6 +12,7 @@ use App\Modules\MK\Models\PerubahanCpmkRequest;
 use App\Modules\MK\Policies\PerubahanCpmkRequestPolicy;
 use App\Support\Filament\DelegasiMenu;
 use App\Support\Filament\NavigationGroupPeran;
+use App\Support\Filament\NavigationSortPeran;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -18,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -47,13 +50,72 @@ class PerubahanCpmkResource extends Resource
         return NavigationGroupPeran::resolve('Kurikulum');
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        // Default 7: tepat di bawah Penawaran MK (6) untuk peran selain Tim Kurikulum.
+        return NavigationSortPeran::resolve('usulan-perubahan-cpmk', 7);
+    }
+
+    /**
+     * Menu hanya muncul bagi Tim Kurikulum (peran aktif) yang SEDANG punya
+     * usulan menunggu keputusan dari Koordinator MK di unitnya. Tanpa usulan,
+     * kotak masuk kosong hanya menambah menu yang tidak berguna. Halamannya
+     * sendiri tetap bisa dibuka lewat URL (canAccess), jadi riwayat usulan
+     * yang sudah diputuskan tidak hilang akses.
+     */
     public static function shouldRegisterNavigation(): bool
     {
         if (DelegasiMenu::sembunyikanDariSuperAdmin()) {
             return false;
         }
 
-        return static::canAccess();
+        $user = Auth::user();
+
+        if (! $user instanceof User || ! static::canAccess()) {
+            return false;
+        }
+
+        if (PeranUnitFormFields::defaultRole($user) !== 'Tim Kurikulum') {
+            return false;
+        }
+
+        return static::usulanMenungguPeninjauan($user)->exists();
+    }
+
+    /**
+     * Usulan berstatus diajukan yang berwenang ditinjau $user: unit MK-nya
+     * berada di bawah unit tempat ia Tim Kurikulum, dan bukan usulannya
+     * sendiri (pengusul tidak boleh menyetujui usulannya).
+     *
+     * @return Builder<PerubahanCpmkRequest>
+     */
+    public static function usulanMenungguPeninjauan(User $user): Builder
+    {
+        $unitIds = static::unitIdsPeninjauan($user);
+
+        if ($unitIds->isEmpty()) {
+            return PerubahanCpmkRequest::query()->whereRaw('1 = 0');
+        }
+
+        return PerubahanCpmkRequest::query()
+            ->where('status', StatusPerubahanCpmk::Diajukan)
+            ->where('diajukan_oleh_id', '!=', $user->id)
+            ->whereIn('academic_unit_id', $unitIds);
+    }
+
+    /**
+     * Unit tempat user berwenang meninjau, DITAMBAH seluruh turunannya:
+     * MK tersimpan di level prodi, sementara Tim Kurikulum bisa
+     * ditugaskan di fakultas atau universitas.
+     *
+     * @return Collection<int, string>
+     */
+    protected static function unitIdsPeninjauan(User $user): Collection
+    {
+        return AcademicUnitScope::timKurikulumPivotUnitIdsFor($user)
+            ->flatMap(fn (string $unitId): array => AcademicUnitScope::descendantIdsIncludingSelf($unitId)->all())
+            ->unique()
+            ->values();
     }
 
     public static function canAccess(): bool
@@ -72,9 +134,15 @@ class PerubahanCpmkResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $jumlah = static::getEloquentQuery()
-            ->where('status', StatusPerubahanCpmk::Diajukan)
-            ->count();
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        // Hitungan yang sama dengan syarat muncul menu: hanya usulan yang
+        // memang menunggu keputusan user ini, bukan usulannya sendiri.
+        $jumlah = static::usulanMenungguPeninjauan($user)->count();
 
         return $jumlah > 0 ? (string) $jumlah : null;
     }
@@ -99,13 +167,7 @@ class PerubahanCpmkResource extends Resource
             return $query;
         }
 
-        // Unit tempat user berwenang meninjau, DITAMBAH seluruh turunannya:
-        // MK tersimpan di level prodi, sementara Tim Kurikulum bisa
-        // ditugaskan di fakultas atau universitas.
-        $unitIds = AcademicUnitScope::timKurikulumPivotUnitIdsFor($user)
-            ->flatMap(fn (string $unitId): array => AcademicUnitScope::descendantIdsIncludingSelf($unitId)->all())
-            ->unique()
-            ->values();
+        $unitIds = static::unitIdsPeninjauan($user);
 
         return $query->where(function (Builder $scoped) use ($unitIds, $user): void {
             $scoped->where('diajukan_oleh_id', $user->id);

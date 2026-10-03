@@ -191,7 +191,7 @@ it('menolak slug peran tanpa akun latihan', function () {
 });
 
 /**
- * Peran 'super-admin' sengaja disembunyikan dari peta publik â lihat catatan
+ * Peran 'super-admin' sengaja disembunyikan dari peta publik — lihat catatan
  * di PeranPanduan::semua(). Rutenya memakai whereIn(PeranPanduan::slug()),
  * jadi slug yang tak terdaftar di sana gagal tertutup (404) di sisi routing,
  * sebelum sempat menyentuh pagar lain di CobaPeranController.
