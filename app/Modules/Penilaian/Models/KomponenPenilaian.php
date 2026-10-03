@@ -4,6 +4,7 @@ namespace App\Modules\Penilaian\Models;
 
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\MK\Models\Mk;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -15,6 +16,12 @@ use LogicException;
 
 class KomponenPenilaian extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'mk';
+
+    public const RANAH_KOLOM = 'mk_id';
+
     use HasUuids;
 
     protected $table = 'komponen_penilaian';

@@ -4,6 +4,7 @@ namespace App\Modules\MK\Models;
 
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Database\Factories\SubcpmkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +25,12 @@ use LogicException;
 #[UseFactory(SubcpmkFactory::class)]
 class Subcpmk extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'mk_cpmk';
+
+    public const RANAH_KOLOM = 'mk_cpmk_id';
+
     /** @use HasFactory<SubcpmkFactory> */
     use HasFactory, HasUuids;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Models;
 
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Database\Factories\CpmkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,6 +21,12 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 #[UseFactory(CpmkFactory::class)]
 class Cpmk extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'mk';
+
+    public const RANAH_KOLOM = 'mk_id';
+
     /** @use HasFactory<CpmkFactory> */
     use HasFactory, HasUuids;
 
