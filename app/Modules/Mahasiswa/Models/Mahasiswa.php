@@ -5,6 +5,7 @@ namespace App\Modules\Mahasiswa\Models;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Database\Factories\MahasiswaFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -21,6 +22,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 #[UseFactory(MahasiswaFactory::class)]
 class Mahasiswa extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'langsung';
+
+    public const RANAH_KOLOM = 'sandbox_id';
+
     /** @use HasFactory<MahasiswaFactory> */
     use HasFactory, HasUuids;
 

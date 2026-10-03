@@ -10,6 +10,7 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\StateTransition;
 use App\Modules\MK\Models\Mk;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -28,6 +29,12 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements CanResetPasswordContract, FilamentUser, HasName
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'langsung';
+
+    public const RANAH_KOLOM = 'sandbox_id';
+
     /** @use HasFactory<UserFactory> */
     use CanResetPassword, HasFactory, HasUuids, LogsSilogyActivity, Notifiable;
 

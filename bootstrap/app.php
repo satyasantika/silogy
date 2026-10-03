@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Simulasi\Http\Middleware\SesiSandboxTab;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Sesi per tab simulasi (/s/<token>/...): harus mendahului StartSession.
+        $middleware->prepend(SesiSandboxTab::class);
+
         // Di belakang reverse proxy Apache (mis. supportfkip.unsil.ac.id/demo-silogy),
         // percayai semua proxy agar skema/host/port asli (X-Forwarded-*) terbaca benar —
         // tanpa ini, URL::forceScheme()/forceRootUrl() di AppServiceProvider tidak cukup

@@ -6,6 +6,7 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Database\Factories\BokFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -21,6 +22,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(BokFactory::class)]
 class Bok extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     /** @use HasFactory<BokFactory> */
     use HasFactory, HasUuids;
 

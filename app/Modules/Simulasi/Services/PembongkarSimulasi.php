@@ -8,6 +8,7 @@ use App\Modules\MK\Models\PerubahanCpmkRequest;
 use App\Modules\Simulasi\DataObjects\HasilPembongkaran;
 use App\Modules\Simulasi\Models\SimulasiArtefak;
 use App\Modules\Simulasi\Models\SimulasiJalan;
+use App\Modules\Simulasi\Support\Ranah;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +36,10 @@ class PembongkarSimulasi
         $dihapus = [];
         $dilewati = [];
 
-        DB::transaction(function () use ($jalan, &$dihapus, &$dilewati): void {
+        // Ranah sandbox: model-model akar ber-global-scope tidak akan "ditemukan"
+        // dari ranah inti (Super Admin), sehingga find() di hapusSatu() pasti
+        // mengira barisnya sudah lenyap dan melewatinya.
+        Ranah::sebagai((string) $jalan->getKey(), fn () => DB::transaction(function () use ($jalan, &$dihapus, &$dilewati): void {
             $this->sapuUsulanPerubahanCpmk($jalan);
 
             // chunkByIdDesc, bukan chunkById: urutan terbalik itulah yang
@@ -58,7 +62,7 @@ class PembongkarSimulasi
                     'dilewati' => $dilewati,
                 ]),
             ])->save();
-        });
+        }));
 
         return new HasilPembongkaran($dihapus, $dilewati, true);
     }

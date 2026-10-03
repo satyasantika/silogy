@@ -10,8 +10,8 @@
 @section('konten')
 <section class="pd-hero">
     <div class="pd-wrap">
-        <a class="pd-kembali" href="{{ route('panduan.indeks') }}">
-            <i class="bi bi-arrow-left"></i> Semua panduan
+        <a class="pd-kembali" href="{{ route('panduan.level', ['level' => $level]) }}">
+            <i class="bi bi-arrow-left"></i> Peran di tingkat {{ $semuaLevel[$level] }}
         </a>
         <span class="pd-eyebrow"><i class="bi {{ $definisi['ikon'] }}"></i> {{ $definisi['label'] }}</span>
         <h1>{{ $halaman->judul }}</h1>
@@ -21,29 +21,33 @@
             <div class="pd-galat">{{ session('panduan_galat') }}</div>
         @endif
 
-        @if ($akunLatihan)
+        @if ($bisaDicoba)
             <div class="pd-coba">
                 <div class="pd-coba-teks">
                     <strong>Coba sendiri dengan data latihan</strong>
-                    @if ($simulasiAda)
+                    @if ($cobaAktif)
                         <p>
-                            Akun latihan: <span class="pd-akun">{{ $akunLatihan }}</span> ·
-                            kata sandi <span class="pd-akun">{{ $sandiLatihan }}</span>.
-                            Anda akan bekerja pada <strong>data simulasi</strong>, bukan data yang sesungguhnya.
+                            Tingkat:
+                            @foreach ($semuaLevel as $kunci => $label)
+                                <a href="{{ route('panduan.peran', ['peran' => $halaman->slug, 'level' => $kunci]) }}"
+                                   style="{{ $kunci === $level ? 'font-weight:700;text-decoration:underline;' : '' }}">{{ $label }}</a>{{ $loop->last ? '' : ' · ' }}
+                            @endforeach
+                            <br>
+                            Peran terbuka di <strong>tab baru</strong> dengan login sendiri, sehingga Anda bisa
+                            membuka beberapa peran sekaligus. Anda bekerja pada <strong>data simulasi</strong> milik
+                            Anda, bukan data yang sesungguhnya.
                         </p>
                     @else
-                        <p>
-                            Data latihan belum disiapkan. Minta Super Admin menekan
-                            <strong>Buat Simulasi</strong> pada menu Simulasi.
-                        </p>
+                        <p>Ruang latihan belum dibuka. Minta Super Admin membukanya dari menu Simulasi.</p>
                     @endif
                 </div>
 
-                @if ($simulasiAda && $cobaAktif)
-                    <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}">
+                @if ($cobaAktif)
+                    <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
                         @csrf
+                        <input type="hidden" name="level" value="{{ $level }}">
                         <button type="submit" class="pd-btn">
-                            <i class="bi bi-box-arrow-in-right"></i> Coba sebagai {{ $definisi['label'] }}
+                            <i class="bi bi-box-arrow-up-right"></i> Coba sebagai {{ $definisi['label'] }} ({{ $semuaLevel[$level] }})
                         </button>
                     </form>
                 @else

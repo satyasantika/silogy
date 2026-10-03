@@ -7,6 +7,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KelasMk extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'mk_unit';
+
+    public const RANAH_KOLOM = 'mk_unit_id';
+
     use HasUuids, LogsSilogyActivity;
 
     protected $table = 'kelas_mk';

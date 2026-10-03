@@ -2,16 +2,16 @@
 
 namespace App\Console\Commands;
 
-use App\Modules\Simulasi\Exceptions\SimulasiSudahAdaException;
+use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
 use App\Modules\Simulasi\Services\SimulasiService;
 use Illuminate\Console\Command;
 use Throwable;
 
 class SimulasiBuat extends Command
 {
-    protected $signature = 'simulasi:buat {--paksa : Bongkar dulu simulasi yang sudah ada, lalu bangun ulang}';
+    protected $signature = 'simulasi:buat';
 
-    protected $description = 'Bangun data simulasi end-to-end di dalam pohon unit simulasi';
+    protected $description = 'Bangun satu sandbox simulasi utuh (siap diklaim pengunjung)';
 
     public function handle(SimulasiService $simulasi): int
     {
@@ -22,23 +22,20 @@ class SimulasiBuat extends Command
         };
 
         try {
-            $hasil = $this->option('paksa')
-                ? $simulasi->bangunUlang(lapor: $lapor)
-                : $simulasi->buat(lapor: $lapor);
-        } catch (SimulasiSudahAdaException $galat) {
+            $hasil = $simulasi->buat(lapor: $lapor);
+        } catch (KapasitasSandboxPenuhException $galat) {
             $this->components->error($galat->getMessage());
-            $this->components->info('Pakai `simulasi:buat --paksa` untuk membangun ulang.');
 
             return self::FAILURE;
         } catch (Throwable $galat) {
             $this->components->error('Pembangunan gagal: '.$galat->getMessage());
-            $this->components->info('Artefak yang terlanjur lahir tetap tercatat — jalankan `simulasi:hapus --terapkan` untuk membersihkannya.');
+            $this->components->info('Sandbox setengah jadi sudah dibongkar otomatis.');
 
             return self::FAILURE;
         }
 
         $this->newLine();
-        $this->components->info($hasil->ringkasSingkat());
+        $this->components->info($hasil->ringkasSingkat().' Kode sandbox: '.$hasil->jalan->kode());
 
         $this->table(
             ['Entitas', 'Jumlah'],

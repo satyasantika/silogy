@@ -7,6 +7,7 @@ use App\Modules\Panduan\Support\PeranPanduan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 class PanduanController
 {
@@ -18,25 +19,43 @@ class PanduanController
     public function indeks(): View
     {
         return view('panduan.indeks', [
-            'peran' => PeranPanduan::semua(),
-            'simulasiAda' => $this->simulasi->aktif() !== null,
+            'level' => AkunSimulasi::LEVEL,
             'cobaAktif' => $this->simulasi->cobaPeranTerbuka(),
         ]);
     }
 
-    public function peran(string $peran): View
+    public function level(string $level): View
+    {
+        abort_unless(array_key_exists($level, AkunSimulasi::LEVEL), 404);
+
+        return view('panduan.level', [
+            'level' => $level,
+            'labelLevel' => AkunSimulasi::LEVEL[$level],
+            'semuaLevel' => AkunSimulasi::LEVEL,
+            'peran' => PeranPanduan::bisaDicoba(),
+            'cobaAktif' => $this->simulasi->cobaPeranTerbuka(),
+        ]);
+    }
+
+    public function peran(Request $request, string $peran): View
     {
         $halaman = $this->perender->render($peran);
 
         abort_if($halaman === null, 404);
 
+        $level = (string) $request->query('level', 'prodi');
+
+        if (! array_key_exists($level, AkunSimulasi::LEVEL)) {
+            $level = 'prodi';
+        }
+
         return view('panduan.peran', [
             'halaman' => $halaman,
             'definisi' => PeranPanduan::definisi($peran),
             'peran' => PeranPanduan::semua(),
-            'akunLatihan' => PeranPanduan::akunUntuk($peran),
-            'sandiLatihan' => AkunSimulasi::SANDI,
-            'simulasiAda' => $this->simulasi->aktif() !== null,
+            'bisaDicoba' => PeranPanduan::akunUntuk($peran) !== null,
+            'level' => $level,
+            'semuaLevel' => AkunSimulasi::LEVEL,
             'cobaAktif' => $this->simulasi->cobaPeranTerbuka(),
         ]);
     }

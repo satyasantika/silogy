@@ -2,11 +2,14 @@
 
 use App\Models\User;
 use App\Modules\Simulasi\Filament\Pages\PusatSimulasi;
+use App\Modules\Simulasi\Models\SimulasiJalan;
+use App\Modules\Simulasi\Services\SimulasiService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -61,14 +64,40 @@ it('tidak muncul di navigasi bila tidak bisa diakses', function () {
     expect(PusatSimulasi::shouldRegisterNavigation())->toBeFalse();
 });
 
-it('memuat halaman untuk Super Admin', function () {
+it('memuat halaman untuk Super Admin, kosong maupun berisi sandbox', function () {
     masukSebagai('superadmin');
 
-    $this->get('/simulasi')->assertSuccessful();
+    $this->get('/simulasi')->assertSuccessful()->assertSee('Belum ada sandbox');
+
+    $jalan = app(SimulasiService::class)->buat()->jalan;
+
+    $this->get('/simulasi')->assertSuccessful()->assertSee($jalan->kode());
 });
 
 it('menolak permintaan HTTP dari peran lain', function () {
     masukSebagai('timkur');
 
     $this->get('/simulasi')->assertForbidden();
+});
+
+it('Super Admin inti tidak melihat akun sandbox di daftar pengguna', function () {
+    masukSebagai('superadmin');
+    app(SimulasiService::class)->buat();
+
+    expect(User::query()->where('username', 'like', 'sim-%')->count())->toBe(0);
+});
+
+it('hapusSatu membongkar satu sandbox dan hanya Super Admin yang boleh', function () {
+    $simulasi = app(SimulasiService::class);
+    $a = $simulasi->buat()->jalan;
+    $b = $simulasi->buat()->jalan;
+
+    masukSebagai('timkur');
+    expect(fn () => (new PusatSimulasi)->hapusSatu($a->id))->toThrow(HttpException::class);
+
+    masukSebagai('superadmin');
+    (new PusatSimulasi)->hapusSatu($a->id);
+
+    expect($a->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
+        ->and($b->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI);
 });

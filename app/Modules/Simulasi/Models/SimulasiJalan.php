@@ -4,13 +4,22 @@ namespace App\Modules\Simulasi\Models;
 
 use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Simulasi\Support\AkunSimulasi;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
- * Satu kali pembangunan data simulasi, beserta seluruh jejak kepemilikannya.
+ * Satu sandbox simulasi: satu kali pembangunan paket data beserta seluruh
+ * jejak kepemilikannya. `id` sekaligus menjadi `sandbox_id` pada data akarnya.
+ *
+ * `pengunjung` kosong berarti sandbox masih siap di kolam; terisi berarti
+ * sudah diklaim satu pengunjung (hash cookie, bukan data pribadi).
+ *
+ * @property Carbon|null $terakhir_aktif_pada
  */
 class SimulasiJalan extends Model
 {
@@ -41,7 +50,33 @@ class SimulasiJalan extends Model
             'mulai_pada' => 'datetime',
             'selesai_pada' => 'datetime',
             'dibongkar_pada' => 'datetime',
+            'terakhir_aktif_pada' => 'datetime',
         ];
+    }
+
+    /**
+     * Sandbox yang artefaknya masih ada, termasuk yang gagal di tengah
+     * karena justru itu yang perlu dibersihkan.
+     *
+     * @param  Builder<SimulasiJalan>  $query
+     * @return Builder<SimulasiJalan>
+     */
+    public function scopeMasihAda(Builder $query): Builder
+    {
+        return $query->whereIn('status', [
+            self::STATUS_BERJALAN,
+            self::STATUS_SELESAI,
+            self::STATUS_GAGAL,
+        ]);
+    }
+
+    /**
+     * @param  Builder<SimulasiJalan>  $query
+     * @return Builder<SimulasiJalan>
+     */
+    public function scopeSiap(Builder $query): Builder
+    {
+        return $query->where('status', self::STATUS_SELESAI)->whereNull('pengunjung');
     }
 
     /**
@@ -68,15 +103,16 @@ class SimulasiJalan extends Model
         return $this->belongsTo(Semester::class, 'semester_id');
     }
 
+    public function kode(): string
+    {
+        return AkunSimulasi::kode((string) $this->getKey());
+    }
+
     public function sedangBerjalan(): bool
     {
         return $this->status === self::STATUS_BERJALAN;
     }
 
-    /**
-     * Sebuah jalan masih "ada" selama artefaknya belum dibongkar — termasuk
-     * jalan yang gagal di tengah, karena justru itulah yang perlu dibersihkan.
-     */
     public function masihAda(): bool
     {
         return in_array($this->status, [

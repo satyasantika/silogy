@@ -6,6 +6,7 @@ use App\Modules\BoK\Models\Bok;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\CplFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -22,6 +23,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(CplFactory::class)]
 class Cpl extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     /** @use HasFactory<CplFactory> */
     use HasFactory, HasUuids, LogsSilogyActivity;
 

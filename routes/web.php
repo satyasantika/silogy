@@ -9,6 +9,8 @@ use App\Modules\Panduan\Http\Controllers\PanduanAsetController;
 use App\Modules\Panduan\Http\Controllers\PanduanController;
 use App\Modules\Panduan\Support\PeranPanduan;
 use App\Modules\Simulasi\Http\Controllers\CobaPeranController;
+use App\Modules\Simulasi\Http\Controllers\MasukSandboxController;
+use App\Modules\Simulasi\Support\AkunSimulasi;
 use Illuminate\Support\Facades\Route;
 
 Route::permanentRedirect('/admin/login', '/login');
@@ -28,6 +30,10 @@ Route::get('/health', [HealthController::class, 'index'])
 // aman — dijaga oleh tes di tests/Feature/Panduan/PanduanRouteTest.php.
 Route::get('/panduan', [PanduanController::class, 'indeks'])->name('panduan.indeks');
 
+Route::get('/panduan/level/{level}', [PanduanController::class, 'level'])
+    ->whereIn('level', array_keys(AkunSimulasi::LEVEL))
+    ->name('panduan.level');
+
 Route::get('/panduan/aset/{berkas}', PanduanAsetController::class)
     ->where('berkas', '[A-Za-z0-9_\-]+\.(png|jpg|jpeg|svg|webp)')
     ->name('panduan.aset');
@@ -42,6 +48,9 @@ Route::post('/panduan/{peran}/coba', CobaPeranController::class)
     ->middleware('throttle:panduan-coba-peran')
     ->whereIn('peran', PeranPanduan::slug())
     ->name('panduan.coba');
+
+// Login dalam tab sandbox (/s/<token>/simulasi/masuk). Tanpa awalan tab: 404.
+Route::get('/simulasi/masuk', MasukSandboxController::class)->name('simulasi.masuk');
 
 // GET biasa (bukan aksi Livewire) — lihat catatan di LeaveImpersonateController
 // soal kenapa ini sengaja tidak dijalankan lewat POST /livewire/update.

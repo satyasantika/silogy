@@ -87,11 +87,12 @@ final class PeranPanduan
     }
 
     /**
-     * Username akun simulasi untuk tombol "Coba sebagai ‹peran›", bila ada.
+     * Kunci akun simulasi untuk tombol "Coba sebagai ‹peran›" pada tingkat
+     * tertentu, bila ada. Username sebenarnya ditambah akhiran sandbox.
      */
-    public static function akunUntuk(string $slug): ?string
+    public static function akunUntuk(string $slug, string $level = 'prodi'): ?string
     {
-        return AkunSimulasi::akunPanduan()[$slug] ?? null;
+        return AkunSimulasi::akunPanduan()[$slug][$level] ?? null;
     }
 
     /**
@@ -99,8 +100,18 @@ final class PeranPanduan
      */
     public static function peranUntuk(string $slug): ?string
     {
-        $username = self::akunUntuk($slug);
+        $kunci = self::akunUntuk($slug);
 
-        return $username === null ? null : (AkunSimulasi::akun()[$username]['peran'] ?? null);
+        return $kunci === null ? null : (AkunSimulasi::akun()[$kunci]['peran'] ?? null);
+    }
+
+    /**
+     * Peran yang punya tombol "Coba sebagai" (bukan alur end-to-end).
+     *
+     * @return array<string, array{berkas: string, label: string, ringkas: string, ikon: string}>
+     */
+    public static function bisaDicoba(): array
+    {
+        return array_intersect_key(self::semua(), AkunSimulasi::akunPanduan());
     }
 }

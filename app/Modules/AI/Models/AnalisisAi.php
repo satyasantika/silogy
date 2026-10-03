@@ -5,12 +5,19 @@ namespace App\Modules\AI\Models;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AnalisisAi extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     use HasUuids;
 
     protected $table = 'analisis_ai';

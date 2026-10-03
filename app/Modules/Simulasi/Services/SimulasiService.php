@@ -3,61 +3,175 @@
 namespace App\Modules\Simulasi\Services;
 
 use App\Models\User;
-use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Simulasi\DataObjects\HasilPembangunan;
 use App\Modules\Simulasi\DataObjects\HasilPembongkaran;
 use App\Modules\Simulasi\DataObjects\StatusSimulasi;
-use App\Modules\Simulasi\Exceptions\SimulasiSudahAdaException;
-use App\Modules\Simulasi\Exceptions\SimulasiTidakAdaException;
+use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
 use App\Modules\Simulasi\Models\SimulasiArtefak;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Support\PencatatArtefak;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Muka tunggal siklus hidup simulasi, dipakai halaman Filament maupun perintah
- * artisan supaya keduanya tidak pernah berbeda perilaku.
+ * Muka tunggal siklus hidup sandbox simulasi, dipakai halaman Filament,
+ * perintah artisan, dan tombol "Coba sebagai" supaya semuanya berperilaku sama.
+ *
+ * Model kerjanya: satu pengunjung = satu sandbox (satu paket data utuh) yang
+ * dibagi semua tab perannya. Sandbox disiapkan lebih dulu di kolam; bila
+ * kolam kosong, sandbox dibangun saat diminta. Sandbox yang gagal dibangun
+ * langsung dibongkar, jadi tidak pernah sampai ke pengunjung.
  */
 class SimulasiService
 {
+    public const KUNCI_COBA_PERAN = 'coba_peran';
+
     public function __construct(
         protected PembangunSimulasi $pembangun,
         protected PembongkarSimulasi $pembongkar,
         protected PencatatArtefak $pencatat,
     ) {}
 
-    /**
-     * Jalan simulasi yang artefaknya masih ada — termasuk yang gagal di tengah,
-     * karena justru itu yang perlu dibersihkan.
-     */
-    public function aktif(): ?SimulasiJalan
+    // ── Pengunjung & kolam ───────────────────────────────────────────────
+
+    public static function hashPengunjung(string $pengenal): string
     {
-        return SimulasiJalan::query()
-            ->whereIn('status', [
-                SimulasiJalan::STATUS_BERJALAN,
-                SimulasiJalan::STATUS_SELESAI,
-                SimulasiJalan::STATUS_GAGAL,
-            ])
-            ->latest('mulai_pada')
-            ->first();
+        return hash('sha256', $pengenal);
     }
 
-    public function status(): StatusSimulasi
+    /**
+     * Sandbox milik pengunjung ini: yang sudah ia punya, atau satu dari kolam,
+     * atau yang dibangun saat itu juga. Null bila kapasitas penuh.
+     */
+    public function klaim(string $hashPengunjung): ?SimulasiJalan
     {
-        $jalan = $this->aktif();
+        return Cache::lock('sim-klaim:'.$hashPengunjung, 180)->block(120, function () use ($hashPengunjung): ?SimulasiJalan {
+            $milik = SimulasiJalan::query()
+                ->where('status', SimulasiJalan::STATUS_SELESAI)
+                ->where('pengunjung', $hashPengunjung)
+                ->first();
 
-        if ($jalan === null) {
-            return new StatusSimulasi(ada: false);
+            if ($milik !== null) {
+                return $milik;
+            }
+
+            $dariKolam = DB::transaction(function () use ($hashPengunjung): ?SimulasiJalan {
+                $jalan = SimulasiJalan::query()->siap()->orderBy('selesai_pada')->lockForUpdate()->first();
+
+                $jalan?->forceFill([
+                    'pengunjung' => $hashPengunjung,
+                    'terakhir_aktif_pada' => now(),
+                ])->save();
+
+                return $jalan;
+            });
+
+            if ($dariKolam !== null) {
+                return $dariKolam;
+            }
+
+            try {
+                return $this->buat(pengunjung: $hashPengunjung)->jalan;
+            } catch (KapasitasSandboxPenuhException) {
+                return null;
+            }
+        });
+    }
+
+    /**
+     * Menambah sandbox siap-pakai sampai kolam mencapai target.
+     *
+     * @param  callable(string): void|null  $lapor
+     * @return int jumlah sandbox yang berhasil dibuat
+     */
+    public function isiKolam(?callable $lapor = null): int
+    {
+        $dibuat = 0;
+        $target = max(0, (int) config('simulasi.kolam_siap', 2));
+
+        while (SimulasiJalan::query()->siap()->count() < $target) {
+            try {
+                $this->buat(lapor: $lapor);
+                $dibuat++;
+            } catch (KapasitasSandboxPenuhException) {
+                break;
+            } catch (Throwable) {
+                // Build gagal sudah dibongkar di buat(); hentikan putaran supaya
+                // kegagalan yang deterministik tidak berulang tanpa akhir.
+                break;
+            }
         }
 
+        return $dibuat;
+    }
+
+    /**
+     * Membuang sandbox yang tak aktif melebihi batas umur, sandbox gagal,
+     * dan baris riwayat lama. Sandbox kolam yang belum diklaim dipertahankan.
+     *
+     * @return int jumlah sandbox yang dibongkar
+     */
+    public function bersihkanKedaluwarsa(): int
+    {
+        $batas = now()->subMinutes(max(1, (int) config('simulasi.umur_menit', 120)));
+
+        $usang = SimulasiJalan::query()->masihAda()
+            ->where(function ($q) use ($batas): void {
+                $q->where('status', SimulasiJalan::STATUS_GAGAL)
+                    ->orWhere(fn ($q) => $q->where('status', SimulasiJalan::STATUS_BERJALAN)
+                        ->where('mulai_pada', '<', now()->subMinutes(30)))
+                    ->orWhere(fn ($q) => $q->whereNotNull('pengunjung')
+                        ->whereRaw('coalesce(terakhir_aktif_pada, mulai_pada) < ?', [$batas]));
+            })
+            ->get();
+
+        foreach ($usang as $jalan) {
+            $this->hapus($jalan);
+        }
+
+        SimulasiJalan::query()
+            ->where('status', SimulasiJalan::STATUS_DIBONGKAR)
+            ->where('dibongkar_pada', '<', now()->subDays(7))
+            ->delete();
+
+        return $usang->count();
+    }
+
+    // ── Pembacaan ────────────────────────────────────────────────────────
+
+    /**
+     * @return Collection<int, SimulasiJalan>
+     */
+    public function daftar(): Collection
+    {
+        return SimulasiJalan::query()->masihAda()->orderByDesc('mulai_pada')->get();
+    }
+
+    /**
+     * Cacah artefak seluruh sandbox sekaligus (satu query).
+     *
+     * @return array<string, int> id sandbox => jumlah baris
+     */
+    public function totalArtefak(): array
+    {
+        return DB::table('simulasi_artefak')
+            ->select('simulasi_jalan_id', DB::raw('count(*) as jumlah'))
+            ->groupBy('simulasi_jalan_id')
+            ->pluck('jumlah', 'simulasi_jalan_id')
+            ->map(fn ($n) => (int) $n)
+            ->all();
+    }
+
+    public function status(SimulasiJalan $jalan): StatusSimulasi
+    {
         $cacah = [];
 
-        // Query builder, bukan Eloquent: hasil agregat tidak punya properti
-        // model sehingga analisis statis mempersoalkannya.
+        // Query builder, bukan Eloquent: hasil agregat tidak punya properti model.
         $baris = DB::table('simulasi_artefak')
             ->where('simulasi_jalan_id', $jalan->getKey())
             ->groupBy('model_type')
@@ -79,9 +193,7 @@ class SimulasiService
 
     /**
      * Baris yang tidak tercatat di buku besar tetapi pasti ikut terbuang lewat
-     * CASCADE. Dihitung dari akar yang tercatat, bukan dari pola kode, supaya
-     * angkanya tetap jujur tanpa membengkakkan buku besar dengan ribuan baris
-     * yang toh dihapus mesin basis data dalam satu langkah.
+     * CASCADE, dihitung dari akar yang tercatat.
      *
      * @return array<string, int>
      */
@@ -89,7 +201,7 @@ class SimulasiService
     {
         $idKelas = SimulasiArtefak::query()
             ->where('simulasi_jalan_id', $jalan->getKey())
-            ->where('model_type', KelasMk::class)
+            ->where('model_type', 'App\Modules\Kelas\Models\KelasMk')
             ->pluck('model_uuid');
 
         if ($idKelas->isEmpty()) {
@@ -108,31 +220,37 @@ class SimulasiService
         ];
     }
 
+    // ── Pembangunan & pembongkaran ───────────────────────────────────────
+
     /**
+     * Membangun satu sandbox baru.
+     *
      * @param  callable(string): void|null  $lapor
      */
-    public function buat(?User $pemicu = null, ?callable $lapor = null): HasilPembangunan
+    public function buat(?User $pemicu = null, ?callable $lapor = null, ?string $pengunjung = null): HasilPembangunan
     {
-        if ($this->aktif() !== null) {
-            throw SimulasiSudahAdaException::buat();
+        $maks = max(1, (int) config('simulasi.maks_sandbox', 20));
+
+        if (SimulasiJalan::query()->masihAda()->count() >= $maks) {
+            throw KapasitasSandboxPenuhException::buat($maks);
         }
 
+        @set_time_limit(0);
         $mulai = microtime(true);
 
         // Baris jalan disimpan LEBIH DULU dan di luar transaksi pembangunan:
-        // bila pembangunan mati di tengah, artefak yang terlanjur lahir tetap
-        // tercatat sehingga masih bisa dibongkar lewat "Hapus Simulasi".
+        // artefak yang terlanjur lahir tetap tercatat sehingga bisa dibongkar.
         $jalan = SimulasiJalan::query()->create([
             'status' => SimulasiJalan::STATUS_BERJALAN,
             'dipicu_oleh_id' => $pemicu?->getKey(),
+            'pengunjung' => $pengunjung,
             'mulai_pada' => now(),
+            'terakhir_aktif_pada' => $pengunjung === null ? null : now(),
         ]);
 
         try {
-            // Jejak aktivitas dibungkam selama pembangunan: puluhan ribu baris
-            // activity_log untuk data yang memang akan dibuang hanya mengubur
-            // jejak audit yang sesungguhnya. Satu baris untuk jalan ini sudah
-            // cukup memberi tahu auditor siapa menekan tombolnya dan kapan.
+            // Jejak aktivitas dibungkam: puluhan ribu baris activity_log untuk
+            // data yang memang akan dibuang hanya mengubur jejak audit asli.
             activity()->withoutLogs(function () use ($jalan, $lapor): void {
                 $this->pencatat->rekam($jalan, fn () => $this->pembangun->bangun($jalan, $lapor));
             });
@@ -143,10 +261,18 @@ class SimulasiService
                 'peringatan' => ['galat' => $galat->getMessage()],
             ])->save();
 
+            // Dibuang seketika: sandbox setengah jadi tidak boleh dilihat siapa pun.
+            // Bila pembongkaran pun gagal, barisnya tetap berstatus gagal dan
+            // disapu oleh bersihkanKedaluwarsa().
+            try {
+                $this->hapus($jalan->fresh());
+            } catch (Throwable) {
+            }
+
             throw $galat;
         }
 
-        $cacah = $this->status()->cacah;
+        $cacah = $this->status($jalan)->cacah;
         $takDikenal = $this->pencatat->takDikenal();
 
         $jalan->forceFill([
@@ -164,65 +290,42 @@ class SimulasiService
         );
     }
 
-    public function hapus(?SimulasiJalan $jalan = null, bool $terapkan = true): HasilPembongkaran
+    public function hapus(SimulasiJalan $jalan, bool $terapkan = true): HasilPembongkaran
     {
-        $jalan ??= $this->aktif();
-
-        if ($jalan === null) {
-            throw SimulasiTidakAdaException::buat();
-        }
-
         return $this->pembongkar->bongkar($jalan, $terapkan);
     }
 
     /**
-     * @param  callable(string): void|null  $lapor
+     * Membongkar seluruh sandbox. Tidak menyentuh data inti.
+     *
+     * @return int jumlah sandbox yang dibongkar
      */
-    public function bangunUlang(?User $pemicu = null, ?callable $lapor = null): HasilPembangunan
+    public function hapusSemua(): int
     {
-        // Sakelar coba-peran ikut dibawa: membangun ulang adalah menyegarkan
-        // data latihan, bukan menutup pintunya. Menyalakan dari nol tetap
-        // dimulai dari posisi mati.
-        $sebelumnya = $this->aktif();
-        $cobaPeran = $sebelumnya !== null && $sebelumnya->coba_peran;
+        $semua = SimulasiJalan::query()->masihAda()->get();
 
-        if ($sebelumnya !== null) {
-            $this->hapus();
+        foreach ($semua as $jalan) {
+            $this->hapus($jalan);
         }
 
-        $hasil = $this->buat($pemicu, $lapor);
-
-        if ($cobaPeran) {
-            $this->aturCobaPeran(true);
-        }
-
-        return $hasil;
+        return $semua->count();
     }
+
+    // ── Sakelar mode latihan ─────────────────────────────────────────────
 
     /**
      * Apakah tombol "Coba sebagai ‹peran›" sedang terbuka.
      *
-     * Dua syarat, dan keduanya harus benar: instans ini mengizinkannya sama
-     * sekali (pemutus keras di config/.env), DAN Super Admin menyalakannya
-     * pada jalan simulasi yang sedang aktif.
-     *
-     * Karena sakelarnya menempel pada jalan simulasi, menghapus data simulasi
-     * otomatis menutup jalur ini — tidak ada sakelar yatim yang tertinggal
-     * menyala tanpa ada yang menyadarinya.
+     * Dua syarat: instans mengizinkannya (pemutus keras di config/.env) DAN
+     * Super Admin menyalakannya. Sakelar kini global (tabel simulasi_pengaturan),
+     * bukan menempel pada satu sandbox, karena sandbox dibuat sesuai permintaan.
      */
     public function cobaPeranTerbuka(): bool
     {
-        $jalan = $this->aktif();
-
         return (bool) config('simulasi.izinkan_coba_peran', true)
-            && $jalan !== null
-            && $jalan->coba_peran;
+            && DB::table('simulasi_pengaturan')->where('kunci', self::KUNCI_COBA_PERAN)->value('nilai') === '1';
     }
 
-    /**
-     * Instans ini sama sekali melarang mode latihan, apa pun yang ditekan
-     * Super Admin. Dipakai antarmuka untuk menjelaskan kenapa sakelarnya mati.
-     */
     public function cobaPeranDilarangInstans(): bool
     {
         return ! (bool) config('simulasi.izinkan_coba_peran', true);
@@ -230,21 +333,16 @@ class SimulasiService
 
     public function aturCobaPeran(bool $nyala): void
     {
-        $jalan = $this->aktif();
-
-        if ($jalan === null) {
-            throw SimulasiTidakAdaException::buat();
-        }
-
-        $jalan->forceFill(['coba_peran' => $nyala])->save();
+        DB::table('simulasi_pengaturan')->updateOrInsert(
+            ['kunci' => self::KUNCI_COBA_PERAN],
+            ['nilai' => $nyala ? '1' : '0', 'updated_at' => now(), 'created_at' => now()],
+        );
     }
 
     /**
-     * Gerbang tunggal untuk tombol "Coba sebagai ‹peran›".
-     *
-     * Hanya baris yang benar-benar DIBUAT oleh jalan ini yang dianggap milik
-     * simulasi. Sebuah akun nyata yang kebetulan bernama sama tidak akan pernah
-     * lolos, karena ia tidak punya artefak.
+     * Gerbang untuk tombol "Coba sebagai ‹peran›": hanya baris yang benar-benar
+     * DIBUAT oleh sandbox ini yang dianggap miliknya. Akun nyata bernama sama
+     * tidak punya artefak sehingga tidak pernah lolos.
      */
     public function memiliki(SimulasiJalan $jalan, Model $model): bool
     {

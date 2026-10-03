@@ -1,31 +1,38 @@
 @extends('layouts.publik')
 
 @section('judul', 'Panduan Pengguna — SILOGY')
-@section('deskripsi', 'Panduan SILOGY per peran: Super Admin, Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu, Pimpinan, dan Auditor Mutu.')
+@section('deskripsi', 'Panduan SILOGY menurut tingkat unit: Universitas, Fakultas, dan Program Studi, lalu menurut peran.')
 
 @push('gaya')
     @include('panduan.partials.gaya-panduan')
 @endpush
 
 @section('konten')
+@php
+    $ikonLevel = ['univ' => 'bi-bank', 'fak' => 'bi-building', 'prodi' => 'bi-mortarboard'];
+    $ringkasLevel = [
+        'univ' => 'Rektor, admin dan tim kurikulum universitas, serta mata kuliah umum tingkat universitas.',
+        'fak' => 'Dekan, admin dan tim kurikulum fakultas, serta mata kuliah tingkat fakultas.',
+        'prodi' => 'Kaprodi, tim kurikulum, koordinator MK, dosen pengampu, sampai nilai kelas.',
+    ];
+@endphp
 <section class="pd-hero">
     <div class="pd-wrap">
         <span class="pd-eyebrow"><i class="bi bi-book"></i> Panduan Pengguna</span>
-        <h1>Cara memakai SILOGY sesuai tugas Anda</h1>
+        <h1>Mulai dari tingkat unit Anda</h1>
         <p class="pd-lead">
-            SILOGY mengelola kurikulum berbasis OBE dan capaian pembelajaran di Universitas
-            Siliwangi. Tiap peran mengerjakan satu ruas rantai yang sama, jadi buka panduan yang
-            sesuai dengan tugas Anda. Angka merah pada gambar menunjuk tombol yang harus diklik.
+            Tampilan dan wewenang di SILOGY mengikuti tingkat unit tempat Anda ditugaskan.
+            Pilih tingkat Anda lebih dulu, lalu buka panduan untuk peran Anda di tingkat itu.
         </p>
 
-        @if ($simulasiAda && $cobaAktif)
+        @if ($cobaAktif)
             <div class="pd-coba">
                 <div class="pd-coba-teks">
-                    <strong>Ada data latihan yang bisa Anda coba.</strong>
+                    <strong>Ada ruang latihan yang bisa Anda coba.</strong>
                     <p>
-                        Buka panduan peran mana pun, lalu tekan <em>Coba sebagai ‹peran›</em> untuk
-                        langsung masuk dan mencobanya sendiri. Semua yang Anda lakukan di sana
-                        memakai data simulasi, bukan data yang sesungguhnya.
+                        Di halaman peran, tekan <em>Coba sebagai ‹peran›</em>. Setiap peran terbuka di
+                        tab baru dengan login sendiri, jadi beberapa peran bisa dicoba bersamaan.
+                        Semua yang Anda ubah hanya terjadi pada data simulasi milik Anda.
                     </p>
                 </div>
             </div>
@@ -36,17 +43,17 @@
 <section class="pd-badan">
     <div class="pd-wrap">
         <div class="pd-kisi">
-            @foreach ($peran as $slug => $definisi)
-                <a class="pd-kartu" href="{{ route('panduan.peran', ['peran' => $slug]) }}">
-                    <i class="bi {{ $definisi['ikon'] }}"></i>
-                    <h3>{{ $definisi['label'] }}</h3>
-                    <p>{{ $definisi['ringkas'] }}</p>
+            @foreach ($level as $kunci => $label)
+                <a class="pd-kartu" href="{{ route('panduan.level', ['level' => $kunci]) }}">
+                    <i class="bi {{ $ikonLevel[$kunci] }}"></i>
+                    <h3>{{ $label }}</h3>
+                    <p>{{ $ringkasLevel[$kunci] }}</p>
                 </a>
             @endforeach
         </div>
 
         <div class="pd-lanjut">
-            <h2>Rantai data yang sama untuk semua peran</h2>
+            <h2>Rantai data yang sama untuk semua tingkat</h2>
             <p style="color: var(--c-body); line-height: 1.75;">
                 Profil Lulusan → CPL → Bahan Kajian → Mata Kuliah → CPMK → Sub-CPMK →
                 Komponen Penilaian → Nilai → Laporan. Setiap peran mengisi satu ruas.

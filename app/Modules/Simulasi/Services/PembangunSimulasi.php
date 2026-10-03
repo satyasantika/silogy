@@ -14,15 +14,23 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Simulasi\Exceptions\SemesterAktifTidakAdaException;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Support\AkunSimulasi;
+use App\Modules\Simulasi\Support\Ranah;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\Support\SimulasiAkademikBuilder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
- * Membangun seluruh data simulasi di dalam pohon unitnya sendiri.
+ * Membangun satu sandbox simulasi utuh di dalam pohon unitnya sendiri.
  *
- * Yang DIMILIKI simulasi: pohon unit SIM-*, akun sim-*, mahasiswa prodi
+ * Seluruh pembangunan berjalan di bawah Ranah::sebagai(<id sandbox>): setiap
+ * baris akar yang lahir otomatis diberi sandbox_id, dan setiap pencarian
+ * (firstOrCreate, where) hanya melihat isi sandbox ini. Itu yang membuat
+ * pembangunan deterministik: tidak ada sisa data dari percobaan lain yang
+ * bisa terpungut, dan tidak ada data inti yang bisa tersentuh.
+ *
+ * Yang DIMILIKI sandbox: pohon unit SIM-*, akun sim-*, mahasiswa prodi
  * simulasi, dan seluruh rantai OBE di atasnya.
  *
  * Yang DIPINJAM (dipakai, tidak pernah dihapus): peran, izin, master evaluasi,
@@ -40,6 +48,16 @@ class PembangunSimulasi
      */
     public function bangun(SimulasiJalan $jalan, ?callable $lapor = null): array
     {
+        return Ranah::sebagai((string) $jalan->getKey(), fn (): array => $this->bangunDalamRanah($jalan, $lapor));
+    }
+
+    /**
+     * @param  callable(string): void|null  $lapor
+     * @return array<string, mixed>
+     */
+    protected function bangunDalamRanah(SimulasiJalan $jalan, ?callable $lapor): array
+    {
+        $kode = $jalan->kode();
         $lapor ??= static fn (string $langkah): null => null;
 
         $lapor('Menyiapkan peran dan izin');
@@ -52,13 +70,13 @@ class PembangunSimulasi
         $jalan->forceFill(['semester_id' => $semester->getKey()])->save();
 
         $lapor('Membangun pohon unit simulasi');
-        $unit = $this->buatUnit();
+        $unit = $this->buatUnit($kode);
 
         $lapor('Membuat akun simulasi');
-        $akun = $this->buatAkun($unit);
+        $akun = $this->buatAkun($unit, $kode);
 
         $lapor('Membuat mahasiswa simulasi');
-        $this->buatMahasiswa($unit['prodi']);
+        $this->buatMahasiswa($unit['prodi'], $kode);
 
         $builder = new SimulasiAkademikBuilder(
             semester: $semester,
@@ -76,7 +94,7 @@ class PembangunSimulasi
             'kode' => 'UNV101',
             'nama' => 'Pendidikan Pancasila (Simulasi)',
             'dosen' => $akun['sim-dosenuniv'],
-            'koordinator' => $akun['sim-korma'],
+            'koordinator' => $akun['sim-kormauniv'],
             'prodi_sumber' => $unit['prodi'],
         ]);
 
@@ -86,7 +104,7 @@ class PembangunSimulasi
             'kode' => 'FAK101',
             'nama' => 'Metodologi Penelitian Pendidikan (Simulasi)',
             'dosen' => $akun['sim-dosenfak'],
-            'koordinator' => $akun['sim-korma'],
+            'koordinator' => $akun['sim-kormafak'],
             'prodi_sumber' => $unit['prodi'],
         ]);
 
@@ -130,11 +148,11 @@ class PembangunSimulasi
     /**
      * @return array<string, AcademicUnit>
      */
-    protected function buatUnit(): array
+    protected function buatUnit(string $kode): array
     {
         $hasil = [];
 
-        foreach (AkunSimulasi::unit() as $kunci => $definisi) {
+        foreach (AkunSimulasi::unit($kode) as $kunci => $definisi) {
             $hasil[$kunci] = AcademicUnit::query()->firstOrCreate(
                 ['code' => $definisi['code']],
                 array_merge($definisi['tambahan'], [
@@ -154,18 +172,24 @@ class PembangunSimulasi
      * @param  array<string, AcademicUnit>  $unit
      * @return array<string, User>
      */
-    protected function buatAkun(array $unit): array
+    protected function buatAkun(array $unit, string $kode): array
     {
         $hasil = [];
 
-        foreach (AkunSimulasi::akun() as $username => $definisi) {
+        // Satu hash untuk seluruh akun sandbox ini: Hash::make berbiaya mahal
+        // dan kata sandinya acak serta tak pernah ditampilkan.
+        $sandi = Hash::make(Str::random(40));
+
+        foreach (AkunSimulasi::akun() as $kunci => $definisi) {
+            $username = AkunSimulasi::username($kunci, $kode);
+
             $user = User::query()->firstOrCreate(
                 ['username' => $username],
                 [
                     'email' => AkunSimulasi::surel($username),
-                    'nidn' => $definisi['nidn'],
+                    'nidn' => AkunSimulasi::nidn($kunci, $kode),
                     'full_name' => $definisi['nama'],
-                    'password' => Hash::make(AkunSimulasi::SANDI),
+                    'password' => $sandi,
                     'email_verified_at' => now(),
                 ],
             );
@@ -175,21 +199,19 @@ class PembangunSimulasi
             // sendiri, dan akun sim-* tidak pernah menjadi pemicu.
             $user->syncRoles([$definisi['peran']]);
 
-            if ($definisi['unit'] !== null) {
-                AcademicUnitUser::query()->firstOrCreate(
-                    [
-                        'academic_unit_id' => $unit[$definisi['unit']]->getKey(),
-                        'user_id' => $user->getKey(),
-                    ],
-                    [
-                        'status_pimpinan' => $definisi['pimpinan'],
-                        'status_tim_kurikulum' => $definisi['tim_kurikulum'],
-                        'jabatan' => $definisi['jabatan'],
-                    ],
-                );
-            }
+            AcademicUnitUser::query()->firstOrCreate(
+                [
+                    'academic_unit_id' => $unit[$definisi['unit']]->getKey(),
+                    'user_id' => $user->getKey(),
+                ],
+                [
+                    'status_pimpinan' => $definisi['pimpinan'],
+                    'status_tim_kurikulum' => $definisi['tim_kurikulum'],
+                    'jabatan' => $definisi['jabatan'],
+                ],
+            );
 
-            $hasil[$username] = $user;
+            $hasil[$kunci] = $user;
         }
 
         return $hasil;
@@ -235,7 +257,7 @@ class PembangunSimulasi
         );
     }
 
-    protected function buatMahasiswa(AcademicUnit $prodi): void
+    protected function buatMahasiswa(AcademicUnit $prodi, string $kode): void
     {
         $ada = Mahasiswa::query()->where('academic_unit_id', $prodi->getKey())->count();
 
@@ -243,8 +265,11 @@ class PembangunSimulasi
             return;
         }
 
+        // NIM eksplisit, bukan numerik acak pabrik: kolom nim unik global dan
+        // acak 10 digit tidak menjamin bebas bentrok dengan data inti.
         Mahasiswa::factory()
             ->count(self::JUMLAH_MAHASISWA - $ada)
+            ->sequence(fn ($urutan) => ['nim' => AkunSimulasi::nim($kode, $ada + $urutan->index + 1)])
             ->create(['academic_unit_id' => $prodi->getKey()]);
     }
 }

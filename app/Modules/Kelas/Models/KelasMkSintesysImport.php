@@ -5,12 +5,19 @@ namespace App\Modules\Kelas\Models;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class KelasMkSintesysImport extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     use HasUuids;
 
     protected $table = 'kelas_mk_sintesys_imports';

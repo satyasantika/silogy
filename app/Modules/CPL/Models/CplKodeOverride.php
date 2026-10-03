@@ -3,6 +3,7 @@
 namespace App\Modules\CPL\Models;
 
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class CplKodeOverride extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     use HasUuids, LogsSilogyActivity;
 
     protected $table = 'cpl_kode_overrides';

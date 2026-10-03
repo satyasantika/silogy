@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -25,6 +26,12 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 #[UseFactory(MkFactory::class)]
 class Mk extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     /** @use HasFactory<MkFactory> */
     use HasFactory, HasUuids, LogsSilogyActivity;
 

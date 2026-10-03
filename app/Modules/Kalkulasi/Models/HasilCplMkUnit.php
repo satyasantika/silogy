@@ -6,12 +6,19 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\MK\Models\Mk;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HasilCplMkUnit extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     use HasUuids;
 
     protected $table = 'hasil_cpl_mk_unit';

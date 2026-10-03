@@ -11,6 +11,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\States\KurikulumState;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,12 @@ use Spatie\ModelStates\HasStates;
 
 class Kurikulum extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'unit';
+
+    public const RANAH_KOLOM = 'academic_unit_id';
+
     use HasStates, HasUuids, LogsSilogyActivity;
 
     protected $table = 'kurikulum';

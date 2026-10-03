@@ -8,6 +8,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\AcademicUnitFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -24,6 +25,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[UseFactory(AcademicUnitFactory::class)]
 class AcademicUnit extends Model
 {
+    use BerRanahSimulasi;
+
+    public const RANAH_MODE = 'langsung';
+
+    public const RANAH_KOLOM = 'sandbox_id';
+
     /** @use HasFactory<AcademicUnitFactory> */
     use HasFactory, HasUuids, LogsSilogyActivity;
 

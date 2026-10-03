@@ -2,9 +2,9 @@
 
 namespace App\Modules\Simulasi\Filament\Pages;
 
-use App\Modules\Simulasi\DataObjects\StatusSimulasi;
+use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
+use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
-use App\Modules\Simulasi\Support\AkunSimulasi;
 use App\Support\Filament\Concerns\ForcesFullPageRender;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -13,11 +13,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Menyalakan dan mematikan data simulasi.
+ * Mengelola sandbox simulasi: membuka mode latihan, menyiapkan sandbox, dan menghapusnya.
  *
  * Seperti DaftarKurikulumSuperAdmin, halaman ini memegang gerbang otorisasinya
  * sendiri lewat canAccess(). Ia tidak bisa bersandar pada policy: config
@@ -61,22 +62,20 @@ class PusatSimulasi extends Page implements HasActions
         abort_unless(static::canAccess(), 403);
     }
 
-    public function status(): StatusSimulasi
+    /**
+     * @return Collection<int, SimulasiJalan>
+     */
+    public function daftar(): Collection
     {
-        return app(SimulasiService::class)->status();
+        return app(SimulasiService::class)->daftar();
     }
 
     /**
-     * @return array<string, array<string, mixed>>
+     * @return array<string, int>
      */
-    public function akun(): array
+    public function totalArtefak(): array
     {
-        return AkunSimulasi::akun();
-    }
-
-    public function sandiSimulasi(): string
-    {
-        return AkunSimulasi::SANDI;
+        return app(SimulasiService::class)->totalArtefak();
     }
 
     public function cobaPeranAktif(): bool
@@ -95,41 +94,62 @@ class PusatSimulasi extends Page implements HasActions
     protected function getHeaderActions(): array
     {
         return [
-            $this->buatAction(),
+            $this->siapkanAction(),
             $this->cobaPeranAction(),
-            $this->bangunUlangAction(),
-            $this->hapusAction(),
+            $this->hapusSemuaAction(),
         ];
     }
 
-    protected function buatAction(): Action
+    protected function siapkanAction(): Action
     {
-        return Action::make('buat')
-            ->label('Buat Simulasi')
+        return Action::make('siapkan')
+            ->label('Siapkan Sandbox')
             ->icon(Heroicon::OutlinedSparkles)
             ->color('primary')
-            ->visible(fn (): bool => ! $this->status()->ada)
             ->requiresConfirmation()
-            ->modalHeading('Buat data simulasi')
+            ->modalHeading('Siapkan satu sandbox')
             ->modalDescription(
-                'Akan dibuat pohon unit tersendiri (Universitas Simulasi → Fakultas Simulasi → '
-                .'Prodi Simulasi), akun sim-* dengan kata sandi '.AkunSimulasi::SANDI.', mahasiswa '
-                .'simulasi, dan seluruh rantai OBE di atasnya sampai nilai serta hasil kalkulasi. '
-                .'Unit, akun, kurikulum, dan nilai yang sudah ada TIDAK disentuh. '
-                .'Proses berjalan langsung dan memakan waktu sekitar 10–60 detik — '
-                .'jangan tutup halaman ini.'
+                'Dibangun satu paket data utuh (Universitas → Fakultas → Prodi Simulasi, 18 akun, '
+                .'mahasiswa, kurikulum sampai nilai) yang kelak diklaim satu pengunjung. '
+                .'Data inti TIDAK disentuh dan tidak dapat melihat isinya. '
+                .'Proses memakan waktu sekitar 10–60 detik — jangan tutup halaman ini.'
             )
-            ->modalSubmitActionLabel('Ya, buat simulasi')
-            ->action(fn () => $this->jalankanPembangunan(ulang: false));
+            ->modalSubmitActionLabel('Ya, siapkan')
+            ->action(function (): void {
+                abort_unless(static::canAccess(), 403);
+
+                @set_time_limit(0);
+                DB::connection()->disableQueryLog();
+
+                try {
+                    $hasil = app(SimulasiService::class)->buat(auth()->user());
+                } catch (KapasitasSandboxPenuhException $galat) {
+                    Notification::make()->title('Kapasitas penuh')->body($galat->getMessage())->warning()->send();
+
+                    return;
+                } catch (Throwable $galat) {
+                    Notification::make()
+                        ->title('Pembangunan sandbox gagal')
+                        ->body($galat->getMessage().' Sandbox setengah jadi sudah dibuang otomatis.')
+                        ->danger()
+                        ->persistent()
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->title('Sandbox siap')
+                    ->body($hasil->ringkasSingkat())
+                    ->success()
+                    ->persistent()
+                    ->send();
+            });
     }
 
     /**
-     * Sakelar mode latihan — sengaja di sini, bukan di .env.
-     *
-     * Orang yang berwenang memutuskan boleh-tidaknya mode latihan dibuka sering
-     * kali tidak punya akses menyunting .env di peladen. Menaruhnya di sini
-     * membuat keputusan itu bisa diambil, dan yang lebih penting DICABUT, dalam
-     * hitungan detik tanpa menyentuh berkas konfigurasi maupun menunggu deploy.
+     * Sakelar mode latihan — sengaja di sini, bukan di .env, supaya keputusan
+     * membuka dan MENCABUTNYA bisa diambil dalam hitungan detik tanpa deploy.
      */
     protected function cobaPeranAction(): Action
     {
@@ -140,18 +160,15 @@ class PusatSimulasi extends Page implements HasActions
             ->label($terbuka ? 'Tutup mode latihan' : 'Buka mode latihan')
             ->icon($terbuka ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedLockOpen)
             ->color($terbuka ? 'warning' : 'gray')
-            ->visible(fn (): bool => $this->status()->ada && ! $simulasi->cobaPeranDilarangInstans())
+            ->visible(fn (): bool => ! $simulasi->cobaPeranDilarangInstans())
             ->requiresConfirmation()
             ->modalHeading($terbuka ? 'Tutup mode latihan' : 'Buka mode latihan')
             ->modalDescription($terbuka
                 ? 'Tombol "Coba sebagai ‹peran›" akan hilang dari halaman panduan. '
-                  .'Orang tetap bisa masuk dengan mengetik sendiri akun sim-* dan kata sandinya.'
-                : 'Setelah dibuka, SIAPA PUN yang membuka halaman panduan dapat masuk '
-                  .'TANPA KATA SANDI ke akun latihan dan menulis data di sana. '
-                  .'Itu aman karena akun sim-* hanya ditugaskan ke unit simulasi, sehingga '
-                  .'tidak bisa menyentuh data yang sesungguhnya — tetapi apa pun yang '
-                  .'mereka ubah di dalam simulasi akan terlihat oleh pengunjung berikutnya. '
-                  .'Sakelar ini bisa ditutup lagi kapan saja dari halaman ini.')
+                  .'Tab yang sudah terbuka tetap berjalan sampai kedaluwarsa atau sandboxnya dihapus.'
+                : 'Setelah dibuka, SIAPA PUN yang membuka halaman panduan dapat masuk TANPA KATA SANDI '
+                  .'ke sandbox miliknya sendiri. Itu aman karena akun sandbox hanya ditugaskan ke unit '
+                  .'sandbox itu dan tidak dapat melihat data inti maupun sandbox orang lain.')
             ->modalSubmitActionLabel($terbuka ? 'Ya, tutup' : 'Ya, buka mode latihan')
             ->action(function () use ($simulasi, $terbuka): void {
                 abort_unless(static::canAccess(), 403);
@@ -160,41 +177,23 @@ class PusatSimulasi extends Page implements HasActions
 
                 Notification::make()
                     ->title($terbuka ? 'Mode latihan ditutup' : 'Mode latihan dibuka')
-                    ->body($terbuka
-                        ? 'Tombol "Coba sebagai ‹peran›" tidak lagi tampil di halaman panduan.'
-                        : 'Pengunjung kini bisa mencoba tiap peran langsung dari halaman panduan.')
                     ->success()
                     ->send();
             });
     }
 
-    protected function bangunUlangAction(): Action
+    protected function hapusSemuaAction(): Action
     {
-        return Action::make('bangunUlang')
-            ->label('Bangun Ulang')
-            ->icon(Heroicon::OutlinedArrowPath)
-            ->color('gray')
-            ->visible(fn (): bool => $this->status()->ada)
-            ->requiresConfirmation()
-            ->modalHeading('Bangun ulang data simulasi')
-            ->modalDescription(
-                'Data simulasi sekarang akan dibongkar lebih dulu, lalu dibangun kembali dari awal. '
-                .'Semua perubahan yang dibuat pengunjung selama mencoba peran akan hilang.'
-            )
-            ->modalSubmitActionLabel('Ya, bangun ulang')
-            ->action(fn () => $this->jalankanPembangunan(ulang: true));
-    }
-
-    protected function hapusAction(): Action
-    {
-        return Action::make('hapus')
-            ->label('Hapus Simulasi')
+        return Action::make('hapusSemua')
+            ->label('Hapus Semua Sandbox')
             ->icon(Heroicon::OutlinedTrash)
             ->color('danger')
-            ->visible(fn (): bool => $this->status()->ada)
+            ->visible(fn (): bool => $this->daftar()->isNotEmpty())
             ->requiresConfirmation()
-            ->modalHeading('Hapus data simulasi')
-            ->modalDescription(fn (): string => $this->ringkasanPenghapusan())
+            ->modalHeading('Hapus seluruh sandbox simulasi')
+            ->modalDescription(fn (): string => 'Akan dibongkar '.$this->daftar()->count().' sandbox beserta semua akun, '
+                .'kurikulum, kelas, dan nilainya. Data inti, peran, izin, semester, dan master evaluasi TIDAK '
+                .'ikut dihapus. Tindakan ini tidak dapat dibatalkan.')
             ->schema([
                 TextInput::make('konfirmasi')
                     ->label('Ketik HAPUS SIMULASI untuk melanjutkan')
@@ -206,68 +205,32 @@ class PusatSimulasi extends Page implements HasActions
             ->action(function (): void {
                 abort_unless(static::canAccess(), 403);
 
-                $hasil = app(SimulasiService::class)->hapus();
+                @set_time_limit(0);
+
+                $jumlah = app(SimulasiService::class)->hapusSemua();
 
                 Notification::make()
-                    ->title('Data simulasi dihapus')
-                    ->body($hasil->ringkasSingkat())
+                    ->title('Sandbox dihapus')
+                    ->body($jumlah.' sandbox dibongkar.')
                     ->success()
                     ->persistent()
                     ->send();
             });
     }
 
-    protected function ringkasanPenghapusan(): string
-    {
-        $status = $this->status();
-        $baris = [];
-
-        foreach ($status->cacah as $label => $jumlah) {
-            $baris[] = $jumlah.' '.$label;
-        }
-
-        foreach ($status->turunan as $label => $jumlah) {
-            $baris[] = $jumlah.' '.strtolower($label);
-        }
-
-        return 'Akan dihapus: '.implode(', ', $baris).'. '
-            ."\n\n"
-            .'TIDAK ikut dihapus: unit akademik nyata, peran, izin, semester, master evaluasi, '
-            .'dan setiap baris yang tidak tercatat sebagai buatan simulasi. '
-            .'Tindakan ini tidak dapat dibatalkan.';
-    }
-
-    protected function jalankanPembangunan(bool $ulang): void
+    public function hapusSatu(string $id): void
     {
         abort_unless(static::canAccess(), 403);
 
-        // Tidak ada queue worker pada tumpukan silogy, jadi pembangunan memang
-        // berjalan sinkron. Query log dimatikan karena satu kali pembangunan
-        // menyisipkan ribuan baris nilai.
-        @set_time_limit(0);
-        DB::connection()->disableQueryLog();
+        $jalan = SimulasiJalan::query()->masihAda()->find($id);
 
-        try {
-            $hasil = $ulang
-                ? app(SimulasiService::class)->bangunUlang(auth()->user())
-                : app(SimulasiService::class)->buat(auth()->user());
-        } catch (Throwable $galat) {
-            Notification::make()
-                ->title('Pembangunan simulasi gagal')
-                ->body($galat->getMessage().' Artefak yang terlanjur lahir tetap tercatat — '
-                    .'tekan Hapus Simulasi untuk membersihkannya.')
-                ->danger()
-                ->persistent()
-                ->send();
-
+        if ($jalan === null) {
             return;
         }
 
-        Notification::make()
-            ->title('Data simulasi siap')
-            ->body($hasil->ringkasSingkat())
-            ->success()
-            ->persistent()
-            ->send();
+        @set_time_limit(0);
+        app(SimulasiService::class)->hapus($jalan);
+
+        Notification::make()->title('Sandbox dihapus')->success()->send();
     }
 }
