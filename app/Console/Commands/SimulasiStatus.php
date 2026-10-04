@@ -31,6 +31,7 @@ class SimulasiStatus extends Command
         foreach ($daftar as $jalan) {
             $baris[] = [
                 $jalan->kode(),
+                $jalan->kosong() ? 'kosong' : 'terisi/'.$jalan->jumlah_mk.'MK',
                 $jalan->status,
                 $jalan->pengunjung === null ? '—' : 'pengunjung',
                 $jalan->terakhir_aktif_pada === null ? '—' : $jalan->terakhir_aktif_pada->diffForHumans(),
@@ -38,7 +39,7 @@ class SimulasiStatus extends Command
             ];
         }
 
-        $this->table(['Kode', 'Status', 'Pemakai', 'Aktif terakhir', 'Baris'], $baris);
+        $this->table(['Kode', 'Jenis', 'Status', 'Pemakai', 'Aktif terakhir', 'Baris'], $baris);
 
         return self::SUCCESS;
     }

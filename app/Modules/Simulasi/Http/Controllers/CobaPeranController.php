@@ -4,6 +4,7 @@ namespace App\Modules\Simulasi\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Panduan\Support\PeranPanduan;
+use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 use App\Modules\Simulasi\Support\Ranah;
@@ -54,13 +55,15 @@ class CobaPeranController
         $kunciAkun = PeranPanduan::akunUntuk($peran, $level);
         abort_if($kunciAkun === null, 404);
 
+        $mode = PeranPanduan::modeUntuk($peran, (string) $request->input('mode', SimulasiJalan::MODE_TERISI));
+
         $pengenal = (string) $request->cookie(self::COOKIE_PENGUNJUNG);
 
         if (strlen($pengenal) < 32) {
             $pengenal = Str::random(40);
         }
 
-        $jalan = $this->simulasi->klaim(SimulasiService::hashPengunjung($pengenal));
+        $jalan = $this->simulasi->klaim(SimulasiService::hashPengunjung($pengenal), $mode);
 
         if ($jalan === null) {
             return back()->with('panduan_galat',

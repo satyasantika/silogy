@@ -11,7 +11,10 @@ use App\Modules\Simulasi\DataObjects\StatusSimulasi;
 use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
 use App\Modules\Simulasi\Models\SimulasiArtefak;
 use App\Modules\Simulasi\Models\SimulasiJalan;
+use App\Modules\Simulasi\Support\AkunSimulasi;
 use App\Modules\Simulasi\Support\PencatatArtefak;
+use App\Modules\Simulasi\Support\Ranah;
+use Database\Seeders\Support\SimulasiAkademikBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -45,38 +48,57 @@ class SimulasiService
     }
 
     /**
-     * Sandbox milik pengunjung ini: yang sudah ia punya, atau satu dari kolam,
-     * atau yang dibangun saat itu juga. Null bila kapasitas penuh.
+     * Sandbox milik pengunjung ini pada mode tertentu: yang sudah ia punya,
+     * atau satu dari kolam, atau yang dibangun saat itu juga. Null bila
+     * kapasitas penuh. Satu pengunjung dapat memegang dua sandbox sekaligus,
+     * satu per mode, sehingga contoh terisi dan contoh kosong tidak saling
+     * menimpa.
      */
-    public function klaim(string $hashPengunjung): ?SimulasiJalan
+    public function klaim(string $hashPengunjung, string $mode = SimulasiJalan::MODE_TERISI): ?SimulasiJalan
     {
-        return Cache::lock('sim-klaim:'.$hashPengunjung, 180)->block(120, function () use ($hashPengunjung): ?SimulasiJalan {
+        $mode = $this->mode($mode);
+
+        return Cache::lock('sim-klaim:'.$mode.':'.$hashPengunjung, 180)->block(120, function () use ($hashPengunjung, $mode): ?SimulasiJalan {
             $milik = SimulasiJalan::query()
                 ->where('status', SimulasiJalan::STATUS_SELESAI)
                 ->where('pengunjung', $hashPengunjung)
+                ->where('mode', $mode)
                 ->first();
 
             if ($milik !== null) {
-                return $milik;
+                if ($this->akunLengkap($milik)) {
+                    return $milik;
+                }
+
+                // Sandbox peninggalan versi lama (akun belum 3 level) tidak bisa
+                // dipakai masuk. Dibongkar lalu diganti yang baru.
+                $this->hapus($milik);
             }
 
-            $dariKolam = DB::transaction(function () use ($hashPengunjung): ?SimulasiJalan {
-                $jalan = SimulasiJalan::query()->siap()->orderBy('selesai_pada')->lockForUpdate()->first();
+            do {
+                $dariKolam = DB::transaction(function () use ($hashPengunjung, $mode): ?SimulasiJalan {
+                    $jalan = SimulasiJalan::query()->siap($mode)->orderBy('selesai_pada')->lockForUpdate()->first();
 
-                $jalan?->forceFill([
-                    'pengunjung' => $hashPengunjung,
-                    'terakhir_aktif_pada' => now(),
-                ])->save();
+                    $jalan?->forceFill([
+                        'pengunjung' => $hashPengunjung,
+                        'terakhir_aktif_pada' => now(),
+                    ])->save();
 
-                return $jalan;
-            });
+                    return $jalan;
+                });
+
+                if ($dariKolam !== null && ! $this->akunLengkap($dariKolam)) {
+                    $this->hapus($dariKolam);
+                    $dariKolam = false;
+                }
+            } while ($dariKolam === false);
 
             if ($dariKolam !== null) {
                 return $dariKolam;
             }
 
             try {
-                return $this->buat(pengunjung: $hashPengunjung)->jalan;
+                return $this->buat(pengunjung: $hashPengunjung, mode: $mode)->jalan;
             } catch (KapasitasSandboxPenuhException) {
                 return null;
             }
@@ -84,7 +106,7 @@ class SimulasiService
     }
 
     /**
-     * Menambah sandbox siap-pakai sampai kolam mencapai target.
+     * Menambah sandbox siap-pakai sampai kolam tiap mode mencapai targetnya.
      *
      * @param  callable(string): void|null  $lapor
      * @return int jumlah sandbox yang berhasil dibuat
@@ -92,18 +114,25 @@ class SimulasiService
     public function isiKolam(?callable $lapor = null): int
     {
         $dibuat = 0;
-        $target = max(0, (int) config('simulasi.kolam_siap', 2));
 
-        while (SimulasiJalan::query()->siap()->count() < $target) {
-            try {
-                $this->buat(lapor: $lapor);
-                $dibuat++;
-            } catch (KapasitasSandboxPenuhException) {
-                break;
-            } catch (Throwable) {
-                // Build gagal sudah dibongkar di buat(); hentikan putaran supaya
-                // kegagalan yang deterministik tidak berulang tanpa akhir.
-                break;
+        $targetPerMode = [
+            SimulasiJalan::MODE_TERISI => max(0, (int) config('simulasi.kolam_siap', 2)),
+            SimulasiJalan::MODE_KOSONG => max(0, (int) config('simulasi.kolam_siap_kosong', 2)),
+        ];
+
+        foreach ($targetPerMode as $mode => $target) {
+            while (SimulasiJalan::query()->siap($mode)->count() < $target) {
+                try {
+                    $this->buat(lapor: $lapor, mode: $mode);
+                    $dibuat++;
+                } catch (KapasitasSandboxPenuhException) {
+                    return $dibuat;
+                } catch (Throwable) {
+                    // Build gagal sudah dibongkar di buat(); hentikan putaran mode
+                    // ini supaya kegagalan yang deterministik tidak berulang tanpa
+                    // akhir, lalu coba mode berikutnya.
+                    break;
+                }
             }
         }
 
@@ -227,8 +256,18 @@ class SimulasiService
      *
      * @param  callable(string): void|null  $lapor
      */
-    public function buat(?User $pemicu = null, ?callable $lapor = null, ?string $pengunjung = null): HasilPembangunan
-    {
+    public function buat(
+        ?User $pemicu = null,
+        ?callable $lapor = null,
+        ?string $pengunjung = null,
+        string $mode = SimulasiJalan::MODE_TERISI,
+        ?int $jumlahMk = null,
+    ): HasilPembangunan {
+        $mode = $this->mode($mode);
+        $jumlahMk = $mode === SimulasiJalan::MODE_KOSONG
+            ? 0
+            : max(1, min($jumlahMk ?? (int) config('simulasi.jumlah_mk', 6), SimulasiAkademikBuilder::MAKS_MK));
+
         $maks = max(1, (int) config('simulasi.maks_sandbox', 20));
 
         if (SimulasiJalan::query()->masihAda()->count() >= $maks) {
@@ -243,6 +282,8 @@ class SimulasiService
         $jalan = SimulasiJalan::query()->create([
             'status' => SimulasiJalan::STATUS_BERJALAN,
             'dipicu_oleh_id' => $pemicu?->getKey(),
+            'mode' => $mode,
+            'jumlah_mk' => $jumlahMk,
             'pengunjung' => $pengunjung,
             'mulai_pada' => now(),
             'terakhir_aktif_pada' => $pengunjung === null ? null : now(),
@@ -288,6 +329,12 @@ class SimulasiService
             durasiDetik: microtime(true) - $mulai,
             takDikenal: $takDikenal,
         );
+    }
+
+    /** Mode yang tak dikenal jatuh ke contoh terisi, bukan melempar ke pengunjung. */
+    private function mode(string $mode): string
+    {
+        return in_array($mode, SimulasiJalan::MODE, true) ? $mode : SimulasiJalan::MODE_TERISI;
     }
 
     public function hapus(SimulasiJalan $jalan, bool $terapkan = true): HasilPembongkaran
@@ -344,6 +391,22 @@ class SimulasiService
      * DIBUAT oleh sandbox ini yang dianggap miliknya. Akun nyata bernama sama
      * tidak punya artefak sehingga tidak pernah lolos.
      */
+    /**
+     * Apakah semua akun simulasi yang dibutuhkan panduan ada di sandbox ini.
+     * Sandbox hasil versi lama hanya punya sebagian akun dan bernama tanpa akhiran.
+     */
+    public function akunLengkap(SimulasiJalan $jalan): bool
+    {
+        $dibutuhkan = collect(array_keys(AkunSimulasi::akun()))
+            ->map(fn (string $kunci): string => AkunSimulasi::username($kunci, $jalan->kode()))
+            ->all();
+
+        $ada = Ranah::sebagai((string) $jalan->getKey(), fn () => User::query()
+            ->whereIn('username', $dibutuhkan)->count());
+
+        return $ada === count($dibutuhkan);
+    }
+
     public function memiliki(SimulasiJalan $jalan, Model $model): bool
     {
         return SimulasiArtefak::query()

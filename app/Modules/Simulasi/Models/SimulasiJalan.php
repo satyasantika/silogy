@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
  * sudah diklaim satu pengunjung (hash cookie, bukan data pribadi).
  *
  * @property Carbon|null $terakhir_aktif_pada
+ * @property string $mode
+ * @property int $jumlah_mk
  */
 class SimulasiJalan extends Model
 {
@@ -32,6 +34,15 @@ class SimulasiJalan extends Model
     public const STATUS_GAGAL = 'gagal';
 
     public const STATUS_DIBONGKAR = 'dibongkar';
+
+    /** Kurikulum sampai nilai sudah terisi: contoh hasil akhir. */
+    public const MODE_TERISI = 'terisi';
+
+    /** Hanya unit, akun, dan mahasiswa: pengunjung mengisi sendiri. */
+    public const MODE_KOSONG = 'kosong';
+
+    /** @var list<string> */
+    public const MODE = [self::MODE_TERISI, self::MODE_KOSONG];
 
     protected $table = 'simulasi_jalan';
 
@@ -74,9 +85,11 @@ class SimulasiJalan extends Model
      * @param  Builder<SimulasiJalan>  $query
      * @return Builder<SimulasiJalan>
      */
-    public function scopeSiap(Builder $query): Builder
+    public function scopeSiap(Builder $query, ?string $mode = null): Builder
     {
-        return $query->where('status', self::STATUS_SELESAI)->whereNull('pengunjung');
+        return $query->where('status', self::STATUS_SELESAI)
+            ->whereNull('pengunjung')
+            ->when($mode !== null, fn (Builder $q) => $q->where('mode', $mode));
     }
 
     /**
@@ -106,6 +119,11 @@ class SimulasiJalan extends Model
     public function kode(): string
     {
         return AkunSimulasi::kode((string) $this->getKey());
+    }
+
+    public function kosong(): bool
+    {
+        return $this->mode === self::MODE_KOSONG;
     }
 
     public function sedangBerjalan(): bool

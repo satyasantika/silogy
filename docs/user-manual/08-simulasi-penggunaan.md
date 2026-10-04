@@ -143,6 +143,23 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 ---
 
+## Dua cara mencoba di ruang latihan
+
+Pada halaman panduan, setiap peran pengisi (Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu) menawarkan dua pilihan. Keduanya memakai data simulasi milik Anda sendiri, bukan data yang sesungguhnya.
+
+| Pilihan | Isi data | Dipakai untuk |
+|---|---|---|
+| **Lihat contoh terisi** | Kurikulum, CPL, BoK, MK, CPMK, komponen, sampai nilai sudah terisi | Melihat seperti apa hasil akhir tiap menu |
+| **Coba mengisi sendiri** | Hanya unit, akun, dan mahasiswa. Kurikulum sampai nilai kosong | Mengikuti tahap 2 sampai 5 di bawah ini dari awal |
+
+Pada contoh kosong, urutan pengisian sama dengan urutan tahap di dokumen ini. Peran hilir menunggu isian peran hulu: Koordinator MK baru bisa menyusun CPMK setelah Tim Kurikulum membuat MK, dan Dosen baru bisa mengisi nilai setelah komponen penilaian tersedia. Buka tiap peran di tab sendiri, lalu kerjakan berurutan.
+
+Pimpinan dan Auditor Mutu hanya membaca, sehingga keduanya hanya menyediakan contoh terisi.
+
+Contoh terisi dan contoh kosong adalah dua ruang terpisah. Mengisi di contoh kosong tidak mengubah contoh terisi.
+
+---
+
 ## Daftar periksa keberhasilan simulasi
 
 - [ ] Hirarki Universitas→Fakultas→Jurusan→Prodi terbentuk

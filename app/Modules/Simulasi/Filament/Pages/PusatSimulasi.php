@@ -6,12 +6,15 @@ use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Support\Filament\Concerns\ForcesFullPageRender;
+use Database\Seeders\Support\SimulasiAkademikBuilder;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -106,23 +109,50 @@ class PusatSimulasi extends Page implements HasActions
             ->label('Siapkan Sandbox')
             ->icon(Heroicon::OutlinedSparkles)
             ->color('primary')
-            ->requiresConfirmation()
             ->modalHeading('Siapkan satu sandbox')
             ->modalDescription(
-                'Dibangun satu paket data utuh (Universitas → Fakultas → Prodi Simulasi, 18 akun, '
-                .'mahasiswa, kurikulum sampai nilai) yang kelak diklaim satu pengunjung. '
-                .'Data inti TIDAK disentuh dan tidak dapat melihat isinya. '
-                .'Proses memakan waktu sekitar 10–60 detik — jangan tutup halaman ini.'
+                'Dibangun satu paket data (Universitas → Fakultas → Prodi Simulasi, 18 akun, mahasiswa) '
+                .'yang kelak diklaim satu pengunjung. Data inti TIDAK disentuh dan tidak dapat melihat isinya. '
+                .'Contoh terisi memakan waktu sekitar 10–60 detik — jangan tutup halaman ini.'
             )
-            ->modalSubmitActionLabel('Ya, siapkan')
-            ->action(function (): void {
+            ->schema([
+                Select::make('mode')
+                    ->label('Jenis contoh')
+                    ->options([
+                        SimulasiJalan::MODE_TERISI => 'Contoh terisi — kurikulum sampai nilai sudah terisi',
+                        SimulasiJalan::MODE_KOSONG => 'Contoh kosong — pengunjung mengisi sendiri dari kurikulum sampai nilai',
+                    ])
+                    ->default(SimulasiJalan::MODE_TERISI)
+                    ->required()
+                    ->live(),
+                Select::make('jumlah_mk')
+                    ->label('Jumlah mata kuliah')
+                    ->helperText('Mata kuliah prodi yang sudah terisi, diambil berurutan dari Kalkulus I.')
+                    ->options(array_combine(
+                        range(1, SimulasiAkademikBuilder::MAKS_MK),
+                        array_map(fn (int $n): string => $n.' mata kuliah', range(1, SimulasiAkademikBuilder::MAKS_MK)),
+                    ))
+                    ->default((int) config('simulasi.jumlah_mk', SimulasiAkademikBuilder::MAKS_MK))
+                    ->visible(fn (Get $get): bool => $get('mode') !== SimulasiJalan::MODE_KOSONG)
+                    ->required(fn (Get $get): bool => $get('mode') !== SimulasiJalan::MODE_KOSONG),
+            ])
+            ->modalSubmitActionLabel('Siapkan')
+            ->action(function (array $data): void {
                 abort_unless(static::canAccess(), 403);
+
+                $mode = in_array($data['mode'] ?? null, SimulasiJalan::MODE, true)
+                    ? $data['mode']
+                    : SimulasiJalan::MODE_TERISI;
 
                 @set_time_limit(0);
                 DB::connection()->disableQueryLog();
 
                 try {
-                    $hasil = app(SimulasiService::class)->buat(auth()->user());
+                    $hasil = app(SimulasiService::class)->buat(
+                        pemicu: auth()->user(),
+                        mode: $mode,
+                        jumlahMk: isset($data['jumlah_mk']) ? (int) $data['jumlah_mk'] : null,
+                    );
                 } catch (KapasitasSandboxPenuhException $galat) {
                     Notification::make()->title('Kapasitas penuh')->body($galat->getMessage())->warning()->send();
 

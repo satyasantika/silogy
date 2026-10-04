@@ -30,7 +30,8 @@
                 <div class="pd-coba-teks">
                     <strong>Ada ruang latihan yang bisa Anda coba.</strong>
                     <p>
-                        Di halaman peran, tekan <em>Coba sebagai ‹peran›</em>. Setiap peran terbuka di
+                        Di halaman peran, pilih <em>Lihat contoh terisi</em> untuk melihat hasil akhirnya,
+                        atau <em>Coba mengisi sendiri</em> untuk memulai dari kosong. Setiap peran terbuka di
                         tab baru dengan login sendiri, jadi beberapa peran bisa dicoba bersamaan.
                         Semua yang Anda ubah hanya terjadi pada data simulasi milik Anda.
                     </p>

@@ -1,7 +1,8 @@
 @php
     $daftar = $this->daftar();
     $total = $this->totalArtefak();
-    $siap = $daftar->filter(fn ($j) => $j->status === 'selesai' && $j->pengunjung === null)->count();
+    $siapTerisi = $daftar->filter(fn ($j) => $j->status === 'selesai' && $j->pengunjung === null && $j->mode === 'terisi')->count();
+    $siapKosong = $daftar->filter(fn ($j) => $j->status === 'selesai' && $j->pengunjung === null && $j->mode === 'kosong')->count();
 @endphp
 
 <x-filament-panels::page>
@@ -21,7 +22,10 @@
             </div>
             <div>
                 <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Siap dipakai (kolam)</p>
-                <p style="font-weight:700;font-size:15px;">{{ $siap }} / {{ config('simulasi.kolam_siap') }}</p>
+                <p style="font-weight:700;font-size:15px;">
+                    Terisi {{ $siapTerisi }} / {{ config('simulasi.kolam_siap') }}
+                    · Kosong {{ $siapKosong }} / {{ config('simulasi.kolam_siap_kosong') }}
+                </p>
             </div>
             <div>
                 <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Dihapus otomatis setelah</p>
@@ -30,7 +34,7 @@
         </div>
 
         <p style="margin-top:16px;font-size:13px;opacity:.75;line-height:1.6;">
-            Setiap pengunjung mendapat satu sandbox berisi satu paket data utuh dengan 18 akun
+            Setiap pengunjung mendapat sandbox sendiri per jenis (contoh terisi dan contoh kosong), masing-masing dengan 18 akun
             (6 peran × 3 tingkat). Akun inti tidak dapat melihat data sandbox, dan akun sandbox tidak dapat
             melihat data inti maupun sandbox lain. Menghapus sandbox tidak menyentuh data inti.
         </p>
@@ -50,6 +54,7 @@
                     <thead>
                         <tr style="text-align:left;border-bottom:1px solid rgba(128,128,128,.25);">
                             <th style="padding:7px 16px 7px 0;">Kode</th>
+                            <th style="padding:7px 16px 7px 0;">Jenis</th>
                             <th style="padding:7px 16px 7px 0;">Status</th>
                             <th style="padding:7px 16px 7px 0;">Pemakai</th>
                             <th style="padding:7px 16px 7px 0;">Dibuat</th>
@@ -62,6 +67,13 @@
                         @foreach ($daftar as $jalan)
                             <tr style="border-bottom:1px solid rgba(128,128,128,.14);">
                                 <td style="padding:7px 16px 7px 0;font-family:ui-monospace,Menlo,monospace;font-size:12px;">{{ $jalan->kode() }}</td>
+                                <td style="padding:7px 16px 7px 0;">
+                                    @if ($jalan->kosong())
+                                        Kosong
+                                    @else
+                                        Terisi · {{ $jalan->jumlah_mk }} MK
+                                    @endif
+                                </td>
                                 <td style="padding:7px 16px 7px 0;">
                                     @if ($jalan->status === 'gagal')
                                         <span style="color:#c1121f;">Gagal</span>
@@ -88,7 +100,7 @@
                             </tr>
                             @if ($jalan->status === 'gagal' && ! empty($jalan->peringatan['galat']))
                                 <tr>
-                                    <td colspan="7" style="padding:0 0 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#c1121f;">
+                                    <td colspan="8" style="padding:0 0 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#c1121f;">
                                         {{ $jalan->peringatan['galat'] }}
                                     </td>
                                 </tr>

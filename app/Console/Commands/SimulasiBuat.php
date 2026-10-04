@@ -3,13 +3,16 @@
 namespace App\Console\Commands;
 
 use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
+use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use Illuminate\Console\Command;
 use Throwable;
 
 class SimulasiBuat extends Command
 {
-    protected $signature = 'simulasi:buat';
+    protected $signature = 'simulasi:buat
+        {--mode=terisi : terisi (kurikulum sampai nilai sudah ada) atau kosong (diisi pengunjung)}
+        {--mk= : jumlah MK pada contoh terisi (1-6), bawaan dari config simulasi.jumlah_mk}';
 
     protected $description = 'Bangun satu sandbox simulasi utuh (siap diklaim pengunjung)';
 
@@ -22,7 +25,21 @@ class SimulasiBuat extends Command
         };
 
         try {
-            $hasil = $simulasi->buat(lapor: $lapor);
+            $mode = (string) $this->option('mode');
+
+            if (! in_array($mode, SimulasiJalan::MODE, true)) {
+                $this->components->error('Mode harus "terisi" atau "kosong".');
+
+                return self::FAILURE;
+            }
+
+            $mk = $this->option('mk');
+
+            $hasil = $simulasi->buat(
+                lapor: $lapor,
+                mode: $mode,
+                jumlahMk: $mk === null || $mk === '' ? null : (int) $mk,
+            );
         } catch (KapasitasSandboxPenuhException $galat) {
             $this->components->error($galat->getMessage());
 

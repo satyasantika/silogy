@@ -54,6 +54,7 @@ class PanduanController
             'definisi' => PeranPanduan::definisi($peran),
             'peran' => PeranPanduan::semua(),
             'bisaDicoba' => PeranPanduan::akunUntuk($peran) !== null,
+            'punyaPilihanMode' => PeranPanduan::punyaPilihanMode($peran),
             'level' => $level,
             'semuaLevel' => AkunSimulasi::LEVEL,
             'cobaAktif' => $this->simulasi->cobaPeranTerbuka(),

@@ -55,12 +55,22 @@ class SimulasiAkademikBuilder
         'MAT106' => 'Analisis Real',
     ];
 
+    /** Jumlah MK prodi yang tersedia sebagai bahan simulasi. */
+    public const MAKS_MK = 6;
+
+    /**
+     * @param  int  $jumlahMk  banyaknya MK prodi yang dibangun (1..MAKS_MK), diambil
+     *                         berurutan dari MAT101 supaya Kalkulus I selalu ada.
+     */
     public function __construct(
         protected Semester $semester,
         protected User $timkur,
         protected User $korma,
         protected User $dosenProdi,
-    ) {}
+        int $jumlahMk = self::MAKS_MK,
+    ) {
+        $this->mkProdi = array_slice($this->mkProdi, 0, max(1, min($jumlahMk, self::MAKS_MK)), true);
+    }
 
     public function seedProdi(AcademicUnit $prodi): void
     {

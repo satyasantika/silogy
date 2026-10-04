@@ -36,6 +36,15 @@
                             Peran terbuka di <strong>tab baru</strong> dengan login sendiri, sehingga Anda bisa
                             membuka beberapa peran sekaligus. Anda bekerja pada <strong>data simulasi</strong> milik
                             Anda, bukan data yang sesungguhnya.
+                            @if ($punyaPilihanMode)
+                                <br>
+                                <strong>Contoh terisi</strong>: kurikulum sampai nilai sudah terisi, tinggal dilihat.
+                                <strong>Coba mengisi sendiri</strong>: mulai dari kosong dan isi dari awal, bersama
+                                peran lain di tab lain.
+                            @else
+                                <br>
+                                Peran ini hanya membaca, sehingga yang tersedia adalah contoh terisi.
+                            @endif
                         </p>
                     @else
                         <p>Ruang latihan belum dibuka. Minta Super Admin membukanya dari menu Simulasi.</p>
@@ -43,13 +52,26 @@
                 </div>
 
                 @if ($cobaAktif)
-                    <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
-                        @csrf
-                        <input type="hidden" name="level" value="{{ $level }}">
-                        <button type="submit" class="pd-btn">
-                            <i class="bi bi-box-arrow-up-right"></i> Coba sebagai {{ $definisi['label'] }} ({{ $semuaLevel[$level] }})
-                        </button>
-                    </form>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
+                            @csrf
+                            <input type="hidden" name="level" value="{{ $level }}">
+                            <input type="hidden" name="mode" value="terisi">
+                            <button type="submit" class="pd-btn" title="Kurikulum sampai nilai sudah terisi">
+                                <i class="bi bi-eye"></i> Lihat contoh terisi ({{ $semuaLevel[$level] }})
+                            </button>
+                        </form>
+                        @if ($punyaPilihanMode)
+                            <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
+                                @csrf
+                                <input type="hidden" name="level" value="{{ $level }}">
+                                <input type="hidden" name="mode" value="kosong">
+                                <button type="submit" class="pd-btn pd-btn-luar" title="Mulai dari kosong dan isi sendiri">
+                                    <i class="bi bi-pencil"></i> Coba mengisi sendiri ({{ $semuaLevel[$level] }})
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                 @else
                     <a class="pd-btn pd-btn-luar" href="{{ route('filament.admin.auth.login') }}">
                         <i class="bi bi-box-arrow-in-right"></i> Masuk ke SILOGY

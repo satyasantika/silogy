@@ -43,5 +43,11 @@ return [
     */
     'maks_sandbox' => (int) env('SIMULASI_MAKS_SANDBOX', 20),
     'kolam_siap' => (int) env('SIMULASI_KOLAM_SIAP', 2),
+    'kolam_siap_kosong' => (int) env('SIMULASI_KOLAM_SIAP_KOSONG', 2),
+
+    // Banyaknya MK prodi pada contoh terisi (1-6) bila tidak ditentukan saat
+    // sandbox dibangun. Super Admin dapat memilih angka lain per sandbox di
+    // menu Simulasi. Contoh kosong tidak berisi MK: pengunjung menyusunnya.
+    'jumlah_mk' => (int) env('SIMULASI_JUMLAH_MK', 6),
     'umur_menit' => (int) env('SIMULASI_UMUR_MENIT', 120),
 ];

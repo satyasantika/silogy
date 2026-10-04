@@ -78,11 +78,18 @@ class PembangunSimulasi
         $lapor('Membuat mahasiswa simulasi');
         $this->buatMahasiswa($unit['prodi'], $kode);
 
+        // Mode kosong berhenti di sini: unit, akun, dan mahasiswa sudah ada,
+        // sedangkan kurikulum sampai nilai diisi sendiri oleh pengunjung.
+        if ($jalan->kosong()) {
+            return ['unit' => $unit, 'akun' => $akun, 'semester' => $semester];
+        }
+
         $builder = new SimulasiAkademikBuilder(
             semester: $semester,
             timkur: $akun['sim-timkur'],
             korma: $akun['sim-korma'],
             dosenProdi: $akun['sim-dosen'],
+            jumlahMk: (int) $jalan->jumlah_mk,
         );
 
         $lapor('Membangun rantai OBE prodi simulasi');

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Panduan\Support;
 
+use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 
 /**
@@ -93,6 +94,32 @@ final class PeranPanduan
     public static function akunUntuk(string $slug, string $level = 'prodi'): ?string
     {
         return AkunSimulasi::akunPanduan()[$slug][$level] ?? null;
+    }
+
+    /**
+     * Peran yang hanya membaca. Pada contoh kosong tidak ada yang mereka baca,
+     * sehingga mereka hanya diberi contoh terisi.
+     *
+     * @var list<string>
+     */
+    public const HANYA_MEMBACA = ['pimpinan', 'auditor-mutu'];
+
+    public static function punyaPilihanMode(string $slug): bool
+    {
+        return self::akunUntuk($slug) !== null && ! in_array($slug, self::HANYA_MEMBACA, true);
+    }
+
+    /**
+     * Mode sandbox yang sah untuk peran ini. Dipaksa di sisi server: tombol di
+     * halaman hanyalah kemudahan, bukan pagar.
+     */
+    public static function modeUntuk(string $slug, string $diminta): string
+    {
+        if (! self::punyaPilihanMode($slug)) {
+            return SimulasiJalan::MODE_TERISI;
+        }
+
+        return in_array($diminta, SimulasiJalan::MODE, true) ? $diminta : SimulasiJalan::MODE_TERISI;
     }
 
     /**

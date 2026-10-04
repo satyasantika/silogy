@@ -323,6 +323,7 @@ it('hapusSemua membongkar seluruh sandbox tanpa menyentuh data inti', function (
 it('mengklaim sandbox dari kolam sebelum membangun yang baru', function () {
     siapkanInfrastrukturNyata();
     config()->set('simulasi.kolam_siap', 1);
+    config()->set('simulasi.kolam_siap_kosong', 0);
 
     $simulasi = app(SimulasiService::class);
     expect($simulasi->isiKolam())->toBe(1);
