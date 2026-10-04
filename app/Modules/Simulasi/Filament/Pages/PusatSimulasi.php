@@ -331,18 +331,6 @@ class PusatSimulasi extends Page implements HasActions
         return count(PeranPanduan::bisaDicoba());
     }
 
-    public function contohTerisiStatus(): string
-    {
-        $simulasi = app(SimulasiService::class);
-
-        return match (true) {
-            $simulasi->contohTerisiSedangDibangun() => 'Sedang dibangun',
-            $simulasi->contohTerisiSiap() === null => 'Belum ada',
-            $simulasi->contohTerisiUsang() => 'Ada (bentuk lama, akan dibangun ulang penjadwal)',
-            default => 'Siap',
-        };
-    }
-
     protected function cobaPeranAction(): Action
     {
         $simulasi = app(SimulasiService::class);
@@ -392,8 +380,8 @@ class PusatSimulasi extends Page implements HasActions
             ->requiresConfirmation()
             ->modalHeading('Hapus seluruh ruang simulasi')
             ->modalDescription(fn (): string => 'Akan dibongkar '.$this->daftar()->count().' ruang beserta semua akun, '
-                .'kurikulum, dan isinya, dan semua peserta yang sedang di dalamnya terputus. Contoh terisi, data inti, '
-                .'peran, izin, semester, dan master evaluasi TIDAK ikut dihapus. Tindakan ini tidak dapat dibatalkan.')
+                .'kurikulum, dan isinya, dan semua peserta yang sedang di dalamnya terputus. Data inti, peran, izin, '
+                .'semester, dan master evaluasi TIDAK ikut dihapus. Tindakan ini tidak dapat dibatalkan.')
             ->schema([
                 TextInput::make('konfirmasi')
                     ->label('Ketik HAPUS SIMULASI untuk melanjutkan')

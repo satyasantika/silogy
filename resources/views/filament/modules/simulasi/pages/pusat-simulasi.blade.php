@@ -26,10 +26,6 @@
                 <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Peran sedang dipegang</p>
                 <p style="font-weight:700;font-size:15px;">{{ $pemegang }} / {{ $daftar->count() * $jumlahPeran }}</p>
             </div>
-            <div>
-                <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Contoh terisi (di Panduan)</p>
-                <p style="font-weight:700;font-size:15px;">{{ $this->contohTerisiStatus() }}</p>
-            </div>
         </div>
 
         <p style="margin-top:16px;font-size:13px;opacity:.75;line-height:1.6;">
@@ -38,7 +34,6 @@
             mereka membuka <span style="font-family:ui-monospace,Menlo,monospace;">/ruang</span>, memasukkan token, lalu
             memilih satu peran. Satu peran hanya dipegang satu peserta; peran yang sudah terisi tidak bisa dipilih dan
             terbuka lagi bila pemegangnya keluar atau tak aktif selama {{ \App\Modules\Simulasi\Support\PengaturanSimulasi::ambil('sewa_menit') }} menit.
-            <strong>Contoh terisi</strong> tersedia di halaman Panduan untuk semua peran (hanya-baca) dan tidak diurus di sini.
             Akun inti tidak dapat melihat data ruang, dan akun ruang tidak dapat melihat data inti maupun ruang lain.
         </p>
     </x-filament::section>

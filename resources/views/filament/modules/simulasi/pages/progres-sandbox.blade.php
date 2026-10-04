@@ -4,9 +4,7 @@
     $mmss = sprintf('%02d:%02d', intdiv($p['berlalu'], 60), $p['berlalu'] % 60);
     $warna = $p['gagal'] ? '#c1121f' : ($p['selesai'] ? '#15803d' : '#b45309');
     $banyak = ($p['ruang_total'] ?? 1) > 1;
-    $judul = $p['mode'] === 'kosong'
-        ? ($banyak ? 'Ruang ke-'.$p['ruang_ke'].' dari '.$p['ruang_total'] : 'Ruang simulasi')
-        : 'Contoh terisi (bersama, hanya-baca)';
+    $judul = $banyak ? 'Ruang ke-'.$p['ruang_ke'].' dari '.$p['ruang_total'] : 'Ruang simulasi';
     $semuaNol = collect($p['cacah'])->sum() === 0;
 @endphp
 
