@@ -8,7 +8,9 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
@@ -100,4 +102,48 @@ it('hapusSatu membongkar satu sandbox dan hanya Super Admin yang boleh', functio
 
     expect($a->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
         ->and($b->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI);
+});
+
+it('tombol sakelar mode latihan berganti label dan tetap membalik status pada klik berulang di komponen yang sama', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('superadmin');
+    $simulasi = app(SimulasiService::class);
+    $simulasi->aturCobaPeran(false);
+
+    $komponen = Livewire::test(PusatSimulasi::class)
+        ->assertActionExists('alihkanCobaPeran', fn ($aksi) => $aksi->getLabel() === 'Buka mode latihan')
+        ->assertSee('Tertutup');
+
+    // Klik 1: tertutup -> terbuka. Label dan kartu status ikut berubah tanpa memuat ulang halaman.
+    $komponen->callAction('alihkanCobaPeran')
+        ->assertActionExists('alihkanCobaPeran', fn ($aksi) => $aksi->getLabel() === 'Tutup mode latihan')
+        ->assertSee('Terbuka');
+    expect($simulasi->cobaPeranTerbuka())->toBeTrue();
+
+    // Klik 2 di komponen yang SAMA: harus menutup lagi, bukan menulis 'terbuka' untuk kedua kalinya.
+    $komponen->callAction('alihkanCobaPeran')
+        ->assertActionExists('alihkanCobaPeran', fn ($aksi) => $aksi->getLabel() === 'Buka mode latihan')
+        ->assertSee('Tertutup');
+    expect($simulasi->cobaPeranTerbuka())->toBeFalse();
+
+    // Klik 3: terbuka lagi.
+    $komponen->callAction('alihkanCobaPeran');
+    expect($simulasi->cobaPeranTerbuka())->toBeTrue();
+});
+
+it('sakelar membalik keadaan TERKINI walau admin lain sudah mengubahnya di sela-sela', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('superadmin');
+    $simulasi = app(SimulasiService::class);
+    $simulasi->aturCobaPeran(false);
+
+    $komponen = Livewire::test(PusatSimulasi::class);
+
+    // Admin lain membukanya setelah halaman ini dimuat (tombol di layar ini masih berlabel "Buka").
+    $simulasi->aturCobaPeran(true);
+
+    // Klik pada tombol yang usang: hasilnya menutup, bukan menimpa dengan "buka" lagi.
+    $komponen->callAction('alihkanCobaPeran');
+
+    expect($simulasi->cobaPeranTerbuka())->toBeFalse();
 });

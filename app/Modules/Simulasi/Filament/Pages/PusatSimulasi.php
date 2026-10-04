@@ -197,29 +197,37 @@ class PusatSimulasi extends Page implements HasActions
     protected function cobaPeranAction(): Action
     {
         $simulasi = app(SimulasiService::class);
-        $terbuka = $simulasi->cobaPeranTerbuka();
 
+        // Semua tampilan dan keputusan dihitung ULANG pada setiap render dan saat
+        // dijalankan (closure), bukan dibekukan saat action dibangun. Header actions
+        // Filament di-cache per komponen, sehingga nilai yang dibaca di sini sekali
+        // saja membuat tombol tetap berlabel lama setelah status berubah, dan klik
+        // kedua menulis nilai yang sama alih-alih kebalikannya.
         return Action::make('alihkanCobaPeran')
-            ->label($terbuka ? 'Tutup mode latihan' : 'Buka mode latihan')
-            ->icon($terbuka ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedLockOpen)
-            ->color($terbuka ? 'warning' : 'gray')
+            ->label(fn (): string => $simulasi->cobaPeranTerbuka() ? 'Tutup mode latihan' : 'Buka mode latihan')
+            ->icon(fn (): Heroicon => $simulasi->cobaPeranTerbuka() ? Heroicon::OutlinedLockClosed : Heroicon::OutlinedLockOpen)
+            ->color(fn (): string => $simulasi->cobaPeranTerbuka() ? 'warning' : 'gray')
             ->visible(fn (): bool => ! $simulasi->cobaPeranDilarangInstans())
             ->requiresConfirmation()
-            ->modalHeading($terbuka ? 'Tutup mode latihan' : 'Buka mode latihan')
-            ->modalDescription($terbuka
+            ->modalHeading(fn (): string => $simulasi->cobaPeranTerbuka() ? 'Tutup mode latihan' : 'Buka mode latihan')
+            ->modalDescription(fn (): string => $simulasi->cobaPeranTerbuka()
                 ? 'Tombol "Coba sebagai ‹peran›" akan hilang dari halaman panduan. '
                   .'Tab yang sudah terbuka tetap berjalan sampai kedaluwarsa atau sandboxnya dihapus.'
                 : 'Setelah dibuka, SIAPA PUN yang membuka halaman panduan dapat masuk TANPA KATA SANDI '
                   .'ke sandbox miliknya sendiri. Itu aman karena akun sandbox hanya ditugaskan ke unit '
                   .'sandbox itu dan tidak dapat melihat data inti maupun sandbox orang lain.')
-            ->modalSubmitActionLabel($terbuka ? 'Ya, tutup' : 'Ya, buka mode latihan')
-            ->action(function () use ($simulasi, $terbuka): void {
+            ->modalSubmitActionLabel(fn (): string => $simulasi->cobaPeranTerbuka() ? 'Ya, tutup' : 'Ya, buka mode latihan')
+            ->action(function () use ($simulasi): void {
                 abort_unless(static::canAccess(), 403);
 
-                $simulasi->aturCobaPeran(! $terbuka);
+                // Dibaca saat dijalankan: bila admin lain sudah mengubahnya, klik ini
+                // tetap membalik keadaan terkini, bukan menimpa dengan nilai usang.
+                $nyalakan = ! $simulasi->cobaPeranTerbuka();
+
+                $simulasi->aturCobaPeran($nyalakan);
 
                 Notification::make()
-                    ->title($terbuka ? 'Mode latihan ditutup' : 'Mode latihan dibuka')
+                    ->title($nyalakan ? 'Mode latihan dibuka' : 'Mode latihan ditutup')
                     ->success()
                     ->send();
             });
