@@ -104,6 +104,10 @@
     .pd-bingkai { position: relative; display: block; border-radius: 12px; overflow: hidden;
         border: 1px solid var(--c-card-border2); box-shadow: 0 6px 22px var(--c-shadow); }
     .pd-bingkai img { display: block; width: 100%; height: auto; }
+    /* Gambar potret (menu samping): tetap pada lebar aslinya (dibatasi inline
+       oleh renderer), rata kiri, dan tak lebih tinggi dari satu layar. */
+    .pd-gbr-tegak .pd-bingkai { margin-right: auto; }
+    @media (max-width: 640px) { .pd-gbr-tegak .pd-bingkai { max-width: 140px !important; } }
     .pd-gbr figcaption { margin-top: 9px; font-size: .86rem; color: var(--c-muted); font-style: italic; }
 
     /* Badge memakai persen terhadap kotak gambar — kotak itu persis selebar dan

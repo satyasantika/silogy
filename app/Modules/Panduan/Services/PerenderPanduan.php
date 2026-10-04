@@ -20,6 +20,9 @@ use Illuminate\Support\Str;
  */
 class PerenderPanduan
 {
+    /** Tinggi tampil maksimum (px) gambar potret, setara gambar lanskap tertinggi di panduan. */
+    public const BATAS_TINGGI_POTRET = 560;
+
     public function __construct(protected ManifesTangkapanLayar $manifes) {}
 
     public function render(string $slug): ?HalamanPanduan
@@ -158,6 +161,29 @@ class PerenderPanduan
     }
 
     /**
+     * Ukuran intrinsik gambar: dari manifes bila ada, kalau tidak dibaca dari
+     * berkasnya. Null bila tidak bisa ditentukan (gambar dibiarkan apa adanya).
+     *
+     * @param  array<string, mixed>|null  $entri
+     * @return array{lebar: int, tinggi: int}|null
+     */
+    protected function ukuranGambar(string $berkas, ?array $entri): ?array
+    {
+        if ($entri !== null && ($entri['lebar'] ?? 0) > 0 && ($entri['tinggi'] ?? 0) > 0) {
+            return ['lebar' => (int) $entri['lebar'], 'tinggi' => (int) $entri['tinggi']];
+        }
+
+        $jalur = base_path('docs/user-manual/aset/'.basename($berkas));
+        $info = is_file($jalur) ? @getimagesize($jalur) : false;
+
+        if ($info === false || $info[0] < 1 || $info[1] < 1) {
+            return null;
+        }
+
+        return ['lebar' => $info[0], 'tinggi' => $info[1]];
+    }
+
+    /**
      * Ubah tiap <img> menjadi figur beranotasi: gambar bersih + badge bernomor
      * berposisi persen + legenda.
      *
@@ -202,6 +228,21 @@ class PerenderPanduan
             if ($entri !== null) {
                 $gambar->setAttribute('width', (string) $entri['lebar']);
                 $gambar->setAttribute('height', (string) $entri['tinggi']);
+            }
+
+            // Gambar potret (mis. tangkapan menu samping 320x836) tidak boleh
+            // diregangkan selebar kolom, dan juga tidak boleh jauh lebih tinggi
+            // daripada gambar lanskap lain di halaman yang sama. Batasi tingginya
+            // ke BATAS_TINGGI_POTRET; lebar menyesuaikan proporsi aslinya. Badge
+            // tetap akurat karena memakai persen terhadap kotak gambar yang ikut
+            // menyusut. Gambar tetap bisa diklik untuk ukuran penuh.
+            $ukuran = $this->ukuranGambar($berkas, $entri);
+
+            if ($ukuran !== null && $ukuran['tinggi'] > $ukuran['lebar']) {
+                $lebarTampil = min($ukuran['lebar'], (int) round(self::BATAS_TINGGI_POTRET * $ukuran['lebar'] / $ukuran['tinggi']));
+
+                $figure->setAttribute('class', 'pd-gbr pd-gbr-tegak');
+                $bingkai->setAttribute('style', 'max-width:'.$lebarTampil.'px');
             }
 
             $bingkai->appendChild($gambar);
