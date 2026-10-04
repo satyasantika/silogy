@@ -34,8 +34,10 @@ use Symfony\Component\HttpFoundation\Response;
  * Token yang tidak dikenal (kedaluwarsa atau ngawur) ditolak 404 SEBELUM sesi
  * dimulai, jadi tidak ada cookie yatim yang tercipta dari tebakan token.
  *
- * Harus berjalan sebelum StartSession; karena itu didaftarkan sebagai
- * middleware global yang paling awal.
+ * Harus berjalan sebelum StartSession (grup web) tetapi sesudah TrustProxies;
+ * karena itu didaftarkan sebagai middleware global di akhir tumpukan global.
+ * Sebelum TrustProxies, skema di balik proxy TLS terbaca http dan semua aset
+ * tab ikut http:// (diblokir browser sebagai mixed content).
  */
 class SesiSandboxTab
 {

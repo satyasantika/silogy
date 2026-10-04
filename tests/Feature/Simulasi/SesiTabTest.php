@@ -220,7 +220,7 @@ it('contoh terisi yang belum selesai dibangun memberi pesan sabar, bukan galat d
 // ── Keluaran HTML di bawah awalan tab ────────────────────────────────────
 
 /** Masuk ke tab sebagai akun sandbox tertentu, tanpa melalui tombol panduan. */
-function halamanTab(string $kunciAkun, string $path = '/dashboard'): array
+function halamanTab(string $kunciAkun, string $path = '/dashboard', array $header = []): array
 {
     $jalan = app(SimulasiService::class)->contohTerisi();
     $user = Ranah::sebagai($jalan->id, fn () => User::query()
@@ -232,7 +232,7 @@ function halamanTab(string $kunciAkun, string $path = '/dashboard'): array
     URL::forceRootUrl(null);
     URL::useAssetOrigin(null);
 
-    $respons = test()->actingAs($user)->get('http://localhost/s/'.$token.$path);
+    $respons = test()->actingAs($user)->withHeaders($header)->get('http://localhost/s/'.$token.$path);
 
     return [$token, $respons, (string) $respons->getContent()];
 }
@@ -260,6 +260,28 @@ it('menjaga aset statis tetap di origin asli, bukan di bawah awalan tab', functi
 
 it('menautkan navigasi dengan awalan tab sehingga klik tetap di sesi yang sama', function () {
     [$token, , $html] = halamanTab('sim-adminprodi');
+it('di balik reverse proxy https, aset dan tautan tab memakai https (tanpa mixed content)', function () {
+    // Produksi: proxy TLS meneruskan ke container lewat http. Origin tab harus
+    // dibaca SETELAH TrustProxies, kalau tidak aset dibangkitkan sebagai http://.
+    [$token, $respons, $html] = halamanTab('sim-adminprodi', '/dashboard', [
+        'X-Forwarded-Proto' => 'https',
+        'X-Forwarded-Host' => 'silogy.test',
+        'X-Forwarded-Port' => '443',
+    ]);
+
+    $respons->assertSuccessful();
+
+    preg_match_all('#(?:src|href)="([^"]+\.(?:css|js|woff2)[^"]*)"#', $html, $cocok);
+
+    expect($cocok[1])->not->toBeEmpty();
+
+    foreach ($cocok[1] as $url) {
+        expect($url)->not->toStartWith('http://', "aset tidak aman: $url");
+    }
+
+    expect($html)->toContain('href="https://silogy.test/s/'.$token.'/mahasiswas"');
+});
+
 
     expect($html)->toContain('href="http://localhost/s/'.$token.'/mahasiswas"');
 });

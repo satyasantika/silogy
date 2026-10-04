@@ -13,8 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Sesi per tab simulasi (/s/<token>/...): harus mendahului StartSession.
-        $middleware->prepend(SesiSandboxTab::class);
+        // Sesi per tab simulasi (/s/<token>/...): harus mendahului StartSession
+        // (grup web), tapi SESUDAH TrustProxies. Origin tab dibaca dari request;
+        // bila dibaca sebelum X-Forwarded-Proto dipercaya, di balik proxy TLS
+        // produksi aset dan root URL tab jadi http:// dan diblokir browser
+        // (mixed content). Middleware global selalu berjalan sebelum grup web.
+        $middleware->append(SesiSandboxTab::class);
 
         // Di belakang reverse proxy Apache (mis. supportfkip.unsil.ac.id/demo-silogy),
         // percayai semua proxy agar skema/host/port asli (X-Forwarded-*) terbaca benar —
