@@ -300,6 +300,38 @@ it('ruang yang tak dipakai melewati umur yang diatur dibuang, yang masih segar t
         ->and($segar->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI);
 });
 
+it('sandbox peninggalan versi lama dibongkar otomatis; ruang bertoken, contoh bersama, dan data inti utuh', function () {
+    $service = app(SimulasiService::class);
+    $bersama = $service->contohTerisi();
+    $ruang = $service->buat(mode: 'kosong')->jalan;
+    $inti = fn (): array => [
+        AcademicUnit::query()->count(), Kurikulum::query()->count(), Cpl::query()->count(),
+        Mk::query()->count(), KelasMk::query()->count(), User::query()->count(),
+    ];
+    $sebelum = $inti();
+
+    // Sandbox per pengunjung versi lama: terisi, tanpa token, tanpa penanda versi.
+    $lama = $service->buat(mode: 'terisi')->jalan;
+    $lama->forceFill(['pengunjung' => str_repeat('a', 64), 'ringkasan' => ['cacah' => []]])->save();
+    // Ruang kosong lama tanpa token.
+    $kosongLama = $service->buat(mode: 'kosong')->jalan;
+    $kosongLama->forceFill(['pin' => null, 'ringkasan' => null])->save();
+    // Yang gagal di tengah jalan tetap dibersihkan.
+    $gagalLama = $service->buat(mode: 'kosong')->jalan;
+    $gagalLama->forceFill(['pin' => null, 'status' => SimulasiJalan::STATUS_GAGAL, 'ringkasan' => null])->save();
+
+    expect($service->bersihkanKedaluwarsa())->toBe(3)
+        ->and($lama->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
+        ->and($kosongLama->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
+        ->and($gagalLama->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
+        ->and($ruang->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI)
+        ->and($bersama->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI)
+        ->and($service->bersihkanKedaluwarsa())->toBe(0);
+
+    // Data inti (di luar ranah simulasi) tidak berubah oleh pembongkaran.
+    expect($inti())->toBe($sebelum);
+});
+
 // ── Tombol "Lihat contoh terisi" ─────────────────────────────────────────
 
 it('tombol lihat contoh terisi membuka tab di contoh bersama untuk keenam peran, tanpa membangun ruang', function (string $slug) {

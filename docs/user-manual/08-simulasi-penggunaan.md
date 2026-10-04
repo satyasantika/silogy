@@ -206,7 +206,7 @@ Pimpinan dan Auditor Mutu hanya membaca, tetapi tetap mendapat akun di ruang sim
 
 Contoh terisi dan ruang simulasi adalah dua wilayah terpisah. Mengisi di ruang simulasi tidak mengubah contoh terisi, dan satu ruang tidak melihat isi ruang lain. Akun data inti tidak dapat melihat data simulasi sama sekali.
 
-Ruang yang tidak dipakai selama 3 hari (bawaan) dibuang otomatis oleh penjadwal.
+Ruang yang tidak dipakai selama 3 hari (bawaan) dibuang otomatis oleh penjadwal. Sandbox peninggalan versi lama (per pengunjung, tanpa token) ikut dibongkar otomatis saat `deploy.sh` atau penjadwal menjalankan `simulasi:kolam`; tidak ada langkah manual.
 
 ---
 

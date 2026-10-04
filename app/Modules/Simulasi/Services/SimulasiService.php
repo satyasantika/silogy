@@ -199,12 +199,44 @@ class SimulasiService
             $this->hapus($jalan);
         }
 
+        $warisan = $this->bongkarWarisan();
+
         SimulasiJalan::query()
             ->where('status', SimulasiJalan::STATUS_DIBONGKAR)
             ->where('dibongkar_pada', '<', now()->subDays(7))
             ->delete();
 
-        return $usang->count();
+        return $usang->count() + $warisan;
+    }
+
+    /**
+     * Membongkar sandbox peninggalan versi sebelum ruang bertoken: sandbox per
+     * pengunjung, cadangan kolam, dan ruang kosong tanpa token. Ciri pastinya:
+     * bukan salinan bersama, tak bertoken, dan dibangun sebelum penanda versi
+     * contoh (VERSI_CONTOH) dicatat. Sandbox yang masih berjalan tidak disentuh.
+     * Hanya baris yang tercatat di buku besar simulasi_artefak yang terbuang,
+     * jadi data inti tidak terjangkau.
+     *
+     * @return int jumlah sandbox warisan yang dibongkar
+     */
+    public function bongkarWarisan(): int
+    {
+        $warisan = SimulasiJalan::query()->masihAda()
+            ->where('bersama', false)
+            ->whereNull('pin')
+            ->where('status', '!=', SimulasiJalan::STATUS_BERJALAN)
+            ->get()
+            ->filter(fn (SimulasiJalan $j): bool => (int) ($j->ringkasan['versi'] ?? 0) < PembangunSimulasi::VERSI_CONTOH);
+
+        foreach ($warisan as $jalan) {
+            try {
+                $this->hapus($jalan);
+            } catch (Throwable) {
+                // Dicoba lagi pada penyapuan berikutnya.
+            }
+        }
+
+        return $warisan->count();
     }
 
     // ── Pembacaan ────────────────────────────────────────────────────────
