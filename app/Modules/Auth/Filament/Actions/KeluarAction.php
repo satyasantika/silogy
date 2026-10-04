@@ -31,6 +31,8 @@ class KeluarAction
             ->label('Keluar')
             ->icon(Heroicon::ArrowLeftEndOnRectangle)
             ->color('danger')
+            // Contoh terisi bersama tidak punya Keluar: tab-nya hanya dilihat, lalu ditutup.
+            ->visible(fn (): bool => ! app(RuangSimulasi::class)->tabContohTerisiSaatIni())
             ->requiresConfirmation()
             ->modalIcon(Heroicon::ArrowLeftEndOnRectangle)
             ->modalHeading('Keluar aplikasi')
@@ -88,6 +90,11 @@ class KeluarAction
 
     public static function lakukanLogout(): mixed
     {
+        // Pagar kedua bila aksi dipanggil langsung (tombol sudah disembunyikan di atas).
+        if (app(RuangSimulasi::class)->tabContohTerisiSaatIni()) {
+            return redirect()->to(Dashboard::getUrl());
+        }
+
         // Tab ruang simulasi: peran dilepas lebih dulu dan pengguna dikembalikan
         // ke halaman ruang, bukan ke login (tab itu sendiri sudah tidak berlaku).
         $kembaliKeRuang = app(RuangSimulasi::class)->lepasTabSaatIni();

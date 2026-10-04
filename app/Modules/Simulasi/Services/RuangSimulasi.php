@@ -160,6 +160,18 @@ class RuangSimulasi
     }
 
     /**
+     * Apakah permintaan ini datang dari tab contoh terisi bersama (bukan tab ruang
+     * bertoken dan bukan akun data inti). Tab seperti itu tidak boleh keluar:
+     * akunnya hanya pinjaman, dan tak ada yang perlu dilepas.
+     */
+    public function tabContohTerisiSaatIni(): bool
+    {
+        $tab = request()->attributes->get('sandbox_tab');
+
+        return is_array($tab) && ! ($tab['ruang'] ?? false);
+    }
+
+    /**
      * Dipanggil saat pengguna menekan Keluar di dalam tab ruang: peran dilepas
      * dan catatan tab dilupakan. Mengembalikan alamat halaman ruang (di luar
      * awalan tab) untuk tujuan pengalihan, atau null bila tab ini bukan tab ruang.
