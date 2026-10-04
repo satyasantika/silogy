@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
+use App\Modules\Simulasi\Support\PengaturanSimulasi;
 use App\Modules\Simulasi\Support\Ranah;
 use App\Modules\Simulasi\Support\SesiTab;
 use Database\Seeders\AcademicUnitSeeder;
@@ -11,6 +12,7 @@ use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
@@ -38,6 +40,7 @@ function bukaTab(string $token, string $path): TestResponse
 beforeEach(function () {
     config()->set('simulasi.izinkan_coba_peran', true);
     RateLimiter::clear('panduan-coba-peran');
+    Cache::flush();
 
     (new AcademicUnitSeeder)->run();
     (new RolePermissionSeeder)->run();
@@ -47,12 +50,10 @@ beforeEach(function () {
     app(SimulasiService::class)->aturCobaPeran(true);
 });
 
-/** Memulai tab untuk (peran, tingkat); mengembalikan token dari URL tujuan. */
-function mulaiTab(string $peran, string $level = 'prodi', string $pengenal = 'pengunjung-uji-'.'x', string $mode = 'terisi'): string
+/** Memulai tab di contoh terisi bersama untuk (peran, tingkat); mengembalikan token tab dari URL tujuan. */
+function mulaiTab(string $peran, string $level = 'prodi'): string
 {
-    $respons = test()
-        ->withCookie('silogy_pengunjung', str_pad($pengenal, 40, 'x'))
-        ->post(route('panduan.coba', ['peran' => $peran]), ['level' => $level, 'mode' => $mode]);
+    $respons = test()->post(route('panduan.coba', ['peran' => $peran]), ['level' => $level]);
 
     $respons->assertRedirect();
     preg_match('#/s/([a-z0-9]{24})/simulasi/masuk#', (string) $respons->headers->get('Location'), $cocok);
@@ -128,18 +129,17 @@ it('dua tab satu pengunjung memakai sandbox yang sama tapi akun berbeda', functi
         ->and(SimulasiJalan::query()->masihAda()->count())->toBe(1);
 });
 
-it('pengunjung berbeda mendapat contoh kosong berbeda, tetapi contoh terisi yang sama', function () {
-    $kosongA = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-a', 'kosong'));
-    $kosongB = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-b', 'kosong'));
-    $terisiA = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-a'));
-    $terisiB = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-b'));
+it('semua pengunjung memakai contoh terisi bersama yang sama, tanpa kapasitas tambahan', function () {
+    $a = SesiTab::cari(mulaiTab('dosen-pengampu'));
+    $b = SesiTab::cari(mulaiTab('dosen-pengampu'));
 
-    expect($kosongA['jalan'])->not->toBe($kosongB['jalan'])
-        ->and($terisiA['jalan'])->toBe($terisiB['jalan']);
+    expect($a['jalan'])->toBe($b['jalan'])
+        ->and($a['ruang'])->toBeFalse()
+        ->and(SimulasiJalan::query()->masihAda()->count())->toBe(1);
 });
 
-it('enam peran di tingkat prodi, pada kedua jenis contoh, mendarat di akun yang benar', function () {
-    config()->set('simulasi.batas_coba_per_menit', 1000);
+it('enam peran di tingkat prodi mendarat di akun yang benar', function () {
+    PengaturanSimulasi::atur('batas_coba', 1000);
 
     $diharapkan = [
         'admin-unit' => 'sim-adminprodi',
@@ -150,15 +150,12 @@ it('enam peran di tingkat prodi, pada kedua jenis contoh, mendarat di akun yang 
         'auditor-mutu' => 'sim-auditor',
     ];
 
-    foreach (['terisi', 'kosong'] as $mode) {
-        foreach ($diharapkan as $slug => $kunci) {
-            // Pimpinan dan Auditor dipaksa ke contoh terisi, apa pun yang diminta.
-            $token = mulaiTab($slug, 'prodi', 'pengunjung-uji-x', $mode);
-            bukaTab($token, '/simulasi/masuk')->assertRedirect();
+    foreach ($diharapkan as $slug => $kunci) {
+        $token = mulaiTab($slug);
+        bukaTab($token, '/simulasi/masuk')->assertRedirect();
 
-            expect(auth()->user()->username)->toStartWith($kunci.'-');
-            auth()->logout();
-        }
+        expect(auth()->user()->username)->toStartWith($kunci.'-');
+        auth()->logout();
     }
 });
 
@@ -173,7 +170,7 @@ it('menutup rute bila mode latihan tertutup', function () {
 });
 
 it('tidak bisa dipakai memasuki akun nyata walau namanya mirip', function () {
-    $jalan = app(SimulasiService::class)->klaim(SimulasiService::hashPengunjung('x'));
+    $jalan = app(SimulasiService::class)->contohTerisi();
 
     $penyusup = Ranah::sebagai($jalan->id, fn () => User::factory()->create([
         'username' => 'sim-timkur-'.$jalan->kode().'-palsu',
@@ -198,31 +195,22 @@ it('menyisakan tab yang kedaluwarsa sebagai 404', function () {
     bukaTab($token, '/dashboard')->assertNotFound();
 });
 
-it('membatasi jumlah percobaan per menit', function () {
-    config()->set('simulasi.batas_coba_per_menit', 3);
+it('membatasi jumlah percobaan per menit sesuai pengaturan di basis data', function () {
+    PengaturanSimulasi::atur('batas_coba', 2); // dipaksa naik ke batas bawah 5
 
-    for ($i = 0; $i < 3; $i++) {
+    expect(PengaturanSimulasi::ambil('batas_coba'))->toBe(5);
+
+    for ($i = 0; $i < 5; $i++) {
         $this->post(route('panduan.coba', ['peran' => 'pimpinan']));
     }
 
     $this->post(route('panduan.coba', ['peran' => 'pimpinan']))->assertStatus(429);
 });
 
-it('menampilkan pesan, bukan galat, saat ruang latihan penuh untuk contoh kosong', function () {
-    config()->set('simulasi.maks_sandbox', 1);
-    app(SimulasiService::class)->klaim(SimulasiService::hashPengunjung('pertama'), 'kosong');
-
-    $this->from(route('panduan.level', ['level' => 'prodi']))
-        ->withCookie('silogy_pengunjung', str_pad('kedua', 40, 'x'))
-        ->post(route('panduan.coba', ['peran' => 'tim-kurikulum']), ['level' => 'prodi', 'mode' => 'kosong'])
-        ->assertSessionHas('panduan_galat');
-});
-
 it('contoh terisi yang belum selesai dibangun memberi pesan sabar, bukan galat dan bukan bangun kembar', function () {
     app(SimulasiService::class)->mulai(mode: 'terisi', bersama: true);
 
     $this->from(route('panduan.level', ['level' => 'prodi']))
-        ->withCookie('silogy_pengunjung', str_pad('kedua', 40, 'x'))
         ->post(route('panduan.coba', ['peran' => 'pimpinan']), ['level' => 'prodi'])
         ->assertSessionHas('panduan_galat', fn ($pesan) => str_contains((string) $pesan, 'sedang disiapkan'));
 
@@ -234,7 +222,7 @@ it('contoh terisi yang belum selesai dibangun memberi pesan sabar, bukan galat d
 /** Masuk ke tab sebagai akun sandbox tertentu, tanpa melalui tombol panduan. */
 function halamanTab(string $kunciAkun, string $path = '/dashboard'): array
 {
-    $jalan = app(SimulasiService::class)->klaim(SimulasiService::hashPengunjung('uji-html'));
+    $jalan = app(SimulasiService::class)->contohTerisi();
     $user = Ranah::sebagai($jalan->id, fn () => User::query()
         ->where('username', AkunSimulasi::username($kunciAkun, $jalan->kode()))->firstOrFail());
 
@@ -282,7 +270,7 @@ it('signed URL yang dibuat di dalam tab tetap lolos validasi di dalam tab', func
         ->name('uji.tanda-tangan');
     app('router')->getRoutes()->refreshNameLookups();
 
-    $jalan = app(SimulasiService::class)->klaim(SimulasiService::hashPengunjung('uji-ttd'));
+    $jalan = app(SimulasiService::class)->contohTerisi();
     $token = SesiTab::token();
     SesiTab::buat($token, $jalan, (string) User::query()->firstOrFail()->getKey(), 'admin-unit');
 

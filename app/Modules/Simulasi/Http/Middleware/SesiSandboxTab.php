@@ -2,6 +2,7 @@
 
 namespace App\Modules\Simulasi\Http\Middleware;
 
+use App\Modules\Simulasi\Services\RuangSimulasi;
 use App\Modules\Simulasi\Support\SesiTab;
 use Closure;
 use Illuminate\Foundation\Http\Events\RequestHandled;
@@ -54,6 +55,13 @@ class SesiSandboxTab
 
         $this->jadikanBaseUrl($request, $awalan);
         $this->pisahkanSesi($token, $asal, $awalan);
+
+        // Tab ruang bertoken hanya hidup selama ia memegang perannya. Peran yang
+        // dilepas, direbut setelah sewanya habis, atau ruangnya dihapus berarti 404.
+        // WAJIB sesudah pisahkanSesi(): query ini melewati pagar HanyaBaca yang
+        // memanggil guard auth, dan guard yang terpanggil sebelum cookie tab
+        // dipasang akan terikat ke sesi yang salah (hasilnya: dilempar ke login).
+        abort_if(($catatan['ruang'] ?? false) && ! app(RuangSimulasi::class)->masihPemegang($token), 404);
 
         SesiTab::sentuh($token, $catatan);
 

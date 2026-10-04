@@ -53,6 +53,7 @@ use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Simulasi\Support\HanyaBaca;
 use App\Modules\Simulasi\Support\PencatatArtefak;
+use App\Modules\Simulasi\Support\PengaturanSimulasi;
 use App\Modules\Simulasi\Support\SyaratHulu;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Actions\Action;
@@ -119,7 +120,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('panduan-coba-peran', function (Request $request): Limit {
-            return Limit::perMinute((int) config('simulasi.batas_coba_per_menit', 10))
+            return Limit::perMinute(PengaturanSimulasi::ambilCepat('batas_coba'))
                 ->by($request->ip());
         });
 

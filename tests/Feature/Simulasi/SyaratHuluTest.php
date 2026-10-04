@@ -73,7 +73,7 @@ it('di contoh kosong Dosen diberi tahu bahwa kelas belum ada dan siapa yang mena
 });
 
 it('di contoh terisi tidak ada satu pun keterangan syarat di halaman mana pun', function (string $kunci) {
-    $terisi = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_TERISI, jumlahMk: 1)->jalan;
+    $terisi = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_TERISI)->jalan;
 
     [$dasar, $peran] = SYARAT_PEMAKAI[$kunci];
     $user = syaratMasuk($terisi, $dasar, $peran);
@@ -92,7 +92,7 @@ it('keterangan dihitung dari sandbox yang sedang dilihat, bukan dari sandbox lai
     $service = app(SimulasiService::class);
     $kosong = $service->buat(mode: SimulasiJalan::MODE_KOSONG)->jalan;
     // Sandbox terisi ikut ada: bila ada kebocoran lintas sandbox, keterangan di bawah akan hilang.
-    $service->buat(mode: SimulasiJalan::MODE_TERISI, jumlahMk: 1);
+    $service->buat(mode: SimulasiJalan::MODE_TERISI);
 
     foreach (['bok', 'mk', 'kelas', 'koordinator', 'cpmk', 'dosen'] as $kunci) {
         expect(syaratHitung($kosong, $kunci))->not->toBeEmpty("halaman {$kunci} di contoh kosong seharusnya berketerangan");
@@ -131,7 +131,7 @@ it('rantai hulu ke hilir pada contoh kosong: tiap peran diberi tahu penangan yan
 });
 
 it('Dosen yang kelasnya belum punya asesmen diberi tahu bahwa Koordinator MK belum menentukan tagihan', function () {
-    $terisi = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_TERISI, jumlahMk: 1)->jalan;
+    $terisi = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_TERISI)->jalan;
     $id = (string) $terisi->getKey();
 
     $dosen = syaratMasuk($terisi, 'sim-dosen', 'Dosen Pengampu');

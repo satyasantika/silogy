@@ -42,15 +42,24 @@ use Illuminate\Support\Str;
  */
 class PembangunSimulasi
 {
+    /** Mahasiswa pada ruang latihan (kosong): cukup untuk melatih pendaftaran peserta kelas. */
     public const JUMLAH_MAHASISWA = 30;
 
+    /** Mahasiswa pada contoh terisi: sengaja kecil supaya cepat dibangun dan mudah dibaca. */
+    public const JUMLAH_MAHASISWA_TERISI = 10;
+
     /**
-     * Tahap pembangunan sesuai urutan lapor() di bangunDalamRanah(), beserta
-     * keterangan untuk layar progres. Kunci = teks yang dilaporkan. Test
-     * memastikan daftar ini sama persis dengan laporan yang sebenarnya.
-     *
-     * @return list<array{label: string, keterangan: string}>
+     * Naikkan setiap kali bentuk contoh terisi berubah. Salinan bersama yang
+     * versinya lebih rendah dibangun ulang otomatis oleh penjadwal dan deploy.
      */
+    public const VERSI_CONTOH = 2;
+
+    public static function jumlahMahasiswa(string $mode): int
+    {
+        return $mode === SimulasiJalan::MODE_KOSONG ? self::JUMLAH_MAHASISWA : self::JUMLAH_MAHASISWA_TERISI;
+    }
+
+    /** @return list<array{label: string, keterangan: string}> */
     public static function tahap(string $mode): array
     {
         $dasar = [
@@ -58,25 +67,32 @@ class PembangunSimulasi
             ['label' => 'Menyiapkan master evaluasi', 'keterangan' => 'Menyiapkan jenis evaluasi (tugas, UTS, UAS, dan sejenisnya).'],
             ['label' => 'Membangun program studi simulasi', 'keterangan' => 'Membuat Program Studi Simulasi beserta induknya yang kosong.'],
             ['label' => 'Membuat akun simulasi', 'keterangan' => 'Membuat 6 akun (satu per peran) beserta penugasannya.'],
-            ['label' => 'Membuat mahasiswa simulasi', 'keterangan' => 'Membuat '.self::JUMLAH_MAHASISWA.' mahasiswa contoh di program studi simulasi.'],
+            ['label' => 'Membuat mahasiswa simulasi', 'keterangan' => 'Membuat '.self::jumlahMahasiswa($mode).' mahasiswa contoh di program studi simulasi.'],
         ];
 
         if ($mode === SimulasiJalan::MODE_KOSONG) {
             return [...$dasar,
-                ['label' => 'Membuat kurikulum dan satu mata kuliah kosong', 'keterangan' => 'Satu kurikulum tanpa isi dan satu mata kuliah yang Koordinatornya sudah ditetapkan.'],
+                ['label' => 'Membuat kurikulum dan satu mata kuliah kosong', 'keterangan' => 'Satu kurikulum tanpa isi dan satu mata kuliah yang Koordinatornya sudah ditetapkan. Sisanya diisi peserta.'],
             ];
         }
 
         return [...$dasar,
-            ['label' => 'Membangun rantai OBE prodi simulasi', 'keterangan' => 'Kurikulum, profil lulusan, CPL, BoK, MK prodi, CPMK, Sub-CPMK, asesmen, kelas, sampai nilai.'],
+            ['label' => 'Membuat kurikulum', 'keterangan' => 'Satu kurikulum aktif untuk program studi simulasi.'],
+            ['label' => 'Membuat profil lulusan', 'keterangan' => 'Profil lulusan beserta indikatornya, lalu kurikulum diaktifkan.'],
+            ['label' => 'Membuat CPL', 'keterangan' => 'Dua CPL yang dikaitkan ke profil lulusan.'],
+            ['label' => 'Membuat BoK dan pemetaan CPL–BoK', 'keterangan' => 'Dua Bahan Kajian, masing-masing menopang satu CPL.'],
+            ['label' => 'Membuat mata kuliah dan penawarannya', 'keterangan' => 'Satu mata kuliah (Kalkulus I) yang memikul kedua CPL, beserta penawarannya.'],
+            ['label' => 'Membuat CPMK dan pemetaannya ke CPL', 'keterangan' => 'Dua CPMK, satu untuk tiap CPL.'],
+            ['label' => 'Membuat Sub-CPMK', 'keterangan' => 'Dua Sub-CPMK untuk tiap CPMK.'],
+            ['label' => 'Membuat asesmen dan pemetaannya ke Sub-CPMK', 'keterangan' => 'UTS, UAS, Quiz, dan Tugas (bobot 100%) dipetakan ke seluruh Sub-CPMK.'],
+            ['label' => 'Membuat kelas, dosen pengampu, dan peserta', 'keterangan' => 'Satu kelas dengan dosen pengampu, Koordinator MK, dan seluruh mahasiswa sebagai peserta.'],
+            ['label' => 'Mengisi nilai mahasiswa', 'keterangan' => 'Nilai tiap mahasiswa untuk setiap asesmen pada setiap Sub-CPMK.'],
+            ['label' => 'Menghitung hasil analisis CPL', 'keterangan' => 'Menghitung capaian Sub-CPMK, CPMK, dan CPL untuk dasbor.'],
             ['label' => 'Mengajukan satu usulan perubahan CPMK', 'keterangan' => 'Satu usulan dari Koordinator MK untuk ditinjau Tim Kurikulum.'],
         ];
     }
 
-    /**
-     * @param  callable(string): void|null  $lapor
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> laporan pembangunan (jumlah baris per entitas, dsb.) */
     public function bangun(SimulasiJalan $jalan, ?callable $lapor = null): array
     {
         return Ranah::sebagai((string) $jalan->getKey(), fn (): array => $this->bangunDalamRanah($jalan, $lapor));
@@ -115,14 +131,13 @@ class PembangunSimulasi
         $akun = $this->buatAkun($unit, $kode);
 
         $lapor('Membuat mahasiswa simulasi');
-        $this->buatMahasiswa($unit['prodi'], $kode);
+        $this->buatMahasiswa($unit['prodi'], $kode, self::jumlahMahasiswa($jalan->mode));
 
         $builder = new SimulasiAkademikBuilder(
             semester: $semester,
             timkur: $akun['sim-timkur'],
             korma: $akun['sim-korma'],
             dosenProdi: $akun['sim-dosen'],
-            jumlahMk: (int) $jalan->jumlah_mk,
         );
 
         // Contoh kosong: satu kurikulum dan satu MK saja. Mahasiswa tetap ada supaya
@@ -134,8 +149,8 @@ class PembangunSimulasi
             return ['unit' => $unit, 'akun' => $akun, 'semester' => $semester];
         }
 
-        $lapor('Membangun rantai OBE prodi simulasi');
-        $builder->seedProdi($unit['prodi'], agregasiInduk: false);
+        // Tiap ruas rantai OBE melapor sendiri-sendiri lewat $lapor.
+        $builder->seedProdiRingkas($unit['prodi'], $lapor);
 
         $lapor('Mengajukan satu usulan perubahan CPMK');
         $this->buatUsulanPerubahanCpmk($unit['prodi'], $semester, $akun['sim-korma']);
@@ -282,18 +297,18 @@ class PembangunSimulasi
         );
     }
 
-    protected function buatMahasiswa(AcademicUnit $prodi, string $kode): void
+    protected function buatMahasiswa(AcademicUnit $prodi, string $kode, int $jumlah): void
     {
         $ada = Mahasiswa::query()->where('academic_unit_id', $prodi->getKey())->count();
 
-        if ($ada >= self::JUMLAH_MAHASISWA) {
+        if ($ada >= $jumlah) {
             return;
         }
 
         // NIM eksplisit, bukan numerik acak pabrik: kolom nim unik global dan
         // acak 10 digit tidak menjamin bebas bentrok dengan data inti.
         Mahasiswa::factory()
-            ->count(self::JUMLAH_MAHASISWA - $ada)
+            ->count($jumlah - $ada)
             ->sequence(fn ($urutan) => ['nim' => AkunSimulasi::nim($kode, $ada + $urutan->index + 1)])
             ->create(['academic_unit_id' => $prodi->getKey()]);
     }

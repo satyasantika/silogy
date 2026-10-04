@@ -19,8 +19,8 @@ use App\Modules\Simulasi\Models\SimulasiArtefak;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 use App\Modules\Simulasi\Support\PencatatArtefak;
+use App\Modules\Simulasi\Support\PengaturanSimulasi;
 use App\Modules\Simulasi\Support\Ranah;
-use Database\Seeders\Support\SimulasiAkademikBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -48,76 +48,7 @@ class SimulasiService
         protected PencatatArtefak $pencatat,
     ) {}
 
-    // ── Pengunjung & kolam ───────────────────────────────────────────────
-
-    public static function hashPengunjung(string $pengenal): string
-    {
-        return hash('sha256', $pengenal);
-    }
-
-    /**
-     * Sandbox untuk pengunjung ini pada mode tertentu. Contoh terisi satu salinan
-     * bersama yang hanya-baca (lihat contohTerisi()); contoh kosong milik
-     * pengunjung sendiri: yang sudah ia punya, atau satu dari kolam, atau yang
-     * dibangun saat itu juga. Null bila kapasitas penuh.
-     */
-    public function klaim(string $hashPengunjung, string $mode = SimulasiJalan::MODE_TERISI): ?SimulasiJalan
-    {
-        $mode = $this->mode($mode);
-
-        if ($mode === SimulasiJalan::MODE_TERISI) {
-            return $this->contohTerisi();
-        }
-
-        return Cache::lock('sim-klaim:'.$mode.':'.$hashPengunjung, 180)->block(120, function () use ($hashPengunjung, $mode): ?SimulasiJalan {
-            $milik = SimulasiJalan::query()
-                ->where('status', SimulasiJalan::STATUS_SELESAI)
-                ->where('pengunjung', $hashPengunjung)
-                ->where('mode', $mode)
-                ->where('bersama', false)
-                ->first();
-
-            if ($milik !== null) {
-                if ($this->akunLengkap($milik)) {
-                    return $milik;
-                }
-
-                // Sandbox peninggalan versi lama (akun belum lengkap) tidak bisa
-                // dipakai masuk. Dibongkar lalu diganti yang baru.
-                $this->hapus($milik);
-            }
-
-            do {
-                $dariKolam = DB::transaction(function () use ($hashPengunjung, $mode): ?SimulasiJalan {
-                    $jalan = SimulasiJalan::query()->siap($mode)->orderBy('selesai_pada')->lockForUpdate()->first();
-
-                    $jalan?->forceFill([
-                        'pengunjung' => $hashPengunjung,
-                        'terakhir_aktif_pada' => now(),
-                    ])->save();
-
-                    return $jalan;
-                });
-
-                if ($dariKolam !== null && ! $this->akunLengkap($dariKolam)) {
-                    $this->hapus($dariKolam);
-                    $dariKolam = false;
-                }
-            } while ($dariKolam === false);
-
-            if ($dariKolam !== null) {
-                $this->isiUlangKolamLatar();
-
-                return $dariKolam;
-            }
-
-            try {
-                return $this->buat(pengunjung: $hashPengunjung, mode: $mode)->jalan;
-            } catch (KapasitasSandboxPenuhException) {
-                return null;
-            }
-        });
-    }
+    // ── Contoh terisi (salinan bersama) ──────────────────────────────────
 
     /**
      * Contoh terisi bersama: SATU sandbox hanya-baca yang dilihat semua pengunjung.
@@ -207,74 +138,51 @@ class SimulasiService
         }
     }
 
-    /**
-     * Menyisihkan kolam contoh kosong dari proses latar sesaat setelah sebuah
-     * sandbox diklaim, supaya klaim berikutnya tidak menunggu penjadwal.
-     */
-    public function isiUlangKolamLatar(): void
+    /** Salinan bersama dibangun dengan bentuk lama (bukan VERSI_CONTOH saat ini). */
+    public function contohTerisiUsang(): bool
     {
-        if (! config('simulasi.latar_belakang', true)) {
-            return;
-        }
+        $ada = $this->contohTerisiSiap();
 
-        try {
-            $php = (new PhpExecutableFinder)->find(false) ?: 'php';
-
-            Process::fromShellCommandline(
-                'nohup '.escapeshellarg($php).' artisan simulasi:kolam >> '.escapeshellarg(storage_path('logs/simulasi-latar.log')).' 2>&1 &',
-                base_path(),
-            )->run();
-        } catch (Throwable) {
-            // Kolam hanyalah percepatan; penjadwal tetap mengisinya.
-        }
+        return $ada !== null && (int) ($ada->ringkasan['versi'] ?? 0) < PembangunSimulasi::VERSI_CONTOH;
     }
 
     /**
-     * Menambah sandbox siap-pakai sampai kolam contoh kosong mencapai targetnya.
-     * Contoh terisi tidak berkolam: ia satu salinan bersama.
-     *
-     * @param  callable(string): void|null  $lapor
-     * @return int jumlah sandbox yang berhasil dibuat
+     * Pastikan contoh terisi ada dan berbentuk terbaru. Dipanggil deploy dan
+     * penjadwal; pengunjung tidak pernah menunggu pembangunannya.
      */
-    public function isiKolam(?callable $lapor = null): int
+    public function rawatContohTerisi(): string
     {
-        $dibuat = 0;
-        $mode = SimulasiJalan::MODE_KOSONG;
-        $target = max(0, (int) config('simulasi.kolam_siap_kosong', 3));
-
-        if (! Cache::add('sim-kolam-isi', 1, 120)) {
-            return 0;
+        if ($this->contohTerisiSedangDibangun()) {
+            return 'sedang dibangun';
         }
 
-        try {
-            while (SimulasiJalan::query()->siap($mode)->count() < $target) {
-                try {
-                    $this->buat(lapor: $lapor, mode: $mode);
-                    $dibuat++;
-                } catch (KapasitasSandboxPenuhException) {
-                    break;
-                } catch (Throwable) {
-                    // Build gagal sudah dibongkar di buat(); hentikan putaran supaya
-                    // kegagalan yang deterministik tidak berulang tanpa akhir.
-                    break;
-                }
+        if ($this->contohTerisiSiap() === null) {
+            return $this->contohTerisi() !== null ? 'dibangun' : 'gagal';
+        }
+
+        if ($this->contohTerisiUsang()) {
+            try {
+                $this->bangunUlangContohTerisi();
+
+                return 'dibangun ulang';
+            } catch (Throwable) {
+                return 'gagal diperbarui';
             }
-        } finally {
-            Cache::forget('sim-kolam-isi');
         }
 
-        return $dibuat;
+        return 'ada';
     }
 
     /**
-     * Membuang sandbox yang tak aktif melebihi batas umur, sandbox gagal,
-     * dan baris riwayat lama. Sandbox kolam yang belum diklaim dipertahankan.
+     * Membuang ruang yang tak dipakai melebihi umur yang diatur Super Admin,
+     * ruang gagal/macet, dan baris riwayat lama. Contoh terisi bersama tidak
+     * pernah ikut dibuang.
      *
-     * @return int jumlah sandbox yang dibongkar
+     * @return int jumlah ruang yang dibongkar
      */
     public function bersihkanKedaluwarsa(): int
     {
-        $batas = now()->subMinutes(max(1, (int) config('simulasi.umur_menit', 120)));
+        $batas = now()->subDays(PengaturanSimulasi::ambil('umur_hari'));
 
         $usang = SimulasiJalan::query()->masihAda()
             ->where('bersama', false)
@@ -282,8 +190,8 @@ class SimulasiService
                 $q->where('status', SimulasiJalan::STATUS_GAGAL)
                     ->orWhere(fn ($q) => $q->where('status', SimulasiJalan::STATUS_BERJALAN)
                         ->where('mulai_pada', '<', now()->subMinutes(30)))
-                    ->orWhere(fn ($q) => $q->whereNotNull('pengunjung')
-                        ->whereRaw('coalesce(terakhir_aktif_pada, mulai_pada) < ?', [$batas]));
+                    ->orWhere(fn ($q) => $q->where('status', SimulasiJalan::STATUS_SELESAI)
+                        ->whereRaw('coalesce(terakhir_aktif_pada, selesai_pada, mulai_pada) < ?', [$batas]));
             })
             ->get();
 
@@ -379,48 +287,37 @@ class SimulasiService
 
     // ── Pembangunan & pembongkaran ───────────────────────────────────────
 
-    /**
-     * Membangun satu sandbox baru, dari awal sampai selesai, dalam satu panggilan.
-     *
-     * @param  callable(string): void|null  $lapor
-     */
     public function buat(
         ?User $pemicu = null,
         ?callable $lapor = null,
-        ?string $pengunjung = null,
         string $mode = SimulasiJalan::MODE_TERISI,
-        ?int $jumlahMk = null,
         bool $bersama = false,
     ): HasilPembangunan {
-        $jalan = $this->mulai($pemicu, $pengunjung, $mode, $jumlahMk, $bersama);
+        $jalan = $this->mulai($pemicu, $mode, $bersama);
 
         return $this->selesaikan($jalan, $lapor);
     }
 
     /**
-     * Tahap 1 pembangunan: memeriksa kapasitas dan mendaftarkan baris jalan.
-     * Dipisah dari selesaikan() supaya antarmuka bisa menampilkan progres
-     * sandbox yang sudah punya ID, sementara pembangunannya berjalan.
+     * Mendaftarkan satu ruang (baris berstatus berjalan). Ruang latihan (kosong)
+     * mendapat token; contoh terisi bersama tidak.
      */
     public function mulai(
         ?User $pemicu = null,
-        ?string $pengunjung = null,
         string $mode = SimulasiJalan::MODE_TERISI,
-        ?int $jumlahMk = null,
         bool $bersama = false,
     ): SimulasiJalan {
         $mode = $this->mode($mode);
-        // Hanya contoh terisi yang boleh dibagi; contoh kosong selalu milik satu pengunjung.
+        // Hanya contoh terisi yang dibagi; ruang latihan selalu punya token sendiri.
         $bersama = $bersama && $mode === SimulasiJalan::MODE_TERISI;
-        $pengunjung = $bersama ? null : $pengunjung;
-        $jumlahMk = $mode === SimulasiJalan::MODE_KOSONG
-            ? 0
-            : max(1, min($jumlahMk ?? (int) config('simulasi.jumlah_mk', 6), SimulasiAkademikBuilder::MAKS_MK));
 
-        $maks = max(1, (int) config('simulasi.maks_sandbox', 20));
+        // Kapasitas hanya menghitung ruang latihan; contoh terisi bersama tidak makan jatah.
+        if (! $bersama) {
+            $maks = PengaturanSimulasi::ambil('kapasitas');
 
-        if (SimulasiJalan::query()->masihAda()->count() >= $maks) {
-            throw KapasitasSandboxPenuhException::buat($maks);
+            if ($this->jumlahRuang() >= $maks) {
+                throw KapasitasSandboxPenuhException::buat($maks);
+            }
         }
 
         // Baris jalan disimpan LEBIH DULU dan di luar transaksi pembangunan:
@@ -430,15 +327,53 @@ class SimulasiService
             'dipicu_oleh_id' => $pemicu?->getKey(),
             'mode' => $mode,
             'bersama' => $bersama,
-            'jumlah_mk' => $jumlahMk,
-            'pengunjung' => $pengunjung,
+            'pin' => $bersama || $mode === SimulasiJalan::MODE_TERISI ? null : $this->buatPin(),
+            'jumlah_mk' => $mode === SimulasiJalan::MODE_KOSONG ? 0 : 1,
             'mulai_pada' => now(),
-            'terakhir_aktif_pada' => $pengunjung === null ? null : now(),
         ]);
 
         Cache::put($this->kunciProgres($jalan), ['tahap' => [], 'terakhir' => microtime(true)], now()->addHours(2));
 
         return $jalan;
+    }
+
+    /** Mengganti token ruang (bila bocor). Pemegang peran yang sudah masuk tidak terganggu. */
+    public function gantiPin(SimulasiJalan $ruang): string
+    {
+        $baru = $this->buatPin();
+        $ruang->forceFill(['pin' => $baru])->save();
+
+        return $baru;
+    }
+
+    /** Jumlah ruang latihan yang masih hidup (tanpa contoh terisi bersama). */
+    public function jumlahRuang(): int
+    {
+        return SimulasiJalan::query()->masihAda()->where('bersama', false)->count();
+    }
+
+    /** Token ruang: 6 karakter tanpa huruf/angka yang mudah tertukar (I, L, O, 0, 1). */
+    public function buatPin(): string
+    {
+        $huruf = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+        for ($i = 0; $i < 20; $i++) {
+            $pin = '';
+            for ($j = 0; $j < 6; $j++) {
+                $pin .= $huruf[random_int(0, strlen($huruf) - 1)];
+            }
+
+            if (! SimulasiJalan::query()->where('pin', $pin)->exists()) {
+                return $pin;
+            }
+        }
+
+        throw new \RuntimeException('Tidak berhasil membuat token ruang yang unik.');
+    }
+
+    public static function normalisasiPin(string $masukan): string
+    {
+        return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $masukan) ?? '');
     }
 
     /**
@@ -495,7 +430,7 @@ class SimulasiService
         $jalan->forceFill([
             'status' => SimulasiJalan::STATUS_SELESAI,
             'selesai_pada' => now(),
-            'ringkasan' => ['cacah' => $cacah],
+            'ringkasan' => ['cacah' => $cacah, 'versi' => PembangunSimulasi::VERSI_CONTOH],
             'peringatan' => $takDikenal === [] ? null : ['tak_dikenal' => $takDikenal],
         ])->save();
 
@@ -512,20 +447,22 @@ class SimulasiService
     }
 
     /**
-     * Menjalankan selesaikan() untuk sandbox yang sudah didaftarkan mulai().
+     * Menjalankan pembangunan beberapa ruang yang sudah didaftarkan, berurutan
+     * dalam SATU proses latar belakang (supaya tidak menyaingi pengunjung).
+     * Mengembalikan true bila dijalankan di latar belakang, false bila sinkron.
      *
-     * Dengan config simulasi.latar_belakang aktif, pembangunan berjalan di
-     * proses PHP terpisah (artisan simulasi:selesaikan) sehingga permintaan web
-     * langsung kembali dan progresnya bisa dipantau. Bila proses tidak bisa
-     * diluncurkan, sandbox ditandai gagal dan dibongkar, bukan dibiarkan
-     * menggantung.
-     *
-     * @return bool true bila berjalan di latar belakang, false bila sudah selesai di tempat
+     * @param  list<SimulasiJalan>  $daftar
      */
-    public function luncurkan(SimulasiJalan $jalan): bool
+    public function luncurkan(array $daftar): bool
     {
         if (! config('simulasi.latar_belakang', true)) {
-            $this->selesaikan($jalan);
+            foreach ($daftar as $jalan) {
+                try {
+                    $this->selesaikan($jalan);
+                } catch (Throwable) {
+                    // Sudah dicatat gagal dan dibongkar; lanjutkan ruang berikutnya.
+                }
+            }
 
             return false;
         }
@@ -533,9 +470,10 @@ class SimulasiService
         try {
             $php = (new PhpExecutableFinder)->find(false) ?: 'php';
             $log = storage_path('logs/simulasi-latar.log');
+            $id = implode(' ', array_map(fn (SimulasiJalan $j): string => escapeshellarg((string) $j->getKey()), $daftar));
 
             $proses = Process::fromShellCommandline(
-                'nohup '.escapeshellarg($php).' artisan simulasi:selesaikan '.escapeshellarg((string) $jalan->getKey())
+                'nohup '.escapeshellarg($php).' artisan simulasi:selesaikan '.$id
                 .' >> '.escapeshellarg($log).' 2>&1 &',
                 base_path(),
             );
@@ -545,16 +483,18 @@ class SimulasiService
                 throw new \RuntimeException('Proses latar belakang tidak bisa diluncurkan: '.trim($proses->getErrorOutput()));
             }
         } catch (Throwable $galat) {
-            $this->catatGagal($jalan, $galat->getMessage());
-            $jalan->forceFill([
-                'status' => SimulasiJalan::STATUS_GAGAL,
-                'selesai_pada' => now(),
-                'peringatan' => ['galat' => $galat->getMessage()],
-            ])->save();
+            foreach ($daftar as $jalan) {
+                $this->catatGagal($jalan, $galat->getMessage());
+                $jalan->forceFill([
+                    'status' => SimulasiJalan::STATUS_GAGAL,
+                    'selesai_pada' => now(),
+                    'peringatan' => ['galat' => $galat->getMessage()],
+                ])->save();
 
-            try {
-                $this->hapus($jalan->fresh());
-            } catch (Throwable) {
+                try {
+                    $this->hapus($jalan->fresh());
+                } catch (Throwable) {
+                }
             }
 
             throw $galat;
@@ -676,6 +616,7 @@ class SimulasiService
         return [
             'jalan_id' => (string) $jalan->getKey(),
             'kode' => $jalan->kode(),
+            'pin' => $jalan->pin,
             'mode' => $jalan->mode,
             'jumlah_mk' => (int) $jalan->jumlah_mk,
             'status' => $jalan->status,
@@ -733,6 +674,10 @@ class SimulasiService
 
     public function hapus(SimulasiJalan $jalan, bool $terapkan = true): HasilPembongkaran
     {
+        if ($terapkan) {
+            app(RuangSimulasi::class)->lepasSemuaDiRuang((string) $jalan->getKey());
+        }
+
         return $this->pembongkar->bongkar($jalan, $terapkan);
     }
 
@@ -743,7 +688,8 @@ class SimulasiService
      */
     public function hapusSemua(): int
     {
-        $semua = SimulasiJalan::query()->masihAda()->get();
+        // Contoh terisi bersama sengaja dilewati: ia bagian dari panduan, bukan ruang latihan.
+        $semua = SimulasiJalan::query()->masihAda()->where('bersama', false)->get();
 
         foreach ($semua as $jalan) {
             $this->hapus($jalan);

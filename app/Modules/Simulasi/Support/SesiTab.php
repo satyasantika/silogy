@@ -29,21 +29,28 @@ final class SesiTab
         return Str::lower(Str::random(self::PANJANG_TOKEN));
     }
 
+    /**
+     * Catatan tab disimpan di cache dan diperpanjang tiap ada aktivitas. Yang
+     * menentukan boleh-tidaknya tab ruang melanjutkan adalah kepemilikan
+     * perannya (simulasi_peran_terisi), bukan umur catatan ini.
+     */
     public static function ttlDetik(): int
     {
-        return max(60, (int) config('simulasi.umur_menit', 120) * 60);
+        return 6 * 3600;
     }
 
     /**
      * @return array{jalan: string, user: string, peran: string, tiket: bool}
      */
-    public static function buat(string $token, SimulasiJalan $jalan, string $userId, string $peran): array
+    public static function buat(string $token, SimulasiJalan $jalan, string $userId, string $peran, bool $ruang = false): array
     {
         $catatan = [
             'jalan' => (string) $jalan->getKey(),
             'user' => $userId,
             'peran' => $peran,
             'tiket' => true,
+            // Tab ruang bertoken memegang sewa peran; tab contoh terisi tidak.
+            'ruang' => $ruang,
         ];
 
         Cache::put(self::kunci($token), $catatan, self::ttlDetik());

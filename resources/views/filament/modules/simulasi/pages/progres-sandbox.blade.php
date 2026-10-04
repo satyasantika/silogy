@@ -3,7 +3,10 @@
     $format = fn (?float $d): string => $d === null ? '' : ($d < 1 ? '< 1 dtk' : number_format($d, $d < 10 ? 1 : 0, ',', '.').' dtk');
     $mmss = sprintf('%02d:%02d', intdiv($p['berlalu'], 60), $p['berlalu'] % 60);
     $warna = $p['gagal'] ? '#c1121f' : ($p['selesai'] ? '#15803d' : '#b45309');
-    $judul = $p['mode'] === 'kosong' ? 'Contoh kosong' : 'Contoh terisi · bersama · '.$p['jumlah_mk'].' MK';
+    $banyak = ($p['ruang_total'] ?? 1) > 1;
+    $judul = $p['mode'] === 'kosong'
+        ? ($banyak ? 'Ruang ke-'.$p['ruang_ke'].' dari '.$p['ruang_total'] : 'Ruang simulasi')
+        : 'Contoh terisi (bersama, hanya-baca)';
     $semuaNol = collect($p['cacah'])->sum() === 0;
 @endphp
 
@@ -24,7 +27,13 @@
         <div>
             <p style="font-weight:700;font-size:15px;">{{ $judul }}</p>
             <p style="font-size:12px;opacity:.7;">
-                Kode sandbox <span style="font-family:ui-monospace,Menlo,monospace;">{{ $p['kode'] }}</span>
+                @if (! empty($p['pin']))
+                    Token <span style="font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.12em;">{{ $p['pin'] }}</span> ·
+                @endif
+                Kode <span style="font-family:ui-monospace,Menlo,monospace;">{{ $p['kode'] }}</span>
+                @if ($banyak)
+                    · {{ $p['ruang_selesai'] }} dari {{ $p['ruang_total'] }} ruang selesai
+                @endif
             </p>
         </div>
         <div style="text-align:right;">
@@ -103,7 +112,7 @@
             </div>
             @if ($p['mode'] === 'kosong' && $p['selesai'])
                 <p style="font-size:12px;opacity:.7;margin-top:8px;">
-                    Kurikulum, CPL, MK, kelas, dan nilai sengaja 0: pada contoh kosong, pengunjung yang mengisinya sendiri.
+                    Kurikulum, CPL, MK, kelas, dan nilai sengaja 0: pada ruang simulasi, peserta yang mengisinya sendiri.
                 </p>
             @endif
         </div>
@@ -115,29 +124,34 @@
             <p style="font-weight:700;color:#c1121f;margin-bottom:4px;">Pembangunan gagal</p>
             <p style="font-size:13px;line-height:1.6;word-break:break-word;font-family:ui-monospace,Menlo,monospace;">{{ $p['galat'] }}</p>
             <p style="font-size:12px;opacity:.8;margin-top:8px;line-height:1.6;">
-                Sandbox setengah jadi sudah dibongkar otomatis, jadi tidak ada sisa data. Tutup jendela ini lalu coba lagi.
+                Ruang setengah jadi sudah dibongkar otomatis, jadi tidak ada sisa data. Tutup jendela ini lalu coba lagi.
                 Bila galat yang sama berulang, salin pesan di atas untuk penelusuran.
             </p>
         </div>
     @elseif ($p['selesai'])
         <div style="border:1px solid #15803d;background:rgba(21,128,61,.08);border-radius:10px;padding:12px 14px;">
-            <p style="font-weight:700;color:#15803d;margin-bottom:4px;">Sandbox siap dipakai</p>
+            <p style="font-weight:700;color:#15803d;margin-bottom:4px;">{{ $banyak ? 'Semua ruang siap dipakai' : 'Ruang siap dipakai' }}</p>
             <p style="font-size:12.5px;line-height:1.6;opacity:.85;">
-                Sandbox <span style="font-family:ui-monospace,Menlo,monospace;">{{ $p['kode'] }}</span> masuk kolam dan akan diklaim pengunjung
-                berikutnya yang menekan tombol “Coba”. Data inti tidak tersentuh.
+                @if ($banyak)
+                    Token tiap ruang ada di daftar <strong>Ruang</strong> pada halaman ini. Bagikan satu token per kelompok enam peserta.
+                @elseif (! empty($p['pin']))
+                    Bagikan token <span style="font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.12em;">{{ $p['pin'] }}</span>
+                    kepada peserta. Mereka membuka halaman <strong>/ruang</strong>, memasukkan token, lalu memilih satu peran.
+                @endif
+                Data inti tidak tersentuh.
             </p>
         </div>
     @elseif ($p['macet'])
         <div style="border:1px solid #b45309;background:rgba(180,83,9,.08);border-radius:10px;padding:12px 14px;">
             <p style="font-weight:700;color:#b45309;margin-bottom:4px;">Tidak ada kemajuan lebih dari 2 menit</p>
             <p style="font-size:12.5px;line-height:1.6;opacity:.85;">
-                Proses di server mungkin terhenti (batas memori atau waktu). Sandbox ini akan disapu otomatis bila tetap macet
+                Proses di server mungkin terhenti (batas memori atau waktu). Ruang ini akan disapu otomatis bila tetap macet
                 lebih dari 30 menit, atau hapus sekarang lewat daftar di halaman ini.
             </p>
         </div>
     @else
         <p style="font-size:12.5px;line-height:1.6;opacity:.75;">
-            Proses berjalan di server. Jendela ini boleh ditutup: pembangunan tetap selesai dan sandbox muncul di daftar.
+            Proses berjalan di server. Jendela ini boleh ditutup: pembangunan tetap selesai dan ruang muncul di daftar.
         </p>
     @endif
 </div>

@@ -55,21 +55,10 @@
                             <form method="POST" action="{{ route('panduan.coba', ['peran' => $slug]) }}" target="_blank">
                                 @csrf
                                 <input type="hidden" name="level" value="{{ $level }}">
-                                <input type="hidden" name="mode" value="terisi">
                                 <button type="submit" class="pd-btn" title="Contoh terisi, hanya untuk dilihat">
                                     <i class="bi bi-eye"></i> Lihat contoh terisi
                                 </button>
                             </form>
-                            @if (\App\Modules\Panduan\Support\PeranPanduan::punyaPilihanMode($slug))
-                                <form method="POST" action="{{ route('panduan.coba', ['peran' => $slug]) }}" target="_blank">
-                                    @csrf
-                                    <input type="hidden" name="level" value="{{ $level }}">
-                                    <input type="hidden" name="mode" value="kosong">
-                                    <button type="submit" class="pd-btn pd-btn-luar" title="Mulai dari kosong dan isi sendiri">
-                                        <i class="bi bi-pencil"></i> Coba mengisi sendiri
-                                    </button>
-                                </form>
-                            @endif
                         @endif
                     </div>
                 </div>

@@ -147,20 +147,36 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 Simulasi hanya tersedia di tingkat **Program Studi**. Panduan tingkat Universitas dan Fakultas tetap dapat dibaca di halaman panduan, tetapi tombol cobanya diganti keterangan bahwa simulasi difokuskan pada Program Studi.
 
-Pada halaman panduan, setiap peran pengisi (Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu) menawarkan dua pilihan:
-
-| Pilihan | Isi data | Sifat | Dipakai untuk |
-|---|---|---|---|
-| **Lihat contoh terisi** | Satu program studi dengan kurikulum, CPL, BoK, MK, CPMK, komponen, sampai nilai sudah terisi | Satu salinan **dipakai bersama** semua pengunjung dan **hanya dapat dibaca** | Melihat seperti apa hasil akhir tiap menu |
-| **Coba mengisi sendiri** | Satu program studi dengan satu kurikulum kosong dan satu mata kuliah kosong yang Koordinator MK-nya sudah ditetapkan | **Milik Anda sendiri**, dapat diubah | Mengikuti tahap 2 sampai 5 di bawah ini dari awal |
-
-Pimpinan dan Auditor Mutu hanya membaca, sehingga keduanya hanya mendapat contoh terisi.
+| Pilihan | Cara masuk | Isi data | Sifat | Dipakai untuk |
+|---|---|---|---|---|
+| **Lihat contoh terisi** | Tombol di halaman panduan tiap peran, tanpa token | Satu program studi dengan satu mata kuliah (Kalkulus I) yang rantai OBE-nya lengkap: 2 CPL, 2 CPMK, 4 Sub-CPMK, 4 asesmen, 10 mahasiswa, sampai nilai dan hasil analisis | Satu salinan **dipakai bersama** semua orang dan **hanya dapat dibaca** | Melihat seperti apa hasil akhir tiap menu. Tersedia untuk keenam peran |
+| **Ruang simulasi** | Halaman **/ruang**: masukkan **token ruang**, lalu pilih peran | Satu program studi dengan satu kurikulum kosong, satu mata kuliah kosong yang Koordinator MK-nya sudah ditetapkan, dan 30 mahasiswa | Satu ruang untuk **enam peserta**, **satu peserta per peran**, dapat diubah | Mengikuti tahap 2 sampai 5 di bawah ini dari awal, bersama-sama |
 
 ### Contoh terisi bersifat hanya-baca
 
-Karena dipakai bersama, tombol simpan, ubah, dan hapus dinonaktifkan, dan setiap penulisan ke data akademik ditolak di sisi server. Pencarian, filter, dan pengurutan tabel tetap bekerja. Untuk berlatih mengisi, gunakan **Coba mengisi sendiri**.
+Karena dipakai bersama, tombol simpan, ubah, dan hapus dinonaktifkan, dan setiap penulisan ke data akademik ditolak di sisi server. Pencarian, filter, dan pengurutan tabel tetap bekerja. Untuk berlatih mengisi, gunakan ruang simulasi.
 
-### Urutan pada contoh kosong
+### Masuk ke ruang simulasi dengan token
+
+**Fasilitator (Super Admin)**
+
+1. Buka menu **Simulasi**, tekan **Siapkan Ruang**, isi jumlah ruang (bawaan 1), lalu **Siapkan**. Layar progres menampilkan tiap tahap pembangunan.
+2. Tiap ruang mendapat **token enam karakter** (huruf besar dan angka, tanpa huruf yang mudah tertukar seperti 0, O, 1, I, L). Token tampil di daftar **Ruang**.
+3. Bagikan satu token per kelompok enam peserta. Satu ruang menampung satu peserta untuk tiap peran.
+4. Bila diperlukan: **Lepas peran** (tombol × pada peran yang terisi) membebaskan satu peran, **Ganti token** membuat token baru bila token lama bocor (peserta yang sudah masuk tidak terganggu), dan **Hapus** membongkar ruang.
+5. **Pengaturan** memuat kapasitas ruang, batas percobaan per IP, batas token salah, umur ruang tanpa aktivitas (hari), dan lama peran dibebaskan otomatis (menit). Semuanya disimpan di basis data, tanpa mengubah berkas di server.
+
+**Peserta**
+
+1. Buka **/ruang** (atau tombol **Masuk ruang simulasi** di halaman panduan), masukkan token dari fasilitator.
+2. Pilih peran. Peran yang sudah dipegang peserta lain tampil nonaktif (**Sudah terisi**). Peran terbuka di **tab baru**; jangan ditutup selama berlatih.
+3. Untuk berganti peran atau berhenti, tekan **Keluar** di dalam aplikasi. Anda kembali ke halaman ruang dan peran itu bisa dipilih peserta lain. Halaman ruang menyegarkan diri tiap 10 detik.
+4. Menutup tab tanpa menekan Keluar tidak langsung membebaskan peran: peran terbuka lagi otomatis setelah 15 menit tanpa aktivitas (angka bawaan, dapat diatur fasilitator). Fasilitator juga bisa membebaskannya langsung.
+5. Satu peramban boleh membuka beberapa peran sekaligus di tab berbeda selama peran itu masih kosong.
+
+Mode latihan yang **ditutup** menutup halaman ruang (404). Tab yang sudah terbuka tidak diputus oleh tombol ini; gunakan **Hapus** atau **Lepas peran** bila perlu.
+
+### Urutan di ruang simulasi
 
 Kurikulum dan satu mata kuliah sudah tersedia, dan Koordinator MK sudah ditetapkan, sehingga tidak ada peran yang menunggu pembuatan kurikulum. Urutan kerjanya:
 
@@ -168,11 +184,11 @@ Kurikulum dan satu mata kuliah sudah tersedia, dan Koordinator MK sudah ditetapk
 2. **Koordinator MK** memilih MK-nya, lalu menyusun CPMK, Sub-CPMK, dan asesmen. **Admin Program Studi** secara paralel menawarkan MK, membuka kelas, dan memasukkan peserta.
 3. **Dosen Pengampu** mengisi nilai setelah asesmen siap dan kelas punya peserta.
 
-Buka tiap peran di tab sendiri, lalu kerjakan berurutan.
+Tiap peran dipegang peserta berbeda, lalu kerjakan berurutan; peran hulu perlu selesai lebih dulu agar peran hilir tidak menunggu.
 
 ### Keterangan "menunggu peran hulu"
 
-Di halaman peran yang bergantung pada peran lain, ruang latihan menampilkan kotak keterangan oranye di bagian atas. Kotak itu menyebut syarat yang belum terpenuhi, peran yang harus menanganinya, dan langkah yang perlu dikerjakan. Contohnya pada Dosen Pengampu: "Koordinator MK belum menentukan tagihan penilaian", beserta alasan rincinya (CPMK belum ada, Sub-CPMK belum dibuat, total bobot asesmen belum 100%, atau asesmen belum dipetakan ke Sub-CPMK).
+Di halaman peran yang bergantung pada peran lain, ruang simulasi menampilkan kotak keterangan oranye di bagian atas. Kotak itu menyebut syarat yang belum terpenuhi, peran yang harus menanganinya, dan langkah yang perlu dikerjakan. Contohnya pada Dosen Pengampu: "Koordinator MK belum menentukan tagihan penilaian", beserta alasan rincinya (CPMK belum ada, Sub-CPMK belum dibuat, total bobot asesmen belum 100%, atau asesmen belum dipetakan ke Sub-CPMK).
 
 | Halaman | Syarat yang diperiksa | Ditangani oleh |
 |---|---|---|
@@ -184,19 +200,19 @@ Di halaman peran yang bergantung pada peran lain, ruang latihan menampilkan kota
 | Peserta, Laporan | Kelas dan peserta sudah ada; asesmen siap; nilai sudah diisi | Admin Program Studi, Koordinator MK, Dosen Pengampu |
 | Pengampu MK, Input Nilai | Kelas sudah dibuat dan Anda diampu; asesmen sudah siap (total bobot 100%, terpetakan ke Sub-CPMK); kelas punya peserta | Tim Kurikulum, Admin Program Studi, Koordinator MK |
 
-Kotak ini dihitung dari isi sandbox Anda sendiri, sehingga hilang dengan sendirinya setelah syaratnya terpenuhi. Halaman yang terkunci (403) juga menampilkan kotak yang sama, supaya Anda tahu langkah hulu mana yang perlu dikerjakan lebih dulu.
+Kotak ini dihitung dari isi ruang Anda sendiri, sehingga hilang dengan sendirinya setelah syaratnya terpenuhi. Halaman yang terkunci (403) juga menampilkan kotak yang sama, supaya Anda tahu langkah hulu mana yang perlu dikerjakan lebih dulu.
 
-Pimpinan dan Auditor Mutu hanya membaca, sehingga keduanya hanya menyediakan contoh terisi.
+Pimpinan dan Auditor Mutu hanya membaca, tetapi tetap mendapat akun di ruang simulasi sehingga dapat meninjau hasil kerja peserta lain.
 
-Contoh terisi dan contoh kosong adalah dua ruang terpisah. Mengisi di contoh kosong tidak mengubah contoh terisi.
+Contoh terisi dan ruang simulasi adalah dua wilayah terpisah. Mengisi di ruang simulasi tidak mengubah contoh terisi, dan satu ruang tidak melihat isi ruang lain. Akun data inti tidak dapat melihat data simulasi sama sekali.
 
-Contoh kosong disiapkan dari kolam siap-pakai sehingga biasanya terbuka dalam beberapa detik. Bila kolam sedang kosong, contoh dibangun saat Anda menunggu (sekitar 4 detik). Contoh yang tidak dipakai selama 120 menit dibuang otomatis.
+Ruang yang tidak dipakai selama 3 hari (bawaan) dibuang otomatis oleh penjadwal.
 
 ---
 
 ## Daftar periksa keberhasilan simulasi
 
-- [ ] Hirarki Universitas→Fakultas→Jurusan→Prodi terbentuk (pada data inti; sandbox simulasi hanya memuat satu Prodi)
+- [ ] Hirarki Universitas→Fakultas→Jurusan→Prodi terbentuk (pada data inti; ruang simulasi hanya memuat satu Prodi)
 - [ ] Semester aktif tersedia
 - [ ] Akun tiap role dibuat dan ditugaskan ke unit yang benar
 - [ ] Kurikulum: Profil Lulusan, CPL, BoK, MK, MK Unit lengkap & terpetakan

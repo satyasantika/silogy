@@ -30,10 +30,13 @@
                 <div class="pd-coba-teks">
                     <strong>Ada ruang latihan yang bisa Anda coba.</strong>
                     <p>
-                        Di halaman peran, pilih <em>Lihat contoh terisi</em> untuk melihat hasil akhirnya,
-                        atau <em>Coba mengisi sendiri</em> untuk memulai dari kosong. Setiap peran terbuka di
-                        tab baru dengan login sendiri, jadi beberapa peran bisa dicoba bersamaan.
-                        Semua yang Anda ubah hanya terjadi pada data simulasi milik Anda.
+                        Di halaman peran, pilih <em>Lihat contoh terisi</em> untuk melihat hasil akhirnya.
+                        Untuk berlatih mengisi dari kosong, pakai <em>Masuk ruang simulasi</em>: masukkan token
+                        dari fasilitator, lalu pilih satu peran. Setiap peran terbuka di tab baru dengan login
+                        sendiri. Semua yang Anda ubah hanya terjadi pada data ruang itu.
+                    </p>
+                    <p style="margin-top:10px;">
+                        <a class="pd-btn" href="{{ route('simulasi.ruang') }}"><i class="bi bi-door-open"></i> Masuk ruang simulasi</a>
                     </p>
                 </div>
             </div>

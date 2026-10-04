@@ -24,7 +24,7 @@
         @if ($bisaDicoba)
             <div class="pd-coba">
                 <div class="pd-coba-teks">
-                    <strong>Coba sendiri dengan data latihan</strong>
+                    <strong>Lihat contohnya, lalu coba sendiri</strong>
                     @if (! $levelBisaDicoba)
                         <p>
                             Tingkat:
@@ -44,18 +44,10 @@
                                    style="{{ $kunci === $level ? 'font-weight:700;text-decoration:underline;' : '' }}">{{ $label }}</a>{{ $loop->last ? '' : ' · ' }}
                             @endforeach
                             <br>
-                            Peran terbuka di <strong>tab baru</strong> dengan login sendiri, sehingga Anda bisa
-                            membuka beberapa peran sekaligus.
-                            @if ($punyaPilihanMode)
-                                <br>
-                                <strong>Contoh terisi</strong>: kurikulum sampai nilai sudah terisi, hanya untuk dilihat
-                                (data dipakai bersama semua pengunjung).
-                                <strong>Coba mengisi sendiri</strong>: satu kurikulum dan satu mata kuliah kosong milik Anda,
-                                diisi dari awal bersama peran lain di tab lain.
-                            @else
-                                <br>
-                                Peran ini hanya membaca, sehingga yang tersedia adalah contoh terisi.
-                            @endif
+                            <strong>Contoh terisi</strong>: kurikulum sampai nilai sudah terisi, hanya untuk dilihat
+                            (dibuka di tab baru).
+                            <strong>Ruang simulasi</strong>: ruang kosong yang diisi bersama peran lain; masukkan
+                            token dari fasilitator, lalu pilih peran ini.
                         </p>
                     @else
                         <p>Ruang latihan belum dibuka. Minta Super Admin membukanya dari menu Simulasi.</p>
@@ -67,21 +59,13 @@
                         <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
                             @csrf
                             <input type="hidden" name="level" value="{{ $level }}">
-                            <input type="hidden" name="mode" value="terisi">
                             <button type="submit" class="pd-btn" title="Contoh terisi, hanya untuk dilihat">
                                 <i class="bi bi-eye"></i> Lihat contoh terisi
                             </button>
                         </form>
-                        @if ($punyaPilihanMode)
-                            <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
-                                @csrf
-                                <input type="hidden" name="level" value="{{ $level }}">
-                                <input type="hidden" name="mode" value="kosong">
-                                <button type="submit" class="pd-btn pd-btn-luar" title="Mulai dari kosong dan isi sendiri">
-                                    <i class="bi bi-pencil"></i> Coba mengisi sendiri
-                                </button>
-                            </form>
-                        @endif
+                        <a class="pd-btn pd-btn-luar" href="{{ route('simulasi.ruang') }}" title="Masukkan token ruang dari fasilitator">
+                            <i class="bi bi-door-open"></i> Masuk ruang simulasi
+                        </a>
                     </div>
                 @elseif ($levelBisaDicoba)
                     <a class="pd-btn pd-btn-luar" href="{{ route('filament.admin.auth.login') }}">

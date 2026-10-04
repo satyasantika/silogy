@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\PeranUnitFormFields;
+use App\Modules\Simulasi\Services\RuangSimulasi;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Facades\Filament;
@@ -87,12 +88,16 @@ class KeluarAction
 
     public static function lakukanLogout(): mixed
     {
+        // Tab ruang simulasi: peran dilepas lebih dulu dan pengguna dikembalikan
+        // ke halaman ruang, bukan ke login (tab itu sendiri sudah tidak berlaku).
+        $kembaliKeRuang = app(RuangSimulasi::class)->lepasTabSaatIni();
+
         Filament::auth()->logout();
 
         session()->invalidate();
         session()->regenerateToken();
 
-        return redirect()->to(Filament::getLoginUrl());
+        return redirect()->to($kembaliKeRuang ?? Filament::getLoginUrl());
     }
 
     public static function bisaGantiPeran(): bool

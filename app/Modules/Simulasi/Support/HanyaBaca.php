@@ -58,7 +58,7 @@ final class HanyaBaca
      */
     public const TABEL_BOLEH = [
         'sessions', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs',
-        'simulasi_jalan', 'simulasi_artefak', 'simulasi_pengaturan',
+        'simulasi_jalan', 'simulasi_artefak', 'simulasi_pengaturan', 'simulasi_peran_terisi',
     ];
 
     public static function pasang(): void

@@ -110,6 +110,157 @@ class SimulasiAkademikBuilder
     }
 
     /**
+     * Contoh terisi ringkas: SATU mata kuliah (Kalkulus I) yang memikul kedua CPL,
+     * masing-masing lewat satu CPMK, lengkap sampai nilai. Tiap rantai dilaporkan
+     * lewat $lapor supaya progres pembangunannya terlihat per ruas OBE.
+     *
+     * @param  callable(string): void  $lapor
+     */
+    public function seedProdiRingkas(AcademicUnit $prodi, callable $lapor): void
+    {
+        if ($this->sudahAdaHasilCpl($prodi)) {
+            return;
+        }
+
+        $kodeMk = 'MAT101';
+        $namaMk = array_values($this->mkProdi)[0];
+
+        $lapor('Membuat kurikulum');
+        $kurikulum = $this->buatKurikulumDasar($prodi);
+
+        $lapor('Membuat profil lulusan');
+        if (! ($kurikulum->state->equals(AktifState::class) && $kurikulum->is_active)) {
+            $this->buatProfilLulusan($prodi, $kurikulum);
+            $kurikulum = $this->aktifkanKurikulum($kurikulum);
+        }
+
+        $lapor('Membuat CPL');
+        $cplIds = $this->buatCplDanProfil($prodi, $kurikulum);
+
+        $lapor('Membuat BoK dan pemetaan CPL–BoK');
+        $cplBokMap = $this->buatBokDanPivot($kurikulum, $cplIds, count($cplIds));
+
+        $lapor('Membuat mata kuliah dan penawarannya');
+        $mk = Mk::query()->firstOrCreate(
+            ['kurikulum_id' => $kurikulum->id, 'nama' => $namaMk],
+            [
+                'id' => (string) Str::uuid(),
+                'academic_unit_id' => $prodi->id,
+                'state' => 'penilaian',
+                'koordinator_mk_id' => $this->korma->id,
+                'sks_teori' => 2,
+                'sks_praktik' => 1,
+                'sks_lapangan' => 0,
+                'sks' => 3,
+                'jenis' => 'wajib',
+                'is_active' => true,
+            ],
+        );
+
+        // Satu CPL–MK per CPL: MK ini satu-satunya penyumbang tiap CPL (bobot 100).
+        $cplMkList = [];
+        foreach (array_values($cplBokMap) as $cplBokId) {
+            $cplMkList[] = CplMk::query()->firstOrCreate(
+                ['cpl_bok_id' => $cplBokId, 'mk_id' => $mk->id],
+                ['id' => (string) Str::uuid(), 'bobot' => 100],
+            );
+        }
+
+        $mkUnit = MkUnit::query()->firstOrCreate(
+            ['mk_id' => $mk->id, 'kurikulum_id' => $kurikulum->id, 'kode' => $kodeMk],
+            [
+                'id' => (string) Str::uuid(),
+                'academic_unit_id' => $prodi->id,
+                'semester_ke' => 1,
+                'is_active' => true,
+            ],
+        );
+
+        $lapor('Membuat CPMK dan pemetaannya ke CPL');
+        $mkCpmkList = [];
+        foreach ($cplMkList as $i => $cplMk) {
+            $cpmk = Cpmk::query()->firstOrCreate(
+                ['mk_id' => $mk->id, 'kode' => 'CPMK-'.$kodeMk.'-'.($i + 1)],
+                [
+                    'id' => (string) Str::uuid(),
+                    'deskripsi' => 'CPMK '.($i + 1).' '.$namaMk.' (menopang CPL-SIM-0'.($i + 1).')',
+                ],
+            );
+
+            $this->berlakukanCpmk($cpmk);
+
+            $mkCpmkList[] = MkCpmk::query()->firstOrCreate(
+                ['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id],
+                ['id' => (string) Str::uuid(), 'bobot' => 100],
+            );
+        }
+
+        $lapor('Membuat Sub-CPMK');
+        $subcpmkIds = [];
+        foreach ($mkCpmkList as $i => $mkCpmk) {
+            foreach (['A', 'B'] as $suffix) {
+                $sub = $this->buatSubcpmk($mkCpmk, 'SUB-'.$kodeMk.'-'.($i + 1).$suffix, 'Sub-CPMK '.($i + 1).$suffix, 50);
+                $subcpmkIds[] = $sub->id;
+            }
+        }
+
+        $lapor('Membuat asesmen dan pemetaannya ke Sub-CPMK');
+        $komponenList = [
+            $this->buatKomponen($mk, Evaluasi::query()->where('kode', 'uts')->firstOrFail(), 'UTS', 30),
+            $this->buatKomponen($mk, Evaluasi::query()->where('kode', 'uas')->firstOrFail(), 'UAS', 40),
+            $this->buatKomponen($mk, Evaluasi::query()->where('kode', 'quiz')->firstOrFail(), 'Quiz', 15),
+            $this->buatKomponen($mk, Evaluasi::query()->where('kode', 'tugas')->firstOrFail(), 'Tugas', 15),
+        ];
+
+        // Bobot asesmen dibagi rata ke semua Sub-CPMK yang dipetakan, seperti
+        // SubcpmkAsesmenPemetaanService::redistribusiBobotMerata(); total per asesmen tetap utuh.
+        $skpIds = [];
+        foreach ($subcpmkIds as $subcpmkId) {
+            foreach ($komponenList as $komponen) {
+                $skp = SubcpmkKomponenPenilaian::query()->firstOrCreate(
+                    [
+                        'subcpmk_id' => $subcpmkId,
+                        'komponen_penilaian_id' => $komponen->id,
+                        'semester_id' => $this->semester->id,
+                    ],
+                    [
+                        'id' => (string) Str::uuid(),
+                        'bobot' => round($komponen->bobotUntukSemester((string) $this->semester->id) / count($subcpmkIds), 2),
+                    ],
+                );
+                $skpIds[] = $skp->id;
+            }
+        }
+
+        $lapor('Membuat kelas, dosen pengampu, dan peserta');
+        $kelas = KelasMk::query()->firstOrCreate(
+            ['mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A'],
+            [
+                'id' => (string) Str::uuid(),
+                'dosen_pengampu_id' => $this->dosenProdi->id,
+                'koordinator_mk_id' => $this->korma->id,
+                'kapasitas' => 40,
+            ],
+        );
+
+        $peserta = [];
+        foreach (Mahasiswa::query()->where('academic_unit_id', $prodi->id)->get() as $mhs) {
+            $peserta[] = KelasMkMahasiswa::query()->firstOrCreate(
+                ['kelas_mk_id' => $kelas->id, 'mahasiswa_id' => $mhs->id],
+                ['id' => (string) Str::uuid()],
+            );
+        }
+
+        $lapor('Mengisi nilai mahasiswa');
+        foreach ($peserta as $kmm) {
+            $this->isiNilaiAcak($kmm, $skpIds);
+        }
+
+        $lapor('Menghitung hasil analisis CPL');
+        $this->jalankanKalkulasi(collect([$kelas]), $prodi);
+    }
+
+    /**
      * @param  bool  $agregasiInduk  false pada sandbox simulasi: induk prodi hanya wadah kosong
      */
     public function seedProdi(AcademicUnit $prodi, bool $agregasiInduk = true): void
@@ -411,9 +562,23 @@ class SimulasiAkademikBuilder
 
     protected function buatKurikulumAktif(AcademicUnit $prodi): Kurikulum
     {
+        $kurikulum = $this->buatKurikulumDasar($prodi);
+
+        if ($kurikulum->state->equals(AktifState::class) && $kurikulum->is_active) {
+            return $kurikulum;
+        }
+
+        $this->buatProfilLulusan($prodi, $kurikulum);
+
+        return $this->aktifkanKurikulum($kurikulum);
+    }
+
+    /** Baris kurikulum saja (belum aktif, belum berprofil). */
+    protected function buatKurikulumDasar(AcademicUnit $prodi): Kurikulum
+    {
         $kode = 'SIM-'.($prodi->code ?? 'PRODI').'-2025';
 
-        $kurikulum = Kurikulum::query()->firstOrCreate(
+        return Kurikulum::query()->firstOrCreate(
             ['academic_unit_id' => $prodi->id, 'kode' => $kode],
             [
                 'id' => (string) Str::uuid(),
@@ -425,29 +590,33 @@ class SimulasiAkademikBuilder
                 'dibuat_oleh' => $this->timkur->id,
             ],
         );
+    }
 
-        if ($kurikulum->state->equals(AktifState::class) && $kurikulum->is_active) {
-            return $kurikulum;
+    protected function buatProfilLulusan(AcademicUnit $prodi, Kurikulum $kurikulum): void
+    {
+        if ($kurikulum->profilLulusan()->exists()) {
+            return;
         }
 
-        if ($kurikulum->profilLulusan()->doesntExist()) {
-            $profil = ProfilLulusan::query()->create([
-                'id' => (string) Str::uuid(),
-                'kurikulum_id' => $kurikulum->id,
-                'kode' => 'PL-SIM-01',
-                'nama' => 'Pendidik Matematika Profesional',
-                'deskripsi' => 'Profil lulusan simulasi prodi '.$prodi->nama,
-                'urutan' => 1,
-            ]);
+        $profil = ProfilLulusan::query()->create([
+            'id' => (string) Str::uuid(),
+            'kurikulum_id' => $kurikulum->id,
+            'kode' => 'PL-SIM-01',
+            'nama' => 'Pendidik Matematika Profesional',
+            'deskripsi' => 'Profil lulusan simulasi prodi '.$prodi->nama,
+            'urutan' => 1,
+        ]);
 
-            ProfilIndikator::query()->create([
-                'id' => (string) Str::uuid(),
-                'profil_id' => $profil->id,
-                'nama' => 'Menguasai konsep matematika dan pedagogik',
-                'deskripsi' => 'Indikator simulasi',
-            ]);
-        }
+        ProfilIndikator::query()->create([
+            'id' => (string) Str::uuid(),
+            'profil_id' => $profil->id,
+            'nama' => 'Menguasai konsep matematika dan pedagogik',
+            'deskripsi' => 'Indikator simulasi',
+        ]);
+    }
 
+    protected function aktifkanKurikulum(Kurikulum $kurikulum): Kurikulum
+    {
         $this->lanjutkanState($kurikulum, ProfilLulusanState::class);
         $this->lanjutkanState($kurikulum, CplState::class);
         $this->lanjutkanState($kurikulum, BokState::class);
@@ -492,7 +661,7 @@ class SimulasiAkademikBuilder
      * @param  list<string>  $cplIds
      * @return array<string, string>
      */
-    protected function buatBokDanPivot(Kurikulum $kurikulum, array $cplIds): array
+    protected function buatBokDanPivot(Kurikulum $kurikulum, array $cplIds, ?int $jumlah = null): array
     {
         $map = [];
         $bokDefs = [
@@ -501,7 +670,7 @@ class SimulasiAkademikBuilder
             ['kode' => 'BOK-SIM-03', 'nama' => 'Statistika & Analisis'],
         ];
 
-        foreach ($bokDefs as $index => $def) {
+        foreach (array_slice($bokDefs, 0, $jumlah ?? count($bokDefs), true) as $index => $def) {
             $bok = Bok::query()->firstOrCreate(
                 ['kurikulum_id' => $kurikulum->id, 'kode' => $def['kode']],
                 [

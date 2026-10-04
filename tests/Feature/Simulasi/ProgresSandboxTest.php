@@ -27,7 +27,7 @@ it('daftar tahap resmi sama persis dengan laporan pembangun untuk kedua mode', f
     $svc = app(SimulasiService::class);
     $jalan = $svc->buat(lapor: function (string $langkah) use (&$dilaporkan): void {
         $dilaporkan[] = $langkah;
-    }, mode: $mode, jumlahMk: 1)->jalan;
+    }, mode: $mode)->jalan;
 
     $resmi = array_column(PembangunSimulasi::tahap($mode), 'label');
 
@@ -77,17 +77,20 @@ it('kegagalan tercatat di progres beserta sebabnya', function () {
         ->and(collect($p['tahap'])->pluck('state')->contains('gagal'))->toBeTrue();
 });
 
-it('tombol Siapkan berganti ke modal progres yang memuat tahap dan hasil', function () {
+it('tombol Siapkan Ruang berganti ke modal progres yang memuat tahap, token, dan hasil', function () {
     $this->actingAs(User::query()->where('username', 'superadmin')->firstOrFail());
 
     Livewire::test(PusatSimulasi::class)
-        ->callAction('siapkan', ['mode' => SimulasiJalan::MODE_KOSONG])
-        ->assertSee('Menyiapkan sandbox')
+        ->callAction('siapkan', ['jumlah' => 1])
+        ->assertSee('Menyiapkan ruang')
         ->assertSee('Membuat akun simulasi')
-        ->assertSee('Sandbox siap dipakai')
+        ->assertSee('Ruang siap dipakai')
         ->assertSee('100%');
 
-    expect(SimulasiJalan::query()->masihAda()->count())->toBe(1);
+    $ruang = SimulasiJalan::query()->masihAda()->get();
+
+    expect($ruang)->toHaveCount(1)
+        ->and($ruang->first()->pin)->toMatch('/^[A-HJ-KM-NP-Z2-9]{6}$/');
 });
 
 it('layar progres tidak dapat dibuka oleh non Super Admin', function () {

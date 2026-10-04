@@ -39,7 +39,7 @@ beforeEach(function () {
 /** Contoh terisi bersama (1 MK agar cepat) dan akun yang dipilih di dalamnya. */
 function bersamaDenganAkun(string $dasar = 'sim-timkur', string $peran = 'Tim Kurikulum'): array
 {
-    $jalan = app(SimulasiService::class)->buat(mode: 'terisi', jumlahMk: 1, bersama: true)->jalan;
+    $jalan = app(SimulasiService::class)->buat(mode: 'terisi', bersama: true)->jalan;
     $id = (string) $jalan->getKey();
 
     $user = Ranah::sebagai($id, fn () => User::query()

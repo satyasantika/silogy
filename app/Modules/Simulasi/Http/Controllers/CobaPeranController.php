@@ -4,45 +4,26 @@ namespace App\Modules\Simulasi\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Panduan\Support\PeranPanduan;
-use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 use App\Modules\Simulasi\Support\Ranah;
 use App\Modules\Simulasi\Support\SesiTab;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Str;
 
 /**
- * Menyiapkan tab simulasi baru dari halaman panduan.
+ * Tombol "Lihat contoh terisi" di halaman panduan: masuk tanpa kata sandi ke
+ * satu akun pada contoh terisi bersama (hanya-baca) dalam tab baru.
  *
- * ── CATATAN KEAMANAN ──────────────────────────────────────────────────────
- * Ini jalur masuk TANPA KATA SANDI. Ia hanya aman selama pagar di bawah
- * berdiri utuh; melonggarkan salah satunya membuka pintu ke akun sungguhan.
+ * Ruang latihan yang bisa diisi sendiri tidak lewat sini, melainkan lewat
+ * token ruang (RuangSimulasiController).
  *
- *  1. Sakelarnya terbuka: instans mengizinkan (`simulasi.izinkan_coba_peran`)
- *     DAN Super Admin menyalakannya. Bawaannya mati.
- *  2. Contoh kosong: sandbox milik pengunjung sendiri. Contoh terisi: satu salinan
- *     bersama yang hanya-baca (SimulasiService::klaim, lihat HanyaBaca).
- *  3. Akun sasaran TERCATAT di buku besar sandbox itu sebagai baris yang
- *     benar-benar DIBUAT simulasi. Akun nyata bernama sama tidak punya artefak
- *     sehingga tidak pernah lolos. Akun sandbox juga bernama unik per sandbox
- *     dan bersandi acak yang tidak pernah ditampilkan.
- *  4. Surel sasaran berakhiran domain simulasi — pertahanan berlapis.
- *  5. Tiket masuk sekali pakai, terikat ke satu tab (lihat SesiTab).
- *
- * Rutenya POST ber-CSRF, bukan GET: tautan masuk-otomatis yang bisa dipanggil
- * lewat <img src="..."> adalah celah login-CSRF.
- *
- * Controller ini TIDAK melakukan login. Login terjadi di tab baru
- * (MasukSandboxController) supaya sesinya terpisah dari sesi halaman panduan
- * dan dari tab peran lain; itulah penyebab 403 "bentrok antarperan" dulu.
+ * Empat pagar keamanan di sini hanya boleh ditambah, tidak dilonggarkan:
+ *  1. mode latihan harus terbuka;  2. hanya tingkat prodi;
+ *  3. akun harus tercatat milik sandbox;  4. surel akun berdomain simulasi.
  */
 class CobaPeranController
 {
-    public const COOKIE_PENGUNJUNG = 'silogy_pengunjung';
-
     public function __construct(protected SimulasiService $simulasi) {}
 
     public function __invoke(Request $request, string $peran): RedirectResponse
@@ -61,20 +42,12 @@ class CobaPeranController
         $kunciAkun = PeranPanduan::akunUntuk($peran, $level);
         abort_if($kunciAkun === null, 404);
 
-        $mode = PeranPanduan::modeUntuk($peran, (string) $request->input('mode', SimulasiJalan::MODE_TERISI));
-
-        $pengenal = (string) $request->cookie(self::COOKIE_PENGUNJUNG);
-
-        if (strlen($pengenal) < 32) {
-            $pengenal = Str::random(40);
-        }
-
-        $jalan = $this->simulasi->klaim(SimulasiService::hashPengunjung($pengenal), $mode);
+        $jalan = $this->simulasi->contohTerisi();
 
         if ($jalan === null) {
-            return back()->with('panduan_galat', $mode === SimulasiJalan::MODE_TERISI && $this->simulasi->contohTerisiSedangDibangun()
+            return back()->with('panduan_galat', $this->simulasi->contohTerisiSedangDibangun()
                 ? 'Contoh terisi sedang disiapkan. Coba lagi sebentar lagi.'
-                : 'Ruang latihan sedang penuh. Coba lagi beberapa menit lagi.');
+                : 'Contoh terisi belum tersedia. Hubungi Super Admin.');
         }
 
         $user = Ranah::sebagai((string) $jalan->getKey(), fn () => User::query()
@@ -83,7 +56,7 @@ class CobaPeranController
 
         if ($user === null) {
             return back()->with('panduan_galat',
-                'Akun latihan untuk peran ini belum tersedia. Muat ulang halaman dan coba lagi.');
+                'Akun contoh untuk peran ini belum tersedia. Muat ulang halaman dan coba lagi.');
         }
 
         // Pagar 3 dan 4.
@@ -93,23 +66,6 @@ class CobaPeranController
         $token = SesiTab::token();
         SesiTab::buat($token, $jalan, (string) $user->getKey(), $peran);
 
-        Cookie::queue(Cookie::make(
-            name: self::COOKIE_PENGUNJUNG,
-            value: $pengenal,
-            minutes: 60 * 24 * 30,
-            path: $this->jalurCookie(),
-            secure: $request->isSecure(),
-            httpOnly: true,
-            sameSite: 'lax',
-        ));
-
         return redirect()->to(url('/s/'.$token.'/simulasi/masuk'));
-    }
-
-    private function jalurCookie(): string
-    {
-        $subPath = rtrim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
-
-        return $subPath === '' ? '/' : $subPath;
     }
 }

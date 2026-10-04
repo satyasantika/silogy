@@ -6,14 +6,16 @@ use App\Modules\Simulasi\Services\SimulasiService;
 use Illuminate\Console\Command;
 
 /**
- * Perawatan berkala: buang sandbox kedaluwarsa lalu isi kolam siap-pakai.
- * Dijadwalkan di routes/console.php.
+ * Perawatan berkala (penjadwal tiap 5 menit dan langkah akhir deploy):
+ * buang ruang yang kedaluwarsa, lalu pastikan contoh terisi bersama ada dan
+ * berbentuk terbaru. Ruang latihan TIDAK dibangun di sini: ruang disiapkan
+ * Super Admin dari menu Simulasi.
  */
 class SimulasiKolam extends Command
 {
     protected $signature = 'simulasi:kolam';
 
-    protected $description = 'Bersihkan sandbox kedaluwarsa, isi kolam contoh kosong, dan pastikan contoh terisi bersama ada';
+    protected $description = 'Buang ruang simulasi kedaluwarsa dan pastikan contoh terisi bersama ada dan terbaru';
 
     public function handle(SimulasiService $simulasi): int
     {
@@ -22,13 +24,9 @@ class SimulasiKolam extends Command
         }
 
         $dibuang = $simulasi->bersihkanKedaluwarsa();
-        $dibuat = $simulasi->isiKolam();
+        $contoh = $simulasi->rawatContohTerisi();
 
-        // Contoh terisi bersama harus selalu ada; bila belum, dibangun di sini
-        // (di luar permintaan pengunjung).
-        $adaTerisi = $simulasi->contohTerisi() !== null;
-
-        $this->components->info("Dibuang: {$dibuang}, dibuat: {$dibuat}, contoh terisi: ".($adaTerisi ? 'ada' : 'belum ada').'.');
+        $this->components->info("Ruang dibuang: {$dibuang}, contoh terisi: {$contoh}.");
 
         return self::SUCCESS;
     }

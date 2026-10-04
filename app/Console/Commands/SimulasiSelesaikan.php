@@ -8,37 +8,40 @@ use Illuminate\Console\Command;
 use Throwable;
 
 /**
- * Mengisi sandbox yang sudah didaftarkan dari menu Simulasi. Dipanggil
- * SimulasiService::luncurkan() sebagai proses latar belakang; tidak
- * dimaksudkan untuk dijalankan manual.
+ * Proses latar belakang yang dipicu tombol Siapkan Ruang. Satu proses
+ * membangun semua ruang yang didaftarkan, berurutan.
  */
 class SimulasiSelesaikan extends Command
 {
-    protected $signature = 'simulasi:selesaikan {id : ID sandbox yang sudah didaftarkan}';
+    protected $signature = 'simulasi:selesaikan {id* : ID ruang yang sudah didaftarkan}';
 
-    protected $description = 'Selesaikan pembangunan satu sandbox yang sudah didaftarkan (proses latar belakang)';
+    protected $description = 'Selesaikan pembangunan ruang simulasi yang sudah didaftarkan (proses latar belakang)';
 
     public function handle(SimulasiService $simulasi): int
     {
         @set_time_limit(0);
 
-        $jalan = SimulasiJalan::query()->masihAda()->find($this->argument('id'));
+        $gagal = 0;
 
-        if ($jalan === null || $jalan->status !== SimulasiJalan::STATUS_BERJALAN) {
-            $this->components->error('Sandbox tidak ditemukan atau tidak berstatus berjalan.');
+        foreach ((array) $this->argument('id') as $id) {
+            $jalan = SimulasiJalan::query()->masihAda()->find($id);
 
-            return self::FAILURE;
+            if ($jalan === null || $jalan->status !== SimulasiJalan::STATUS_BERJALAN) {
+                $this->components->error("Ruang {$id} tidak ditemukan atau tidak berstatus berjalan.");
+                $gagal++;
+
+                continue;
+            }
+
+            try {
+                $simulasi->selesaikan($jalan);
+            } catch (Throwable $galat) {
+                // selesaikan() sudah mencatat kegagalan dan membongkar ruang itu.
+                $this->components->error("Pembangunan {$id} gagal: ".$galat->getMessage());
+                $gagal++;
+            }
         }
 
-        try {
-            $simulasi->selesaikan($jalan);
-        } catch (Throwable $galat) {
-            // selesaikan() sudah mencatat kegagalan dan membongkar sandbox.
-            $this->components->error('Pembangunan gagal: '.$galat->getMessage());
-
-            return self::FAILURE;
-        }
-
-        return self::SUCCESS;
+        return $gagal === 0 ? self::SUCCESS : self::FAILURE;
     }
 }

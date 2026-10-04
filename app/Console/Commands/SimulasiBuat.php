@@ -11,11 +11,10 @@ use Throwable;
 class SimulasiBuat extends Command
 {
     protected $signature = 'simulasi:buat
-        {--mode=terisi : terisi (kurikulum sampai nilai sudah ada) atau kosong (diisi pengunjung)}
-        {--mk= : jumlah MK pada contoh terisi (1-6), bawaan dari config simulasi.jumlah_mk}
-        {--bersama : jadikan contoh terisi salinan bersama hanya-baca (menggantikan yang lama setelah selesai)}';
+        {--mode=kosong : kosong (ruang latihan bertoken) atau terisi (contoh terisi)}
+        {--bersama : (diabaikan) contoh terisi selalu salinan bersama hanya-baca}';
 
-    protected $description = 'Bangun satu sandbox simulasi utuh (siap diklaim pengunjung)';
+    protected $description = 'Bangun satu ruang simulasi (kosong, bertoken) atau contoh terisi bersama';
 
     public function handle(SimulasiService $simulasi): int
     {
@@ -34,13 +33,11 @@ class SimulasiBuat extends Command
                 return self::FAILURE;
             }
 
-            $mk = $this->option('mk');
-
             $hasil = $simulasi->buat(
                 lapor: $lapor,
                 mode: $mode,
-                jumlahMk: $mk === null || $mk === '' ? null : (int) $mk,
-                bersama: (bool) $this->option('bersama'),
+                // Contoh terisi selalu salinan bersama: tanpa token, ia tak terjangkau siapa pun.
+                bersama: $mode === SimulasiJalan::MODE_TERISI || (bool) $this->option('bersama'),
             );
         } catch (KapasitasSandboxPenuhException $galat) {
             $this->components->error($galat->getMessage());
@@ -54,7 +51,7 @@ class SimulasiBuat extends Command
         }
 
         $this->newLine();
-        $this->components->info($hasil->ringkasSingkat().' Kode sandbox: '.$hasil->jalan->kode());
+        $this->components->info($hasil->ringkasSingkat().' Kode: '.$hasil->jalan->kode().($hasil->jalan->pin ? ', token ruang: '.$hasil->jalan->pin : ''));
 
         $this->table(
             ['Entitas', 'Jumlah'],

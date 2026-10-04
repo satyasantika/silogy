@@ -10,6 +10,7 @@ use App\Modules\Panduan\Http\Controllers\PanduanController;
 use App\Modules\Panduan\Support\PeranPanduan;
 use App\Modules\Simulasi\Http\Controllers\CobaPeranController;
 use App\Modules\Simulasi\Http\Controllers\MasukSandboxController;
+use App\Modules\Simulasi\Http\Controllers\RuangSimulasiController;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +49,21 @@ Route::post('/panduan/{peran}/coba', CobaPeranController::class)
     ->middleware('throttle:panduan-coba-peran')
     ->whereIn('peran', PeranPanduan::slug())
     ->name('panduan.coba');
+
+// Ruang latihan bertoken: masukkan token ruang, lalu pilih peran.
+Route::get('/ruang', [RuangSimulasiController::class, 'form'])->name('simulasi.ruang');
+Route::post('/ruang', [RuangSimulasiController::class, 'periksa'])->name('simulasi.ruang.periksa');
+Route::get('/ruang/{pin}', [RuangSimulasiController::class, 'tampil'])
+    ->where('pin', '[A-Za-z0-9]{6}')
+    ->name('simulasi.ruang.tampil');
+Route::get('/ruang/{pin}/status', [RuangSimulasiController::class, 'status'])
+    ->where('pin', '[A-Za-z0-9]{6}')
+    ->name('simulasi.ruang.status');
+Route::post('/ruang/{pin}/peran/{peran}', [RuangSimulasiController::class, 'masuk'])
+    ->middleware('throttle:panduan-coba-peran')
+    ->where('pin', '[A-Za-z0-9]{6}')
+    ->whereIn('peran', PeranPanduan::slug())
+    ->name('simulasi.ruang.masuk');
 
 // Login dalam tab sandbox (/s/<token>/simulasi/masuk). Tanpa awalan tab: 404.
 Route::get('/simulasi/masuk', MasukSandboxController::class)->name('simulasi.masuk');

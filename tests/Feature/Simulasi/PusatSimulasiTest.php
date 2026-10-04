@@ -3,7 +3,10 @@
 use App\Models\User;
 use App\Modules\Simulasi\Filament\Pages\PusatSimulasi;
 use App\Modules\Simulasi\Models\SimulasiJalan;
+use App\Modules\Simulasi\Models\SimulasiPeranTerisi;
+use App\Modules\Simulasi\Services\RuangSimulasi;
 use App\Modules\Simulasi\Services\SimulasiService;
+use App\Modules\Simulasi\Support\PengaturanSimulasi;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -69,11 +72,11 @@ it('tidak muncul di navigasi bila tidak bisa diakses', function () {
 it('memuat halaman untuk Super Admin, kosong maupun berisi sandbox', function () {
     masukSebagai('superadmin');
 
-    $this->get('/simulasi')->assertSuccessful()->assertSee('Belum ada sandbox');
+    $this->get('/simulasi')->assertSuccessful()->assertSee('Belum ada ruang');
 
     $jalan = app(SimulasiService::class)->buat()->jalan;
 
-    $this->get('/simulasi')->assertSuccessful()->assertSee($jalan->kode());
+    $this->get('/simulasi')->assertSuccessful()->assertSee($jalan->pin);
 });
 
 it('menolak permintaan HTTP dari peran lain', function () {
@@ -146,4 +149,110 @@ it('sakelar membalik keadaan TERKINI walau admin lain sudah mengubahnya di sela-
     $komponen->callAction('alihkanCobaPeran');
 
     expect($simulasi->cobaPeranTerbuka())->toBeFalse();
+});
+
+it('Siapkan Ruang membangun sebanyak jumlah yang diisi, masing-masing bertoken, dan tidak menyentuh contoh terisi', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('superadmin');
+    config()->set('simulasi.latar_belakang', false);
+    $contoh = app(SimulasiService::class)->contohTerisi();
+
+    Livewire::test(PusatSimulasi::class)->callAction('siapkan', ['jumlah' => 2]);
+
+    $ruang = SimulasiJalan::query()->where('bersama', false)->masihAda()->get();
+
+    expect($ruang)->toHaveCount(2)
+        ->and($ruang->pluck('pin')->unique()->count())->toBe(2)
+        ->and($ruang->every(fn ($r) => $r->mode === 'kosong' && $r->status === SimulasiJalan::STATUS_SELESAI))->toBeTrue()
+        ->and($contoh->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI);
+});
+
+it('Siapkan Ruang dibatasi sisa kapasitas dan bawaan jumlahnya 1', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('superadmin');
+    config()->set('simulasi.latar_belakang', false);
+    PengaturanSimulasi::atur('kapasitas', 2);
+
+    // Bawaan isian jumlah adalah 1.
+    Livewire::test(PusatSimulasi::class)->mountAction('siapkan')->assertSchemaStateSet(['jumlah' => 1]);
+
+    // Meminta 5 dengan kapasitas 2: hanya 2 yang dibangun.
+    Livewire::test(PusatSimulasi::class)->callAction('siapkan', ['jumlah' => 5]);
+
+    expect(SimulasiJalan::query()->where('bersama', false)->masihAda()->count())->toBe(2);
+
+    // Kapasitas sudah penuh: tidak ada yang bertambah.
+    Livewire::test(PusatSimulasi::class)->callAction('siapkan', ['jumlah' => 1]);
+
+    expect(SimulasiJalan::query()->where('bersama', false)->masihAda()->count())->toBe(2);
+});
+
+it('Pengaturan menyimpan nilai di basis data, memotongnya ke rentang, dan tidak memerlukan .env', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('superadmin');
+
+    Livewire::test(PusatSimulasi::class)
+        ->callAction('pengaturan', ['kapasitas' => 350, 'batas_coba' => 120, 'batas_token_salah' => 40, 'umur_hari' => 7, 'sewa_menit' => 30])
+        ->assertHasNoActionErrors();
+
+    expect(PengaturanSimulasi::semua())->toBe([
+        'kapasitas' => 350, 'batas_coba' => 120, 'batas_token_salah' => 40, 'umur_hari' => 7, 'sewa_menit' => 30,
+    ]);
+});
+
+it('Pengaturan hanya bisa diubah Super Admin', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('timkur');
+
+    Livewire::test(PusatSimulasi::class)->assertForbidden();
+
+    expect(PengaturanSimulasi::ambil('kapasitas'))->toBe(200);
+});
+
+it('daftar ruang menampilkan token dan peran yang sedang dipegang', function () {
+    masukSebagai('superadmin');
+    $ruang = app(SimulasiService::class)->buat(mode: 'kosong')->jalan;
+    app(RuangSimulasi::class)->ambilPeran($ruang, 'dosen-pengampu', 'tab-uji');
+
+    $this->get('/simulasi')->assertSuccessful()
+        ->assertSee($ruang->pin)
+        ->assertSee('1 / 6')
+        ->assertSee('Dosen Pengampu');
+});
+
+it('Lepas peran, Ganti token, dan Hapus hanya bisa dilakukan Super Admin', function () {
+    $ruang = app(SimulasiService::class)->buat(mode: 'kosong')->jalan;
+    app(RuangSimulasi::class)->ambilPeran($ruang, 'pimpinan', 'tab-uji');
+    $pinLama = $ruang->pin;
+
+    masukSebagai('timkur');
+    expect(fn () => (new PusatSimulasi)->lepasPeran($ruang->id, 'pimpinan'))->toThrow(HttpException::class)
+        ->and(fn () => (new PusatSimulasi)->gantiToken($ruang->id))->toThrow(HttpException::class);
+
+    masukSebagai('superadmin');
+    (new PusatSimulasi)->lepasPeran($ruang->id, 'pimpinan');
+    (new PusatSimulasi)->gantiToken($ruang->id);
+
+    expect(SimulasiPeranTerisi::query()->count())->toBe(0)
+        ->and($ruang->fresh()->pin)->not->toBe($pinLama);
+});
+
+it('Hapus Semua Ruang membongkar semua ruang, melepas semua peran, dan melewati contoh terisi', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    masukSebagai('superadmin');
+    $service = app(SimulasiService::class);
+    $contoh = $service->contohTerisi();
+    $a = $service->buat(mode: 'kosong')->jalan;
+    $b = $service->buat(mode: 'kosong')->jalan;
+    app(RuangSimulasi::class)->ambilPeran($a, 'dosen-pengampu', 'tab-a');
+    app(RuangSimulasi::class)->ambilPeran($b, 'pimpinan', 'tab-b');
+
+    Livewire::test(PusatSimulasi::class)
+        ->callAction('hapusSemua', ['konfirmasi' => 'HAPUS SIMULASI'])
+        ->assertHasNoActionErrors();
+
+    expect($a->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
+        ->and($b->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
+        ->and(SimulasiPeranTerisi::query()->count())->toBe(0)
+        ->and($contoh->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI);
 });

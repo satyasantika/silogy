@@ -56,7 +56,6 @@ class PanduanController
             'peran' => PeranPanduan::semua(),
             'bisaDicoba' => PeranPanduan::akunUntuk($peran) !== null,
             'levelBisaDicoba' => PeranPanduan::levelBisaDicoba($level),
-            'punyaPilihanMode' => PeranPanduan::punyaPilihanMode($peran),
             'level' => $level,
             'semuaLevel' => AkunSimulasi::LEVEL,
             'cobaAktif' => $this->simulasi->cobaPeranTerbuka(),

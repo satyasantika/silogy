@@ -2,14 +2,16 @@
 
 namespace App\Modules\Simulasi\Filament\Pages;
 
+use App\Modules\Panduan\Support\PeranPanduan;
 use App\Modules\Simulasi\Exceptions\KapasitasSandboxPenuhException;
 use App\Modules\Simulasi\Models\SimulasiJalan;
+use App\Modules\Simulasi\Services\RuangSimulasi;
 use App\Modules\Simulasi\Services\SimulasiService;
+use App\Modules\Simulasi\Support\PengaturanSimulasi;
 use App\Support\Filament\Concerns\ForcesFullPageRender;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -68,7 +70,7 @@ class PusatSimulasi extends Page implements HasActions
      */
     public function daftar(): Collection
     {
-        return app(SimulasiService::class)->daftar();
+        return app(SimulasiService::class)->daftar()->where('bersama', false)->values();
     }
 
     /**
@@ -96,104 +98,251 @@ class PusatSimulasi extends Page implements HasActions
     {
         return [
             $this->siapkanAction(),
+            $this->pengaturanAction(),
             $this->cobaPeranAction(),
             $this->hapusSemuaAction(),
         ];
     }
 
+    /** Batas ruang per penekanan bila pembangunan berjalan di dalam permintaan (tanpa latar belakang). */
+    public const BATAS_DI_TEMPAT = 3;
+
     protected function siapkanAction(): Action
     {
         return Action::make('siapkan')
-            ->label('Siapkan Contoh')
-            ->icon(Heroicon::OutlinedSparkles)
+            ->label('Siapkan Ruang')
+            ->icon(Heroicon::OutlinedPlusCircle)
             ->color('primary')
-            ->modalHeading('Siapkan contoh simulasi')
+            ->modalHeading('Siapkan ruang simulasi')
             ->modalDescription(
-                'Contoh terisi satu salinan bersama yang hanya-baca untuk semua pengunjung; menyiapkannya lagi '
-                .'membangun salinan baru lalu menggantikan yang lama setelah selesai. Contoh kosong ditambahkan '
-                .'ke kolam untuk diklaim satu pengunjung. Data inti TIDAK disentuh. Setelah Siapkan ditekan, '
-                .'jendela ini berganti menjadi layar progres.'
+                'Tiap ruang berisi satu program studi dengan satu kurikulum dan satu mata kuliah kosong, '
+                .'enam akun (satu per peran), dan sebuah token. Bagikan token itu kepada peserta: mereka memasukkan '
+                .'token lalu memilih satu peran. Data inti TIDAK disentuh. Setelah Siapkan ditekan, jendela ini '
+                .'berganti menjadi layar progres.'
             )
             ->schema([
-                Select::make('mode')
-                    ->label('Jenis contoh')
-                    ->options([
-                        SimulasiJalan::MODE_TERISI => 'Contoh terisi — salinan bersama, hanya-baca (membangun ulang)',
-                        SimulasiJalan::MODE_KOSONG => 'Contoh kosong — satu kurikulum dan satu MK kosong, untuk kolam',
-                    ])
-                    ->default(SimulasiJalan::MODE_TERISI)
-                    ->required(),
+                TextInput::make('jumlah')
+                    ->label('Jumlah ruang')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(1)
+                    ->default(1)
+                    ->required()
+                    ->helperText(fn (): string => 'Kapasitas tersisa: '.$this->sisaKapasitas().' ruang.'),
             ])
             ->modalSubmitActionLabel('Siapkan')
-            ->action(function (array $data, Action $action): void {
+            ->action(function (array $data): void {
                 abort_unless(static::canAccess(), 403);
-
-                $mode = in_array($data['mode'] ?? null, SimulasiJalan::MODE, true)
-                    ? $data['mode']
-                    : SimulasiJalan::MODE_TERISI;
 
                 $simulasi = app(SimulasiService::class);
                 DB::connection()->disableQueryLog();
 
+                $diminta = max(1, (int) ($data['jumlah'] ?? 1));
+                $sisa = $this->sisaKapasitas();
+
+                if ($sisa < 1) {
+                    Notification::make()->title('Kapasitas penuh')
+                        ->body('Naikkan kapasitas di Pengaturan atau hapus ruang yang tak terpakai.')->warning()->send();
+
+                    return;
+                }
+
+                $jumlah = min($diminta, $sisa);
+
+                if (! config('simulasi.latar_belakang', true)) {
+                    $jumlah = min($jumlah, self::BATAS_DI_TEMPAT);
+                }
+
+                $daftar = [];
+
                 try {
-                    $jalan = $simulasi->mulai(
-                        pemicu: auth()->user(),
-                        mode: $mode,
-                        bersama: $mode === SimulasiJalan::MODE_TERISI,
-                    );
-                    $simulasi->luncurkan($jalan);
+                    for ($i = 0; $i < $jumlah; $i++) {
+                        $daftar[] = $simulasi->mulai(pemicu: auth()->user(), mode: SimulasiJalan::MODE_KOSONG);
+                    }
+
+                    $simulasi->luncurkan($daftar);
                 } catch (KapasitasSandboxPenuhException $galat) {
                     Notification::make()->title('Kapasitas penuh')->body($galat->getMessage())->warning()->send();
 
-                    return;
+                    if ($daftar === []) {
+                        return;
+                    }
                 } catch (Throwable $galat) {
-                    // Pada mode di tempat (tanpa latar belakang) sandbox sudah ditandai gagal
-                    // dan dibongkar; layar progres tetap menampilkan sebabnya.
-                    if (! isset($jalan)) {
-                        Notification::make()->title('Pembangunan sandbox gagal')->body($galat->getMessage())->danger()->persistent()->send();
+                    // Pada mode di tempat sandbox yang gagal sudah ditandai gagal dan dibongkar;
+                    // layar progres tetap menampilkan sebabnya.
+                    if ($daftar === []) {
+                        Notification::make()->title('Pembangunan ruang gagal')->body($galat->getMessage())->danger()->persistent()->send();
 
                         return;
                     }
                 }
 
-                // Modal pengisian tertutup sendiri; modal progres di tampilan halaman dibuka.
-                $this->progresJalanId = (string) $jalan->getKey();
+                if ($jumlah < $diminta) {
+                    Notification::make()->title('Jumlah dikurangi')
+                        ->body("Dibangun {$jumlah} dari {$diminta} ruang diminta (kapasitas atau batas mode di tempat).")->warning()->send();
+                }
+
+                $this->progresIds = array_map(fn (SimulasiJalan $j): string => (string) $j->getKey(), $daftar);
                 $this->dispatch('open-modal', id: 'progres-sandbox');
             });
     }
 
-    /**
-     * ID sandbox yang progresnya sedang ditampilkan di modal progres.
-     * Modal-nya ada di tampilan halaman (bukan Action) supaya tetap berada di
-     * dalam akar komponen Livewire dan bisa dipantau dengan wire:poll.
-     */
-    public ?string $progresJalanId = null;
+    protected function pengaturanAction(): Action
+    {
+        return Action::make('pengaturan')
+            ->label('Pengaturan')
+            ->icon(Heroicon::OutlinedCog6Tooth)
+            ->color('gray')
+            ->modalHeading('Pengaturan ruang simulasi')
+            ->modalDescription('Disimpan di basis data dan berlaku segera. Tidak memerlukan akses ke server.')
+            ->fillForm(fn (): array => PengaturanSimulasi::semua())
+            ->schema(collect(PengaturanSimulasi::DEFINISI)->map(
+                fn (array $d, string $kunci) => TextInput::make($kunci)
+                    ->label($d['label'].' ('.$d['satuan'].')')
+                    ->numeric()->integer()->required()
+                    ->minValue($d['min'])->maxValue($d['maks'])
+            )->values()->all())
+            ->modalSubmitActionLabel('Simpan')
+            ->action(function (array $data): void {
+                abort_unless(static::canAccess(), 403);
+
+                foreach (array_keys(PengaturanSimulasi::DEFINISI) as $kunci) {
+                    if (isset($data[$kunci])) {
+                        PengaturanSimulasi::atur($kunci, (int) $data[$kunci]);
+                    }
+                }
+
+                Notification::make()->title('Pengaturan disimpan')->success()->send();
+            });
+    }
+
+    public function sisaKapasitas(): int
+    {
+        return max(0, PengaturanSimulasi::ambil('kapasitas') - app(SimulasiService::class)->jumlahRuang());
+    }
+
+    /** @var list<string> */
+    public array $progresIds = [];
 
     /**
+     * Progres ruang yang sedang dibangun (yang pertama belum selesai, atau yang
+     * terakhir bila semuanya sudah). Ruang dibangun berurutan oleh satu proses.
+     *
      * @return array<string, mixed>|null
      */
     public function progres(): ?array
     {
         abort_unless(static::canAccess(), 403);
 
-        if ($this->progresJalanId === null) {
+        if ($this->progresIds === []) {
             return null;
         }
 
-        $jalan = SimulasiJalan::query()->find($this->progresJalanId);
+        $simulasi = app(SimulasiService::class);
+        $jalanList = SimulasiJalan::query()->whereIn('id', $this->progresIds)->get()->keyBy('id');
+        $selesai = 0;
+        $aktif = null;
+        $ke = 0;
 
-        return $jalan === null ? null : app(SimulasiService::class)->progres($jalan);
+        foreach ($this->progresIds as $i => $id) {
+            $jalan = $jalanList->get($id);
+
+            // Hilang = gagal dan sudah dibongkar; tetap dihitung agar layar tidak macet.
+            if ($jalan === null) {
+                $selesai++;
+
+                continue;
+            }
+
+            if ($jalan->status === SimulasiJalan::STATUS_SELESAI) {
+                $selesai++;
+                $aktif ??= $jalan;
+                $ke = $i + 1;
+
+                continue;
+            }
+
+            if ($jalan->status === SimulasiJalan::STATUS_BERJALAN || $jalan->status === SimulasiJalan::STATUS_GAGAL) {
+                $aktif = $jalan;
+                $ke = $i + 1;
+
+                break;
+            }
+        }
+
+        if ($aktif === null) {
+            return null;
+        }
+
+        $p = $simulasi->progres($aktif);
+        $total = count($this->progresIds);
+        $p['ruang_ke'] = max(1, $ke);
+        $p['ruang_total'] = $total;
+        $p['ruang_selesai'] = $selesai;
+        $p['semua_selesai'] = $selesai === $total;
+
+        // Dengan banyak ruang, pesan "selesai" dan penutupan menunggu ruang terakhir.
+        if ($total > 1 && ! $p['semua_selesai']) {
+            $p['selesai'] = false;
+            $p['berjalan'] = $p['berjalan'] || $p['status'] === SimulasiJalan::STATUS_SELESAI;
+        }
+
+        return $p;
     }
 
     public function tutupProgres(): void
     {
-        $this->progresJalanId = null;
+        $this->progresIds = [];
     }
 
-    /**
-     * Sakelar mode latihan — sengaja di sini, bukan di .env, supaya keputusan
-     * membuka dan MENCABUTNYA bisa diambil dalam hitungan detik tanpa deploy.
-     */
+    /** Ruang yang dibangun ulang sebagai token baru atas permintaan Super Admin. */
+    public function gantiToken(string $id): void
+    {
+        abort_unless(static::canAccess(), 403);
+
+        $ruang = SimulasiJalan::query()->masihAda()->where('bersama', false)->find($id);
+
+        if ($ruang === null) {
+            return;
+        }
+
+        $baru = app(SimulasiService::class)->gantiPin($ruang);
+
+        Notification::make()->title('Token diganti')->body("Token baru ruang {$ruang->kode()}: {$baru}")->success()->send();
+    }
+
+    public function lepasPeran(string $id, string $peran): void
+    {
+        abort_unless(static::canAccess(), 403);
+
+        app(RuangSimulasi::class)->lepasPeran($id, $peran);
+
+        Notification::make()->title('Peran dilepas')->success()->send();
+    }
+
+    /** @return array<string, list<string>> */
+    public function peranTerisi(): array
+    {
+        return app(RuangSimulasi::class)->peranTerisiSemua();
+    }
+
+    public function jumlahPeran(): int
+    {
+        return count(PeranPanduan::bisaDicoba());
+    }
+
+    public function contohTerisiStatus(): string
+    {
+        $simulasi = app(SimulasiService::class);
+
+        return match (true) {
+            $simulasi->contohTerisiSedangDibangun() => 'Sedang dibangun',
+            $simulasi->contohTerisiSiap() === null => 'Belum ada',
+            $simulasi->contohTerisiUsang() => 'Ada (bentuk lama, akan dibangun ulang penjadwal)',
+            default => 'Siap',
+        };
+    }
+
     protected function cobaPeranAction(): Action
     {
         $simulasi = app(SimulasiService::class);
@@ -236,15 +385,15 @@ class PusatSimulasi extends Page implements HasActions
     protected function hapusSemuaAction(): Action
     {
         return Action::make('hapusSemua')
-            ->label('Hapus Semua Sandbox')
+            ->label('Hapus Semua Ruang')
             ->icon(Heroicon::OutlinedTrash)
             ->color('danger')
             ->visible(fn (): bool => $this->daftar()->isNotEmpty())
             ->requiresConfirmation()
-            ->modalHeading('Hapus seluruh sandbox simulasi')
-            ->modalDescription(fn (): string => 'Akan dibongkar '.$this->daftar()->count().' sandbox beserta semua akun, '
-                .'kurikulum, kelas, dan nilainya. Data inti, peran, izin, semester, dan master evaluasi TIDAK '
-                .'ikut dihapus. Tindakan ini tidak dapat dibatalkan.')
+            ->modalHeading('Hapus seluruh ruang simulasi')
+            ->modalDescription(fn (): string => 'Akan dibongkar '.$this->daftar()->count().' ruang beserta semua akun, '
+                .'kurikulum, dan isinya, dan semua peserta yang sedang di dalamnya terputus. Contoh terisi, data inti, '
+                .'peran, izin, semester, dan master evaluasi TIDAK ikut dihapus. Tindakan ini tidak dapat dibatalkan.')
             ->schema([
                 TextInput::make('konfirmasi')
                     ->label('Ketik HAPUS SIMULASI untuk melanjutkan')
@@ -261,8 +410,8 @@ class PusatSimulasi extends Page implements HasActions
                 $jumlah = app(SimulasiService::class)->hapusSemua();
 
                 Notification::make()
-                    ->title('Sandbox dihapus')
-                    ->body($jumlah.' sandbox dibongkar.')
+                    ->title('Ruang dihapus')
+                    ->body($jumlah.' ruang dibongkar.')
                     ->success()
                     ->persistent()
                     ->send();
@@ -282,6 +431,6 @@ class PusatSimulasi extends Page implements HasActions
         @set_time_limit(0);
         app(SimulasiService::class)->hapus($jalan);
 
-        Notification::make()->title('Sandbox dihapus')->success()->send();
+        Notification::make()->title('Ruang dihapus')->success()->send();
     }
 }

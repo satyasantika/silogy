@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Modules\Simulasi\Services\SimulasiService;
+use App\Modules\Simulasi\Support\PengaturanSimulasi;
 use Illuminate\Console\Command;
 
 class SimulasiStatus extends Command
@@ -16,7 +17,7 @@ class SimulasiStatus extends Command
         $daftar = $simulasi->daftar();
 
         $this->components->twoColumnDetail('Mode latihan', $simulasi->cobaPeranTerbuka() ? 'terbuka' : 'tertutup');
-        $this->components->twoColumnDetail('Sandbox hidup', $daftar->count().' / '.config('simulasi.maks_sandbox'));
+        $this->components->twoColumnDetail('Ruang latihan', $simulasi->jumlahRuang().' / '.PengaturanSimulasi::ambil('kapasitas'));
 
         if ($daftar->isEmpty()) {
             $this->components->info('Belum ada sandbox. Jalankan `simulasi:buat` atau `simulasi:kolam`.');
@@ -31,15 +32,15 @@ class SimulasiStatus extends Command
         foreach ($daftar as $jalan) {
             $baris[] = [
                 $jalan->kode(),
-                $jalan->kosong() ? 'kosong' : ($jalan->bersama ? 'terisi-bersama/' : 'terisi/').$jalan->jumlah_mk.'MK',
+                $jalan->kosong() ? 'ruang' : ($jalan->bersama ? 'contoh-terisi' : 'terisi'),
+                $jalan->pin ?? '—',
                 $jalan->status,
-                $jalan->pengunjung === null ? '—' : 'pengunjung',
                 $jalan->terakhir_aktif_pada === null ? '—' : $jalan->terakhir_aktif_pada->diffForHumans(),
                 (string) ($total[$jalan->getKey()] ?? 0),
             ];
         }
 
-        $this->table(['Kode', 'Jenis', 'Status', 'Pemakai', 'Aktif terakhir', 'Baris'], $baris);
+        $this->table(['Kode', 'Jenis', 'Token', 'Status', 'Aktif terakhir', 'Baris'], $baris);
 
         return self::SUCCESS;
     }
