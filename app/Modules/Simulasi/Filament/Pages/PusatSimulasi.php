@@ -113,7 +113,7 @@ class PusatSimulasi extends Page implements HasActions
             ->modalDescription(
                 'Dibangun satu paket data (Universitas → Fakultas → Prodi Simulasi, 18 akun, mahasiswa) '
                 .'yang kelak diklaim satu pengunjung. Data inti TIDAK disentuh dan tidak dapat melihat isinya. '
-                .'Contoh terisi memakan waktu sekitar 10–60 detik — jangan tutup halaman ini.'
+                .'Setelah Siapkan ditekan, jendela ini berganti menjadi layar progres yang menampilkan tiap tahap pembangunan.'
             )
             ->schema([
                 Select::make('mode')
@@ -137,44 +137,69 @@ class PusatSimulasi extends Page implements HasActions
                     ->required(fn (Get $get): bool => $get('mode') !== SimulasiJalan::MODE_KOSONG),
             ])
             ->modalSubmitActionLabel('Siapkan')
-            ->action(function (array $data): void {
+            ->action(function (array $data, Action $action): void {
                 abort_unless(static::canAccess(), 403);
 
                 $mode = in_array($data['mode'] ?? null, SimulasiJalan::MODE, true)
                     ? $data['mode']
                     : SimulasiJalan::MODE_TERISI;
 
-                @set_time_limit(0);
+                $simulasi = app(SimulasiService::class);
                 DB::connection()->disableQueryLog();
 
                 try {
-                    $hasil = app(SimulasiService::class)->buat(
+                    $jalan = $simulasi->mulai(
                         pemicu: auth()->user(),
                         mode: $mode,
                         jumlahMk: isset($data['jumlah_mk']) ? (int) $data['jumlah_mk'] : null,
                     );
+                    $simulasi->luncurkan($jalan);
                 } catch (KapasitasSandboxPenuhException $galat) {
                     Notification::make()->title('Kapasitas penuh')->body($galat->getMessage())->warning()->send();
 
                     return;
                 } catch (Throwable $galat) {
-                    Notification::make()
-                        ->title('Pembangunan sandbox gagal')
-                        ->body($galat->getMessage().' Sandbox setengah jadi sudah dibuang otomatis.')
-                        ->danger()
-                        ->persistent()
-                        ->send();
+                    // Pada mode di tempat (tanpa latar belakang) sandbox sudah ditandai gagal
+                    // dan dibongkar; layar progres tetap menampilkan sebabnya.
+                    if (! isset($jalan)) {
+                        Notification::make()->title('Pembangunan sandbox gagal')->body($galat->getMessage())->danger()->persistent()->send();
 
-                    return;
+                        return;
+                    }
                 }
 
-                Notification::make()
-                    ->title('Sandbox siap')
-                    ->body($hasil->ringkasSingkat())
-                    ->success()
-                    ->persistent()
-                    ->send();
+                // Modal pengisian tertutup sendiri; modal progres di tampilan halaman dibuka.
+                $this->progresJalanId = (string) $jalan->getKey();
+                $this->dispatch('open-modal', id: 'progres-sandbox');
             });
+    }
+
+    /**
+     * ID sandbox yang progresnya sedang ditampilkan di modal progres.
+     * Modal-nya ada di tampilan halaman (bukan Action) supaya tetap berada di
+     * dalam akar komponen Livewire dan bisa dipantau dengan wire:poll.
+     */
+    public ?string $progresJalanId = null;
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function progres(): ?array
+    {
+        abort_unless(static::canAccess(), 403);
+
+        if ($this->progresJalanId === null) {
+            return null;
+        }
+
+        $jalan = SimulasiJalan::query()->find($this->progresJalanId);
+
+        return $jalan === null ? null : app(SimulasiService::class)->progres($jalan);
+    }
+
+    public function tutupProgres(): void
+    {
+        $this->progresJalanId = null;
     }
 
     /**

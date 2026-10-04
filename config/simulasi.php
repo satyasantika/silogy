@@ -50,4 +50,10 @@ return [
     // menu Simulasi. Contoh kosong tidak berisi MK: pengunjung menyusunnya.
     'jumlah_mk' => (int) env('SIMULASI_JUMLAH_MK', 6),
     'umur_menit' => (int) env('SIMULASI_UMUR_MENIT', 120),
+
+    // Pembangunan dari menu Simulasi berjalan sebagai proses terpisah supaya
+    // layar progres bisa dipantau dan tidak terpotong batas waktu permintaan
+    // web. Setel false untuk membangun di dalam permintaan yang sama (dipakai
+    // test dan lingkungan yang melarang proses latar belakang).
+    'latar_belakang' => (bool) env('SIMULASI_LATAR_BELAKANG', true),
 ];

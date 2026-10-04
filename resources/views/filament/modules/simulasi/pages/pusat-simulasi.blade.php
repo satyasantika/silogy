@@ -111,4 +111,24 @@
             </div>
         @endif
     </x-filament::section>
+
+    {{-- Modal progres pembangunan sandbox. Isinya hanya dirender selama ada sandbox yang dipantau. --}}
+    <x-filament::modal
+        id="progres-sandbox"
+        width="3xl"
+        :close-by-clicking-away="false"
+        x-on:modal-closed="if ($event.detail.id === 'progres-sandbox') $wire.tutupProgres()"
+    >
+        <x-slot name="heading">Menyiapkan sandbox</x-slot>
+
+        @if ($progresJalanId !== null && ($p = $this->progres()) !== null)
+            @include('filament.modules.simulasi.pages.progres-sandbox', ['p' => $p])
+        @endif
+
+        <x-slot name="footerActions">
+            <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'progres-sandbox' })">
+                Tutup
+            </x-filament::button>
+        </x-slot>
+    </x-filament::modal>
 </x-filament-panels::page>

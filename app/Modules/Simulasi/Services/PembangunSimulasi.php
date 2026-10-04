@@ -43,6 +43,36 @@ class PembangunSimulasi
     public const JUMLAH_MAHASISWA = 30;
 
     /**
+     * Tahap pembangunan sesuai urutan lapor() di bangunDalamRanah(), beserta
+     * keterangan untuk layar progres. Kunci = teks yang dilaporkan. Test
+     * memastikan daftar ini sama persis dengan laporan yang sebenarnya.
+     *
+     * @return list<array{label: string, keterangan: string}>
+     */
+    public static function tahap(string $mode): array
+    {
+        $dasar = [
+            ['label' => 'Menyiapkan peran dan izin', 'keterangan' => 'Memastikan peran dan izin akses tersedia.'],
+            ['label' => 'Menyiapkan master evaluasi', 'keterangan' => 'Menyiapkan jenis evaluasi (tugas, UTS, UAS, dan sejenisnya).'],
+            ['label' => 'Membangun pohon unit simulasi', 'keterangan' => 'Membuat Universitas → Fakultas → Program Studi Simulasi.'],
+            ['label' => 'Membuat akun simulasi', 'keterangan' => 'Membuat 18 akun (6 peran × 3 tingkat) beserta penugasannya.'],
+            ['label' => 'Membuat mahasiswa simulasi', 'keterangan' => 'Membuat '.self::JUMLAH_MAHASISWA.' mahasiswa contoh di program studi simulasi.'],
+        ];
+
+        if ($mode === SimulasiJalan::MODE_KOSONG) {
+            return $dasar;
+        }
+
+        return [...$dasar,
+            ['label' => 'Membangun rantai OBE prodi simulasi', 'keterangan' => 'Kurikulum, profil lulusan, CPL, BoK, MK prodi, CPMK, Sub-CPMK, asesmen, kelas, sampai nilai.'],
+            ['label' => 'Membangun MK tingkat universitas', 'keterangan' => 'Satu MK milik universitas beserta kelas dan nilainya.'],
+            ['label' => 'Membangun MK tingkat fakultas', 'keterangan' => 'Satu MK milik fakultas beserta kelas dan nilainya.'],
+            ['label' => 'Menyiapkan adaptasi lintas unit', 'keterangan' => 'Prodi mengadaptasi MK universitas dan fakultas.'],
+            ['label' => 'Mengajukan satu usulan perubahan CPMK', 'keterangan' => 'Satu usulan dari Koordinator MK untuk ditinjau Tim Kurikulum.'],
+        ];
+    }
+
+    /**
      * @param  callable(string): void|null  $lapor
      * @return array<string, mixed>
      */
