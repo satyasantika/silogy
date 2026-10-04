@@ -52,6 +52,7 @@ use App\Modules\Penilaian\Observers\SubcpmkKomponenPenilaianObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
 use App\Modules\Simulasi\Support\PencatatArtefak;
+use App\Modules\Simulasi\Support\SyaratHulu;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
 use Filament\Actions\Action;
 use Filament\Actions\AttachAction;
@@ -100,6 +101,9 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('silogy.kurikulum-terpilih-banner', KurikulumTerpilihBanner::class);
 
         $this->configureFilamentActionIcons();
+
+        // Keterangan syarat hulu di halaman peran; hanya tampil bagi akun sandbox.
+        SyaratHulu::pasangHook();
 
         RateLimiter::for('health', function (Request $request): Limit {
             return Limit::perMinute(60)->by($request->ip());

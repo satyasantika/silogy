@@ -154,6 +154,22 @@ Pada halaman panduan, setiap peran pengisi (Admin Unit, Tim Kurikulum, Koordinat
 
 Pada contoh kosong, urutan pengisian sama dengan urutan tahap di dokumen ini. Peran hilir menunggu isian peran hulu: Koordinator MK baru bisa menyusun CPMK setelah Tim Kurikulum membuat MK, dan Dosen baru bisa mengisi nilai setelah komponen penilaian tersedia. Buka tiap peran di tab sendiri, lalu kerjakan berurutan.
 
+### Keterangan "menunggu peran hulu"
+
+Di halaman peran yang bergantung pada peran lain, ruang latihan menampilkan kotak keterangan oranye di bagian atas. Kotak itu menyebut syarat yang belum terpenuhi, peran yang harus menanganinya, dan langkah yang perlu dikerjakan. Contohnya pada Dosen Pengampu: "Koordinator MK belum menentukan tagihan penilaian", beserta alasan rincinya (CPMK belum ada, Sub-CPMK belum dibuat, total bobot asesmen belum 100%, atau asesmen belum dipetakan ke Sub-CPMK).
+
+| Halaman | Syarat yang diperiksa | Ditangani oleh |
+|---|---|---|
+| Profil Lulusan, CPL | Kurikulum sudah dibuat | Tim Kurikulum |
+| BoK, Mata Kuliah | CPL sudah ada; MK sudah punya Koordinator MK | Tim Kurikulum |
+| Penawaran MK | Mata kuliah sudah ada | Tim Kurikulum |
+| Kelas MK | MK sudah ditawarkan; kelas punya Dosen Pengampu | Tim Kurikulum, Admin Program Studi |
+| Daftar MK, CPMK, Sub-CPMK, Asesmen | Anda sudah ditetapkan sebagai Koordinator MK; MK sudah dipilih; CPMK ada sebelum Sub-CPMK; Sub-CPMK ada sebelum Asesmen | Tim Kurikulum, Koordinator MK |
+| Peserta, Laporan | Kelas dan peserta sudah ada; asesmen siap; nilai sudah diisi | Admin Program Studi, Koordinator MK, Dosen Pengampu |
+| Pengampu MK, Input Nilai | Kelas sudah dibuat dan Anda diampu; asesmen sudah siap (total bobot 100%, terpetakan ke Sub-CPMK); kelas punya peserta | Tim Kurikulum, Admin Program Studi, Koordinator MK |
+
+Kotak ini dihitung dari isi sandbox Anda sendiri, sehingga hilang dengan sendirinya setelah syaratnya terpenuhi. Halaman yang terkunci (403) juga menampilkan kotak yang sama, supaya Anda tahu langkah hulu mana yang perlu dikerjakan lebih dulu.
+
 Pimpinan dan Auditor Mutu hanya membaca, sehingga keduanya hanya menyediakan contoh terisi.
 
 Contoh terisi dan contoh kosong adalah dua ruang terpisah. Mengisi di contoh kosong tidak mengubah contoh terisi.

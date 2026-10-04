@@ -249,6 +249,8 @@
             <h1 class="err-title">@yield('title')</h1>
             <p class="err-message">@yield('message')</p>
 
+            @yield('tambahan')
+
             <div class="err-actions">
                 <button type="button" class="err-btn err-btn-ghost" onclick="errGoBack()">
                     <i class="bi bi-arrow-left"></i>
