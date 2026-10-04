@@ -228,7 +228,7 @@
 </head>
 <body>
     <div class="err-shell">
-        <a href="{{ url('/') }}" class="err-logo">
+        <a href="{{ $urlBeranda ?? url('/') }}" class="err-logo">
             <span class="err-logo-mark">
                 <img src="{{ asset('images/logo.png') }}" alt="Universitas Siliwangi" width="38" height="38">
             </span>
@@ -252,6 +252,7 @@
             @yield('tambahan')
 
             <div class="err-actions">
+                @section('aksi')
                 <button type="button" class="err-btn err-btn-ghost" onclick="errGoBack()">
                     <i class="bi bi-arrow-left"></i>
                     Kembali
@@ -283,6 +284,7 @@
                         Masuk
                     </a>
                 @endauth
+                @show
             </div>
         </main>
 

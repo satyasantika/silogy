@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Auth\Filament\Actions\KeluarAction;
 use App\Modules\Simulasi\Models\SimulasiJalan;
+use App\Modules\Simulasi\Services\RuangSimulasi;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
 use App\Modules\Simulasi\Support\PengaturanSimulasi;
@@ -88,12 +90,12 @@ it('tiket hanya berlaku sekali', function () {
     bukaTab($token, '/simulasi/masuk')->assertNotFound();
 });
 
-it('menolak token yang tidak dikenal dengan 404 sebelum sesi dimulai', function () {
+it('menjawab token yang tidak dikenal dengan halaman sesi berakhir sebelum sesi dimulai', function () {
     $token = str_repeat('a', 24);
 
     $respons = bukaTab($token, '/simulasi/masuk');
 
-    $respons->assertNotFound();
+    $respons->assertStatus(410);
     expect($respons->headers->getCookies())->toBeEmpty();
 });
 
@@ -188,12 +190,55 @@ it('tidak menyediakan jalur masuk untuk Super Admin', function () {
     expect(array_keys(AkunSimulasi::akunPanduan()))->not->toContain('super-admin');
 });
 
-it('menyisakan tab yang kedaluwarsa sebagai 404', function () {
+it('tab yang kedaluwarsa menampilkan halaman sesi berakhir yang hanya mengarah ke Panduan', function () {
     $token = mulaiTab('pimpinan');
     SesiTab::lupakan($token);
 
-    bukaTab($token, '/dashboard')->assertNotFound();
+    $respons = bukaTab($token, '/dashboard');
+    $html = (string) $respons->getContent();
+
+    $respons->assertStatus(410)
+        ->assertSee('Sesi simulasi ini telah berakhir')
+        ->assertHeader('Cache-Control', 'no-store, private');
+
+    expect($html)->toContain('href="http://localhost/panduan"')
+        ->and($html)->not->toContain('/login')
+        ->and($html)->not->toContain('/dashboard')
+        ->and($html)->not->toContain('errGoBack()"')
+        ->and($html)->not->toContain('/s/'.$token);
 });
+
+it('sesi login tab yang berakhir tidak dialihkan ke login, tetapi ke halaman sesi berakhir', function () {
+    // Catatan tab masih ada, tetapi sesi loginnya sudah hilang (umur sesi lebih
+    // pendek daripada umur tab): sebelumnya Filament mengalihkan ke /login.
+    $token = mulaiTab('pimpinan');
+    bukaTab($token, '/simulasi/masuk')->assertRedirect();
+
+    bukaTab($token, '/dashboard')
+        ->assertStatus(410)
+        ->assertSee('Kembali ke Panduan');
+});
+
+it('halaman login di dalam tab tidak tersedia', function () {
+    $token = mulaiTab('pimpinan');
+
+    bukaTab($token, '/login')->assertStatus(410);
+});
+
+it('permintaan AJAX tab yang sesinya habis (401/419) dijawab halaman sesi berakhir', function (int $status) {
+    // CSRF tidak diperiksa di unit test, jadi 419 (token CSRF tak cocok karena
+    // sesinya hilang) ditiru oleh rute uji.
+    Route::post('/uji-sesi-habis', fn () => abort($status))->middleware('web');
+
+    $token = mulaiTab('pimpinan');
+
+    URL::forceRootUrl(null);
+    URL::useAssetOrigin(null);
+
+    test()->withHeader('X-Livewire', 'true')
+        ->postJson('http://localhost/s/'.$token.'/uji-sesi-habis')
+        ->assertStatus(410);
+})->with([401, 419]);
 
 it('membatasi jumlah percobaan per menit sesuai pengaturan di basis data', function () {
     PengaturanSimulasi::atur('batas_coba', 2); // dipaksa naik ke batas bawah 5
@@ -258,8 +303,6 @@ it('menjaga aset statis tetap di origin asli, bukan di bawah awalan tab', functi
     }
 });
 
-it('menautkan navigasi dengan awalan tab sehingga klik tetap di sesi yang sama', function () {
-    [$token, , $html] = halamanTab('sim-adminprodi');
 it('di balik reverse proxy https, aset dan tautan tab memakai https (tanpa mixed content)', function () {
     // Produksi: proxy TLS meneruskan ke container lewat http. Origin tab harus
     // dibaca SETELAH TrustProxies, kalau tidak aset dibangkitkan sebagai http://.
@@ -282,6 +325,8 @@ it('di balik reverse proxy https, aset dan tautan tab memakai https (tanpa mixed
     expect($html)->toContain('href="https://silogy.test/s/'.$token.'/mahasiswas"');
 });
 
+it('menautkan navigasi dengan awalan tab sehingga klik tetap di sesi yang sama', function () {
+    [$token, , $html] = halamanTab('sim-adminprodi');
 
     expect($html)->toContain('href="http://localhost/s/'.$token.'/mahasiswas"');
 });
@@ -298,7 +343,7 @@ it('signed URL yang dibuat di dalam tab tetap lolos validasi di dalam tab', func
 
     URL::forceRootUrl(null);
     $dalamTab = test()->get('http://localhost/s/'.$token.'/dashboard');
-    $dalamTab->assertRedirect(); // sekadar membuka tab; root URL kini ber-awalan
+    $dalamTab->assertStatus(410); // sekadar membuka tab (belum masuk); root URL kini ber-awalan
 
     $url = URL::signedRoute('uji.tanda-tangan');
 
@@ -314,4 +359,43 @@ it('tidak menyentuh request biasa di luar tab', function () {
     $this->get('http://localhost/panduan')->assertSuccessful();
 
     expect(config('session.cookie'))->not->toStartWith('silogy_tab_');
+});
+
+// ── Keluar dimatikan di contoh terisi ──────────────────────
+
+it('tab contoh terisi tidak bisa keluar: POST /logout dialihkan ke dasbor dan sesi tetap masuk', function () {
+    $token = mulaiTab('tim-kurikulum');
+    bukaTab($token, '/simulasi/masuk')->assertRedirect();
+    $csrf = session()->token();
+
+    URL::forceRootUrl(null);
+    URL::useAssetOrigin(null);
+
+    $this->post('http://localhost/s/'.$token.'/logout', ['_token' => $csrf])
+        ->assertRedirect('http://localhost/s/'.$token.'/dashboard');
+
+    expect(SesiTab::cari($token))->not->toBeNull();
+});
+
+it('lakukanLogout pada tab contoh terisi tidak mengeluarkan pengguna', function () {
+    $token = mulaiTab('tim-kurikulum');
+    $user = User::query()->where('sandbox_id', SesiTab::cari($token)['jalan'])->first();
+    auth()->login($user);
+
+    request()->attributes->set('sandbox_tab', ['ruang' => false, 'token' => $token, 'jalan' => SesiTab::cari($token)['jalan']]);
+
+    expect(app(RuangSimulasi::class)->tabContohTerisiSaatIni())->toBeTrue();
+
+    KeluarAction::lakukanLogout();
+
+    expect(auth()->check())->toBeTrue()
+        ->and(SesiTab::cari($token))->not->toBeNull();
+});
+
+it('tab ruang bertoken dan akun data inti tidak dianggap contoh terisi', function () {
+    request()->attributes->set('sandbox_tab', ['ruang' => true, 'token' => 'x', 'jalan' => 'y']);
+    expect(app(RuangSimulasi::class)->tabContohTerisiSaatIni())->toBeFalse();
+
+    request()->attributes->remove('sandbox_tab');
+    expect(app(RuangSimulasi::class)->tabContohTerisiSaatIni())->toBeFalse();
 });

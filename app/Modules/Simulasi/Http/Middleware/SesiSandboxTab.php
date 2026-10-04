@@ -31,8 +31,11 @@ use Symfony\Component\HttpFoundation\Response;
  *    alamat AJAX Livewire kehilangan awalan tab. Alamat itu dipulihkan pada
  *    HTML keluaran. Tanpa ini AJAX tab mengirim cookie tab lain.
  *
- * Token yang tidak dikenal (kedaluwarsa atau ngawur) ditolak 404 SEBELUM sesi
- * dimulai, jadi tidak ada cookie yatim yang tercipta dari tebakan token.
+ * Tab yang sudah habis (token kedaluwarsa atau ngawur, peran ruang dilepas,
+ * atau sesi login tab berakhir) dijawab halaman "sesi simulasi berakhir" (410)
+ * yang hanya mengarah ke Panduan, tidak pernah ke halaman login: login di dalam
+ * tab tidak bermakna, akunnya pinjaman. Token yang tidak dikenal dijawab
+ * SEBELUM sesi dimulai, jadi tidak ada cookie yatim dari tebakan token.
  *
  * Harus berjalan sebelum StartSession (grup web) tetapi sesudah TrustProxies;
  * karena itu didaftarkan sebagai middleware global di akhir tumpukan global.
@@ -49,21 +52,32 @@ class SesiSandboxTab
 
         $token = $cocok[1];
         $catatan = SesiTab::cari($token);
-
-        abort_if($catatan === null, 404);
-
         $asal = $this->asalAplikasi($request);
+        $sisaPath = $cocok[2] ?? '';
+
+        if ($catatan === null || $sisaPath === '/login') {
+            return $this->sesiHabis($asal);
+        }
+
         $awalan = '/s/'.$token;
+
+        // Contoh terisi bersama tidak boleh keluar, termasuk lewat POST langsung ke
+        // /logout (mis. tombol di halaman galat). Dialihkan ke dasbor tab itu.
+        if (! ($catatan['ruang'] ?? false) && $request->isMethod('POST') && $sisaPath === '/logout') {
+            return redirect()->to($asal['origin'].$awalan.'/dashboard');
+        }
 
         $this->jadikanBaseUrl($request, $awalan);
         $this->pisahkanSesi($token, $asal, $awalan);
 
         // Tab ruang bertoken hanya hidup selama ia memegang perannya. Peran yang
-        // dilepas, direbut setelah sewanya habis, atau ruangnya dihapus berarti 404.
+        // dilepas, direbut setelah sewanya habis, atau ruangnya dihapus berarti habis.
         // WAJIB sesudah pisahkanSesi(): query ini melewati pagar HanyaBaca yang
         // memanggil guard auth, dan guard yang terpanggil sebelum cookie tab
         // dipasang akan terikat ke sesi yang salah (hasilnya: dilempar ke login).
-        abort_if(($catatan['ruang'] ?? false) && ! app(RuangSimulasi::class)->masihPemegang($token), 404);
+        if (($catatan['ruang'] ?? false) && ! app(RuangSimulasi::class)->masihPemegang($token)) {
+            return $this->sesiHabis($asal);
+        }
 
         SesiTab::sentuh($token, $catatan);
 
@@ -79,7 +93,37 @@ class SesiSandboxTab
             }
         });
 
-        return $next($request);
+        $respons = $next($request);
+
+        // Sesi login tab berakhir lebih dulu daripada catatan tabnya (umur sesi
+        // lebih pendek): halaman biasa dialihkan Filament ke login, AJAX Livewire
+        // mendapat 401/419. Di dalam tab keduanya berarti latihannya sudah habis.
+        return $this->tandaSesiHabis($respons) ? $this->sesiHabis($asal) : $respons;
+    }
+
+    /**
+     * @param  array{origin: string, path: string}  $asal
+     */
+    private function sesiHabis(array $asal): Response
+    {
+        return response()
+            ->view('errors.sesi-simulasi-habis', ['urlPanduan' => $asal['origin'].'/panduan'], 410)
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    private function tandaSesiHabis(Response $respons): bool
+    {
+        if (in_array($respons->getStatusCode(), [401, 419], true)) {
+            return true;
+        }
+
+        if (! $respons->isRedirection()) {
+            return false;
+        }
+
+        $path = (string) parse_url((string) $respons->headers->get('Location'), PHP_URL_PATH);
+
+        return str_ends_with($path, '/login');
     }
 
     /**

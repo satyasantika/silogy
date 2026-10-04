@@ -261,7 +261,7 @@ it('menutup tab tanpa menekan Keluar tidak melepas peran, tetapi sewa yang habis
         ->and(app(RuangSimulasi::class)->masihPemegang($tabBaru))->toBeTrue();
 });
 
-it('tab yang perannya sudah direbut mendapat 404, dan tab pemegang baru tetap hidup', function () {
+it('tab yang perannya sudah direbut mendapat halaman sesi berakhir, dan tab pemegang baru tetap hidup', function () {
     $ruang = ruangBaru();
     $lama = pilihPeran($ruang, 'dosen-pengampu');
     SimulasiPeranTerisi::query()->update(['terakhir_aktif_pada' => now()->subHour()]);
@@ -269,7 +269,7 @@ it('tab yang perannya sudah direbut mendapat 404, dan tab pemegang baru tetap hi
 
     URL::forceRootUrl(null);
     URL::useAssetOrigin(null);
-    $this->get('http://localhost/s/'.$lama.'/simulasi/masuk')->assertNotFound();
+    $this->get('http://localhost/s/'.$lama.'/simulasi/masuk')->assertStatus(410);
 
     URL::forceRootUrl(null);
     URL::useAssetOrigin(null);
