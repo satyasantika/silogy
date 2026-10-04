@@ -411,6 +411,7 @@
         .panduan-desc { color: var(--c-muted); font-size: .86rem; line-height: 1.6; margin-top: .3rem; }
 
         .footer-c { width: min(1200px,92%); margin: 0 auto; padding: 4rem 0 2.5rem; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.6rem; }
+        .fb .logo { color: #fff; }
         .fb p { color: var(--tws); font-size: .87rem; line-height: 1.72; margin-top: .9rem; max-width: 290px; }
         .fb-line { display: flex; align-items: center; gap: .5rem; color: var(--twss); font-size: .82rem; margin-top: .8rem; }
         .fb-line i { color: var(--g600); }

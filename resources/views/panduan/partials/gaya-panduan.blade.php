@@ -108,6 +108,10 @@
        oleh renderer), rata kiri, dan tak lebih tinggi dari satu layar. */
     .pd-gbr-tegak .pd-bingkai { margin-right: auto; }
     @media (max-width: 640px) { .pd-gbr-tegak .pd-bingkai { max-width: 140px !important; } }
+    /* Gambar di dalam butir daftar bernomor ikut menjorok 22px sehingga lebih sempit
+       dari gambar di luar daftar. Bingkainya ditarik kembali ke tepi kolom isi. */
+    .pd-isi li > .pd-gbr:not(.pd-gbr-tegak) { margin-left: -22px; }
+    .pd-isi li li > .pd-gbr:not(.pd-gbr-tegak) { margin-left: -44px; }
     .pd-gbr figcaption { margin-top: 9px; font-size: .86rem; color: var(--c-muted); font-style: italic; }
 
     /* Badge memakai persen terhadap kotak gambar — kotak itu persis selebar dan
@@ -138,6 +142,9 @@
         display: block; padding: 22px; border-radius: var(--R); background: var(--c-card);
         border: 1px solid var(--c-card-border); transition: none;
     }
+    /* Kartu berada di dalam .pd-isi: tanpa ini ia mewarisi garis bawah dan warna tautan isi. */
+    .pd-isi a.pd-kartu { text-decoration: none; color: inherit; }
+    .pd-isi a.pd-kartu p { color: var(--c-muted); }
     .pd-kartu:hover { border-color: var(--c-card-hover-border); box-shadow: 0 6px 20px var(--c-shadow); }
     .pd-kartu i { font-size: 1.5rem; color: var(--g500); }
     .pd-kartu h3 { font-family: 'Nunito', sans-serif; font-size: 1.1rem; color: var(--c-text); margin: 10px 0 6px; }
