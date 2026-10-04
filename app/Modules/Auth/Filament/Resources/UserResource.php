@@ -405,6 +405,10 @@ class UserResource extends Resource
                 Impersonate::make()
                     ->iconButton()
                     ->tooltip('Peniruan')
+                    ->requiresConfirmation()
+                    ->modalHeading('Impersonate pengguna ini?')
+                    ->modalDescription(fn (User $record): string => "Tindakan ini akan masuk sebagai {$record->full_name} ({$record->username}). Semua aktivitas Anda selanjutnya tercatat sebagai pengguna tersebut sampai Anda memilih \"Tinggalkan impersonate\".")
+                    ->modalSubmitActionLabel('Lanjutkan')
                     // Closure (bukan string statis) supaya bisa membersihkan sisa
                     // peran/unit sesi admin sebelumnya dan mengarahkan ke gerbang
                     // Pilih Peran & Unit bila target multi-role — lihat

@@ -53,7 +53,12 @@ it('mengimpersonate dari halaman edit user menyimpan URL halaman (referer), buka
 
     $csrfToken = session()->token();
 
-    $payload = [
+    // Action ini sekarang ->requiresConfirmation(): mountAction hanya
+    // membuka modal konfirmasi, eksekusi sungguhan menunggu
+    // callMountedAction (user klik "Lanjutkan"). Dua panggilan ini
+    // mensimulasikan satu siklus request browser yang sama (snapshot
+    // di-refresh antar panggilan via respons pertama).
+    $mountPayload = [
         '_token' => $csrfToken,
         'components' => [
             [
@@ -66,11 +71,33 @@ it('mengimpersonate dari halaman edit user menyimpan URL halaman (referer), buka
         ],
     ];
 
+    $mountResponse = $this->withHeaders([
+        'X-Livewire' => '',
+        'X-CSRF-TOKEN' => $csrfToken,
+        'Referer' => $editUrl,
+    ])->postJson('/livewire/update', $mountPayload);
+
+    $mountedSnapshot = $mountResponse->json('components.0.snapshot');
+    expect($mountedSnapshot)->not->toBeNull();
+
+    $callPayload = [
+        '_token' => $csrfToken,
+        'components' => [
+            [
+                'snapshot' => $mountedSnapshot,
+                'updates' => [],
+                'calls' => [
+                    ['path' => '', 'method' => 'callMountedAction', 'params' => []],
+                ],
+            ],
+        ],
+    ];
+
     $this->withHeaders([
         'X-Livewire' => '',
         'X-CSRF-TOKEN' => $csrfToken,
         'Referer' => $editUrl,
-    ])->postJson('/livewire/update', $payload);
+    ])->postJson('/livewire/update', $callPayload);
 
     $backTo = session('impersonate.back_to');
 
