@@ -72,7 +72,47 @@ class SimulasiAkademikBuilder
         $this->mkProdi = array_slice($this->mkProdi, 0, max(1, min($jumlahMk, self::MAKS_MK)), true);
     }
 
-    public function seedProdi(AcademicUnit $prodi): void
+    /**
+     * Contoh kosong: satu kurikulum aktif tanpa isi dan satu MK yang Koordinatornya
+     * sudah ditetapkan. Profil lulusan, CPL, BoK, penawaran MK, CPMK, kelas, dan
+     * nilai sengaja tidak ada; pengunjung mengisinya sendiri bersama peran lain.
+     */
+    public function seedProdiKosong(AcademicUnit $prodi): void
+    {
+        $kurikulum = Kurikulum::query()->firstOrCreate(
+            ['academic_unit_id' => $prodi->id, 'kode' => 'SIM-'.($prodi->code ?? 'PRODI').'-2025'],
+            [
+                'id' => (string) Str::uuid(),
+                'nama' => 'Kurikulum Simulasi 2025',
+                'tahun' => 2025,
+                'target_capaian_lulusan' => 75,
+                'deskripsi' => 'Kurikulum kosong untuk latihan pengisian dari awal',
+                'is_active' => true,
+                'dibuat_oleh' => $this->timkur->id,
+            ],
+        );
+
+        Mk::query()->firstOrCreate(
+            ['kurikulum_id' => $kurikulum->id, 'nama' => 'Kalkulus I'],
+            [
+                'id' => (string) Str::uuid(),
+                'academic_unit_id' => $prodi->id,
+                'state' => 'draft',
+                'koordinator_mk_id' => $this->korma->id,
+                'sks_teori' => 2,
+                'sks_praktik' => 1,
+                'sks_lapangan' => 0,
+                'sks' => 3,
+                'jenis' => 'wajib',
+                'is_active' => true,
+            ],
+        );
+    }
+
+    /**
+     * @param  bool  $agregasiInduk  false pada sandbox simulasi: induk prodi hanya wadah kosong
+     */
+    public function seedProdi(AcademicUnit $prodi, bool $agregasiInduk = true): void
     {
         if ($this->sudahAdaHasilCpl($prodi)) {
             return;
@@ -101,7 +141,10 @@ class SimulasiAkademikBuilder
         }
 
         $this->jalankanKalkulasi($kelasCollection, $prodi);
-        $this->agregasiInduk($prodi);
+
+        if ($agregasiInduk) {
+            $this->agregasiInduk($prodi);
+        }
     }
 
     /**

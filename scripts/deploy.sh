@@ -44,6 +44,15 @@ health_url() {
   echo "http://${mapped}/health"
 }
 
+# Memastikan contoh terisi (salinan bersama hanya-baca) sudah ada, supaya tidak
+# pernah dibangun saat pengunjung menunggu. Gagal di sini TIDAK menggagalkan
+# deploy: penjadwal (simulasi:kolam, tiap 5 menit) akan mencoba lagi.
+siapkan_contoh_simulasi() {
+  log "menyiapkan contoh simulasi (kolam + contoh terisi)"
+  "${COMPOSE[@]}" exec -T app php artisan simulasi:kolam \
+    || log "PERINGATAN: simulasi:kolam gagal; penjadwal akan mengulang"
+}
+
 wait_health() {
   local url attempt
   url="$(health_url)"
@@ -159,6 +168,8 @@ main() {
   "${COMPOSE[@]}" up -d --remove-orphans
 
   wait_health
+
+  siapkan_contoh_simulasi
 
   prune_images
 

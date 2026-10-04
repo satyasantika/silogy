@@ -13,7 +13,7 @@ class SimulasiKolam extends Command
 {
     protected $signature = 'simulasi:kolam';
 
-    protected $description = 'Bersihkan sandbox kedaluwarsa dan isi kolam sandbox siap-pakai';
+    protected $description = 'Bersihkan sandbox kedaluwarsa, isi kolam contoh kosong, dan pastikan contoh terisi bersama ada';
 
     public function handle(SimulasiService $simulasi): int
     {
@@ -24,7 +24,11 @@ class SimulasiKolam extends Command
         $dibuang = $simulasi->bersihkanKedaluwarsa();
         $dibuat = $simulasi->isiKolam();
 
-        $this->components->info("Dibuang: {$dibuang}, dibuat: {$dibuat}.");
+        // Contoh terisi bersama harus selalu ada; bila belum, dibangun di sini
+        // (di luar permintaan pengunjung).
+        $adaTerisi = $simulasi->contohTerisi() !== null;
+
+        $this->components->info("Dibuang: {$dibuang}, dibuat: {$dibuat}, contoh terisi: ".($adaTerisi ? 'ada' : 'belum ada').'.');
 
         return self::SUCCESS;
     }

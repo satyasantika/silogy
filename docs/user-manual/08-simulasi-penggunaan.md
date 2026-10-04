@@ -145,14 +145,30 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 ## Dua cara mencoba di ruang latihan
 
-Pada halaman panduan, setiap peran pengisi (Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu) menawarkan dua pilihan. Keduanya memakai data simulasi milik Anda sendiri, bukan data yang sesungguhnya.
+Simulasi hanya tersedia di tingkat **Program Studi**. Panduan tingkat Universitas dan Fakultas tetap dapat dibaca di halaman panduan, tetapi tombol cobanya diganti keterangan bahwa simulasi difokuskan pada Program Studi.
 
-| Pilihan | Isi data | Dipakai untuk |
-|---|---|---|
-| **Lihat contoh terisi** | Kurikulum, CPL, BoK, MK, CPMK, komponen, sampai nilai sudah terisi | Melihat seperti apa hasil akhir tiap menu |
-| **Coba mengisi sendiri** | Hanya unit, akun, dan mahasiswa. Kurikulum sampai nilai kosong | Mengikuti tahap 2 sampai 5 di bawah ini dari awal |
+Pada halaman panduan, setiap peran pengisi (Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu) menawarkan dua pilihan:
 
-Pada contoh kosong, urutan pengisian sama dengan urutan tahap di dokumen ini. Peran hilir menunggu isian peran hulu: Koordinator MK baru bisa menyusun CPMK setelah Tim Kurikulum membuat MK, dan Dosen baru bisa mengisi nilai setelah komponen penilaian tersedia. Buka tiap peran di tab sendiri, lalu kerjakan berurutan.
+| Pilihan | Isi data | Sifat | Dipakai untuk |
+|---|---|---|---|
+| **Lihat contoh terisi** | Satu program studi dengan kurikulum, CPL, BoK, MK, CPMK, komponen, sampai nilai sudah terisi | Satu salinan **dipakai bersama** semua pengunjung dan **hanya dapat dibaca** | Melihat seperti apa hasil akhir tiap menu |
+| **Coba mengisi sendiri** | Satu program studi dengan satu kurikulum kosong dan satu mata kuliah kosong yang Koordinator MK-nya sudah ditetapkan | **Milik Anda sendiri**, dapat diubah | Mengikuti tahap 2 sampai 5 di bawah ini dari awal |
+
+Pimpinan dan Auditor Mutu hanya membaca, sehingga keduanya hanya mendapat contoh terisi.
+
+### Contoh terisi bersifat hanya-baca
+
+Karena dipakai bersama, tombol simpan, ubah, dan hapus dinonaktifkan, dan setiap penulisan ke data akademik ditolak di sisi server. Pencarian, filter, dan pengurutan tabel tetap bekerja. Untuk berlatih mengisi, gunakan **Coba mengisi sendiri**.
+
+### Urutan pada contoh kosong
+
+Kurikulum dan satu mata kuliah sudah tersedia, dan Koordinator MK sudah ditetapkan, sehingga tidak ada peran yang menunggu pembuatan kurikulum. Urutan kerjanya:
+
+1. **Tim Kurikulum** menyusun CPL, BoK, dan pemetaannya.
+2. **Koordinator MK** memilih MK-nya, lalu menyusun CPMK, Sub-CPMK, dan asesmen. **Admin Program Studi** secara paralel menawarkan MK, membuka kelas, dan memasukkan peserta.
+3. **Dosen Pengampu** mengisi nilai setelah asesmen siap dan kelas punya peserta.
+
+Buka tiap peran di tab sendiri, lalu kerjakan berurutan.
 
 ### Keterangan "menunggu peran hulu"
 
@@ -174,11 +190,13 @@ Pimpinan dan Auditor Mutu hanya membaca, sehingga keduanya hanya menyediakan con
 
 Contoh terisi dan contoh kosong adalah dua ruang terpisah. Mengisi di contoh kosong tidak mengubah contoh terisi.
 
+Contoh kosong disiapkan dari kolam siap-pakai sehingga biasanya terbuka dalam beberapa detik. Bila kolam sedang kosong, contoh dibangun saat Anda menunggu (sekitar 4 detik). Contoh yang tidak dipakai selama 120 menit dibuang otomatis.
+
 ---
 
 ## Daftar periksa keberhasilan simulasi
 
-- [ ] Hirarki Universitas→Fakultas→Jurusan→Prodi terbentuk
+- [ ] Hirarki Universitas→Fakultas→Jurusan→Prodi terbentuk (pada data inti; sandbox simulasi hanya memuat satu Prodi)
 - [ ] Semester aktif tersedia
 - [ ] Akun tiap role dibuat dan ditugaskan ke unit yang benar
 - [ ] Kurikulum: Profil Lulusan, CPL, BoK, MK, MK Unit lengkap & terpetakan

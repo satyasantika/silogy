@@ -91,9 +91,15 @@ final class PeranPanduan
      * Kunci akun simulasi untuk tombol "Coba sebagai ‹peran›" pada tingkat
      * tertentu, bila ada. Username sebenarnya ditambah akhiran sandbox.
      */
-    public static function akunUntuk(string $slug, string $level = 'prodi'): ?string
+    public static function akunUntuk(string $slug, string $level = AkunSimulasi::LEVEL_SIMULASI): ?string
     {
         return AkunSimulasi::akunPanduan()[$slug][$level] ?? null;
+    }
+
+    /** Apakah tingkat ini punya simulasi (hanya Program Studi). */
+    public static function levelBisaDicoba(string $level): bool
+    {
+        return $level === AkunSimulasi::LEVEL_SIMULASI;
     }
 
     /**

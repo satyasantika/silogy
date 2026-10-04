@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  *
  * @property Carbon|null $terakhir_aktif_pada
  * @property string $mode
+ * @property bool $bersama
  * @property int $jumlah_mk
  */
 class SimulasiJalan extends Model
@@ -38,7 +39,7 @@ class SimulasiJalan extends Model
     /** Kurikulum sampai nilai sudah terisi: contoh hasil akhir. */
     public const MODE_TERISI = 'terisi';
 
-    /** Hanya unit, akun, dan mahasiswa: pengunjung mengisi sendiri. */
+    /** Satu prodi dengan satu kurikulum dan satu MK kosong: pengunjung mengisi sendiri. */
     public const MODE_KOSONG = 'kosong';
 
     /** @var list<string> */
@@ -56,6 +57,7 @@ class SimulasiJalan extends Model
     {
         return [
             'coba_peran' => 'boolean',
+            'bersama' => 'boolean',
             'ringkasan' => 'array',
             'peringatan' => 'array',
             'mulai_pada' => 'datetime',
@@ -89,7 +91,19 @@ class SimulasiJalan extends Model
     {
         return $query->where('status', self::STATUS_SELESAI)
             ->whereNull('pengunjung')
+            ->where('bersama', false)
             ->when($mode !== null, fn (Builder $q) => $q->where('mode', $mode));
+    }
+
+    /**
+     * Contoh terisi bersama: satu salinan hanya-baca untuk semua pengunjung.
+     *
+     * @param  Builder<SimulasiJalan>  $query
+     * @return Builder<SimulasiJalan>
+     */
+    public function scopeBersama(Builder $query): Builder
+    {
+        return $query->where('bersama', true);
     }
 
     /**

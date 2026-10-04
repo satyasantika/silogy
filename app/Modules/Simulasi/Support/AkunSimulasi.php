@@ -5,8 +5,10 @@ namespace App\Modules\Simulasi\Support;
 /**
  * Definisi akun dan unit milik satu sandbox simulasi.
  *
- * Setiap sandbox memiliki pohon unit (Universitas → Fakultas → Prodi Simulasi)
- * dan akun sendiri. Agar kolom unik (username, email, nidn, kode_pddikti, nim)
+ * Simulasi dipusatkan pada tingkat Program Studi. Setiap sandbox memiliki satu
+ * prodi simulasi beserta akun sendiri. Prodi tidak boleh tanpa induk, sehingga
+ * fakultas dan universitas dibuatkan sebagai wadah kosong (tanpa akun, tanpa
+ * data akademik); pengunjung tidak pernah melihat atau mengurusnya. Agar kolom unik (username, email, nidn, kode_pddikti, nim)
  * tidak pernah bentrok antarsandbox maupun dengan data inti, semua identitas
  * diberi akhiran `kode` yang diturunkan dari ID sandbox. Akhiran itu pula
  * yang menghapus penyebab utama kegagalan bangun-ulang: sisa data dari
@@ -24,7 +26,10 @@ final class AkunSimulasi
 
     public const AWALAN_KODE_UNIT = 'SIM-';
 
-    /** @var array<string, string> */
+    /** Tingkat yang punya simulasi. Tingkat lain hanya punya panduan. */
+    public const LEVEL_SIMULASI = 'prodi';
+
+    /** @var array<string, string> panduan dibaca per tingkat; simulasi hanya untuk LEVEL_SIMULASI */
     public const LEVEL = [
         'univ' => 'Universitas',
         'fak' => 'Fakultas',
@@ -69,42 +74,25 @@ final class AkunSimulasi
     }
 
     /**
-     * Enam peran × tiga tingkat. Kuncinya adalah nama dasar; username nyata
-     * ditambah akhiran sandbox lewat username().
+     * Enam peran pada tingkat Program Studi. Kuncinya adalah nama dasar;
+     * username nyata ditambah akhiran sandbox lewat username().
      *
      * @return array<string, array{nama: string, peran: string, unit: string, jabatan: string, pimpinan: bool, tim_kurikulum: bool}>
      */
     public static function akun(): array
     {
-        $buat = static fn (string $nama, string $peran, string $unit, string $jabatan, bool $pimpinan = false, bool $timKurikulum = false): array => [
-            'nama' => $nama, 'peran' => $peran, 'unit' => $unit, 'jabatan' => $jabatan,
+        $buat = static fn (string $nama, string $peran, string $jabatan, bool $pimpinan = false, bool $timKurikulum = false): array => [
+            'nama' => $nama, 'peran' => $peran, 'unit' => 'prodi', 'jabatan' => $jabatan,
             'pimpinan' => $pimpinan, 'tim_kurikulum' => $timKurikulum,
         ];
 
         return [
-            'sim-adminuniv' => $buat('Admin Universitas (Simulasi)', 'Admin', 'univ', 'Admin Universitas'),
-            'sim-adminfak' => $buat('Admin Fakultas (Simulasi)', 'Admin', 'fak', 'Admin Fakultas'),
-            'sim-adminprodi' => $buat('Admin Program Studi (Simulasi)', 'Admin', 'prodi', 'Admin Program Studi'),
-
-            'sim-timkuruniv' => $buat('Tim Kurikulum Universitas (Simulasi)', 'Tim Kurikulum', 'univ', 'Tim Kurikulum', timKurikulum: true),
-            'sim-timkurfak' => $buat('Tim Kurikulum Fakultas (Simulasi)', 'Tim Kurikulum', 'fak', 'Tim Kurikulum', timKurikulum: true),
-            'sim-timkur' => $buat('Tim Kurikulum Program Studi (Simulasi)', 'Tim Kurikulum', 'prodi', 'Tim Kurikulum', timKurikulum: true),
-
-            'sim-kormauniv' => $buat('Koordinator MK Universitas (Simulasi)', 'Koordinator Mata Kuliah', 'univ', 'Koordinator MK'),
-            'sim-kormafak' => $buat('Koordinator MK Fakultas (Simulasi)', 'Koordinator Mata Kuliah', 'fak', 'Koordinator MK'),
-            'sim-korma' => $buat('Koordinator MK Program Studi (Simulasi)', 'Koordinator Mata Kuliah', 'prodi', 'Koordinator MK'),
-
-            'sim-dosenuniv' => $buat('Dosen Pengampu Universitas (Simulasi)', 'Dosen Pengampu', 'univ', 'Dosen'),
-            'sim-dosenfak' => $buat('Dosen Pengampu Fakultas (Simulasi)', 'Dosen Pengampu', 'fak', 'Dosen'),
-            'sim-dosen' => $buat('Dosen Pengampu Program Studi (Simulasi)', 'Dosen Pengampu', 'prodi', 'Dosen'),
-
-            'sim-rektor' => $buat('Rektor (Simulasi)', 'Pimpinan', 'univ', 'Rektor', pimpinan: true),
-            'sim-dekan' => $buat('Dekan (Simulasi)', 'Pimpinan', 'fak', 'Dekan', pimpinan: true),
-            'sim-kaprodi' => $buat('Ketua Program Studi (Simulasi)', 'Pimpinan', 'prodi', 'Ketua Program Studi', pimpinan: true),
-
-            'sim-auditoruniv' => $buat('Auditor Mutu Universitas (Simulasi)', 'Auditor Mutu', 'univ', 'Auditor Mutu'),
-            'sim-auditorfak' => $buat('Auditor Mutu Fakultas (Simulasi)', 'Auditor Mutu', 'fak', 'Auditor Mutu'),
-            'sim-auditor' => $buat('Auditor Mutu Program Studi (Simulasi)', 'Auditor Mutu', 'prodi', 'Auditor Mutu'),
+            'sim-adminprodi' => $buat('Admin Program Studi (Simulasi)', 'Admin', 'Admin Program Studi'),
+            'sim-timkur' => $buat('Tim Kurikulum Program Studi (Simulasi)', 'Tim Kurikulum', 'Tim Kurikulum', timKurikulum: true),
+            'sim-korma' => $buat('Koordinator MK Program Studi (Simulasi)', 'Koordinator Mata Kuliah', 'Koordinator MK'),
+            'sim-dosen' => $buat('Dosen Pengampu Program Studi (Simulasi)', 'Dosen Pengampu', 'Dosen'),
+            'sim-kaprodi' => $buat('Ketua Program Studi (Simulasi)', 'Pimpinan', 'Ketua Program Studi', pimpinan: true),
+            'sim-auditor' => $buat('Auditor Mutu Program Studi (Simulasi)', 'Auditor Mutu', 'Auditor Mutu'),
         ];
     }
 
@@ -141,6 +129,8 @@ final class AkunSimulasi
 
     /**
      * Peta tombol "Coba sebagai ‹peran›": slug panduan → tingkat → kunci akun.
+     * Hanya tingkat Program Studi yang punya simulasi; panduan tingkat lain
+     * tetap dibaca tanpa tombol coba.
      * Tanpa 'super-admin': jalur masuk tanpa kata sandi tidak boleh pernah
      * mencapai peran itu, terlepas dari apakah slugnya ditampilkan atau tidak.
      *
@@ -148,17 +138,13 @@ final class AkunSimulasi
      */
     public static function akunPanduan(): array
     {
-        $petakan = static function (array $kunciPerLevel): array {
-            return $kunciPerLevel;
-        };
-
         return [
-            'admin-unit' => $petakan(['univ' => 'sim-adminuniv', 'fak' => 'sim-adminfak', 'prodi' => 'sim-adminprodi']),
-            'tim-kurikulum' => $petakan(['univ' => 'sim-timkuruniv', 'fak' => 'sim-timkurfak', 'prodi' => 'sim-timkur']),
-            'koordinator-mk' => $petakan(['univ' => 'sim-kormauniv', 'fak' => 'sim-kormafak', 'prodi' => 'sim-korma']),
-            'dosen-pengampu' => $petakan(['univ' => 'sim-dosenuniv', 'fak' => 'sim-dosenfak', 'prodi' => 'sim-dosen']),
-            'pimpinan' => $petakan(['univ' => 'sim-rektor', 'fak' => 'sim-dekan', 'prodi' => 'sim-kaprodi']),
-            'auditor-mutu' => $petakan(['univ' => 'sim-auditoruniv', 'fak' => 'sim-auditorfak', 'prodi' => 'sim-auditor']),
+            'admin-unit' => ['prodi' => 'sim-adminprodi'],
+            'tim-kurikulum' => ['prodi' => 'sim-timkur'],
+            'koordinator-mk' => ['prodi' => 'sim-korma'],
+            'dosen-pengampu' => ['prodi' => 'sim-dosen'],
+            'pimpinan' => ['prodi' => 'sim-kaprodi'],
+            'auditor-mutu' => ['prodi' => 'sim-auditor'],
         ];
     }
 }

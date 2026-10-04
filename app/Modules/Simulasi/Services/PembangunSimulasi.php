@@ -18,6 +18,7 @@ use App\Modules\Simulasi\Support\Ranah;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\Support\SimulasiAkademikBuilder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -30,8 +31,9 @@ use Illuminate\Support\Str;
  * pembangunan deterministik: tidak ada sisa data dari percobaan lain yang
  * bisa terpungut, dan tidak ada data inti yang bisa tersentuh.
  *
- * Yang DIMILIKI sandbox: pohon unit SIM-*, akun sim-*, mahasiswa prodi
- * simulasi, dan seluruh rantai OBE di atasnya.
+ * Yang DIMILIKI sandbox: satu prodi SIM-* beserta dua induknya yang kosong
+ * (fakultas dan universitas, hanya agar prodi tidak tanpa induk), akun sim-*,
+ * dan, pada contoh terisi, mahasiswa serta seluruh rantai OBE di atasnya.
  *
  * Yang DIPINJAM (dipakai, tidak pernah dihapus): peran, izin, master evaluasi,
  * dan semester. Seluruh foreign key ke `semesters` bersifat RESTRICT, jadi
@@ -54,20 +56,19 @@ class PembangunSimulasi
         $dasar = [
             ['label' => 'Menyiapkan peran dan izin', 'keterangan' => 'Memastikan peran dan izin akses tersedia.'],
             ['label' => 'Menyiapkan master evaluasi', 'keterangan' => 'Menyiapkan jenis evaluasi (tugas, UTS, UAS, dan sejenisnya).'],
-            ['label' => 'Membangun pohon unit simulasi', 'keterangan' => 'Membuat Universitas → Fakultas → Program Studi Simulasi.'],
-            ['label' => 'Membuat akun simulasi', 'keterangan' => 'Membuat 18 akun (6 peran × 3 tingkat) beserta penugasannya.'],
+            ['label' => 'Membangun program studi simulasi', 'keterangan' => 'Membuat Program Studi Simulasi beserta induknya yang kosong.'],
+            ['label' => 'Membuat akun simulasi', 'keterangan' => 'Membuat 6 akun (satu per peran) beserta penugasannya.'],
             ['label' => 'Membuat mahasiswa simulasi', 'keterangan' => 'Membuat '.self::JUMLAH_MAHASISWA.' mahasiswa contoh di program studi simulasi.'],
         ];
 
         if ($mode === SimulasiJalan::MODE_KOSONG) {
-            return $dasar;
+            return [...$dasar,
+                ['label' => 'Membuat kurikulum dan satu mata kuliah kosong', 'keterangan' => 'Satu kurikulum tanpa isi dan satu mata kuliah yang Koordinatornya sudah ditetapkan.'],
+            ];
         }
 
         return [...$dasar,
             ['label' => 'Membangun rantai OBE prodi simulasi', 'keterangan' => 'Kurikulum, profil lulusan, CPL, BoK, MK prodi, CPMK, Sub-CPMK, asesmen, kelas, sampai nilai.'],
-            ['label' => 'Membangun MK tingkat universitas', 'keterangan' => 'Satu MK milik universitas beserta kelas dan nilainya.'],
-            ['label' => 'Membangun MK tingkat fakultas', 'keterangan' => 'Satu MK milik fakultas beserta kelas dan nilainya.'],
-            ['label' => 'Menyiapkan adaptasi lintas unit', 'keterangan' => 'Prodi mengadaptasi MK universitas dan fakultas.'],
             ['label' => 'Mengajukan satu usulan perubahan CPMK', 'keterangan' => 'Satu usulan dari Koordinator MK untuk ditinjau Tim Kurikulum.'],
         ];
     }
@@ -90,16 +91,24 @@ class PembangunSimulasi
         $kode = $jalan->kode();
         $lapor ??= static fn (string $langkah): null => null;
 
+        // Peran, izin, dan master evaluasi bersifat global (bukan milik sandbox) dan
+        // dibuat dengan firstOrCreate. Dua sandbox yang dibangun bersamaan pada
+        // basis data yang belum memilikinya akan sama-sama menyisipkan baris yang
+        // sama sehingga salah satunya gagal karena kunci ganda; maka diserialkan.
         $lapor('Menyiapkan peran dan izin');
-        RolePermissionSeeder::seedPeranDanIzin();
+        Cache::lock('simulasi:siapkan-global', 120)->block(120, static function (): void {
+            RolePermissionSeeder::seedPeranDanIzin();
+        });
 
         $lapor('Menyiapkan master evaluasi');
-        $this->pastikanEvaluasi();
+        Cache::lock('simulasi:siapkan-global', 120)->block(120, function (): void {
+            $this->pastikanEvaluasi();
+        });
 
         $semester = $this->semesterAktif();
         $jalan->forceFill(['semester_id' => $semester->getKey()])->save();
 
-        $lapor('Membangun pohon unit simulasi');
+        $lapor('Membangun program studi simulasi');
         $unit = $this->buatUnit($kode);
 
         $lapor('Membuat akun simulasi');
@@ -107,12 +116,6 @@ class PembangunSimulasi
 
         $lapor('Membuat mahasiswa simulasi');
         $this->buatMahasiswa($unit['prodi'], $kode);
-
-        // Mode kosong berhenti di sini: unit, akun, dan mahasiswa sudah ada,
-        // sedangkan kurikulum sampai nilai diisi sendiri oleh pengunjung.
-        if ($jalan->kosong()) {
-            return ['unit' => $unit, 'akun' => $akun, 'semester' => $semester];
-        }
 
         $builder = new SimulasiAkademikBuilder(
             semester: $semester,
@@ -122,32 +125,17 @@ class PembangunSimulasi
             jumlahMk: (int) $jalan->jumlah_mk,
         );
 
+        // Contoh kosong: satu kurikulum dan satu MK saja. Mahasiswa tetap ada supaya
+        // langkah peserta kelas bisa dilatih; selebihnya diisi pengunjung.
+        if ($jalan->kosong()) {
+            $lapor('Membuat kurikulum dan satu mata kuliah kosong');
+            $builder->seedProdiKosong($unit['prodi']);
+
+            return ['unit' => $unit, 'akun' => $akun, 'semester' => $semester];
+        }
+
         $lapor('Membangun rantai OBE prodi simulasi');
-        $builder->seedProdi($unit['prodi']);
-
-        $lapor('Membangun MK tingkat universitas');
-        $builder->seedMkUnitRingkas([
-            'unit' => $unit['univ'],
-            'kode' => 'UNV101',
-            'nama' => 'Pendidikan Pancasila (Simulasi)',
-            'dosen' => $akun['sim-dosenuniv'],
-            'koordinator' => $akun['sim-kormauniv'],
-            'prodi_sumber' => $unit['prodi'],
-        ]);
-
-        $lapor('Membangun MK tingkat fakultas');
-        $builder->seedMkUnitRingkas([
-            'unit' => $unit['fak'],
-            'kode' => 'FAK101',
-            'nama' => 'Metodologi Penelitian Pendidikan (Simulasi)',
-            'dosen' => $akun['sim-dosenfak'],
-            'koordinator' => $akun['sim-kormafak'],
-            'prodi_sumber' => $unit['prodi'],
-        ]);
-
-        $lapor('Menyiapkan adaptasi lintas unit');
-        $builder->seedAdaptasiLintasUnit($unit['prodi'], $unit['univ'], 'UNV101', 'CPL-ADAPT-UNIV', 'BOK-ADAPT-UNIV');
-        $builder->seedAdaptasiLintasUnit($unit['prodi'], $unit['fak'], 'FAK101', 'CPL-ADAPT-FAK', 'BOK-ADAPT-FAK');
+        $builder->seedProdi($unit['prodi'], agregasiInduk: false);
 
         $lapor('Mengajukan satu usulan perubahan CPMK');
         $this->buatUsulanPerubahanCpmk($unit['prodi'], $semester, $akun['sim-korma']);

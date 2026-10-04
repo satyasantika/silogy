@@ -56,21 +56,25 @@ class SimulasiService
     }
 
     /**
-     * Sandbox milik pengunjung ini pada mode tertentu: yang sudah ia punya,
-     * atau satu dari kolam, atau yang dibangun saat itu juga. Null bila
-     * kapasitas penuh. Satu pengunjung dapat memegang dua sandbox sekaligus,
-     * satu per mode, sehingga contoh terisi dan contoh kosong tidak saling
-     * menimpa.
+     * Sandbox untuk pengunjung ini pada mode tertentu. Contoh terisi satu salinan
+     * bersama yang hanya-baca (lihat contohTerisi()); contoh kosong milik
+     * pengunjung sendiri: yang sudah ia punya, atau satu dari kolam, atau yang
+     * dibangun saat itu juga. Null bila kapasitas penuh.
      */
     public function klaim(string $hashPengunjung, string $mode = SimulasiJalan::MODE_TERISI): ?SimulasiJalan
     {
         $mode = $this->mode($mode);
+
+        if ($mode === SimulasiJalan::MODE_TERISI) {
+            return $this->contohTerisi();
+        }
 
         return Cache::lock('sim-klaim:'.$mode.':'.$hashPengunjung, 180)->block(120, function () use ($hashPengunjung, $mode): ?SimulasiJalan {
             $milik = SimulasiJalan::query()
                 ->where('status', SimulasiJalan::STATUS_SELESAI)
                 ->where('pengunjung', $hashPengunjung)
                 ->where('mode', $mode)
+                ->where('bersama', false)
                 ->first();
 
             if ($milik !== null) {
@@ -78,7 +82,7 @@ class SimulasiService
                     return $milik;
                 }
 
-                // Sandbox peninggalan versi lama (akun belum 3 level) tidak bisa
+                // Sandbox peninggalan versi lama (akun belum lengkap) tidak bisa
                 // dipakai masuk. Dibongkar lalu diganti yang baru.
                 $this->hapus($milik);
             }
@@ -102,6 +106,8 @@ class SimulasiService
             } while ($dariKolam === false);
 
             if ($dariKolam !== null) {
+                $this->isiUlangKolamLatar();
+
                 return $dariKolam;
             }
 
@@ -114,7 +120,118 @@ class SimulasiService
     }
 
     /**
-     * Menambah sandbox siap-pakai sampai kolam tiap mode mencapai targetnya.
+     * Contoh terisi bersama: SATU sandbox hanya-baca yang dilihat semua pengunjung.
+     * Dibangun sekali (saat deploy, penjadwal, atau tombol Bangun Ulang) dan tidak
+     * pernah dibangun di dalam permintaan pengunjung kecuali belum ada sama sekali.
+     * Null bila belum ada dan tidak bisa dibangun (kapasitas penuh).
+     */
+    public function contohTerisi(): ?SimulasiJalan
+    {
+        $ada = $this->contohTerisiSiap();
+
+        if ($ada !== null) {
+            return $ada;
+        }
+
+        // Kunci menahan klik serentak supaya tidak lahir dua salinan bersama.
+        return Cache::lock('sim-contoh-terisi', 300)->block(240, function (): ?SimulasiJalan {
+            $ada = $this->contohTerisiSiap();
+
+            if ($ada !== null) {
+                return $ada;
+            }
+
+            // Sudah ada yang sedang dibangun (tombol Siapkan atau penjadwal):
+            // jangan bangun kembar, biarkan pengunjung mencoba lagi sebentar lagi.
+            if ($this->contohTerisiSedangDibangun()) {
+                return null;
+            }
+
+            try {
+                return $this->buat(mode: SimulasiJalan::MODE_TERISI, bersama: true)->jalan;
+            } catch (KapasitasSandboxPenuhException) {
+                return null;
+            }
+        });
+    }
+
+    public function contohTerisiSedangDibangun(): bool
+    {
+        return SimulasiJalan::query()
+            ->bersama()
+            ->where('status', SimulasiJalan::STATUS_BERJALAN)
+            ->where('mulai_pada', '>', now()->subMinutes(30))
+            ->exists();
+    }
+
+    /** Salinan bersama terbaru yang utuh, atau null. */
+    public function contohTerisiSiap(): ?SimulasiJalan
+    {
+        $jalan = SimulasiJalan::query()
+            ->bersama()
+            ->where('status', SimulasiJalan::STATUS_SELESAI)
+            ->orderByDesc('selesai_pada')
+            ->first();
+
+        return $jalan !== null && $this->akunLengkap($jalan) ? $jalan : null;
+    }
+
+    /**
+     * Membangun salinan bersama yang baru. Yang lama tetap melayani sampai yang
+     * baru selesai lalu dibuang oleh selesaikan(), jadi pengunjung tidak pernah
+     * melihat contoh yang hilang.
+     */
+    public function bangunUlangContohTerisi(?callable $lapor = null): SimulasiJalan
+    {
+        return Cache::lock('sim-contoh-terisi', 300)->block(240, function () use ($lapor): SimulasiJalan {
+            return $this->buat(lapor: $lapor, mode: SimulasiJalan::MODE_TERISI, bersama: true)->jalan;
+        });
+    }
+
+    /** Membuang salinan bersama yang lebih lama setelah penggantinya utuh. */
+    private function buangBersamaLama(SimulasiJalan $baru): void
+    {
+        $lama = SimulasiJalan::query()
+            ->bersama()
+            ->masihAda()
+            ->whereKeyNot($baru->getKey())
+            ->where('status', '!=', SimulasiJalan::STATUS_BERJALAN)
+            ->get();
+
+        foreach ($lama as $usang) {
+            try {
+                $this->hapus($usang);
+            } catch (Throwable) {
+                // Tersapu penjadwal bila gagal; salinan baru sudah melayani.
+            }
+        }
+    }
+
+    /**
+     * Menyisihkan kolam contoh kosong dari proses latar sesaat setelah sebuah
+     * sandbox diklaim, supaya klaim berikutnya tidak menunggu penjadwal.
+     */
+    public function isiUlangKolamLatar(): void
+    {
+        if (! config('simulasi.latar_belakang', true)) {
+            return;
+        }
+
+        try {
+            $php = (new PhpExecutableFinder)->find(false) ?: 'php';
+
+            Process::fromShellCommandline(
+                'nohup '.escapeshellarg($php).' artisan simulasi:kolam >> '.escapeshellarg(storage_path('logs/simulasi-latar.log')).' 2>&1 &',
+                base_path(),
+            )->run();
+        } catch (Throwable) {
+            // Kolam hanyalah percepatan; penjadwal tetap mengisinya.
+        }
+    }
+
+    /**
+     * Menambah sandbox siap-pakai sampai kolam contoh kosong mencapai targetnya.
+     * Contoh terisi tidak berkolam: ia satu salinan bersama.
      *
      * @param  callable(string): void|null  $lapor
      * @return int jumlah sandbox yang berhasil dibuat
@@ -122,26 +239,28 @@ class SimulasiService
     public function isiKolam(?callable $lapor = null): int
     {
         $dibuat = 0;
+        $mode = SimulasiJalan::MODE_KOSONG;
+        $target = max(0, (int) config('simulasi.kolam_siap_kosong', 3));
 
-        $targetPerMode = [
-            SimulasiJalan::MODE_TERISI => max(0, (int) config('simulasi.kolam_siap', 2)),
-            SimulasiJalan::MODE_KOSONG => max(0, (int) config('simulasi.kolam_siap_kosong', 2)),
-        ];
+        if (! Cache::add('sim-kolam-isi', 1, 120)) {
+            return 0;
+        }
 
-        foreach ($targetPerMode as $mode => $target) {
+        try {
             while (SimulasiJalan::query()->siap($mode)->count() < $target) {
                 try {
                     $this->buat(lapor: $lapor, mode: $mode);
                     $dibuat++;
                 } catch (KapasitasSandboxPenuhException) {
-                    return $dibuat;
+                    break;
                 } catch (Throwable) {
-                    // Build gagal sudah dibongkar di buat(); hentikan putaran mode
-                    // ini supaya kegagalan yang deterministik tidak berulang tanpa
-                    // akhir, lalu coba mode berikutnya.
+                    // Build gagal sudah dibongkar di buat(); hentikan putaran supaya
+                    // kegagalan yang deterministik tidak berulang tanpa akhir.
                     break;
                 }
             }
+        } finally {
+            Cache::forget('sim-kolam-isi');
         }
 
         return $dibuat;
@@ -158,6 +277,7 @@ class SimulasiService
         $batas = now()->subMinutes(max(1, (int) config('simulasi.umur_menit', 120)));
 
         $usang = SimulasiJalan::query()->masihAda()
+            ->where('bersama', false)
             ->where(function ($q) use ($batas): void {
                 $q->where('status', SimulasiJalan::STATUS_GAGAL)
                     ->orWhere(fn ($q) => $q->where('status', SimulasiJalan::STATUS_BERJALAN)
@@ -270,8 +390,9 @@ class SimulasiService
         ?string $pengunjung = null,
         string $mode = SimulasiJalan::MODE_TERISI,
         ?int $jumlahMk = null,
+        bool $bersama = false,
     ): HasilPembangunan {
-        $jalan = $this->mulai($pemicu, $pengunjung, $mode, $jumlahMk);
+        $jalan = $this->mulai($pemicu, $pengunjung, $mode, $jumlahMk, $bersama);
 
         return $this->selesaikan($jalan, $lapor);
     }
@@ -286,8 +407,12 @@ class SimulasiService
         ?string $pengunjung = null,
         string $mode = SimulasiJalan::MODE_TERISI,
         ?int $jumlahMk = null,
+        bool $bersama = false,
     ): SimulasiJalan {
         $mode = $this->mode($mode);
+        // Hanya contoh terisi yang boleh dibagi; contoh kosong selalu milik satu pengunjung.
+        $bersama = $bersama && $mode === SimulasiJalan::MODE_TERISI;
+        $pengunjung = $bersama ? null : $pengunjung;
         $jumlahMk = $mode === SimulasiJalan::MODE_KOSONG
             ? 0
             : max(1, min($jumlahMk ?? (int) config('simulasi.jumlah_mk', 6), SimulasiAkademikBuilder::MAKS_MK));
@@ -304,6 +429,7 @@ class SimulasiService
             'status' => SimulasiJalan::STATUS_BERJALAN,
             'dipicu_oleh_id' => $pemicu?->getKey(),
             'mode' => $mode,
+            'bersama' => $bersama,
             'jumlah_mk' => $jumlahMk,
             'pengunjung' => $pengunjung,
             'mulai_pada' => now(),
@@ -372,6 +498,10 @@ class SimulasiService
             'ringkasan' => ['cacah' => $cacah],
             'peringatan' => $takDikenal === [] ? null : ['tak_dikenal' => $takDikenal],
         ])->save();
+
+        if ($jalan->bersama) {
+            $this->buangBersamaLama($jalan);
+        }
 
         return new HasilPembangunan(
             jalan: $jalan->refresh(),

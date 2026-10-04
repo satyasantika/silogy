@@ -159,7 +159,7 @@ final class SyaratHulu
                 $butir = [self::butir(
                     'Halaman ini belum bisa dibuka oleh peran Anda saat ini',
                     'Di ruang latihan sebagian halaman terkunci sampai peran hulu menyelesaikan langkahnya, atau memang bukan wewenang peran ini. '
-                        .'Di contoh kosong, tiap peran bekerja di atas hasil peran sebelumnya: Tim Kurikulum → Koordinator MK → Admin Program Studi → Dosen Pengampu.',
+                        .'Di contoh kosong sudah ada satu kurikulum dan satu mata kuliah bagi Koordinator MK. Selebihnya bergantung pada peran sebelumnya: Tim Kurikulum (Profil, CPL, BoK, penawaran) → Koordinator MK (CPMK, Sub-CPMK, asesmen) → Admin Program Studi (kelas, peserta) → Dosen Pengampu.',
                     ['nama' => 'Peran hulu', 'peran' => '-'],
                     'Buka halaman panduan lalu pilih peran hulunya di tab baru, atau pilih “Lihat contoh terisi” untuk melihat hasil akhirnya.',
                 )];

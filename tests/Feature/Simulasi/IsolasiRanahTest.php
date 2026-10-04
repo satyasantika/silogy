@@ -82,7 +82,7 @@ it('akun sandbox tidak melihat data inti', function () {
 
     expect($unitNyata)->toBeGreaterThan(0);
 
-    $this->actingAs(akunSandbox($jalan, 'sim-adminuniv'));
+    $this->actingAs(akunSandbox($jalan, 'sim-adminprodi'));
 
     expect(User::query()->find($nyata->id))->toBeNull()
         ->and(AcademicUnit::query()->where('code', 'not like', 'SIM-%')->count())->toBe(0)
@@ -94,7 +94,7 @@ it('akun sandbox satu tidak melihat sandbox lain', function () {
     $a = $simulasi->buat()->jalan;
     $b = $simulasi->buat()->jalan;
 
-    $this->actingAs(akunSandbox($a, 'sim-rektor'));
+    $this->actingAs(akunSandbox($a, 'sim-kaprodi'));
 
     foreach (modelTerpagar() as $kelas) {
         $milikB = Ranah::sebagai($b->id, fn () => $kelas::query()->count());

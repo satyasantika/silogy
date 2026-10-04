@@ -23,7 +23,8 @@ use Illuminate\Support\Str;
  *
  *  1. Sakelarnya terbuka: instans mengizinkan (`simulasi.izinkan_coba_peran`)
  *     DAN Super Admin menyalakannya. Bawaannya mati.
- *  2. Pengunjung mendapat sandbox miliknya sendiri (SimulasiService::klaim).
+ *  2. Contoh kosong: sandbox milik pengunjung sendiri. Contoh terisi: satu salinan
+ *     bersama yang hanya-baca (SimulasiService::klaim, lihat HanyaBaca).
  *  3. Akun sasaran TERCATAT di buku besar sandbox itu sebagai baris yang
  *     benar-benar DIBUAT simulasi. Akun nyata bernama sama tidak punya artefak
  *     sehingga tidak pernah lolos. Akun sandbox juga bernama unik per sandbox
@@ -49,8 +50,13 @@ class CobaPeranController
         // 404, bukan 403: fitur yang dimatikan sebaiknya tidak mengiklankan diri.
         abort_unless($this->simulasi->cobaPeranTerbuka(), 404);
 
-        $level = (string) $request->input('level', 'prodi');
+        $level = (string) $request->input('level', AkunSimulasi::LEVEL_SIMULASI);
         abort_unless(array_key_exists($level, AkunSimulasi::LEVEL), 404);
+
+        // Panduan tetap ada untuk semua tingkat, tetapi simulasi hanya untuk Program Studi.
+        if ($level !== AkunSimulasi::LEVEL_SIMULASI) {
+            return back()->with('panduan_galat', 'Simulasi hanya tersedia untuk tingkat Program Studi.');
+        }
 
         $kunciAkun = PeranPanduan::akunUntuk($peran, $level);
         abort_if($kunciAkun === null, 404);
@@ -66,8 +72,9 @@ class CobaPeranController
         $jalan = $this->simulasi->klaim(SimulasiService::hashPengunjung($pengenal), $mode);
 
         if ($jalan === null) {
-            return back()->with('panduan_galat',
-                'Ruang latihan sedang penuh. Coba lagi beberapa menit lagi.');
+            return back()->with('panduan_galat', $mode === SimulasiJalan::MODE_TERISI && $this->simulasi->contohTerisiSedangDibangun()
+                ? 'Contoh terisi sedang disiapkan. Coba lagi sebentar lagi.'
+                : 'Ruang latihan sedang penuh. Coba lagi beberapa menit lagi.');
         }
 
         $user = Ranah::sebagai((string) $jalan->getKey(), fn () => User::query()

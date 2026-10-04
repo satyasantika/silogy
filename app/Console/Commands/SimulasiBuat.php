@@ -12,7 +12,8 @@ class SimulasiBuat extends Command
 {
     protected $signature = 'simulasi:buat
         {--mode=terisi : terisi (kurikulum sampai nilai sudah ada) atau kosong (diisi pengunjung)}
-        {--mk= : jumlah MK pada contoh terisi (1-6), bawaan dari config simulasi.jumlah_mk}';
+        {--mk= : jumlah MK pada contoh terisi (1-6), bawaan dari config simulasi.jumlah_mk}
+        {--bersama : jadikan contoh terisi salinan bersama hanya-baca (menggantikan yang lama setelah selesai)}';
 
     protected $description = 'Bangun satu sandbox simulasi utuh (siap diklaim pengunjung)';
 
@@ -39,6 +40,7 @@ class SimulasiBuat extends Command
                 lapor: $lapor,
                 mode: $mode,
                 jumlahMk: $mk === null || $mk === '' ? null : (int) $mk,
+                bersama: (bool) $this->option('bersama'),
             );
         } catch (KapasitasSandboxPenuhException $galat) {
             $this->components->error($galat->getMessage());

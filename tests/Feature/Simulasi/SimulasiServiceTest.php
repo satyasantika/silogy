@@ -25,6 +25,7 @@ use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -79,7 +80,7 @@ function siapkanInfrastrukturNyata(): void
     (new EvaluasiSeeder)->run();
 }
 
-it('membangun rantai OBE lengkap di dalam pohon unit sandbox', function () {
+it('membangun rantai OBE lengkap di prodi sandbox, dengan induk kosong di atasnya', function () {
     siapkanInfrastrukturNyata();
 
     $hasil = app(SimulasiService::class)->buat();
@@ -92,6 +93,7 @@ it('membangun rantai OBE lengkap di dalam pohon unit sandbox', function () {
             ->and(AcademicUnit::query()->where('code', 'SIM-UNIV-'.$kode)->exists())->toBeTrue()
             ->and(AcademicUnit::query()->where('code', 'SIM-FAK-'.$kode)->exists())->toBeTrue()
             ->and($prodiSim->parent->code)->toBe('SIM-FAK-'.$kode)
+            ->and(Kurikulum::query()->where('academic_unit_id', '!=', $prodiSim->id)->count())->toBe(0)
             ->and(Kurikulum::query()->where('academic_unit_id', $prodiSim->id)->where('is_active', true)->exists())->toBeTrue()
             ->and(Cpmk::query()->count())->toBeGreaterThan(0)
             ->and(NilaiMahasiswa::query()->count())->toBeGreaterThan(0)
@@ -99,14 +101,14 @@ it('membangun rantai OBE lengkap di dalam pohon unit sandbox', function () {
     });
 });
 
-it('membuat 18 akun per sandbox, semuanya di unit sandbox itu dan berdomain simulasi', function () {
+it('membuat 6 akun per sandbox, semuanya di prodi sandbox itu dan berdomain simulasi', function () {
     siapkanInfrastrukturNyata();
 
     $jalan = app(SimulasiService::class)->buat()->jalan;
 
     Ranah::sebagai($jalan->id, function () use ($jalan): void {
         $idUnit = AcademicUnit::query()->pluck('id');
-        expect(AkunSimulasi::akun())->toHaveCount(18);
+        expect(AkunSimulasi::akun())->toHaveCount(6);
 
         foreach (array_keys(AkunSimulasi::akun()) as $kunci) {
             $user = User::query()->where('username', AkunSimulasi::username($kunci, $jalan->kode()))->firstOrFail();
@@ -162,8 +164,8 @@ it('membangun dua sandbox berdampingan tanpa bentrok kolom unik', function () {
     $b = $simulasi->buat()->jalan;
 
     expect($a->kode())->not->toBe($b->kode())
-        ->and(User::withoutGlobalScopes()->where('sandbox_id', $a->id)->count())->toBe(18)
-        ->and(User::withoutGlobalScopes()->where('sandbox_id', $b->id)->count())->toBe(18)
+        ->and(User::withoutGlobalScopes()->where('sandbox_id', $a->id)->count())->toBe(6)
+        ->and(User::withoutGlobalScopes()->where('sandbox_id', $b->id)->count())->toBe(6)
         ->and(Mahasiswa::withoutGlobalScopes()->where('sandbox_id', $a->id)->count())->toBe(30)
         ->and(Mahasiswa::withoutGlobalScopes()->where('sandbox_id', $b->id)->count())->toBe(30);
 });
@@ -320,10 +322,9 @@ it('hapusSemua membongkar seluruh sandbox tanpa menyentuh data inti', function (
 
 // ── Kolam & pembersihan ──────────────────────────────────────────────────
 
-it('mengklaim sandbox dari kolam sebelum membangun yang baru', function () {
+it('mengklaim contoh kosong dari kolam sebelum membangun yang baru', function () {
     siapkanInfrastrukturNyata();
-    config()->set('simulasi.kolam_siap', 1);
-    config()->set('simulasi.kolam_siap_kosong', 0);
+    config()->set('simulasi.kolam_siap_kosong', 1);
 
     $simulasi = app(SimulasiService::class);
     expect($simulasi->isiKolam())->toBe(1);
@@ -331,20 +332,20 @@ it('mengklaim sandbox dari kolam sebelum membangun yang baru', function () {
     $siap = SimulasiJalan::query()->siap()->firstOrFail();
     $hash = SimulasiService::hashPengunjung('pengunjung-a');
 
-    $klaim = $simulasi->klaim($hash);
+    $klaim = $simulasi->klaim($hash, 'kosong');
 
     expect($klaim->id)->toBe($siap->id)
         ->and($klaim->pengunjung)->toBe($hash)
         ->and(SimulasiJalan::query()->masihAda()->count())->toBe(1);
 });
 
-it('memberi pengunjung yang sama sandbox yang sama, dan pengunjung lain sandbox lain', function () {
+it('memberi pengunjung yang sama contoh kosong yang sama, dan pengunjung lain contoh lain', function () {
     siapkanInfrastrukturNyata();
     $simulasi = app(SimulasiService::class);
 
-    $a1 = $simulasi->klaim(SimulasiService::hashPengunjung('a'));
-    $a2 = $simulasi->klaim(SimulasiService::hashPengunjung('a'));
-    $b = $simulasi->klaim(SimulasiService::hashPengunjung('b'));
+    $a1 = $simulasi->klaim(SimulasiService::hashPengunjung('a'), 'kosong');
+    $a2 = $simulasi->klaim(SimulasiService::hashPengunjung('a'), 'kosong');
+    $b = $simulasi->klaim(SimulasiService::hashPengunjung('b'), 'kosong');
 
     expect($a2->id)->toBe($a1->id)
         ->and($b->id)->not->toBe($a1->id);
@@ -355,14 +356,14 @@ it('mengembalikan null saat kapasitas penuh, bukan melempar ke pengunjung', func
     config()->set('simulasi.maks_sandbox', 1);
     $simulasi = app(SimulasiService::class);
 
-    $simulasi->klaim(SimulasiService::hashPengunjung('a'));
+    $simulasi->klaim(SimulasiService::hashPengunjung('a'), 'kosong');
 
-    expect($simulasi->klaim(SimulasiService::hashPengunjung('b')))->toBeNull();
+    expect($simulasi->klaim(SimulasiService::hashPengunjung('b'), 'kosong'))->toBeNull();
 });
 
 it('tidak membuat kolam melebihi kapasitas', function () {
     siapkanInfrastrukturNyata();
-    config()->set('simulasi.kolam_siap', 5);
+    config()->set('simulasi.kolam_siap_kosong', 5);
     config()->set('simulasi.maks_sandbox', 2);
 
     expect(app(SimulasiService::class)->isiKolam())->toBe(2);
@@ -373,9 +374,9 @@ it('membuang sandbox yang tak aktif melewati batas umur dan menyisakan kolam', f
     config()->set('simulasi.umur_menit', 60);
     $simulasi = app(SimulasiService::class);
 
-    $usang = $simulasi->klaim(SimulasiService::hashPengunjung('usang'));
-    $segar = $simulasi->klaim(SimulasiService::hashPengunjung('segar'));
-    $kolam = $simulasi->buat()->jalan;
+    $usang = $simulasi->klaim(SimulasiService::hashPengunjung('usang'), 'kosong');
+    $segar = $simulasi->klaim(SimulasiService::hashPengunjung('segar'), 'kosong');
+    $kolam = $simulasi->buat(mode: 'kosong')->jalan;
 
     $usang->forceFill(['terakhir_aktif_pada' => now()->subMinutes(61)])->save();
 
@@ -422,4 +423,21 @@ it('sakelar mode latihan bisa ditutup kembali kapan saja dan tidak ikut terhapus
     $simulasi->aturCobaPeran(false);
 
     expect($simulasi->cobaPeranTerbuka())->toBeFalse();
+});
+
+it('tahap peran dan master evaluasi diserialkan lewat kunci agar sandbox serentak tidak bentrok kunci ganda', function () {
+    siapkanInfrastrukturNyata();
+
+    // Menahan kunci seolah-olah pembangun lain sedang bekerja: pembangun kedua harus menunggu, bukan menyisipkan ganda.
+    $kunci = Cache::lock('simulasi:siapkan-global', 5);
+    expect($kunci->get())->toBeTrue();
+    $kunci->release();
+
+    $a = app(SimulasiService::class)->buat(mode: 'kosong')->jalan;
+    $b = app(SimulasiService::class)->buat(mode: 'kosong')->jalan;
+
+    expect(Spatie\Permission\Models\Role::query()->where('name', 'Tim Kurikulum')->count())->toBe(1)
+        ->and($a->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI)
+        ->and($b->fresh()->status)->toBe(SimulasiJalan::STATUS_SELESAI)
+        ->and(Cache::lock('simulasi:siapkan-global', 5)->get())->toBeTrue();
 });

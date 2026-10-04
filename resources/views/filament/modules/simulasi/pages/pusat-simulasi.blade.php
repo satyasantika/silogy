@@ -1,8 +1,9 @@
 @php
     $daftar = $this->daftar();
     $total = $this->totalArtefak();
-    $siapTerisi = $daftar->filter(fn ($j) => $j->status === 'selesai' && $j->pengunjung === null && $j->mode === 'terisi')->count();
-    $siapKosong = $daftar->filter(fn ($j) => $j->status === 'selesai' && $j->pengunjung === null && $j->mode === 'kosong')->count();
+    $terisiBersama = $daftar->first(fn ($j) => $j->bersama && $j->status === 'selesai');
+    $terisiDibangun = $daftar->contains(fn ($j) => $j->bersama && $j->status === 'berjalan');
+    $siapKosong = $daftar->filter(fn ($j) => $j->status === 'selesai' && $j->pengunjung === null && ! $j->bersama && $j->mode === 'kosong')->count();
 @endphp
 
 <x-filament-panels::page>
@@ -21,11 +22,14 @@
                 <p style="font-weight:700;font-size:15px;">{{ $daftar->count() }} / {{ config('simulasi.maks_sandbox') }}</p>
             </div>
             <div>
-                <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Siap dipakai (kolam)</p>
+                <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Contoh terisi (bersama)</p>
                 <p style="font-weight:700;font-size:15px;">
-                    Terisi {{ $siapTerisi }} / {{ config('simulasi.kolam_siap') }}
-                    · Kosong {{ $siapKosong }} / {{ config('simulasi.kolam_siap_kosong') }}
+                    {{ $terisiBersama ? 'Siap' : ($terisiDibangun ? 'Sedang dibangun' : 'Belum ada') }}
                 </p>
+            </div>
+            <div>
+                <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Contoh kosong siap (kolam)</p>
+                <p style="font-weight:700;font-size:15px;">{{ $siapKosong }} / {{ config('simulasi.kolam_siap_kosong') }}</p>
             </div>
             <div>
                 <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Dihapus otomatis setelah</p>
@@ -34,8 +38,10 @@
         </div>
 
         <p style="margin-top:16px;font-size:13px;opacity:.75;line-height:1.6;">
-            Setiap pengunjung mendapat sandbox sendiri per jenis (contoh terisi dan contoh kosong), masing-masing dengan 18 akun
-            (6 peran × 3 tingkat). Akun inti tidak dapat melihat data sandbox, dan akun sandbox tidak dapat
+            Simulasi hanya untuk tingkat Program Studi. <strong>Contoh terisi</strong> satu salinan bersama yang
+            hanya-baca untuk semua pengunjung. <strong>Contoh kosong</strong> milik satu pengunjung (satu prodi,
+            satu kurikulum, satu MK), dengan 6 akun satu per peran. Fakultas dan universitas hanya wadah kosong
+            agar prodi punya induk. Akun inti tidak dapat melihat data sandbox, dan akun sandbox tidak dapat
             melihat data inti maupun sandbox lain. Menghapus sandbox tidak menyentuh data inti.
         </p>
     </x-filament::section>
@@ -45,7 +51,7 @@
 
         @if ($daftar->isEmpty())
             <p style="font-size:13px;opacity:.75;line-height:1.6;">
-                Belum ada sandbox. Tekan <strong>Siapkan Sandbox</strong>, atau biarkan penjadwal
+                Belum ada sandbox. Tekan <strong>Siapkan Contoh</strong>, atau biarkan penjadwal
                 (<span style="font-family:ui-monospace,Menlo,monospace;">simulasi:kolam</span>) mengisi kolam.
             </p>
         @else
@@ -70,6 +76,8 @@
                                 <td style="padding:7px 16px 7px 0;">
                                     @if ($jalan->kosong())
                                         Kosong
+                                    @elseif ($jalan->bersama)
+                                        Terisi · bersama · {{ $jalan->jumlah_mk }} MK
                                     @else
                                         Terisi · {{ $jalan->jumlah_mk }} MK
                                     @endif
@@ -79,13 +87,15 @@
                                         <span style="color:#c1121f;">Gagal</span>
                                     @elseif ($jalan->status === 'berjalan')
                                         Dibangun
+                                    @elseif ($jalan->bersama)
+                                        Dipakai bersama
                                     @elseif ($jalan->pengunjung === null)
                                         Siap
                                     @else
                                         Dipakai
                                     @endif
                                 </td>
-                                <td style="padding:7px 16px 7px 0;opacity:.8;">{{ $jalan->pengunjung === null ? '—' : 'Pengunjung' }}</td>
+                                <td style="padding:7px 16px 7px 0;opacity:.8;">{{ $jalan->bersama ? 'Semua pengunjung' : ($jalan->pengunjung === null ? '—' : 'Pengunjung') }}</td>
                                 <td style="padding:7px 16px 7px 0;opacity:.8;">{{ $jalan->mulai_pada?->translatedFormat('d M, H:i') ?? '—' }}</td>
                                 <td style="padding:7px 16px 7px 0;opacity:.8;">{{ $jalan->terakhir_aktif_pada?->diffForHumans() ?? '—' }}</td>
                                 <td style="padding:7px 16px 7px 0;text-align:right;font-variant-numeric:tabular-nums;">{{ number_format($total[$jalan->getKey()] ?? 0, 0, ',', '.') }}</td>

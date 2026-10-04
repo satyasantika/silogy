@@ -48,11 +48,11 @@ beforeEach(function () {
 });
 
 /** Memulai tab untuk (peran, tingkat); mengembalikan token dari URL tujuan. */
-function mulaiTab(string $peran, string $level = 'prodi', string $pengenal = 'pengunjung-uji-'.'x'): string
+function mulaiTab(string $peran, string $level = 'prodi', string $pengenal = 'pengunjung-uji-'.'x', string $mode = 'terisi'): string
 {
     $respons = test()
         ->withCookie('silogy_pengunjung', str_pad($pengenal, 40, 'x'))
-        ->post(route('panduan.coba', ['peran' => $peran]), ['level' => $level]);
+        ->post(route('panduan.coba', ['peran' => $peran]), ['level' => $level, 'mode' => $mode]);
 
     $respons->assertRedirect();
     preg_match('#/s/([a-z0-9]{24})/simulasi/masuk#', (string) $respons->headers->get('Location'), $cocok);
@@ -70,13 +70,13 @@ it('menyiapkan tab baru dan mengarahkan ke jalur masuk bertoken, tanpa login di 
 });
 
 it('masuk lewat tiket memasang peran aktif dan mendarat di dasbor tab itu', function () {
-    $token = mulaiTab('tim-kurikulum', 'fak');
+    $token = mulaiTab('tim-kurikulum');
 
     $respons = bukaTab($token, '/simulasi/masuk');
 
     $respons->assertRedirect();
     expect($respons->headers->get('Location'))->toContain("/s/$token/dashboard")
-        ->and(auth()->user()->username)->toStartWith('sim-timkurfak-');
+        ->and(auth()->user()->username)->toStartWith('sim-timkur-');
 });
 
 it('tiket hanya berlaku sekali', function () {
@@ -128,28 +128,32 @@ it('dua tab satu pengunjung memakai sandbox yang sama tapi akun berbeda', functi
         ->and(SimulasiJalan::query()->masihAda()->count())->toBe(1);
 });
 
-it('pengunjung berbeda mendapat sandbox berbeda', function () {
-    $a = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-a'));
-    $b = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-b'));
+it('pengunjung berbeda mendapat contoh kosong berbeda, tetapi contoh terisi yang sama', function () {
+    $kosongA = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-a', 'kosong'));
+    $kosongB = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-b', 'kosong'));
+    $terisiA = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-a'));
+    $terisiB = SesiTab::cari(mulaiTab('dosen-pengampu', 'prodi', 'orang-b'));
 
-    expect($a['jalan'])->not->toBe($b['jalan']);
+    expect($kosongA['jalan'])->not->toBe($kosongB['jalan'])
+        ->and($terisiA['jalan'])->toBe($terisiB['jalan']);
 });
 
-it('enam peran × tiga tingkat semuanya bisa dimasuki dan mendarat di akun yang benar', function () {
+it('enam peran di tingkat prodi, pada kedua jenis contoh, mendarat di akun yang benar', function () {
     config()->set('simulasi.batas_coba_per_menit', 1000);
 
     $diharapkan = [
-        'admin-unit' => ['univ' => 'sim-adminuniv', 'fak' => 'sim-adminfak', 'prodi' => 'sim-adminprodi'],
-        'tim-kurikulum' => ['univ' => 'sim-timkuruniv', 'fak' => 'sim-timkurfak', 'prodi' => 'sim-timkur'],
-        'koordinator-mk' => ['univ' => 'sim-kormauniv', 'fak' => 'sim-kormafak', 'prodi' => 'sim-korma'],
-        'dosen-pengampu' => ['univ' => 'sim-dosenuniv', 'fak' => 'sim-dosenfak', 'prodi' => 'sim-dosen'],
-        'pimpinan' => ['univ' => 'sim-rektor', 'fak' => 'sim-dekan', 'prodi' => 'sim-kaprodi'],
-        'auditor-mutu' => ['univ' => 'sim-auditoruniv', 'fak' => 'sim-auditorfak', 'prodi' => 'sim-auditor'],
+        'admin-unit' => 'sim-adminprodi',
+        'tim-kurikulum' => 'sim-timkur',
+        'koordinator-mk' => 'sim-korma',
+        'dosen-pengampu' => 'sim-dosen',
+        'pimpinan' => 'sim-kaprodi',
+        'auditor-mutu' => 'sim-auditor',
     ];
 
-    foreach ($diharapkan as $slug => $perLevel) {
-        foreach ($perLevel as $level => $kunci) {
-            $token = mulaiTab($slug, $level);
+    foreach (['terisi', 'kosong'] as $mode) {
+        foreach ($diharapkan as $slug => $kunci) {
+            // Pimpinan dan Auditor dipaksa ke contoh terisi, apa pun yang diminta.
+            $token = mulaiTab($slug, 'prodi', 'pengunjung-uji-x', $mode);
             bukaTab($token, '/simulasi/masuk')->assertRedirect();
 
             expect(auth()->user()->username)->toStartWith($kunci.'-');
@@ -204,14 +208,25 @@ it('membatasi jumlah percobaan per menit', function () {
     $this->post(route('panduan.coba', ['peran' => 'pimpinan']))->assertStatus(429);
 });
 
-it('menampilkan pesan, bukan galat, saat ruang latihan penuh', function () {
+it('menampilkan pesan, bukan galat, saat ruang latihan penuh untuk contoh kosong', function () {
     config()->set('simulasi.maks_sandbox', 1);
-    app(SimulasiService::class)->klaim(SimulasiService::hashPengunjung('pertama'));
+    app(SimulasiService::class)->klaim(SimulasiService::hashPengunjung('pertama'), 'kosong');
+
+    $this->from(route('panduan.level', ['level' => 'prodi']))
+        ->withCookie('silogy_pengunjung', str_pad('kedua', 40, 'x'))
+        ->post(route('panduan.coba', ['peran' => 'tim-kurikulum']), ['level' => 'prodi', 'mode' => 'kosong'])
+        ->assertSessionHas('panduan_galat');
+});
+
+it('contoh terisi yang belum selesai dibangun memberi pesan sabar, bukan galat dan bukan bangun kembar', function () {
+    app(SimulasiService::class)->mulai(mode: 'terisi', bersama: true);
 
     $this->from(route('panduan.level', ['level' => 'prodi']))
         ->withCookie('silogy_pengunjung', str_pad('kedua', 40, 'x'))
         ->post(route('panduan.coba', ['peran' => 'pimpinan']), ['level' => 'prodi'])
-        ->assertSessionHas('panduan_galat');
+        ->assertSessionHas('panduan_galat', fn ($pesan) => str_contains((string) $pesan, 'sedang disiapkan'));
+
+    expect(SimulasiJalan::query()->bersama()->count())->toBe(1);
 });
 
 // ── Keluaran HTML di bawah awalan tab ────────────────────────────────────

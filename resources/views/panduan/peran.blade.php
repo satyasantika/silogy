@@ -25,7 +25,18 @@
             <div class="pd-coba">
                 <div class="pd-coba-teks">
                     <strong>Coba sendiri dengan data latihan</strong>
-                    @if ($cobaAktif)
+                    @if (! $levelBisaDicoba)
+                        <p>
+                            Tingkat:
+                            @foreach ($semuaLevel as $kunci => $label)
+                                <a href="{{ route('panduan.peran', ['peran' => $halaman->slug, 'level' => $kunci]) }}"
+                                   style="{{ $kunci === $level ? 'font-weight:700;text-decoration:underline;' : '' }}">{{ $label }}</a>{{ $loop->last ? '' : ' · ' }}
+                            @endforeach
+                            <br>
+                            Simulasi saat ini difokuskan pada tingkat <strong>Program Studi</strong>. Panduan tingkat
+                            {{ $semuaLevel[$level] }} tetap bisa dibaca di bawah, dan latihannya dapat dicoba di tingkat Program Studi.
+                        </p>
+                    @elseif ($cobaAktif)
                         <p>
                             Tingkat:
                             @foreach ($semuaLevel as $kunci => $label)
@@ -34,13 +45,13 @@
                             @endforeach
                             <br>
                             Peran terbuka di <strong>tab baru</strong> dengan login sendiri, sehingga Anda bisa
-                            membuka beberapa peran sekaligus. Anda bekerja pada <strong>data simulasi</strong> milik
-                            Anda, bukan data yang sesungguhnya.
+                            membuka beberapa peran sekaligus.
                             @if ($punyaPilihanMode)
                                 <br>
-                                <strong>Contoh terisi</strong>: kurikulum sampai nilai sudah terisi, tinggal dilihat.
-                                <strong>Coba mengisi sendiri</strong>: mulai dari kosong dan isi dari awal, bersama
-                                peran lain di tab lain.
+                                <strong>Contoh terisi</strong>: kurikulum sampai nilai sudah terisi, hanya untuk dilihat
+                                (data dipakai bersama semua pengunjung).
+                                <strong>Coba mengisi sendiri</strong>: satu kurikulum dan satu mata kuliah kosong milik Anda,
+                                diisi dari awal bersama peran lain di tab lain.
                             @else
                                 <br>
                                 Peran ini hanya membaca, sehingga yang tersedia adalah contoh terisi.
@@ -51,14 +62,14 @@
                     @endif
                 </div>
 
-                @if ($cobaAktif)
+                @if ($levelBisaDicoba && $cobaAktif)
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <form method="POST" action="{{ route('panduan.coba', ['peran' => $halaman->slug]) }}" target="_blank">
                             @csrf
                             <input type="hidden" name="level" value="{{ $level }}">
                             <input type="hidden" name="mode" value="terisi">
-                            <button type="submit" class="pd-btn" title="Kurikulum sampai nilai sudah terisi">
-                                <i class="bi bi-eye"></i> Lihat contoh terisi ({{ $semuaLevel[$level] }})
+                            <button type="submit" class="pd-btn" title="Contoh terisi, hanya untuk dilihat">
+                                <i class="bi bi-eye"></i> Lihat contoh terisi
                             </button>
                         </form>
                         @if ($punyaPilihanMode)
@@ -67,12 +78,12 @@
                                 <input type="hidden" name="level" value="{{ $level }}">
                                 <input type="hidden" name="mode" value="kosong">
                                 <button type="submit" class="pd-btn pd-btn-luar" title="Mulai dari kosong dan isi sendiri">
-                                    <i class="bi bi-pencil"></i> Coba mengisi sendiri ({{ $semuaLevel[$level] }})
+                                    <i class="bi bi-pencil"></i> Coba mengisi sendiri
                                 </button>
                             </form>
                         @endif
                     </div>
-                @else
+                @elseif ($levelBisaDicoba)
                     <a class="pd-btn pd-btn-luar" href="{{ route('filament.admin.auth.login') }}">
                         <i class="bi bi-box-arrow-in-right"></i> Masuk ke SILOGY
                     </a>

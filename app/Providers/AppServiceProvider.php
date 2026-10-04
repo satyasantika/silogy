@@ -51,6 +51,7 @@ use App\Modules\Penilaian\Observers\NilaiMahasiswaObserver;
 use App\Modules\Penilaian\Observers\SubcpmkKomponenPenilaianObserver;
 use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
+use App\Modules\Simulasi\Support\HanyaBaca;
 use App\Modules\Simulasi\Support\PencatatArtefak;
 use App\Modules\Simulasi\Support\SyaratHulu;
 use App\Notifications\ResetPassword as ResetPasswordNotification;
@@ -104,6 +105,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Keterangan syarat hulu di halaman peran; hanya tampil bagi akun sandbox.
         SyaratHulu::pasangHook();
+
+        // Contoh terisi bersama: hanya-baca (gerbang, pagar basis data, dan keterangan).
+        HanyaBaca::pasang();
 
         RateLimiter::for('health', function (Request $request): Limit {
             return Limit::perMinute(60)->by($request->ip());

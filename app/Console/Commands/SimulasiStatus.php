@@ -31,7 +31,7 @@ class SimulasiStatus extends Command
         foreach ($daftar as $jalan) {
             $baris[] = [
                 $jalan->kode(),
-                $jalan->kosong() ? 'kosong' : 'terisi/'.$jalan->jumlah_mk.'MK',
+                $jalan->kosong() ? 'kosong' : ($jalan->bersama ? 'terisi-bersama/' : 'terisi/').$jalan->jumlah_mk.'MK',
                 $jalan->status,
                 $jalan->pengunjung === null ? '—' : 'pengunjung',
                 $jalan->terakhir_aktif_pada === null ? '—' : $jalan->terakhir_aktif_pada->diffForHumans(),

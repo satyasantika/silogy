@@ -37,17 +37,18 @@ return [
     | oleh semua tab perannya. Sandbox siap-pakai disiapkan lebih dulu oleh
     | `simulasi:kolam` agar pengunjung tidak menunggu pembangunan.
     |
-    |  maks_sandbox  : batas sandbox hidup (siap + terpakai) di satu instans
-    |  kolam_siap    : jumlah sandbox kosong yang dijaga siap dipakai
-    |  umur_menit    : sandbox tanpa aktivitas selama ini dihapus otomatis
+    |  maks_sandbox      : batas sandbox hidup (siap + terpakai) di satu instans
+    |  kolam_siap_kosong : jumlah contoh kosong yang dijaga siap dipakai
+    |  umur_menit        : sandbox tanpa aktivitas selama ini dihapus otomatis
+    |
+    | Contoh terisi TIDAK berkolam: ia satu salinan bersama yang hanya-baca untuk
+    | semua pengunjung, dibangun sekali lalu dipakai terus.
     */
     'maks_sandbox' => (int) env('SIMULASI_MAKS_SANDBOX', 20),
-    'kolam_siap' => (int) env('SIMULASI_KOLAM_SIAP', 2),
-    'kolam_siap_kosong' => (int) env('SIMULASI_KOLAM_SIAP_KOSONG', 2),
+    'kolam_siap_kosong' => (int) env('SIMULASI_KOLAM_SIAP_KOSONG', 3),
 
-    // Banyaknya MK prodi pada contoh terisi (1-6) bila tidak ditentukan saat
-    // sandbox dibangun. Super Admin dapat memilih angka lain per sandbox di
-    // menu Simulasi. Contoh kosong tidak berisi MK: pengunjung menyusunnya.
+    // Banyaknya MK prodi pada contoh terisi (1-6). Contoh kosong hanya berisi satu
+    // MK kosong: pengunjung menyusun sisanya.
     'jumlah_mk' => (int) env('SIMULASI_JUMLAH_MK', 6),
     'umur_menit' => (int) env('SIMULASI_UMUR_MENIT', 120),
 

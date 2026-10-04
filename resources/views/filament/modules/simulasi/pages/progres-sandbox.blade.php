@@ -3,7 +3,7 @@
     $format = fn (?float $d): string => $d === null ? '' : ($d < 1 ? '< 1 dtk' : number_format($d, $d < 10 ? 1 : 0, ',', '.').' dtk');
     $mmss = sprintf('%02d:%02d', intdiv($p['berlalu'], 60), $p['berlalu'] % 60);
     $warna = $p['gagal'] ? '#c1121f' : ($p['selesai'] ? '#15803d' : '#b45309');
-    $judul = $p['mode'] === 'kosong' ? 'Contoh kosong' : 'Contoh terisi · '.$p['jumlah_mk'].' MK';
+    $judul = $p['mode'] === 'kosong' ? 'Contoh kosong' : 'Contoh terisi · bersama · '.$p['jumlah_mk'].' MK';
     $semuaNol = collect($p['cacah'])->sum() === 0;
 @endphp
 

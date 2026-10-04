@@ -70,7 +70,7 @@ function bangunDataNyata(): array
     return $idNyata;
 }
 
-it('Auditor sandbox di tingkat mana pun tidak melihat satu baris data nyata pada resource mana pun', function (string $kunci) {
+it('Auditor sandbox tidak melihat satu baris data nyata pada resource mana pun', function (string $kunci) {
     $idNyata = bangunDataNyata();
     $jalan = app(SimulasiService::class)->buat()->jalan;
 
@@ -104,7 +104,7 @@ it('Auditor sandbox di tingkat mana pun tidak melihat satu baris data nyata pada
 
     expect($diperiksa)->toBeGreaterThan(15)
         ->and($bocor)->toBe([], 'resource bocor ke data nyata: '.implode(', ', $bocor));
-})->with(['sim-auditor', 'sim-auditorfak', 'sim-auditoruniv']);
+})->with(['sim-auditor']);
 
 it('Auditor sandbox tidak melihat data sandbox lain', function () {
     $simulasi = app(SimulasiService::class);

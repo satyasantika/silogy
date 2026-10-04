@@ -47,31 +47,26 @@
                             <i class="bi bi-book"></i> Baca panduan
                         </a>
 
-                        @if ($cobaAktif)
+                        @if (! $levelBisaDicoba)
+                            <span class="pd-btn pd-btn-luar" style="opacity:.6;cursor:default;" title="Simulasi hanya untuk Program Studi">
+                                <i class="bi bi-info-circle"></i> Simulasi di tingkat Program Studi
+                            </span>
+                        @elseif ($cobaAktif)
+                            <form method="POST" action="{{ route('panduan.coba', ['peran' => $slug]) }}" target="_blank">
+                                @csrf
+                                <input type="hidden" name="level" value="{{ $level }}">
+                                <input type="hidden" name="mode" value="terisi">
+                                <button type="submit" class="pd-btn" title="Contoh terisi, hanya untuk dilihat">
+                                    <i class="bi bi-eye"></i> Lihat contoh terisi
+                                </button>
+                            </form>
                             @if (\App\Modules\Panduan\Support\PeranPanduan::punyaPilihanMode($slug))
-                                <form method="POST" action="{{ route('panduan.coba', ['peran' => $slug]) }}" target="_blank">
-                                    @csrf
-                                    <input type="hidden" name="level" value="{{ $level }}">
-                                    <input type="hidden" name="mode" value="terisi">
-                                    <button type="submit" class="pd-btn" title="Kurikulum sampai nilai sudah terisi">
-                                        <i class="bi bi-eye"></i> Lihat contoh terisi
-                                    </button>
-                                </form>
                                 <form method="POST" action="{{ route('panduan.coba', ['peran' => $slug]) }}" target="_blank">
                                     @csrf
                                     <input type="hidden" name="level" value="{{ $level }}">
                                     <input type="hidden" name="mode" value="kosong">
                                     <button type="submit" class="pd-btn pd-btn-luar" title="Mulai dari kosong dan isi sendiri">
                                         <i class="bi bi-pencil"></i> Coba mengisi sendiri
-                                    </button>
-                                </form>
-                            @else
-                                <form method="POST" action="{{ route('panduan.coba', ['peran' => $slug]) }}" target="_blank">
-                                    @csrf
-                                    <input type="hidden" name="level" value="{{ $level }}">
-                                    <input type="hidden" name="mode" value="terisi">
-                                    <button type="submit" class="pd-btn" title="Kurikulum sampai nilai sudah terisi">
-                                        <i class="bi bi-eye"></i> Lihat contoh terisi
                                     </button>
                                 </form>
                             @endif
@@ -85,6 +80,10 @@
             <p style="color: var(--c-body); line-height: 1.75;">
                 Peran Koordinator MK dan Dosen Pengampu bekerja per kelas mata kuliah; pada tingkat
                 {{ $labelLevel }} Anda hanya melihat mata kuliah dan kelas milik tingkat ini.
+                @if (! $levelBisaDicoba)
+                    <br><strong>Simulasi</strong> saat ini difokuskan pada tingkat Program Studi. Panduan tingkat
+                    {{ $labelLevel }} tetap bisa dibaca, dan latihannya dapat dicoba di tingkat Program Studi.
+                @endif
             </p>
         </div>
     </div>

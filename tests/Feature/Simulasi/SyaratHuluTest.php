@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
-use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\MkTerpilih;
@@ -95,45 +94,40 @@ it('keterangan dihitung dari sandbox yang sedang dilihat, bukan dari sandbox lai
     // Sandbox terisi ikut ada: bila ada kebocoran lintas sandbox, keterangan di bawah akan hilang.
     $service->buat(mode: SimulasiJalan::MODE_TERISI, jumlahMk: 1);
 
-    foreach (['profil', 'cpl', 'bok', 'mk', 'penawaran', 'kelas', 'koordinator', 'cpmk', 'dosen'] as $kunci) {
+    foreach (['bok', 'mk', 'kelas', 'koordinator', 'cpmk', 'dosen'] as $kunci) {
         expect(syaratHitung($kosong, $kunci))->not->toBeEmpty("halaman {$kunci} di contoh kosong seharusnya berketerangan");
     }
 });
 
-it('rantai hulu ke hilir: tiap peran diberi tahu penangan yang benar pada contoh kosong', function () {
+it('contoh kosong sudah punya kurikulum dan satu MK bagi Koordinator, jadi Profil dan CPL tidak lagi menunggu', function () {
+    $kosong = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_KOSONG)->jalan;
+
+    expect(syaratHitung($kosong, 'profil'))->toBe([])
+        ->and(syaratHitung($kosong, 'cpl'))->toBe([])
+        ->and(syaratHitung($kosong, 'bok')[0]['judul'])->toBe('CPL belum ada')
+        ->and(syaratHitung($kosong, 'bok')[0]['nama'])->toBe('Tim Kurikulum');
+});
+
+it('rantai hulu ke hilir pada contoh kosong: tiap peran diberi tahu penangan yang benar', function () {
     $kosong = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_KOSONG)->jalan;
     $id = (string) $kosong->getKey();
 
-    // 1. Belum ada kurikulum → Tim Kurikulum.
-    expect(syaratHitung($kosong, 'profil')[0]['nama'])->toBe('Tim Kurikulum')
-        ->and(syaratHitung($kosong, 'cpl')[0]['judul'])->toBe('Kurikulum belum dibuat');
+    // 1. MK sudah ada dan Koordinator sudah ditetapkan; ia tinggal memilih MK-nya.
+    $pilih = syaratHitung($kosong, 'cpmk');
+    expect($pilih[0]['judul'])->toBe('Mata kuliah belum dipilih')
+        ->and($pilih[0]['nama'])->toBe('Koordinator MK');
 
-    // 2. Koordinator MK tanpa MK → menunggu Tim Kurikulum.
-    $korma = syaratHitung($kosong, 'cpmk');
-    expect($korma[0]['nama'])->toBe('Tim Kurikulum')
-        ->and($korma[0]['judul'])->toBe('Belum ada mata kuliah');
+    // 2. Setelah MK dipilih, CPMK siap disusun; Sub-CPMK menunggu CPMK.
+    $user = syaratMasuk($kosong, 'sim-korma', 'Koordinator Mata Kuliah');
+    MkTerpilih::set(Ranah::sebagai($id, fn () => Mk::query()->where('koordinator_mk_id', $user->id)->value('id')));
 
-    // 3. Setelah ada MK tanpa koordinator → Koordinator tetap menunggu penetapan namanya.
-    $unit = Ranah::sebagai($id, fn () => AcademicUnit::query()->where('type', 'study_program')->firstOrFail());
-    Ranah::sebagai($id, function () use ($id, $unit): void {
-        Mk::query()->create([
-            'academic_unit_id' => $unit->id,
-            'sandbox_id' => $id,
-            'kode' => 'LAT101',
-            'nama' => 'MK Latihan',
-            'sks_teori' => 2,
-            'sks_praktik' => 0,
-            'sks_lapangan' => 0,
-            'sks' => 2,
-            'jenis' => 'wajib',
-            'is_active' => true,
-        ]);
-    });
+    expect(SyaratHulu::untuk('cpmk', $user))->toBe([])
+        ->and(SyaratHulu::untuk('subcpmk', $user)[0]['judul'])->toBe('CPMK belum ada untuk MK dan semester ini')
+        ->and(SyaratHulu::untuk('asesmen', $user)[0]['judul'])->toBe('Sub-CPMK belum ada');
 
-    $setelahMk = syaratHitung($kosong, 'cpmk');
-    expect($setelahMk[0]['judul'])->toBe('Anda belum ditetapkan sebagai Koordinator MK')
-        ->and($setelahMk[0]['nama'])->toBe('Tim Kurikulum')
-        ->and(syaratHitung($kosong, 'mk'))->not->toBeEmpty();
+    // 3. Admin Prodi belum bisa membuka kelas, Dosen belum punya kelas.
+    expect(syaratHitung($kosong, 'kelas'))->not->toBeEmpty()
+        ->and(syaratHitung($kosong, 'dosen'))->not->toBeEmpty();
 });
 
 it('Dosen yang kelasnya belum punya asesmen diberi tahu bahwa Koordinator MK belum menentukan tagihan', function () {
@@ -195,11 +189,11 @@ it('kunciDariPath memetakan path (termasuk awalan tab) ke aturan dengan slug ter
 it('layar 403 akun sandbox menjelaskan syarat hulu, dan akun inti tidak melihatnya', function () {
     $kosong = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_KOSONG)->jalan;
 
-    syaratMasuk($kosong, 'sim-korma', 'Koordinator Mata Kuliah');
-    $html = SyaratHulu::renderUntukPenolakan('s/tokenapa/cpmk');
+    // Dosen belum punya kelas: halaman penilaian terkunci sampai peran hulu bekerja.
+    syaratMasuk($kosong, 'sim-dosen', 'Dosen Pengampu');
+    $html = SyaratHulu::renderUntukPenolakan('s/tokenapa/penilaian');
 
     expect($html)->toContain('data-syarat-hulu')
-        ->and($html)->toContain('Tim Kurikulum')
         ->and($html)->toContain('Caranya:');
 
     // Halaman tak dikenal tetap mendapat penjelasan umum, bukan layar kosong.
@@ -208,14 +202,15 @@ it('layar 403 akun sandbox menjelaskan syarat hulu, dan akun inti tidak melihatn
     auth()->logout();
     $this->actingAs(User::query()->where('username', 'adminprodi')->firstOrFail());
 
-    expect(SyaratHulu::renderUntukPenolakan('cpmk'))->toBe('');
+    expect(SyaratHulu::renderUntukPenolakan('penilaian'))->toBe('');
 });
 
 it('halaman 403 benar-benar menampilkan keterangan untuk akun sandbox lewat HTTP', function () {
     $kosong = app(SimulasiService::class)->buat(mode: SimulasiJalan::MODE_KOSONG)->jalan;
     $user = syaratMasuk($kosong, 'sim-korma', 'Koordinator Mata Kuliah');
 
-    $respons = $this->actingAs($user)->withSession([ActiveRole::SESSION_KEY => 'Koordinator Mata Kuliah'])->get('/cpmk');
+    // Halaman Profil Lulusan milik Tim Kurikulum, ditolak untuk Koordinator MK.
+    $respons = $this->actingAs($user)->withSession([ActiveRole::SESSION_KEY => 'Koordinator Mata Kuliah'])->get('/profil-lulusan');
 
     $respons->assertForbidden()->assertSee('data-syarat-hulu', false)->assertSee('Ditangani oleh');
 });

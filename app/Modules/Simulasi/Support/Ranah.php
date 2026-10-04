@@ -62,6 +62,16 @@ final class Ranah
     }
 
     /** ID sandbox milik pengguna yang sedang masuk, bila ia akun sandbox. */
+    /**
+     * Apakah ada penimpaan eksplisit (Ranah::sebagai) yang sedang berjalan,
+     * yakni pembangunan/pembongkaran/pembacaan oleh sistem, bukan permintaan
+     * seorang pengguna sandbox.
+     */
+    public static function dipaksa(): bool
+    {
+        return self::$penimpa !== [];
+    }
+
     public static function sandboxAktif(): ?string
     {
         return self::aktif()[0] ?? null;
