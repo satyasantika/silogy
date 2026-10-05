@@ -196,7 +196,13 @@
                                                         min="0"
                                                         max="100"
                                                         step="0.01"
-                                                        wire:model.blur="nilai.{{ $row['id'] }}.{{ $column['id'] }}"
+                                                        @if ($bolehUbahNilai)
+                                                            wire:model.blur="nilai.{{ $row['id'] }}.{{ $column['id'] }}"
+                                                        @else
+                                                            value="{{ $nilai[$row['id']][$column['id']] ?? '' }}"
+                                                            readonly
+                                                            disabled
+                                                        @endif
                                                         style="width:74px;padding:4px 6px;border:1.5px solid rgba(128,128,128,.5);border-radius:6px;background:transparent;text-align:center;"
                                                         placeholder="—"
                                                     />
@@ -223,7 +229,7 @@
                             </table>
                         </div>
 
-                        @if ($this->adaPerubahanNilai())
+                        @if ($bolehUbahNilai && $this->adaPerubahanNilai())
                             <div style="margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
                                 <x-filament::button
                                     wire:click="save"

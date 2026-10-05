@@ -16,6 +16,7 @@ use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Simulasi\Support\HanyaBaca;
 use Illuminate\Support\Collection;
 
 /**
@@ -48,6 +49,14 @@ class EvaluasiCplService
 
     public function jalankanKalkulasiSinkron(KelasMk $kelasMk): void
     {
+        // Contoh terisi simulasi hanya-baca: datanya tidak pernah berubah dan
+        // hasil kalkulasinya sudah disimpan saat dibangun. Menghitung ulang di
+        // sini berarti menulis, yang ditolak pagar HanyaBaca (403 saat laporan
+        // atau analisis sekadar dibuka).
+        if (HanyaBaca::aktif()) {
+            return;
+        }
+
         app(SubcpmkCalculator::class)->calculate($kelasMk->id);
         app(CpmkCalculator::class)->calculate($kelasMk->id);
         app(CplMkCalculator::class)->calculate($kelasMk->id, $kelasMk->semester_id);

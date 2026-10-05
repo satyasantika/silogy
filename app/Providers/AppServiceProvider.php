@@ -143,6 +143,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(PerubahanCpmkRequest::class, PerubahanCpmkRequestPolicy::class);
 
         Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
+        Gate::define('lihatNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->lihatNilai($user, $kelasMk));
 
         Event::listen(StateChanged::class, LogStateTransition::class);
         Event::subscribe(SyncKurikulumStateSubscriber::class);

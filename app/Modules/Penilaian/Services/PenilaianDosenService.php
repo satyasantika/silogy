@@ -11,6 +11,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
+use App\Modules\Simulasi\Support\HanyaBaca;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Js;
@@ -416,10 +417,13 @@ class PenilaianDosenService
             );
         }
 
-        $rows = $baris->map(function (array $row): string {
+        // Contoh terisi simulasi hanya-baca: nilai bisa dilihat, tidak diubah.
+        $hanyaBaca = HanyaBaca::aktif();
+
+        $rows = $baris->map(function (array $row) use ($hanyaBaca): string {
             // Hapus hanya untuk kelas yang belum punya nilai — jangan tampilkan
             // bila sudah dinilai (rata-rata nilai sudah ada).
-            $hapus = $row['sudah_dinilai']
+            $hapus = $row['sudah_dinilai'] || $hanyaBaca
                 ? ''
                 : static::tombolHapusKelasHtml($row['kelas_mk_id'], $row['kode_kelas']);
 
@@ -435,12 +439,12 @@ class PenilaianDosenService
                     .'<span class="silogy-penilaian-prodi__rata">'.e((string) $row['rata_rata']).'</span>'
                     .'<a href="'.e($row['url_laporan']).'" class="silogy-penilaian-prodi__laporan">Laporan</a>'
                     .'</span>';
-                $aksiUtama = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">Edit nilai</a>';
+                $aksiUtama = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">'.($hanyaBaca ? 'Lihat nilai' : 'Edit nilai').'</a>';
                 $kodeCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-kode">'.e($row['kode']).'</a>';
                 $namaCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-nama">'.e($row['nama_mk']).'</a>';
             } else {
                 $status = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__status silogy-penilaian-prodi__status--pending">Belum dinilai</a>';
-                $aksiUtama = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">Nilai</a>';
+                $aksiUtama = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__aksi">'.($hanyaBaca ? 'Lihat nilai' : 'Nilai').'</a>';
                 $kodeCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-kode">'.e($row['kode']).'</a>';
                 $namaCell = '<a href="'.e($row['url_input']).'" class="silogy-penilaian-prodi__link-nama">'.e($row['nama_mk']).'</a>';
             }

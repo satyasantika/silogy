@@ -4,8 +4,13 @@ use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Support\MkTerpilih;
+use App\Modules\Penilaian\Filament\Pages\InputNilai;
+use App\Modules\Penilaian\Filament\Pages\LaporanKoordinator;
+use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
@@ -176,4 +181,59 @@ it('tabel CPL contoh bersama tidak menampilkan Ubah, dan hapus massal serta urut
     }
 
     expect(Ranah::sebagai($id, fn () => Cpl::query()->orderBy('kode')->pluck('deskripsi', 'kode')->all()))->toBe($sebelum);
+});
+
+// ── Halaman nilai di contoh terisi: boleh dilihat, tidak boleh diubah ──────
+
+it('dosen contoh terisi bisa membuka Input Nilai kelasnya dalam mode lihat saja', function () {
+    [$jalan, $dosen] = bersamaDenganAkun('sim-dosen', 'Dosen Pengampu');
+
+    $kelas = KelasMk::query()->where('dosen_pengampu_id', $dosen->id)->get()
+        ->first(fn (KelasMk $k): bool => $k->penugasanSelesai());
+
+    expect($kelas)->not->toBeNull();
+
+    $komponen = Livewire::test(InputNilai::class, ['kelas_mk_id' => $kelas->id])
+        ->set('kelasMkId', $kelas->id)
+        ->call('loadMatrix')
+        ->assertOk()
+        ->assertSet('bolehUbahNilai', false)
+        ->assertActionHidden('simpanNilai')
+        ->assertActionHidden('tempelNilai')
+        ->assertActionVisible('salinNilai')
+        ->assertSeeHtml('readonly');
+
+    expect($komponen->get('rows'))->not->toBeEmpty();
+});
+
+it('daftar penilaian contoh terisi menawarkan Lihat nilai, bukan Edit nilai', function () {
+    bersamaDenganAkun('sim-dosen', 'Dosen Pengampu');
+
+    $this->get(PenilaianDosenResource::getUrl())
+        ->assertOk()
+        ->assertSee('Lihat nilai')
+        ->assertDontSee('Edit nilai');
+});
+
+it('menyimpan nilai dari contoh terisi tetap ditolak walau dipaksa', function () {
+    [, $dosen] = bersamaDenganAkun('sim-dosen', 'Dosen Pengampu');
+
+    $kelas = KelasMk::query()->where('dosen_pengampu_id', $dosen->id)->get()
+        ->first(fn (KelasMk $k): bool => $k->penugasanSelesai());
+
+    Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $kelas->id)
+        ->call('save')
+        ->assertForbidden();
+});
+
+it('koordinator contoh terisi bisa membuka Laporan Koordinator', function () {
+    [, $koordinator] = bersamaDenganAkun('sim-korma', 'Koordinator Mata Kuliah');
+
+    $mk = Mk::query()->firstOrFail();
+    MkTerpilih::set((string) $mk->id);
+
+    Livewire::test(LaporanKoordinator::class)->assertOk();
+
+    $this->get(LaporanKoordinator::getUrl())->assertOk();
 });

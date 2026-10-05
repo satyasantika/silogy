@@ -23,6 +23,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 
 class InputNilai extends Page
 {
@@ -56,6 +57,14 @@ class InputNilai extends Page
     public array $kolomTerpilih = [];
 
     public bool $showKalkulasiBadge = false;
+
+    /**
+     * False bila matriks boleh dilihat tetapi tidak diubah (contoh terisi
+     * simulasi yang hanya-baca). Hanya mengatur tampilan; save() dan
+     * applyTempel() tetap memeriksa inputNilai sendiri.
+     */
+    #[Locked]
+    public bool $bolehUbahNilai = true;
 
     /**
      * Snapshot nilai yang terakhir dimuat/disimpan — acuan dirty-state
@@ -135,7 +144,8 @@ class InputNilai extends Page
             return;
         }
 
-        Gate::authorize('inputNilai', $kelasMk);
+        Gate::authorize('lihatNilai', $kelasMk);
+        $this->bolehUbahNilai = Gate::allows('inputNilai', $kelasMk);
 
         $this->muatDataLaporan($kelasMk);
 
@@ -445,7 +455,7 @@ class InputNilai extends Page
             ->color('gray')
             ->badge('2')
             ->badgeColor('warning')
-            ->visible(fn (): bool => $this->matrixSiapClipboard())
+            ->visible(fn (): bool => $this->matrixSiapClipboard() && $this->bolehUbahNilai)
             ->modalHeading('Tempel matriks nilai')
             ->modalDescription('Tempel blok sel dari Excel (termasuk baris header NIM/Nama).')
             ->modalSubmitActionLabel('Terapkan ke matriks')
@@ -487,7 +497,7 @@ class InputNilai extends Page
             ->color('primary')
             ->badge('3')
             ->badgeColor('success')
-            ->visible(fn (): bool => $this->matrixSiapClipboard() && $this->adaPerubahanNilai())
+            ->visible(fn (): bool => $this->matrixSiapClipboard() && $this->bolehUbahNilai && $this->adaPerubahanNilai())
             ->action(function (): void {
                 $this->save();
             });
