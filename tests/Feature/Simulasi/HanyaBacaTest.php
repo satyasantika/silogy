@@ -5,6 +5,7 @@ use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\MkTerpilih;
@@ -12,6 +13,8 @@ use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Filament\Pages\LaporanKoordinator;
 use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
+use App\Modules\Penilaian\Services\EvaluasiCplService;
+use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
@@ -236,4 +239,33 @@ it('koordinator contoh terisi bisa membuka Laporan Koordinator', function () {
     Livewire::test(LaporanKoordinator::class)->assertOk();
 
     $this->get(LaporanKoordinator::getUrl())->assertOk();
+});
+
+it('contoh terisi sudah punya nilai akhir tiap peserta sehingga distribusi nilai tidak nol', function () {
+    [, $koordinator] = bersamaDenganAkun('sim-korma', 'Koordinator Mata Kuliah');
+
+    $peserta = KelasMkMahasiswa::query()->get();
+
+    expect($peserta)->not->toBeEmpty()
+        ->and($peserta->whereNull('nilai_angka'))->toBeEmpty()
+        ->and($peserta->whereNull('nilai_huruf'))->toBeEmpty();
+
+    // Sama dengan rumus Simpan di Input Nilai.
+    $kelas = KelasMk::query()->firstOrFail();
+    $matrix = app(PenilaianMatrixService::class);
+    $komponens = $matrix->komponenUntukKelas($kelas);
+    $rows = $matrix->barisUntukKelas($kelas);
+    $nilai = $matrix->nilaiUntukMatrix($rows, $matrix->pivotIdsByKomponen($komponens));
+    $kolom = $matrix->kolomDariKomponens($komponens, (string) $kelas->semester_id);
+    $baris = $rows[0];
+
+    expect($baris['nilai_angka'])->toBe($matrix->hitungNilaiAkhirMahasiswa($kolom, $nilai[$baris['id']]));
+
+    $distribusi = app(EvaluasiCplService::class)->distribusiNilaiHuruf($kelas);
+
+    expect(collect($distribusi)->sum('jumlah'))->toBe(KelasMkMahasiswa::query()->where('kelas_mk_id', $kelas->id)->count());
+
+    MkTerpilih::set((string) $kelas->mkUnit->mk_id);
+
+    expect(collect(Livewire::test(LaporanKoordinator::class)->get('distribusiNilaiHuruf'))->sum('jumlah'))->toBeGreaterThan(0);
 });

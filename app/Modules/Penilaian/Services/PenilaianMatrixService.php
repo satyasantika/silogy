@@ -291,6 +291,41 @@ class PenilaianMatrixService
     }
 
     /**
+     * Menyimpan nilai akhir (angka dan huruf) tiap peserta dari matriks nilai.
+     * kelas_mk_mahasiswa.nilai_angka/nilai_huruf dibaca distribusi nilai,
+     * kolom Nilai Akhir, IPK, dan dasbor, jadi semua jalur yang mengisi nilai
+     * asesmen harus memanggil ini.
+     *
+     * @param  list<array{id: string, bobot: float}>  $columns
+     * @param  array<string, array<string, string|null>>  $nilai
+     */
+    public function simpanNilaiAkhir(array $columns, array $nilai): void
+    {
+        foreach ($nilai as $kmmId => $nilaiBaris) {
+            $nilaiAkhir = $this->hitungNilaiAkhirMahasiswa($columns, $nilaiBaris);
+
+            KelasMkMahasiswa::query()
+                ->whereKey($kmmId)
+                ->update([
+                    'nilai_angka' => $nilaiAkhir,
+                    'nilai_huruf' => $this->hurufDariNilaiAkhir($nilaiAkhir),
+                ]);
+        }
+    }
+
+    /** simpanNilaiAkhir() dari nilai asesmen yang sudah tersimpan untuk satu kelas. */
+    public function simpanNilaiAkhirKelas(KelasMk $kelasMk): void
+    {
+        $komponens = $this->komponenUntukKelas($kelasMk);
+        $rows = $this->barisUntukKelas($kelasMk);
+
+        $this->simpanNilaiAkhir(
+            $this->kolomDariKomponens($komponens, (string) $kelasMk->semester_id),
+            $this->nilaiUntukMatrix($rows, $this->pivotIdsByKomponen($komponens)),
+        );
+    }
+
+    /**
      * Skala huruf standar 10 tingkat (A s.d. E) — belum ada acuan skala
      * konversi lain di basis data, jadi dipakai konvensi umum perguruan
      * tinggi di Indonesia.

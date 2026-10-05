@@ -40,6 +40,7 @@ use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -922,6 +923,11 @@ class SimulasiAkademikBuilder
     protected function jalankanKalkulasi(Collection $kelasCollection, AcademicUnit $unit): void
     {
         foreach ($kelasCollection as $kelas) {
+            // Nilai asesmen diisi langsung (bukan lewat Simpan di Input Nilai),
+            // jadi nilai akhir per peserta juga harus disimpan di sini. Tanpa
+            // ini distribusi nilai, Nilai Akhir, IPK, dan dasbor tampil kosong.
+            app(PenilaianMatrixService::class)->simpanNilaiAkhirKelas($kelas);
+
             RecalkulasiCplJob::dispatchSync(
                 $kelas->id,
                 $unit->id,

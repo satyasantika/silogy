@@ -233,16 +233,7 @@ class InputNilai extends Page
             }
         }
 
-        foreach ($this->nilai as $kmmId => $nilaiBaris) {
-            $nilaiAkhir = $matrix->hitungNilaiAkhirMahasiswa($this->columns, $nilaiBaris);
-
-            KelasMkMahasiswa::query()
-                ->whereKey($kmmId)
-                ->update([
-                    'nilai_angka' => $nilaiAkhir,
-                    'nilai_huruf' => $matrix->hurufDariNilaiAkhir($nilaiAkhir),
-                ]);
-        }
+        $matrix->simpanNilaiAkhir($this->columns, $this->nilai);
 
         Notification::make()
             ->title('Tersimpan')
