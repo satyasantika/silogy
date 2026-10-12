@@ -12,6 +12,7 @@ use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Enums\StatusPerubahanCpmk;
+use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\PerubahanCpmkRequest;
 use App\Modules\MK\Services\CpmkPakaiUlangSemesterService;
@@ -194,4 +195,17 @@ it('tidak boleh ada dua usulan terbuka untuk mk dan semester yang sama', functio
     expect(fn () => app(PerubahanCpmkService::class)
         ->ajukan($this->mk, $this->semester->id, $this->korma, 'Usulan kedua.'))
         ->toThrow(ValidationException::class);
+});
+
+it('halaman Lihat usulan menampilkan potret CPMK yang berlaku saat diajukan', function () {
+    cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01', 'deskripsi' => 'Mampu menganalisis data.']);
+    cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK02', 'deskripsi' => 'Mampu menyajikan hasil.']);
+
+    $usulan = app(PerubahanCpmkService::class)
+        ->ajukan($this->mk, $this->semester->id, $this->korma, 'Perlu disesuaikan.');
+
+    $this->actingAs($this->timkur)
+        ->get(PerubahanCpmkResource::getUrl('view', ['record' => $usulan]))
+        ->assertOk()
+        ->assertSeeInOrder(['CPMK01', 'Mampu menganalisis data.', 'CPMK02', 'Mampu menyajikan hasil.']);
 });

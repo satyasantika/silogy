@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Resources\PerubahanCpmkResource\Pages;
 
 use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
+use App\Modules\MK\Models\PerubahanCpmkRequest;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Components\Section;
@@ -40,10 +41,14 @@ class ViewPerubahanCpmk extends ViewRecord
                 Section::make('CPMK yang berlaku saat usulan diajukan')
                     ->description('Potret ini diambil saat pengajuan, agar terlihat apa yang hendak diganti.')
                     ->schema([
+                        // State dibangun dari record sebagai satu HtmlString: bila state
+                        // berupa array, Filament memanggil formatStateUsing per elemen
+                        // (satu CPMK), bukan sekali untuk seluruh daftar.
                         TextEntry::make('ringkasan_usulan')
                             ->hiddenLabel()
                             ->html()
-                            ->formatStateUsing(function (mixed $state): HtmlString {
+                            ->state(function (PerubahanCpmkRequest $record): HtmlString {
+                                $state = $record->ringkasan_usulan;
                                 $baris = collect(is_array($state) ? $state : [])
                                     ->map(fn (array $item): string => sprintf(
                                         '<li><strong>%s</strong> — %s</li>',

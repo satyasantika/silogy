@@ -7,6 +7,8 @@ use App\Modules\CPL\Models\Cpl;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
+use App\Modules\MK\Filament\Resources\PerubahanCpmkResource\Pages\ViewPerubahanCpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
@@ -268,4 +270,18 @@ it('contoh terisi sudah punya nilai akhir tiap peserta sehingga distribusi nilai
     MkTerpilih::set((string) $kelas->mkUnit->mk_id);
 
     expect(collect(Livewire::test(LaporanKoordinator::class)->get('distribusiNilaiHuruf'))->sum('jumlah'))->toBeGreaterThan(0);
+});
+
+it('tim kurikulum contoh terisi bisa membuka Lihat usulan perubahan CPMK tanpa tombol keputusan', function () {
+    bersamaDenganAkun('sim-timkur', 'Tim Kurikulum');
+
+    $usulan = PerubahanCpmkResource::getEloquentQuery()->firstOrFail();
+
+    $this->get(PerubahanCpmkResource::getUrl('view', ['record' => $usulan]))
+        ->assertOk()
+        ->assertSee('CPMK yang berlaku saat usulan diajukan');
+
+    Livewire::test(ViewPerubahanCpmk::class, ['record' => $usulan->getKey()])
+        ->assertActionHidden('setujui')
+        ->assertActionHidden('tolak');
 });
