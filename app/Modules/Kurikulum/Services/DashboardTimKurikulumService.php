@@ -52,7 +52,11 @@ class DashboardTimKurikulumService
             ->join('cpl', 'cpl.id', '=', 'hasil_cpl_mk.cpl_id')
             ->leftJoin('kurikulum', 'kurikulum.id', '=', 'cpl.kurikulum_id')
             ->leftJoin('academic_units', 'academic_units.id', '=', 'cpl.academic_unit_id')
+            ->join('mk_units', 'mk_units.id', '=', 'hasil_cpl_mk.mk_unit_id')
+            ->join('mahasiswas', 'mahasiswas.id', '=', 'kelas_mk_mahasiswa.mahasiswa_id')
             ->whereIn('cpl.academic_unit_id', $unitIds)
+            // Capaian CPL prodi hanya dari penawaran prodi itu dan mahasiswa prodi itu.
+            ->whereRaw("(academic_units.type <> 'study_program' OR (mk_units.academic_unit_id = cpl.academic_unit_id AND mahasiswas.academic_unit_id = cpl.academic_unit_id))")
             ->groupBy('cpl.id', 'cpl.kode', 'kurikulum.nama', 'academic_units.nama')
             ->selectRaw('cpl.kode as cpl_kode')
             ->selectRaw('kurikulum.nama as kurikulum_nama')

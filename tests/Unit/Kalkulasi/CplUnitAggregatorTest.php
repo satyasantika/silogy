@@ -140,3 +140,40 @@ it('tidak membuat hasil cpl unit bila tidak ada sumber agregat', function () {
 
     expect(HasilCplUnit::query()->count())->toBe(0);
 });
+
+it('capaian cpl prodi hanya menghitung mahasiswa prodi itu, bukan mahasiswa prodi lain', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+
+    $this->buatKurikulumAktif($prodi, 75);
+
+    $prodiLain = AcademicUnit::query()->where('type', 'study_program')->where('id', '!=', $prodi->id)->first()
+        ?? AcademicUnit::query()->create([
+            'type' => 'study_program',
+            'nama' => 'Prodi Lain Uji',
+            'parent_id' => $prodi->parent_id,
+        ]);
+    $mhsLuar = Mahasiswa::factory()->create(['academic_unit_id' => $prodiLain->id]);
+    $kmmLuar = KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $dasar['kelas']->id,
+        'mahasiswa_id' => $mhsLuar->id,
+    ]);
+
+    foreach ([[$dasar['kmm']->id, 90], [$kmmLuar->id, 10]] as [$kmmId, $nilai]) {
+        HasilCplMk::query()->create([
+            'cpl_id' => $dasar['cpl']->id,
+            'mk_unit_id' => $dasar['mkUnit']->id,
+            'kelas_mk_mahasiswa_id' => $kmmId,
+            'semester_id' => $dasar['semester']->id,
+            'nilai_akhir' => $nilai,
+            'nilai_berbobot' => $nilai,
+        ]);
+    }
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    $hasil = HasilCplUnit::query()->where('cpl_id', $dasar['cpl']->id)->firstOrFail();
+
+    expect((float) $hasil->rata_rata)->toBe(90.0)
+        ->and($hasil->jumlah_mahasiswa)->toBe(1);
+});

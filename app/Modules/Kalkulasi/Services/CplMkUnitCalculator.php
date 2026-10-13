@@ -3,6 +3,7 @@
 namespace App\Modules\Kalkulasi\Services;
 
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
@@ -33,8 +34,11 @@ class CplMkUnitCalculator
             return;
         }
 
+        // Hanya penawaran milik unit ini (beserta turunannya), bukan penawaran
+        // unit lain atas MK yang sama.
         $mkUnitIds = MkUnit::query()
             ->whereIn('mk_id', $mkIds)
+            ->whereIn('academic_unit_id', $descendantIds)
             ->pluck('id');
 
         if ($mkUnitIds->isEmpty()) {
@@ -50,6 +54,7 @@ class CplMkUnitCalculator
         }
 
         $threshold = $this->targetCapaianUntukUnit($academicUnitId);
+        $hanyaMahasiswaProdi = AcademicUnit::query()->whereKey($academicUnitId)->value('type') === 'study_program';
 
         $existing = HasilCplMkUnit::query()
             ->where('academic_unit_id', $academicUnitId)
@@ -68,6 +73,10 @@ class CplMkUnitCalculator
                     ->whereIn('mk_unit_id', $mkUnitIds)
                     ->whereHas('mkUnit', fn ($query) => $query->where('mk_id', $mkId))
                     ->whereNotNull('nilai_akhir')
+                    ->when($hanyaMahasiswaProdi, fn ($query) => $query->whereHas(
+                        'kelasMkMahasiswa.mahasiswa',
+                        fn ($mahasiswa) => $mahasiswa->where('academic_unit_id', $academicUnitId),
+                    ))
                     ->with('kelasMkMahasiswa')
                     ->get();
 

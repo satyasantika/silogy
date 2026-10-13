@@ -93,6 +93,7 @@ class CplUnitAggregator
             ->where('semester_id', $semesterId)
             ->whereIn('mk_unit_id', $mkUnitIds)
             ->whereNotNull('nilai_berbobot')
+            ->whereHas('kelasMkMahasiswa.mahasiswa', fn ($query) => $query->where('academic_unit_id', $academicUnitId))
             ->with('kelasMkMahasiswa')
             ->get();
 

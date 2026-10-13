@@ -3,6 +3,7 @@
 namespace App\Modules\Kalkulasi\Services;
 
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
@@ -103,6 +104,8 @@ class DashboardCplDataService
             ->where('is_active', true)
             ->value('target_capaian_lulusan') ?? 75);
 
+        $hanyaMahasiswaProdi = AcademicUnit::query()->whereKey($academicUnitId)->value('type') === 'study_program';
+
         $mkUnits = MkUnit::query()
             ->whereIn('academic_unit_id', $unitIds)
             ->with('mk')
@@ -117,6 +120,10 @@ class DashboardCplDataService
                 ->where('mk_unit_id', $mkUnit->id)
                 ->where('semester_id', $semesterId)
                 ->whereNotNull('nilai_akhir')
+                ->when($hanyaMahasiswaProdi, fn ($query) => $query->whereHas(
+                    'kelasMkMahasiswa.mahasiswa',
+                    fn ($mahasiswa) => $mahasiswa->where('academic_unit_id', $academicUnitId),
+                ))
                 ->with('kelasMkMahasiswa')
                 ->get();
 
