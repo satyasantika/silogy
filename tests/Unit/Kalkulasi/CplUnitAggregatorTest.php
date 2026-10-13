@@ -177,3 +177,27 @@ it('capaian cpl prodi hanya menghitung mahasiswa prodi itu, bukan mahasiswa prod
     expect((float) $hasil->rata_rata)->toBe(90.0)
         ->and($hasil->jumlah_mahasiswa)->toBe(1);
 });
+
+it('capaian cpl hanya dari penawaran kurikulum yang sama dengan cpl', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+
+    $kurikulum = $this->buatKurikulumAktif($prodi, 75);
+    $dasar['cpl']->update(['kurikulum_id' => $kurikulum->id]);
+    $dasar['mkUnit']->update(['kurikulum_id' => \App\Modules\Kurikulum\Models\Kurikulum::query()->create([
+        'academic_unit_id' => $prodi->id, 'nama' => 'Kurikulum Lama', 'tahun' => 2020, 'is_active' => false,
+    ])->id]);
+
+    HasilCplMk::query()->create([
+        'cpl_id' => $dasar['cpl']->id,
+        'mk_unit_id' => $dasar['mkUnit']->id,
+        'kelas_mk_mahasiswa_id' => $dasar['kmm']->id,
+        'semester_id' => $dasar['semester']->id,
+        'nilai_akhir' => 90,
+        'nilai_berbobot' => 90,
+    ]);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    expect(HasilCplUnit::query()->where('cpl_id', $dasar['cpl']->id)->exists())->toBeFalse();
+});

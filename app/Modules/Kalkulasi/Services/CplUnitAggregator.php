@@ -38,7 +38,7 @@ class CplUnitAggregator
 
         foreach ($cpls as $cpl) {
             $stats = $unit->type === 'study_program'
-                ? $this->agregatDariMkUnits($cpl->id, $academicUnitId, $semesterId, $threshold)
+                ? $this->agregatDariMkUnits($cpl->id, $cpl->kurikulum_id, $academicUnitId, $semesterId, $threshold)
                 : $this->agregatDariMkUnit($cpl->id, $academicUnitId, $semesterId);
 
             if ($stats === null) {
@@ -76,12 +76,16 @@ class CplUnitAggregator
      */
     protected function agregatDariMkUnits(
         string $cplId,
+        ?string $kurikulumId,
         string $academicUnitId,
         string $semesterId,
         int $threshold,
     ): ?array {
+        // Hanya penawaran pada kurikulum yang sama dengan CPL, supaya capaian
+        // kurikulum lama dan baru tidak tercampur.
         $mkUnitIds = MkUnit::query()
             ->where('academic_unit_id', $academicUnitId)
+            ->when($kurikulumId !== null, fn ($query) => $query->where('kurikulum_id', $kurikulumId))
             ->pluck('id');
 
         if ($mkUnitIds->isEmpty()) {

@@ -71,7 +71,9 @@ class CplMkUnitCalculator
                     ->where('cpl_id', $cpl->id)
                     ->where('semester_id', $semesterId)
                     ->whereIn('mk_unit_id', $mkUnitIds)
-                    ->whereHas('mkUnit', fn ($query) => $query->where('mk_id', $mkId))
+                    ->whereHas('mkUnit', fn ($query) => $query
+                        ->where('mk_id', $mkId)
+                        ->when($hanyaMahasiswaProdi && $cpl->kurikulum_id !== null, fn ($q) => $q->where('kurikulum_id', $cpl->kurikulum_id)))
                     ->whereNotNull('nilai_akhir')
                     ->when($hanyaMahasiswaProdi, fn ($query) => $query->whereHas(
                         'kelasMkMahasiswa.mahasiswa',

@@ -106,8 +106,11 @@ class DashboardCplDataService
 
         $hanyaMahasiswaProdi = AcademicUnit::query()->whereKey($academicUnitId)->value('type') === 'study_program';
 
+        $kurikulumCpl = $hanyaMahasiswaProdi ? Cpl::query()->whereKey($cplId)->value('kurikulum_id') : null;
+
         $mkUnits = MkUnit::query()
             ->whereIn('academic_unit_id', $unitIds)
+            ->when($kurikulumCpl !== null, fn ($query) => $query->where('kurikulum_id', $kurikulumCpl))
             ->with('mk')
             ->orderBy('kode')
             ->get();

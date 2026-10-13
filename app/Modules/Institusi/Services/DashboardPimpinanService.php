@@ -65,7 +65,7 @@ class DashboardPimpinanService
             ->join('mahasiswas', 'mahasiswas.id', '=', 'kelas_mk_mahasiswa.mahasiswa_id')
             ->whereIn('cpl.academic_unit_id', $unitIds)
             // Capaian CPL prodi hanya dari penawaran prodi itu dan mahasiswa prodi itu.
-            ->whereRaw("(academic_units.type <> 'study_program' OR (mk_units.academic_unit_id = cpl.academic_unit_id AND mahasiswas.academic_unit_id = cpl.academic_unit_id))")
+            ->whereRaw("(academic_units.type <> 'study_program' OR (mk_units.academic_unit_id = cpl.academic_unit_id AND mk_units.kurikulum_id = cpl.kurikulum_id AND mahasiswas.academic_unit_id = cpl.academic_unit_id))")
             ->groupBy('cpl.id', 'cpl.kode', 'kurikulum.nama', 'academic_units.nama')
             ->selectRaw('cpl.kode as cpl_kode')
             ->selectRaw('kurikulum.nama as kurikulum_nama')
