@@ -147,3 +147,29 @@ it('kurikulum prodi baru tidak melihat cpl milik kurikulum lain di unit yang sam
     expect($visible)->not->toContain($cplLama->id)
         ->and($visible)->toBeEmpty();
 });
+
+it('cpl milik prodi lain tidak ikut tertarik walau mk adaptasi dipetakan ke sana', function () {
+    MkUnit::factory()->forKurikulum($this->kurikulumProdi)->forMk($this->mkUniv)->create(['is_active' => true]);
+
+    $prodiLain = AcademicUnit::query()->where('type', 'study_program')->where('id', '!=', $this->prodi->id)->first()
+        ?? AcademicUnit::query()->create([
+            'type' => 'study_program',
+            'nama' => 'Prodi Lain Uji',
+            'parent_id' => $this->prodi->parent_id,
+        ]);
+    $kurikulumLain = Kurikulum::query()->create([
+        'academic_unit_id' => $prodiLain->id,
+        'nama' => 'Kurikulum Prodi Lain',
+        'tahun' => 2026,
+        'is_active' => true,
+    ]);
+    $cplLain = Cpl::factory()->forKurikulum($kurikulumLain)->create();
+    $bokLain = Bok::factory()->forKurikulum($kurikulumLain)->create();
+    $cplBokLain = CplBok::query()->create(['cpl_id' => $cplLain->id, 'bok_id' => $bokLain->id]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBokLain->id, 'mk_id' => $this->mkUniv->id, 'bobot' => 40]);
+
+    expect(CplBokAdaptasiScope::adaptedCplIds($this->kurikulumProdi->id)->all())
+        ->toBe([$this->cplUniv->id])
+        ->and(CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query(), $this->kurikulumProdi->id)->whereKey($cplLain->id)->exists())
+        ->toBeFalse();
+});

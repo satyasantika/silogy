@@ -27,6 +27,9 @@ use Illuminate\Support\Collection;
  */
 class CplBokAdaptasiScope
 {
+    /** Tipe unit pemilik CPL yang boleh diadaptasi unit lain. */
+    private const ADAPTABLE_UNIT_TYPES = ['university', 'faculty'];
+
     /**
      * MK yang diadaptasi (aktif) oleh kurikulum tertentu.
      *
@@ -53,8 +56,15 @@ class CplBokAdaptasiScope
             return collect();
         }
 
+        // Adaptasi hanya berlaku untuk CPL universitas/fakultas — CPL milik
+        // prodi lain tidak boleh ikut tertarik walau MK-nya dipetakan ke sana.
+        $adaptableCplIds = Cpl::query()
+            ->whereHas('academicUnit', fn (Builder $unit): Builder => $unit->whereIn('type', self::ADAPTABLE_UNIT_TYPES))
+            ->select('id');
+
         return CplMk::query()
             ->whereIn('mk_id', $mkIds)
+            ->whereIn('cpl_bok_id', CplBok::query()->whereIn('cpl_id', $adaptableCplIds)->select('id'))
             ->pluck('cpl_bok_id')
             ->unique()
             ->values();
