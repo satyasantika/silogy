@@ -27,7 +27,7 @@ use Illuminate\Support\Collection;
  */
 class CplBokAdaptasiScope
 {
-    /** Tipe unit pemilik CPL yang boleh diadaptasi unit lain. */
+    /** Tipe unit pemilik CPL/BoK yang boleh diadaptasi unit lain. */
     private const ADAPTABLE_UNIT_TYPES = ['university', 'faculty'];
 
     /**
@@ -56,15 +56,21 @@ class CplBokAdaptasiScope
             return collect();
         }
 
-        // Adaptasi hanya berlaku untuk CPL universitas/fakultas — CPL milik
-        // prodi lain tidak boleh ikut tertarik walau MK-nya dipetakan ke sana.
+        // Adaptasi hanya berlaku untuk CPL dan BoK universitas/fakultas —
+        // milik prodi lain tidak boleh ikut tertarik walau MK-nya dipetakan ke sana.
         $adaptableCplIds = Cpl::query()
+            ->whereHas('academicUnit', fn (Builder $unit): Builder => $unit->whereIn('type', self::ADAPTABLE_UNIT_TYPES))
+            ->select('id');
+        $adaptableBokIds = Bok::query()
             ->whereHas('academicUnit', fn (Builder $unit): Builder => $unit->whereIn('type', self::ADAPTABLE_UNIT_TYPES))
             ->select('id');
 
         return CplMk::query()
             ->whereIn('mk_id', $mkIds)
-            ->whereIn('cpl_bok_id', CplBok::query()->whereIn('cpl_id', $adaptableCplIds)->select('id'))
+            ->whereIn('cpl_bok_id', CplBok::query()
+                ->whereIn('cpl_id', $adaptableCplIds)
+                ->whereIn('bok_id', $adaptableBokIds)
+                ->select('id'))
             ->pluck('cpl_bok_id')
             ->unique()
             ->values();

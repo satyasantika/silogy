@@ -173,3 +173,14 @@ it('cpl milik prodi lain tidak ikut tertarik walau mk adaptasi dipetakan ke sana
         ->and(CplBokAdaptasiScope::scopeVisibleCpl(Cpl::query(), $this->kurikulumProdi->id)->whereKey($cplLain->id)->exists())
         ->toBeFalse();
 });
+
+it('bok milik prodi lain tidak ikut tertarik lewat adaptasi mk', function () {
+    MkUnit::factory()->forKurikulum($this->kurikulumProdi)->forMk($this->mkUniv)->create(['is_active' => true]);
+
+    $bokProdi = Bok::factory()->forKurikulum($this->kurikulumProdi)->create();
+    $cplBokCampur = CplBok::query()->create(['cpl_id' => $this->cplUniv->id, 'bok_id' => $bokProdi->id]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBokCampur->id, 'mk_id' => $this->mkUniv->id, 'bobot' => 20]);
+
+    expect(CplBokAdaptasiScope::adaptedBokIds($this->kurikulumProdi->id)->all())
+        ->toBe([$this->bokUniv->id]);
+});
