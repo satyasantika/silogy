@@ -58,9 +58,9 @@ function buatCplMkUntukCpmkTest(Kurikulum $kurikulum, Mk $mk): CplMk
     return CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
 }
 
-it('tombol buat tidak lagi ada, impor massal tampil saat CPMK semester ini masih kosong', function () {
+it('tombol tambah manual dan impor massal tampil berdampingan', function () {
     Livewire::test(ListCpmks::class)
-        ->assertActionDoesNotExist('create')
+        ->assertActionExists('create')
         ->assertActionExists('bulkImport');
 });
 
@@ -71,6 +71,7 @@ it('impor massal terkunci dan tombol ajukan perubahan muncul saat CPMK semester 
     // jalan keluarnya adalah mengajukan usulan, bukan mengimpor diam-diam.
     Livewire::test(ListCpmks::class)
         ->assertActionHidden('bulkImport')
+        ->assertActionHidden('create')
         ->assertActionVisible('ajukanPerubahanCpmk');
 });
 

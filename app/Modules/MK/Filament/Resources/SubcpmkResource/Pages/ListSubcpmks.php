@@ -18,6 +18,7 @@ use App\Modules\MK\Services\SubcpmkResetService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use App\Support\Filament\Concerns\HasResetTrigger;
+use App\Support\Filament\TombolTambah;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -40,6 +41,7 @@ class ListSubcpmks extends ListRecords
     {
         return [
             $this->makePakaiUlangAction(),
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => SubcpmkResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -50,6 +52,7 @@ class ListSubcpmks extends ListRecords
     {
         return [
             $this->makePakaiUlangAction(),
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => SubcpmkResource::canCreate()),
         ];

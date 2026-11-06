@@ -188,6 +188,15 @@ it('tabel CPL contoh bersama tidak menampilkan Ubah, dan hapus massal serta urut
     expect(Ranah::sebagai($id, fn () => Cpl::query()->orderBy('kode')->pluck('deskripsi', 'kode')->all()))->toBe($sebelum);
 });
 
+it('daftar CPL contoh bersama tidak menawarkan Tambah maupun Impor massal', function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    bersamaDenganAkun();
+
+    Livewire::test(ListCpls::class)
+        ->assertActionHidden('create')
+        ->assertActionHidden('bulkImport');
+});
+
 // ── Halaman nilai di contoh terisi: boleh dilihat, tidak boleh diubah ──────
 
 it('dosen contoh terisi bisa membuka Input Nilai kelasnya dalam mode lihat saja', function () {

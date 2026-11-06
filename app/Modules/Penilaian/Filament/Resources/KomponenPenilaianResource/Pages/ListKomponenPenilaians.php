@@ -26,6 +26,7 @@ use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Support\Filament\Concerns\HasImporMassal;
 use App\Support\Filament\Concerns\HasResetTrigger;
+use App\Support\Filament\TombolTambah;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Notifications\Notification;
@@ -56,6 +57,7 @@ class ListKomponenPenilaians extends ListRecords
     {
         return [
             $this->makePakaiUlangAction(),
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -66,6 +68,7 @@ class ListKomponenPenilaians extends ListRecords
     {
         return [
             $this->makePakaiUlangAction(),
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => KomponenPenilaianResource::canCreate()),
             $this->makeIsiSubcpmkDuluAction(),

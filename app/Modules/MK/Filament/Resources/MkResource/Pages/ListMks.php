@@ -15,6 +15,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Services\MkResetService;
 use App\Support\Filament\Concerns\HasImporMassal;
 use App\Support\Filament\Concerns\HasResetTrigger;
+use App\Support\Filament\TombolTambah;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -35,6 +36,7 @@ class ListMks extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => MkResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -44,6 +46,7 @@ class ListMks extends ListRecords
     protected function getTableEmptyStateActions(): array
     {
         return [
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => MkResource::canCreate()),
         ];

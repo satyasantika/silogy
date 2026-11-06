@@ -36,9 +36,9 @@ beforeEach(function () {
     KurikulumTerpilih::set($this->kurikulum->id);
 });
 
-it('tombol buat tidak lagi ada, impor massal selalu tampil', function () {
+it('tombol tambah manual dan impor massal tampil berdampingan', function () {
     Livewire::test(ListMks::class)
-        ->assertActionDoesNotExist('create')
+        ->assertActionExists('create')
         ->assertActionExists('bulkImport');
 });
 

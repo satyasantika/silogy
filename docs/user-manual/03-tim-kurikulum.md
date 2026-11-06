@@ -80,7 +80,7 @@ Status di kartu (Draft → Profil → CPL → BoK → MK → Set dosen → Aktif
 
 Menu hilang jika kurikulum terpilih bukan prodi, atau status tim kurikulum Anda di fakultas/universitas.
 
-1. Buka **Profil Lulusan** → buat.
+1. Buka **Profil Lulusan** → tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal** untuk banyak sekaligus.
 
    ![Daftar profil lulusan](aset/tk-profil-buat.png)
 
@@ -98,7 +98,7 @@ Menu hilang jika kurikulum terpilih bukan prodi, atau status tim kurikulum Anda 
 
 ## 3. CPL
 
-1. Buka **CPL** → buat. Isi kode unik per kurikulum, deskripsi, dan **Domain** (boleh lebih dari satu: kognitif, afektif, psikomotorik).
+1. Buka **CPL** → tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal** untuk banyak sekaligus. Isi kode unik per kurikulum, deskripsi, dan **Domain** (boleh lebih dari satu: kognitif, afektif, psikomotorik).
 
    ![Formulir CPL](aset/tk-cpl-form.png)
 
@@ -112,7 +112,7 @@ Menu hilang jika kurikulum terpilih bukan prodi, atau status tim kurikulum Anda 
 
 ## 4. BoK
 
-1. Buka **BoK** → buat. Isi kode dan rumusan bahan kajian.
+1. Buka **BoK** → tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal** untuk banyak sekaligus. Isi kode dan rumusan bahan kajian.
 
    ![Formulir BoK](aset/tk-bok-form.png)
 
@@ -126,7 +126,7 @@ Menu hilang jika kurikulum terpilih bukan prodi, atau status tim kurikulum Anda 
 
 ## 5. Mata kuliah
 
-1. Buka **MK** → buat. Isi **Unit pemilik**, **Nama**, SKS teori/praktik/lapangan (total terhitung sendiri), **Jenis** (wajib/pilihan), status aktif.
+1. Buka **MK** → tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal** untuk banyak sekaligus. Isi **Unit pemilik**, **Nama**, SKS teori/praktik/lapangan (total terhitung sendiri), **Jenis** (wajib/pilihan), status aktif.
 
    ![Formulir mata kuliah](aset/tk-mk-form.png)
 
@@ -212,7 +212,7 @@ Anda tidak bisa menyetujui usulan yang Anda ajukan sendiri. Satu usulan terbuka 
 
 ## Impor massal
 
-Di daftar Profil, CPL, BoK, dan MK biasanya ada **Impor massal**. Unduh templat, isi tanpa mengubah nama kolom, unggah, perbaiki baris yang ditolak. Impor terikat kurikulum terpilih.
+Di daftar Profil, CPL, BoK, dan MK tersedia dua cara mengisi: tombol bulat **+** (Tambah) untuk memasukkan satu per satu, dan **Impor massal** untuk banyak sekaligus. Hasil impor tetap bisa diubah satu per satu sesudahnya. Untuk impor: unduh templat, isi tanpa mengubah nama kolom, unggah, perbaiki baris yang ditolak. Impor terikat kurikulum terpilih.
 
 ![Impor massal CPL](aset/tk-impor.png)
 

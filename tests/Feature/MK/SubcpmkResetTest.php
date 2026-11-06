@@ -59,9 +59,9 @@ beforeEach(function () {
     SemesterTerpilih::set($this->mk->id, $this->semester->id);
 });
 
-it('tombol buat tidak lagi ada, impor massal selalu tampil', function () {
+it('tombol tambah manual dan impor massal tampil berdampingan', function () {
     Livewire::test(ListSubcpmks::class)
-        ->assertActionDoesNotExist('create')
+        ->assertActionExists('create')
         ->assertActionExists('bulkImport');
 });
 

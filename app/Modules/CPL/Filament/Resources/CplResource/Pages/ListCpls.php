@@ -14,6 +14,7 @@ use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use App\Support\Filament\Concerns\HasResetTrigger;
+use App\Support\Filament\TombolTambah;
 use Filament\Forms\Components\Field;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Component;
@@ -35,6 +36,7 @@ class ListCpls extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => CplResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -44,6 +46,7 @@ class ListCpls extends ListRecords
     protected function getTableEmptyStateActions(): array
     {
         return [
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => CplResource::canCreate()),
         ];

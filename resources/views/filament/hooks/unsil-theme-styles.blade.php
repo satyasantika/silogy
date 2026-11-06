@@ -186,4 +186,15 @@
             margin-inline: 15px;
         }
     }
+
+    /*
+     * Tombol bulat ikon-saja (mis. Tambah di samping Impor massal): tinggi
+     * tetap dari ukuran tombol bawaan, lebar disamakan dengan tinggi.
+     */
+    .fi-btn.silogy-tombol-bulat {
+        border-radius: 9999px;
+        aspect-ratio: 1;
+        padding-inline: 0;
+        justify-content: center;
+    }
 </style>

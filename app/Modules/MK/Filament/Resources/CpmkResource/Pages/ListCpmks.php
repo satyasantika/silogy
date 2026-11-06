@@ -18,6 +18,7 @@ use App\Modules\MK\Support\GerbangPerubahanCpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Concerns\HasImporMassal;
 use App\Support\Filament\Concerns\HasResetTrigger;
+use App\Support\Filament\TombolTambah;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
@@ -46,6 +47,7 @@ class ListCpmks extends ListRecords
         return [
             $this->makePakaiUlangAction(),
             $this->makeAjukanPerubahanAction(),
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => CpmkResource::canCreate()),
             $this->makeResetTriggerAction(),
@@ -115,6 +117,7 @@ class ListCpmks extends ListRecords
     {
         return [
             $this->makePakaiUlangAction(),
+            TombolTambah::make(),
             $this->makeImporMassalAction()
                 ->visible(fn (): bool => CpmkResource::canCreate()),
         ];

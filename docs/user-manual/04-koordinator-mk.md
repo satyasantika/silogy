@@ -60,7 +60,7 @@ Di modal pakai ulang: pilih *sepaket* (semua baris) atau *sebagian* (centang sen
 2. Jika rumusan lalu masih sesuai: **Gunakan data semester lain**.
 
 
-3. Jika semester ini masih kosong dan perlu rumusan baru: buat satu per satu atau **Impor massal**. Isi kode, rumusan, kaitkan ke CPL.
+3. Jika semester ini masih kosong dan perlu rumusan baru: tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal**. Isi kode, rumusan, kaitkan ke CPL.
 
    ![Formulir CPMK](aset/km-cpmk-form.png)
 
@@ -162,7 +162,7 @@ Jangan dipegang jika nilai semester itu sudah final, kecuali Tim Kurikulum memin
 | Gejala | Penyebab lazim | Yang dilakukan |
 |--------|----------------|----------------|
 | 403 / akses ditolak di CPMK | MK belum dipilih, atau Anda bukan koordinator MK itu | Kembali ke Mata Kuliah; minta Tim Kurikulum mengisi koordinator |
-| Tombol buat hilang / form terkunci | Semester sudah punya CPMK tanpa izin ubah, atau usulan masih Diajukan | Ajukan perubahan atau tunggu keputusan |
+| Tombol **+**/Impor massal hilang / form terkunci | Semester sudah punya CPMK tanpa izin ubah, atau usulan masih Diajukan | Ajukan perubahan atau tunggu keputusan |
 | Pakai ulang: baris Harus baru | Induknya (CPMK / Sub-CPMK) belum berlaku di semester ini | Pakai ulang / susun induknya dulu |
 | Dosen tidak bisa Input Nilai | Total asesmen bukan 100%, atau dosen belum pengampu | Perbaiki bobot; minta Admin Prodi menugaskan pengampu |
 | Laporan kosong | Nilai belum lengkap atau pemetaan putus | Cek matriks dan simpan nilai di akun dosen |
