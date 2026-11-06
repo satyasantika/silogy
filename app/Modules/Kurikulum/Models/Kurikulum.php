@@ -143,6 +143,22 @@ class Kurikulum extends Model
     }
 
     /**
+     * Target capaian lulusan untuk satu CPL: mengikuti kurikulum CPL itu
+     * sendiri; bila CPL tak punya kurikulum, jatuh ke kurikulum aktif unit.
+     */
+    public static function targetCapaianUntukCpl(?string $kurikulumId, string $academicUnitId): int
+    {
+        $target = $kurikulumId !== null
+            ? static::query()->whereKey($kurikulumId)->value('target_capaian_lulusan')
+            : null;
+
+        return (int) ($target ?? static::query()
+            ->where('academic_unit_id', $academicUnitId)
+            ->where('is_active', true)
+            ->value('target_capaian_lulusan') ?? 75);
+    }
+
+    /**
      * Kurikulum masih hanya metadata awal — belum ada baris turunan
      * (profil, CPL, BoK, MK, penawaran MK).
      */

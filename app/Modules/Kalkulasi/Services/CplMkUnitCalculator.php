@@ -53,7 +53,6 @@ class CplMkUnitCalculator
             return;
         }
 
-        $threshold = $this->targetCapaianUntukUnit($academicUnitId);
         $hanyaMahasiswaProdi = AcademicUnit::query()->whereKey($academicUnitId)->value('type') === 'study_program';
 
         $existing = HasilCplMkUnit::query()
@@ -66,6 +65,8 @@ class CplMkUnitCalculator
         $rows = [];
 
         foreach ($cpls as $cpl) {
+            $threshold = Kurikulum::targetCapaianUntukCpl($cpl->kurikulum_id, $academicUnitId);
+
             foreach ($mkIds as $mkId) {
                 $hasilRows = HasilCplMk::query()
                     ->where('cpl_id', $cpl->id)
@@ -128,13 +129,5 @@ class CplMkUnitCalculator
             ['cpl_id', 'mk_id', 'academic_unit_id', 'semester_id'],
             ['rata_rata', 'persentase_tercapai', 'jumlah_mahasiswa', 'updated_at'],
         );
-    }
-
-    protected function targetCapaianUntukUnit(string $academicUnitId): int
-    {
-        return (int) (Kurikulum::query()
-            ->where('academic_unit_id', $academicUnitId)
-            ->where('is_active', true)
-            ->value('target_capaian_lulusan') ?? 75);
     }
 }

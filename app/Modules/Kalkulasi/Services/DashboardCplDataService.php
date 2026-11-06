@@ -99,10 +99,10 @@ class DashboardCplDataService
     protected function fetchMkUnitTableRows(string $academicUnitId, string $semesterId, string $cplId): array
     {
         $unitIds = AcademicUnitScope::descendantIdsIncludingSelf($academicUnitId);
-        $threshold = (int) (Kurikulum::query()
-            ->where('academic_unit_id', $academicUnitId)
-            ->where('is_active', true)
-            ->value('target_capaian_lulusan') ?? 75);
+        $threshold = Kurikulum::targetCapaianUntukCpl(
+            Cpl::query()->whereKey($cplId)->value('kurikulum_id'),
+            $academicUnitId,
+        );
 
         $hanyaMahasiswaProdi = AcademicUnit::query()->whereKey($academicUnitId)->value('type') === 'study_program';
 
