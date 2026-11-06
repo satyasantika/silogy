@@ -189,12 +189,14 @@
 
     /*
      * Tombol bulat ikon-saja (mis. Tambah di samping Impor massal): tinggi
-     * tetap dari ukuran tombol bawaan, lebar disamakan dengan tinggi.
+     * tetap dari ukuran tombol bawaan (md: ikon 20px + padding 8px = 36px);
+     * padding horizontal disamakan dengan padding vertikal sehingga lebar
+     * juga 36px. Jangan pakai rasio aspek: di dalam .fi-ac (flex) lebar
+     * menyusut ke ikon dan tombol menjadi kapsul 20x36.
      */
     .fi-btn.silogy-tombol-bulat {
         border-radius: 9999px;
-        aspect-ratio: 1;
-        padding-inline: 0;
+        padding-inline: calc(var(--spacing) * 2);
         justify-content: center;
     }
 </style>
