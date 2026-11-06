@@ -64,12 +64,17 @@ class EditMkUnit extends BaseEditRecord
                             'Penawaran MK ini dikelola pada kurikulum prodi yang dikerjakan; tarik kontrak kelas mengikuti semester kalender yang dipilih di bawah.',
                         ),
                     ]),
+                // Simpan/Kembali di atas card kontrak supaya penyimpanan data
+                // penawaran tidak tertutup blok rekap kelas di bawah. Harus
+                // footer() milik Form: tombol Simpan adalah type="submit"
+                // tanpa atribut form=, jadi di luar <form> ia tidak berbuat
+                // apa-apa.
                 Form::make([EmbeddedSchema::make('form')])
                     ->id('form')
-                    ->livewireSubmitHandler($this->getSubmitFormLivewireMethodName()),
-                // Simpan/Kembali di atas card kontrak supaya penyimpanan data
-                // penawaran tidak tertutup blok rekap kelas di bawah.
-                $this->getFormActionsContentComponent(),
+                    ->livewireSubmitHandler($this->getSubmitFormLivewireMethodName())
+                    ->footer([
+                        $this->getFormActionsContentComponent(),
+                    ]),
                 View::make('filament.modules.mk.partials.mk-unit-kontrak-kelas')
                     ->viewData(fn (): array => [
                         'semesterOptions' => $this->semesterKontrakOptions(),

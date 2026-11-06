@@ -46,10 +46,15 @@ class EditMk extends BaseSimpleEditRecord
     {
         return $schema
             ->components([
+                // Tombol aksi harus footer() milik Form: Simpan adalah
+                // type="submit" tanpa atribut form=, jadi di luar <form> ia
+                // tidak berbuat apa-apa.
                 Form::make([EmbeddedSchema::make('form')])
                     ->id('form')
-                    ->livewireSubmitHandler($this->getSubmitFormLivewireMethodName()),
-                $this->getFormActionsContentComponent(),
+                    ->livewireSubmitHandler($this->getSubmitFormLivewireMethodName())
+                    ->footer([
+                        $this->getFormActionsContentComponent(),
+                    ]),
                 View::make('filament.modules.mk.partials.mk-edit-penawaran')
                     ->viewData(fn (): array => [
                         ...$this->rekapPenawaranMk(),
