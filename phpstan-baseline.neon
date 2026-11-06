@@ -247,12 +247,6 @@ parameters:
 			path: app/Modules/BoK/Policies/BokPolicy.php
 
 		-
-			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/CPL/Filament/Resources/CplResource.php
-
-		-
 			message: '#^Parameter \#1 \$query of static method App\\Modules\\Kurikulum\\Support\\CplBokAdaptasiScope\:\:scopeVisibleCpl\(\) expects Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\CPL\\Models\\Cpl\>, Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -275,12 +269,6 @@ parameters:
 			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Modules/CPL/Filament/Resources/CplResource.php
-
-		-
-			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
 
 		-
 			message: '#^Call to function method_exists\(\) with \$this\(App\\Modules\\CPL\\Filament\\Resources\\CplResource\\Pages\\ListCpls\) and ''forceRender'' will always evaluate to true\.$#'
@@ -335,24 +323,6 @@ parameters:
 			identifier: missingType.iterableValue
 			count: 1
 			path: app/Modules/CPL/Filament/Resources/CplResource/Pages/ListCpls.php
-
-		-
-			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/CPL/Filament/Resources/CplResource/RelationManagers/BokRelationManager.php
-
-		-
-			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/CPL/Filament/Resources/CplResource/RelationManagers/ProfilLulusanRelationManager.php
-
-		-
-			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/CPL/Models/Cpl.php
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$academicUnit\.$#'
@@ -872,12 +842,6 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property App\\Modules\\BoK\\Models\\Bok\:\:\$kurikulum_id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Modules/Kurikulum/Support/CplBokAdaptasiScope.php
-
-		-
-			message: '#^Access to an undefined property App\\Modules\\CPL\\Models\\Cpl\:\:\$kurikulum_id\.$#'
 			identifier: property.notFound
 			count: 2
 			path: app/Modules/Kurikulum/Support/CplBokAdaptasiScope.php

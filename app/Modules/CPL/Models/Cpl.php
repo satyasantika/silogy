@@ -18,6 +18,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * Kolom kurikulum_id ditambahkan lewat loop di migrasi
+ * 2026_07_27_080000, sehingga Larastan tidak bisa menyimpulkannya.
+ *
+ * @property string|null $kurikulum_id
+ *
  * @use HasFactory<CplFactory>
  */
 #[UseFactory(CplFactory::class)]
