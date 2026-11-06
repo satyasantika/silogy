@@ -21,7 +21,7 @@ class CplFactory extends Factory
             'kode' => 'CPL-'.fake()->unique()->numerify('##'),
             'deskripsi' => fake()->sentence(),
             'domain' => fake()->randomElements(
-                ['kognitif', 'afektif', 'psikomotorik'],
+                ['sikap', 'pengetahuan', 'keterampilan'],
                 fake()->numberBetween(1, 3),
             ),
         ];

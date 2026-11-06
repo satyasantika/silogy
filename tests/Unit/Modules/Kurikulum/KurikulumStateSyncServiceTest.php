@@ -111,7 +111,7 @@ it('ketersediaan menu menampilkan status ada atau belum', function () {
         'kurikulum_id' => $kurikulum->id,
         'kode' => 'CPL-01',
         'deskripsi' => 'CPL uji',
-        'domain' => ['kognitif'],
+        'domain' => ['pengetahuan'],
     ]);
 
     $menu = KurikulumResource::ketersediaanMenu($kurikulum->fresh());
@@ -195,7 +195,7 @@ it('observer pivot cpl profil lulusan ikut memicu sinkronisasi state', function 
         'kurikulum_id' => $kurikulum->id,
         'kode' => 'CPL-01',
         'deskripsi' => 'CPL pivot',
-        'domain' => ['kognitif'],
+        'domain' => ['pengetahuan'],
     ]);
 
     CplProfilLulusan::query()->create([

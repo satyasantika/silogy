@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\CPL\Filament\Resources\CplResource;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\CreateCpl;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\EditCpl;
 use App\Modules\CPL\Models\Cpl;
@@ -37,23 +38,31 @@ it('domain dapat dipilih lebih dari satu saat membuat cpl', function () {
             'academic_unit_id' => $this->prodi->id,
             'kode' => 'CPL-MULTI-01',
             'deskripsi' => 'Mampu memahami dan bersikap ilmiah',
-            'domain' => ['kognitif', 'afektif'],
+            'domain' => ['pengetahuan', 'sikap'],
         ])
         ->call('create')
         ->assertHasNoFormErrors();
 
     expect(Cpl::query()->where('kode', 'CPL-MULTI-01')->firstOrFail()->domain)
-        ->toBe(['kognitif', 'afektif']);
+        ->toBe(['pengetahuan', 'sikap']);
 });
 
 it('domain yang tersimpan tampil kembali dan dapat diubah saat edit cpl', function () {
-    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['domain' => ['kognitif']]);
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['domain' => ['pengetahuan']]);
 
     Livewire::test(EditCpl::class, ['record' => $cpl->getKey()])
-        ->assertFormSet(['domain' => ['kognitif']])
-        ->fillForm(['domain' => ['afektif', 'psikomotorik']])
+        ->assertFormSet(['domain' => ['pengetahuan']])
+        ->fillForm(['domain' => ['sikap', 'keterampilan']])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($cpl->fresh()->domain)->toBe(['afektif', 'psikomotorik']);
+    expect($cpl->fresh()->domain)->toBe(['sikap', 'keterampilan']);
+});
+
+it('opsi domain hanya sikap, pengetahuan, keterampilan sesuai permen 39', function () {
+    expect(CplResource::domainOptions())->toBe([
+        'sikap' => 'Sikap',
+        'pengetahuan' => 'Pengetahuan',
+        'keterampilan' => 'Keterampilan',
+    ]);
 });

@@ -341,7 +341,7 @@ class SimulasiAkademikBuilder
                 'id' => (string) Str::uuid(),
                 'academic_unit_id' => $unit->id,
                 'deskripsi' => 'CPL simulasi '.$unit->nama,
-                'domain' => ['kognitif'],
+                'domain' => ['pengetahuan'],
             ],
         );
 
@@ -639,8 +639,8 @@ class SimulasiAkademikBuilder
         $cplIds = [];
 
         foreach ([
-            ['kode' => 'CPL-SIM-01', 'deskripsi' => 'Mampu merancang pembelajaran matematika', 'domain' => ['kognitif', 'psikomotorik']],
-            ['kode' => 'CPL-SIM-02', 'deskripsi' => 'Berkomitmen pada etika pendidikan', 'domain' => ['afektif']],
+            ['kode' => 'CPL-SIM-01', 'deskripsi' => 'Mampu merancang pembelajaran matematika', 'domain' => ['pengetahuan', 'keterampilan']],
+            ['kode' => 'CPL-SIM-02', 'deskripsi' => 'Berkomitmen pada etika pendidikan', 'domain' => ['sikap']],
         ] as $row) {
             $cpl = Cpl::query()->firstOrCreate(
                 ['kurikulum_id' => $kurikulum->id, 'kode' => $row['kode']],

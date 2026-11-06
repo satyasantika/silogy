@@ -89,7 +89,7 @@ it('seeder simulasi mengisi cpl dengan domain multiselect', function () {
         ->where('kode', 'CPL-SIM-01')
         ->firstOrFail();
 
-    expect($cpl->domain)->toBe(['kognitif', 'psikomotorik']);
+    expect($cpl->domain)->toBe(['pengetahuan', 'keterampilan']);
 });
 
 it('seeder simulasi mengadaptasi mk universitas dan fakultas ke prodi lewat kode alias', function () {

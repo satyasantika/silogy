@@ -70,14 +70,28 @@ class CplResource extends Resource
     }
 
     /**
+     * Istilah domain lama yang masih diterima impor massal dan dipetakan
+     * ke label Permendiktisaintek 39/2025.
+     *
+     * @var array<string, string>
+     */
+    public const DOMAIN_ALIAS_LAMA = [
+        'afektif' => 'sikap',
+        'kognitif' => 'pengetahuan',
+        'psikomotorik' => 'keterampilan',
+    ];
+
+    /**
+     * Domain CPL sesuai label Permendiktisaintek 39/2025.
+     *
      * @return array<string, string>
      */
     public static function domainOptions(): array
     {
         return [
-            'kognitif' => 'Kognitif',
-            'afektif' => 'Afektif',
-            'psikomotorik' => 'Psikomotorik',
+            'sikap' => 'Sikap',
+            'pengetahuan' => 'Pengetahuan',
+            'keterampilan' => 'Keterampilan',
         ];
     }
 

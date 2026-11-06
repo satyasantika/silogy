@@ -233,7 +233,7 @@ it('mengembalikan basis data persis seperti semula setelah dihapus', function ()
         'academic_unit_id' => $prodiNyata->id,
         'kode' => 'CPL-ASLI-01',
         'deskripsi' => 'CPL milik data nyata',
-        'domain' => ['kognitif'],
+        'domain' => ['pengetahuan'],
     ]);
 
     $sebelum = capJariBasisData();
