@@ -263,13 +263,49 @@ it('impor cpl mendukung beberapa domain sekaligus dipisah koma', function () {
 
     Livewire::test(ListCpls::class)
         ->callAction(TestAction::make('bulkImport')->table(), [
-            'rows' => '|CPL-IMP-MULTI|Mampu memahami dan bersikap ilmiah|kognitif,afektif',
+            'rows' => '|CPL-IMP-MULTI|Mampu memahami dan bersikap ilmiah|pengetahuan,sikap',
             'mode_duplikat' => 'lewati',
         ]);
 
     $cpl = Cpl::query()->where('kode', 'CPL-IMP-MULTI')->firstOrFail();
 
-    expect($cpl->domain)->toBe(['kognitif', 'afektif']);
+    expect($cpl->domain)->toBe(['pengetahuan', 'sikap']);
+});
+
+it('impor cpl menerima istilah domain lama dan menyimpannya dengan label permen 39', function () {
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    Livewire::test(ListCpls::class)
+        ->callAction(TestAction::make('bulkImport')->table(), [
+            'rows' => '|CPL-IMP-LAMA|Mampu memahami dan bersikap ilmiah|kognitif,afektif,psikomotorik',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    expect(Cpl::query()->where('kode', 'CPL-IMP-LAMA')->firstOrFail()->domain)
+        ->toBe(['pengetahuan', 'sikap', 'keterampilan']);
+});
+
+it('impor cpl menormalkan kapital, spasi, dan domain ganda', function () {
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    Livewire::test(ListCpls::class)
+        ->callAction(TestAction::make('bulkImport')->table(), [
+            'rows' => '|CPL-IMP-NORM|Bersikap ilmiah| Sikap , sikap ,afektif',
+            'mode_duplikat' => 'lewati',
+        ]);
+
+    expect(Cpl::query()->where('kode', 'CPL-IMP-NORM')->firstOrFail()->domain)->toBe(['sikap']);
+});
+
+it('impor cpl menolak domain di luar sikap, pengetahuan, keterampilan', function () {
+    KurikulumTerpilih::set($this->kurikulumProdi->id);
+
+    $parsed = Livewire::test(ListCpls::class)->instance()
+        ->parseImportRaw('|CPL-IMP-SALAH|Deskripsi|spiritual');
+
+    expect($parsed)->toHaveCount(1)
+        ->and($parsed[0]['status'])->toBe('invalid')
+        ->and($parsed[0]['keterangan'])->toBe('Domain harus sikap, pengetahuan, dan/atau keterampilan, dipisah koma.');
 });
 
 it('impor cpl prodi memetakan ke beberapa profil lulusan sekaligus', function () {
@@ -1043,7 +1079,7 @@ it('mode timpa memperbarui data duplikat pada impor cpl', function () {
     $cpl = Cpl::query()->where('kode', 'CPL-TIMPA')->firstOrFail();
 
     expect($cpl->deskripsi)->toBe('Deskripsi baru hasil timpa')
-        ->and($cpl->domain)->toBe(['afektif'])
+        ->and($cpl->domain)->toBe(['sikap'])
         ->and(Cpl::query()->where('kode', 'CPL-TIMPA')->count())->toBe(1);
 });
 

@@ -214,7 +214,7 @@ class ListCpls extends ListRecords
     {
         return [
             'Satu baris = satu CPL pada kurikulum yang sedang dikerjakan (lihat banner di atas).',
-            'Domain opsional: kognitif, afektif, dan/atau psikomotorik; lebih dari satu dipisah koma (,), mis. kognitif,afektif.',
+            'Domain opsional: sikap, pengetahuan, dan/atau keterampilan; lebih dari satu dipisah koma (,), mis. pengetahuan,keterampilan.',
         ];
     }
 
@@ -243,7 +243,7 @@ class ListCpls extends ListRecords
     protected function importExampleRows(): array
     {
         return [
-            "CPL-01\tMampu memahami konsep dasar\tkognitif,afektif",
+            "CPL-01\tMampu memahami konsep dasar\tpengetahuan,sikap",
             "CPL-02\tMampu menganalisis data\t",
         ];
     }
@@ -259,7 +259,7 @@ class ListCpls extends ListRecords
         }
 
         return [
-            "Pendidik;Peneliti\tCPL-01\tMampu memahami konsep dasar\tkognitif,afektif",
+            "Pendidik;Peneliti\tCPL-01\tMampu memahami konsep dasar\tpengetahuan,sikap",
             "\tCPL-02\tMampu menganalisis data\t",
         ];
     }
@@ -279,7 +279,7 @@ class ListCpls extends ListRecords
         }
 
         if ($data['domain'] !== '' && $this->parseDomainImport($data['domain']) === null) {
-            return ['status' => 'invalid', 'keterangan' => 'Domain harus kognitif, afektif, dan/atau psikomotorik, dipisah koma.'];
+            return ['status' => 'invalid', 'keterangan' => 'Domain harus sikap, pengetahuan, dan/atau keterampilan, dipisah koma.'];
         }
 
         $ringkasanProfil = $this->ringkasanProfilImport($data);
@@ -443,10 +443,13 @@ class ListCpls extends ListRecords
         $domains = collect(explode(',', $raw))
             ->map(fn (string $domain): string => Str::lower(trim($domain)))
             ->filter()
+            ->map(fn (string $domain): string => CplResource::DOMAIN_ALIAS_LAMA[$domain] ?? $domain)
             ->unique()
             ->values();
 
-        if ($domains->isEmpty() || $domains->contains(fn (string $domain): bool => ! in_array($domain, ['kognitif', 'afektif', 'psikomotorik'], true))) {
+        $sah = array_keys(CplResource::domainOptions());
+
+        if ($domains->isEmpty() || $domains->contains(fn (string $domain): bool => ! in_array($domain, $sah, true))) {
             return null;
         }
 

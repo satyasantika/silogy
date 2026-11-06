@@ -98,7 +98,7 @@ Menu hilang jika kurikulum terpilih bukan prodi, atau status tim kurikulum Anda 
 
 ## 3. CPL
 
-1. Buka **CPL** → tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal** untuk banyak sekaligus. Isi kode unik per kurikulum, deskripsi, dan **Domain** (boleh lebih dari satu: kognitif, afektif, psikomotorik).
+1. Buka **CPL** → tombol bulat **+** (Tambah) untuk satu per satu, atau **Impor massal** untuk banyak sekaligus. Isi kode unik per kurikulum, deskripsi, dan **Domain** sesuai Permendiktisaintek 39/2025 (boleh lebih dari satu: sikap, pengetahuan, keterampilan). Spreadsheet impor lama yang masih memakai kognitif/afektif/psikomotorik tetap diterima dan otomatis diubah ke istilah baru.
 
    ![Formulir CPL](aset/tk-cpl-form.png)
 

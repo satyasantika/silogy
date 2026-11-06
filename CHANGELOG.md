@@ -4,6 +4,16 @@ Semua perubahan penting pada proyek SILOGY didokumentasikan di file ini.
 
 Format mengacu [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dan proyek ini mengikuti [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Tombol Tambah manual kembali** di daftar Profil Lulusan, CPL, BoK, MK, CPMK, Sub-CPMK, dan Asesmen — tombol bulat berikon **+** setinggi tombol **Impor massal**, di sampingnya. Data kini boleh masuk satu per satu atau sekaligus; visibilitas mengikuti izin membuat (ikut tersembunyi saat CPMK terkunci dan di contoh simulasi hanya-baca).
+
+### Changed
+
+- **Domain CPL menjadi Sikap, Pengetahuan, Keterampilan** sesuai label Permendiktisaintek 39/2025. Migrasi `2026_11_06_000001` memetakan data lama (afektif→sikap, kognitif→pengetahuan, psikomotorik→keterampilan) dan dapat di-rollback. Impor massal CPL tetap menerima istilah lama sebagai alias. Taksonomi Bloom Sub-CPMK (C/A/P) tidak berubah.
+
 ## [6.4.0] - 2026-09-24
 
 Data latihan kini bisa dinyalakan dan dimatikan Super Admin kapan saja, dan panduan per peran terbit sebagai halaman publik bertangkapan layar asli — tertaut langsung dari beranda.
