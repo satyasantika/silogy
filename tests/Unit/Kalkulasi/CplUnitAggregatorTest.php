@@ -8,6 +8,7 @@ use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
 use App\Modules\Kalkulasi\Services\CplUnitAggregator;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -184,7 +185,7 @@ it('capaian cpl hanya dari penawaran kurikulum yang sama dengan cpl', function (
 
     $kurikulum = $this->buatKurikulumAktif($prodi, 75);
     $dasar['cpl']->update(['kurikulum_id' => $kurikulum->id]);
-    $dasar['mkUnit']->update(['kurikulum_id' => \App\Modules\Kurikulum\Models\Kurikulum::query()->create([
+    $dasar['mkUnit']->update(['kurikulum_id' => Kurikulum::query()->create([
         'academic_unit_id' => $prodi->id, 'nama' => 'Kurikulum Lama', 'tahun' => 2020, 'is_active' => false,
     ])->id]);
 
