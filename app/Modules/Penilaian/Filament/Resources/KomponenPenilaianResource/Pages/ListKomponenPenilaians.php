@@ -441,7 +441,7 @@ class ListKomponenPenilaians extends ListRecords
     {
         return [
             ['key' => 'kode_asesmen', 'label' => 'kode', 'wajib' => true],
-            ['key' => 'nama_tugas', 'label' => 'nama penugasan', 'wajib' => true],
+            ['key' => 'nama_tugas', 'label' => 'kriteria dan teknik penilaian', 'wajib' => true],
             ['key' => 'bobot_tugas', 'label' => 'bobot (%)', 'wajib' => true],
             ['key' => 'komponen_penilaian', 'label' => 'komponen', 'wajib' => true],
             ['key' => 'kode_subcpmk', 'label' => 'SubCPMK', 'wajib' => false],
@@ -523,7 +523,7 @@ class ListKomponenPenilaians extends ListRecords
         }
 
         if (blank(trim($data['nama_tugas'] ?? ''))) {
-            return ['status' => 'invalid', 'keterangan' => 'Nama penugasan wajib diisi.'];
+            return ['status' => 'invalid', 'keterangan' => 'Kriteria dan teknik penilaian wajib diisi.'];
         }
 
         if ($data['bobot_tugas'] === '' || ! is_numeric($data['bobot_tugas'])) {

@@ -227,7 +227,7 @@ class KomponenPenilaianResource extends Resource
                     ]),
 
                     TextColumn::make('nama')
-                        ->label('Nama penugasan')
+                        ->label('Kriteria dan teknik penilaian')
                         ->searchable()
                         ->wrap()
                         ->weight(FontWeight::Bold),
