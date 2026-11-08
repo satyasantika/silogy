@@ -30,6 +30,7 @@ use Illuminate\Support\HtmlString;
  */
 trait HasLaporanAnalisisCplPimpinan
 {
+    use HasTrenCplSemester;
     use InteractsWithActions;
     use InteractsWithTable;
 

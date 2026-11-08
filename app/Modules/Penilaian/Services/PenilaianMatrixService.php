@@ -146,6 +146,51 @@ class PenilaianMatrixService
     }
 
     /**
+     * Kelengkapan nilai satu kelas: berapa sel (mahasiswa × asesmen yang
+     * sudah dipetakan ke Sub-CPMK) yang semestinya diisi dan berapa yang
+     * benar-benar terisi. Nilai 0 dihitung terisi; hanya null yang kosong —
+     * supaya dosen diperingatkan bila ada nilai yang terlewat.
+     *
+     * @return array{nilai_total: int, nilai_terisi: int, mahasiswa_belum_lengkap: int, status_kelengkapan: 'belum'|'sebagian'|'lengkap'|'tanpa_asesmen'}
+     */
+    public function kelengkapanKelas(KelasMk $kelasMk): array
+    {
+        $pivotIdsByKomponen = array_filter(
+            $this->pivotIdsByKomponen($this->komponenUntukKelas($kelasMk)),
+            fn (array $pivotIds): bool => $pivotIds !== [],
+        );
+        $rows = $this->barisUntukKelas($kelasMk);
+        $nilai = $this->nilaiUntukMatrix($rows, $pivotIdsByKomponen);
+
+        $total = count($rows) * count($pivotIdsByKomponen);
+        $terisi = 0;
+        $mahasiswaBelumLengkap = 0;
+
+        foreach ($nilai as $nilaiBaris) {
+            $terisiBaris = count(array_filter($nilaiBaris, fn (?string $v): bool => $v !== null));
+            $terisi += $terisiBaris;
+
+            if ($terisiBaris < count($nilaiBaris)) {
+                $mahasiswaBelumLengkap++;
+            }
+        }
+
+        $status = match (true) {
+            $total === 0 => 'tanpa_asesmen',
+            $terisi === 0 => 'belum',
+            $terisi < $total => 'sebagian',
+            default => 'lengkap',
+        };
+
+        return [
+            'nilai_total' => $total,
+            'nilai_terisi' => $terisi,
+            'mahasiswa_belum_lengkap' => $mahasiswaBelumLengkap,
+            'status_kelengkapan' => $status,
+        ];
+    }
+
+    /**
      * @param  list<array{id: string}>  $columns
      * @param  list<array{id: string}>  $rows
      * @param  array<string, array<string, string|null>>  $nilai

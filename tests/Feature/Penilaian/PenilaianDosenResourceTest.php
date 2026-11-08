@@ -504,3 +504,43 @@ it('service ringkasanKelas menghitung rata-rata dan status belum dinilai', funct
     expect($sesudah['sudah_dinilai'])->toBeTrue()
         ->and($sesudah['rata_rata'])->toBe(77.5);
 });
+
+it('ringkasanKelas melaporkan kelengkapan nilai; nilai 0 dihitung terisi, null dihitung kosong', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    $kelas = buatKelasPenilaianDosen($this->dosen, $mk, 'K', $this->semesterAktif->id, 3);
+
+    $belum = PenilaianDosenService::ringkasanKelas($kelas['kelas']);
+    expect($belum['status_kelengkapan'])->toBe('belum')
+        ->and($belum['nilai_total'])->toBe(3)
+        ->and($belum['nilai_terisi'])->toBe(0);
+
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][0]->id,
+        'nilai' => 0,
+    ]);
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][1]->id,
+        'nilai' => null,
+    ]);
+
+    $sebagian = PenilaianDosenService::ringkasanKelas($kelas['kelas']->fresh());
+    expect($sebagian['status_kelengkapan'])->toBe('sebagian')
+        ->and($sebagian['nilai_terisi'])->toBe(1)
+        ->and($sebagian['mahasiswa_belum_lengkap'])->toBe(2);
+
+    NilaiMahasiswa::query()
+        ->where('kelas_mk_mahasiswa_id', $kelas['kmms'][1]->id)
+        ->update(['nilai' => 70]);
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][2]->id,
+        'nilai' => 90,
+    ]);
+
+    $lengkap = PenilaianDosenService::ringkasanKelas($kelas['kelas']->fresh());
+    expect($lengkap['status_kelengkapan'])->toBe('lengkap')
+        ->and($lengkap['nilai_terisi'])->toBe(3)
+        ->and($lengkap['mahasiswa_belum_lengkap'])->toBe(0);
+});

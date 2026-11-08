@@ -23,10 +23,10 @@
                     @foreach ($this->kelasCards as $kelas)
                         @php
                             $aktif = $kelasMkId === $kelas['id'];
-                            $sudahDinilai = $kelas['sudah_dinilai'];
-                            $border = $aktif ? '#2563eb' : ($sudahDinilai ? '#86efac' : '#fcd34d');
-                            $background = $aktif ? '#dbeafe' : ($sudahDinilai ? '#dcfce7' : '#fef3c7');
-                            $color = $sudahDinilai ? '#166534' : '#92400e';
+                            $lengkap = ($kelas['status_kelengkapan'] ?? null) === 'lengkap';
+                            $border = $aktif ? '#2563eb' : ($lengkap ? '#86efac' : '#fcd34d');
+                            $background = $aktif ? '#dbeafe' : ($lengkap ? '#dcfce7' : '#fef3c7');
+                            $color = $lengkap ? '#166534' : '#92400e';
                         @endphp
                         <button
                             type="button"
@@ -37,16 +37,13 @@
                         >
                             <span style="display:block;font-weight:700;font-size:13px;">Kelas {{ $kelas['kode_kelas'] }}</span>
                             <span style="display:block;font-size:12px;margin-top:2px;">
-                                {{ $kelas['jumlah_mahasiswa'] }} mhs
-                                @if ($sudahDinilai)
-                                    · rata-rata {{ $kelas['rata_rata'] }}
-                                @else
-                                    · Belum dinilai
-                                @endif
+                                @include('filament.modules.penilaian.partials.status-kelas-card', ['kelas' => $kelas])
                             </span>
                         </button>
                     @endforeach
                 </div>
+
+                @include('filament.modules.penilaian.partials.peringatan-kelengkapan-nilai', ['kelengkapan' => $this->kelengkapanKelasAktif])
 
                 <div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,.08);font-size:12px;">
                     <strong>Seluruh kelas pada MK ini:</strong>

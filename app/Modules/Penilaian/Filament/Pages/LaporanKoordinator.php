@@ -5,8 +5,12 @@ namespace App\Modules\Penilaian\Filament\Pages;
 use App\Models\User;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Services\TrenCplSemesterService;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Pages\Concerns\InteraksiKoordinatorMatrixPage;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Pages\Concerns\HasLaporanKelasMk;
@@ -183,6 +187,37 @@ class LaporanKoordinator extends Page
             ))
             ->values()
             ->all();
+    }
+
+    /**
+     * Tren ketercapaian CPL yang disumbang MK terpilih, antarsemester —
+     * dari seluruh kelas MK ini dalam cakupan koordinator (tanpa saringan
+     * semester terpilih, karena justru membandingkan semester).
+     *
+     * @return array{target: int, semesters: list<array{id: string, label: string}>, cpl: list<array{cpl_id: string, kode: string, data: list<float|null>}>}|null
+     */
+    public function getTrenCplMkProperty(): ?array
+    {
+        $mk = $this->getMkTerpilih();
+        $user = auth()->user();
+
+        if ($mk === null || ! $user instanceof User) {
+            return null;
+        }
+
+        $mkUnitIds = PenawaranMkScope::kelasMkQueryUntukMk($mk->id, $user)
+            ->distinct()
+            ->pluck('mk_unit_id');
+
+        $kurikulum = MkUnit::query()->whereIn('id', $mkUnitIds)->whereNotNull('kurikulum_id')->first()->kurikulum
+            ?? $mk->kurikulum
+            ?? KurikulumTerpilih::current();
+
+        if (! $kurikulum instanceof Kurikulum) {
+            return null;
+        }
+
+        return app(TrenCplSemesterService::class)->tren($kurikulum, $mkUnitIds, $mk->id);
     }
 
     /**

@@ -200,3 +200,42 @@ it('mengingat mk terpilih lewat session saat kembali tanpa parameter', function 
     Livewire::test(InputNilai::class)
         ->assertSet('mkId', $mk->id);
 });
+
+it('kartu kelas menandai kelas yang nilainya baru sebagian terisi', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+
+    $kelas = buatKelasUntukMkInputNilai($this->dosen, $mk, 'S', $this->semesterAktif->id, 4);
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][0]->id,
+        'nilai' => 0,
+    ]);
+
+    $this->actingAs($this->dosen);
+
+    Livewire::withQueryParams(['kelas_mk_id' => $kelas['kelas']->id])
+        ->test(InputNilai::class)
+        ->assertSee('rata-rata 0', escape: false)
+        ->assertSee('25% terisi', escape: false)
+        ->assertSee('Data belum lengkap', escape: false)
+        ->assertSee('3 dari 4 nilai belum diisi', escape: false);
+});
+
+it('kartu kelas yang nilainya lengkap tidak memunculkan peringatan', function () {
+    $mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+
+    $kelas = buatKelasUntukMkInputNilai($this->dosen, $mk, 'L', $this->semesterAktif->id, 1);
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $kelas['skp']->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmms'][0]->id,
+        'nilai' => 88,
+    ]);
+
+    $this->actingAs($this->dosen);
+
+    Livewire::withQueryParams(['kelas_mk_id' => $kelas['kelas']->id])
+        ->test(InputNilai::class)
+        ->assertSee('rata-rata 88', escape: false)
+        ->assertDontSee('% terisi', escape: false)
+        ->assertDontSee('Data belum lengkap', escape: false);
+});

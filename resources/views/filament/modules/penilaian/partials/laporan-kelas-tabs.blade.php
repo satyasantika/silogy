@@ -150,6 +150,7 @@
             </div>
 
             <div data-silogy="laporan-cetak-badan" class="silogy-laporan-cetak-badan">
+                @include('filament.modules.penilaian.partials.peringatan-kelengkapan-nilai', ['kelengkapan' => $this->kelengkapanKelasAktif])
                 <section class="silogy-laporan-blok silogy-laporan-blok--rapat" data-silogy="laporan-blok-a">
                     <div class="silogy-laporan-blok__judul">A. Identitas Mata Kuliah</div>
                     <div class="silogy-laporan-blok__isi" style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">

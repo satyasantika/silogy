@@ -531,7 +531,7 @@ class PenilaianDosenService
     }
 
     /**
-     * @return array{kode_kelas: string, jumlah_mahasiswa: int, rata_rata: float|null, sudah_dinilai: bool}
+     * @return array{kode_kelas: string, jumlah_mahasiswa: int, rata_rata: float|null, sudah_dinilai: bool, nilai_total: int, nilai_terisi: int, mahasiswa_belum_lengkap: int, status_kelengkapan: 'belum'|'sebagian'|'lengkap'|'tanpa_asesmen'}
      */
     public static function ringkasanKelas(KelasMk $kelas): array
     {
@@ -550,6 +550,7 @@ class PenilaianDosenService
             'jumlah_mahasiswa' => $jumlahMahasiswa,
             'rata_rata' => $rataRata !== null ? round((float) $rataRata, 2) : null,
             'sudah_dinilai' => $rataRata !== null,
+            ...app(PenilaianMatrixService::class)->kelengkapanKelas($kelas),
         ];
     }
 

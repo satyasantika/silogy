@@ -48,10 +48,10 @@
                             @foreach ($this->kelasCards as $kelas)
                                 @php
                                     $aktif = $kelasMkId === $kelas['id'];
-                                    $sudahDinilai = $kelas['sudah_dinilai'];
-                                    $border = $aktif ? '#2563eb' : ($sudahDinilai ? '#86efac' : '#fcd34d');
-                                    $background = $aktif ? '#dbeafe' : ($sudahDinilai ? '#dcfce7' : '#fef3c7');
-                                    $color = $sudahDinilai ? '#166534' : '#92400e';
+                                    $lengkap = ($kelas['status_kelengkapan'] ?? null) === 'lengkap';
+                                    $border = $aktif ? '#2563eb' : ($lengkap ? '#86efac' : '#fcd34d');
+                                    $background = $aktif ? '#dbeafe' : ($lengkap ? '#dcfce7' : '#fef3c7');
+                                    $color = $lengkap ? '#166534' : '#92400e';
                                 @endphp
                                 <button
                                     type="button"
@@ -65,16 +65,13 @@
                                         Dosen: {{ $kelas['dosen_pengampu_nama'] }}
                                     </span>
                                     <span style="display:block;font-size:12px;margin-top:2px;">
-                                        {{ $kelas['jumlah_mahasiswa'] }} mhs
-                                        @if ($sudahDinilai)
-                                            · rata-rata {{ $kelas['rata_rata'] }}
-                                        @else
-                                            · Belum dinilai
-                                        @endif
+                                        @include('filament.modules.penilaian.partials.status-kelas-card', ['kelas' => $kelas])
                                     </span>
                                 </button>
                             @endforeach
                         </div>
+
+                        @include('filament.modules.penilaian.partials.peringatan-kelengkapan-nilai', ['kelengkapan' => $this->kelengkapanKelasAktif])
                     @endif
                 </div>
 
@@ -115,6 +112,15 @@
             @endif
         </div>
     </div>
+
+    @php $trenCplMk = $this->trenCplMk; @endphp
+    @if ($trenCplMk !== null)
+        @include('filament.modules.kurikulum.partials.grafik-tren-cpl', [
+            'tren' => $trenCplMk,
+            'judul' => 'Tren Ketercapaian CPL Mata Kuliah Ini',
+        ])
+        @include('filament.shared.charts.radar-bar-chartjs')
+    @endif
 
     @include('filament.modules.mk.partials.mk-pipeline-nav', ['stepKey' => 'laporan'])
 </x-filament-panels::page>

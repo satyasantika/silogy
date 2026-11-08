@@ -31,6 +31,7 @@ use Illuminate\Support\Collection;
  */
 trait HasAnalisisMkForUnitType
 {
+    use HasTrenCplSemester;
     use InteractsWithActions;
     use InteractsWithTable;
 

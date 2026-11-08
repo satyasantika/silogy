@@ -127,6 +127,22 @@ trait HasLaporanKelasMk
     }
 
     /**
+     * Kelengkapan nilai kelas terpilih — sumber banner "Data belum lengkap".
+     *
+     * @return array{nilai_total: int, nilai_terisi: int, mahasiswa_belum_lengkap: int, status_kelengkapan: string}|null
+     */
+    public function getKelengkapanKelasAktifProperty(): ?array
+    {
+        $kelasMk = $this->kelasMkId !== null
+            ? KelasMk::query()->with('mkUnit')->find($this->kelasMkId)
+            : null;
+
+        return $kelasMk !== null
+            ? app(PenilaianMatrixService::class)->kelengkapanKelas($kelasMk)
+            : null;
+    }
+
+    /**
      * Rata-rata kelas per kolom asesmen, dihitung dari nilai yang sudah dimuat.
      *
      * @return array<string, float|null>

@@ -26,6 +26,10 @@
                     Rerata nilai per mata kuliah penyumbang tiap CPL
                 </p>
                 @include('filament.modules.kurikulum.partials.grafik-radar-cpl', ['radarPerCpl' => $this->radarPerCpl])
+                @php $trenCpl = $this->trenCpl; @endphp
+                @if ($trenCpl !== null)
+                    @include('filament.modules.kurikulum.partials.grafik-tren-cpl', ['tren' => $trenCpl])
+                @endif
             @endif
         </div>
     </div>

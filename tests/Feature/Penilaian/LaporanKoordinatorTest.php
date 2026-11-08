@@ -7,6 +7,7 @@ use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -256,4 +257,33 @@ it('memakai garis pemisah sebelum pilih kelas dan pilih tab Laporan', function (
 
     expect($kelasTag[0] ?? '')->toContain('silogy-langkah-batas')
         ->and($tabTag[0] ?? '')->toContain('silogy-langkah-batas');
+});
+
+it('laporan koordinator menampilkan tren ketercapaian cpl mk ini antarsemester', function () {
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-KOOR']);
+    $cplBok = CplBok::query()->create([
+        'cpl_id' => $cpl->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bobot' => 100,
+    ]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
+
+    foreach (['20241' => 64, '20242' => 79] as $kode => $nilai) {
+        $semester = Semester::query()->where('kode', $kode)->firstOrFail();
+        $kelas = buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $semester->id, 'A');
+        HasilCplMk::query()->create([
+            'cpl_id' => $cpl->id,
+            'mk_unit_id' => $this->mkUnit->id,
+            'kelas_mk_mahasiswa_id' => $kelas['kmm']->id,
+            'semester_id' => $semester->id,
+            'nilai_akhir' => $nilai,
+        ]);
+    }
+
+    Livewire::test(LaporanKoordinator::class)
+        ->assertSeeHtml('data-silogy="grafik-tren-cpl"')
+        ->assertSee('Tren Ketercapaian CPL Mata Kuliah Ini')
+        ->assertSee('Ganjil 2024/2025')
+        ->assertSee('Genap 2024/2025')
+        ->assertSee('CPL-KOOR');
 });
