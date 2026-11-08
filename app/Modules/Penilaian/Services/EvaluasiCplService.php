@@ -43,7 +43,7 @@ class EvaluasiCplService
      */
     private const GRUP_KATEGORI = [
         'Pengetahuan/Kognitif' => ['ujian', 'tugas'],
-        'Hasil Proyek/Studi Kasus' => ['proyek', 'studi_kasus'],
+        'Hasil PjBL/PBL/IBL/CBL' => ['proyek'],
         'Aktivitas Partisipatif' => ['partisipasi'],
     ];
 

@@ -221,12 +221,12 @@ it('mengelompokkan kolom Portofolio per jenis penilaian dan mengakumulasi nilai 
         ->set('kelasMkId', $fixtures['kelas']->id)
         ->assertSee('Nilai Akhir', escape: false)
         ->assertSee('Nilai Komponen Evaluasi', escape: false)
-        ->assertSee('Quiz', escape: false);
+        ->assertSee('Kuis', escape: false);
 
     $kolomEvaluasi = $test->get('kolomEvaluasi');
 
     expect($kolomEvaluasi)->toHaveCount(1)
-        ->and($kolomEvaluasi[0]['label'])->toBe('Quiz')
+        ->and($kolomEvaluasi[0]['label'])->toBe('Kuis')
         ->and($kolomEvaluasi[0]['bobot'])->toBe(100.0);
 
     $nilaiEvaluasi = $test->instance()->getNilaiEvaluasiProperty();
@@ -286,7 +286,7 @@ it('menjalankan kalkulasi CPL sinkron dan menampilkan ketercapaian CPL kelas', f
         ->assertSee('CPL06', escape: false)
         ->assertSee('75', escape: false)
         ->assertSee('Tercapai', escape: false)
-        ->assertSee('Quiz', escape: false);
+        ->assertSee('Kuis', escape: false);
 
     expect(HasilCplMk::query()->count())->toBeGreaterThan(0);
 
@@ -296,7 +296,7 @@ it('menjalankan kalkulasi CPL sinkron dan menampilkan ketercapaian CPL kelas', f
         ->and($ketercapaian[0]['cpl_kode'])->toBe('CPL06')
         ->and($ketercapaian[0]['rata_rata'])->toBe(75.0)
         ->and($ketercapaian[0]['tercapai'])->toBeTrue()
-        ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Quiz')
+        ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Kuis')
         ->and($ketercapaian[0]['kontribusi'][0]['bobot'])->toBe(100.0);
 });
 
@@ -356,7 +356,7 @@ it('merekap kontribusi Komponen Penilaian Penyumbang Nilai per jenis penugasan, 
     // Kontribusi "Quiz" = 60 (Asesmen01) + 40 (Asesmen02) = 100, harus jadi
     // satu baris, bukan ["Quiz"=>60, "Quiz"=>40] terpisah.
     expect($ketercapaian[0]['kontribusi'])->toHaveCount(1)
-        ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Quiz')
+        ->and($ketercapaian[0]['kontribusi'][0]['nama'])->toBe('Kuis')
         ->and($ketercapaian[0]['kontribusi'][0]['bobot'])->toBe(100.0);
 });
 

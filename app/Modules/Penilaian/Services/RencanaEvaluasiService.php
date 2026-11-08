@@ -15,7 +15,7 @@ class RencanaEvaluasiService
      */
     private const GRUP_KATEGORI = [
         'Pengetahuan/Kognitif' => ['ujian', 'tugas'],
-        'Hasil Proyek/Studi Kasus' => ['proyek', 'studi_kasus'],
+        'Hasil PjBL/PBL/IBL/CBL' => ['proyek'],
         'Aktivitas Partisipatif' => ['partisipasi'],
     ];
 
@@ -53,7 +53,7 @@ class RencanaEvaluasiService
             ->get()
             ->groupBy('evaluasi_id');
 
-        $evaluasis = Evaluasi::query()->orderBy('kode')->get();
+        $evaluasis = Evaluasi::query()->urut()->get();
         $groups = [];
         $totalBobot = 0.0;
 

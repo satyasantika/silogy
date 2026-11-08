@@ -467,7 +467,7 @@ class ListKomponenPenilaians extends ListRecords
     protected function renderImportKomponenPenilaianReferensiHtml(): string
     {
         $evaluasis = Evaluasi::query()
-            ->orderBy('kode')
+            ->urut()
             ->get(['kode', 'nama']);
 
         if ($evaluasis->isEmpty()) {
@@ -504,7 +504,7 @@ class ListKomponenPenilaians extends ListRecords
         return [
             "Asesmen01\tKuis Konseptual dan Ringkasan Tertulis Terstruktur\t8\tQuiz\tSubCPMK01.1",
             "Asesmen01\tKuis Konseptual dan Ringkasan Tertulis Terstruktur\t8\tQuiz\tSubCPMK01.2",
-            "Asesmen02\tUTS Teori\t42\tUjian Tengah Semester\t",
+            "Asesmen02\tUTS Teori\t42\tUTS\t",
         ];
     }
 

@@ -105,7 +105,7 @@ it('menyusun rencana evaluasi per grup kategori evaluasi', function () {
     expect($rencana)->not->toBeNull();
 
     $pengetahuan = collect($rencana['groups'])->firstWhere('label', 'Pengetahuan/Kognitif');
-    $quizRow = collect($pengetahuan['rows'])->firstWhere('evaluasi_nama', 'Quiz');
+    $quizRow = collect($pengetahuan['rows'])->firstWhere('evaluasi_nama', 'Kuis');
 
     expect($pengetahuan['bobot_persen'])->toBe(8.0)
         ->and($quizRow['asesmen'])->toHaveCount(1)

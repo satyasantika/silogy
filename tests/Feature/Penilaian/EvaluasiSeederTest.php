@@ -13,20 +13,29 @@ use Illuminate\Support\Facades\Schema;
 
 uses(RefreshDatabase::class);
 
-it('mengisi 9 evaluasi default', function () {
+it('mengisi 8 evaluasi default sesuai komponen si-obe, berurutan', function () {
     $this->seed(EvaluasiSeeder::class);
 
-    expect(Evaluasi::query()->count())->toBe(9)
-        ->and(Evaluasi::query()->orderBy('kode')->pluck('kode')->all())->toBe([
+    expect(Evaluasi::query()->count())->toBe(8)
+        ->and(Evaluasi::query()->urut()->pluck('nama')->all())->toBe([
+            'Aktivitas Partisipatif (Individu)',
+            'Aktivitas Partisipatif (Kelompok)',
+            'Hasil PjBL/PBL/IBL/CBL (Individu)',
+            'Hasil PjBL/PBL/IBL/CBL (Kelompok)',
+            'Tugas',
+            'Kuis',
+            'UTS',
+            'UAS',
+        ])
+        ->and(Evaluasi::query()->urut()->pluck('kode')->all())->toBe([
             'partisipasi_individu',
             'partisipasi_kelompok',
             'proyek_individu',
             'proyek_kelompok',
-            'quiz',
-            'studi_kasus',
             'tugas',
-            'uas',
+            'quiz',
             'uts',
+            'uas',
         ]);
 });
 

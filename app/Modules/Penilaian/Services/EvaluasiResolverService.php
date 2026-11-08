@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Services;
 
 use App\Modules\Penilaian\Models\Evaluasi;
+use App\Modules\Penilaian\Support\SelaraskanEvaluasiSiObe;
 
 class EvaluasiResolverService
 {
@@ -19,12 +20,21 @@ class EvaluasiResolverService
 
         $normal = mb_strtolower($input);
 
-        return Evaluasi::query()
+        $evaluasi = Evaluasi::query()
             ->where(function ($query) use ($normal): void {
                 $query->whereRaw('LOWER(kode) = ?', [$normal])
                     ->orWhereRaw('LOWER(nama) = ?', [$normal]);
             })
             ->first();
+
+        // Nama lama (sebelum penyelarasan SI-OBE) di berkas impor lama.
+        $kodeAlias = SelaraskanEvaluasiSiObe::ALIAS[$normal] ?? null;
+
+        if ($evaluasi === null && $kodeAlias !== null) {
+            $evaluasi = Evaluasi::query()->where('kode', $kodeAlias)->first();
+        }
+
+        return $evaluasi;
     }
 
     /**

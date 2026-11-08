@@ -133,8 +133,8 @@ it('menampilkan rekap bobot evaluasi berdekatan dengan kolom bobot subcpmk', fun
     Livewire::test(ListSubcpmks::class)->loadTable()
         ->assertSee('Bobot evaluasi: 10%', escape: false)
         ->assertSee('Tugas (5%)', escape: false)
-        ->assertSee('Proyek Individu (3%)', escape: false)
-        ->assertSee('Partisipasi Individu (2%)', escape: false);
+        ->assertSee('Hasil PjBL/PBL/IBL/CBL (Individu) (3%)', escape: false)
+        ->assertSee('Aktivitas Partisipatif (Individu) (2%)', escape: false);
 });
 
 it('menampilkan keterangan belum ada asesmen terpetakan bila subcpmk belum dipetakan ke komponen penilaian', function () {

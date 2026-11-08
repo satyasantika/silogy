@@ -167,7 +167,7 @@ class KomponenPenilaianResource extends Resource
                         Select::make('evaluasi_id')
                             ->label('Jenis evaluasi')
                             ->options(fn (): array => Evaluasi::query()
-                                ->orderBy('kode')
+                                ->urut()
                                 ->pluck('nama', 'id')
                                 ->all())
                             ->searchable()

@@ -19,11 +19,25 @@ it('mencari evaluasi berdasarkan kode', function () {
 });
 
 it('mencari evaluasi berdasarkan nama case insensitive', function () {
-    $evaluasi = EvaluasiResolverService::cariDariKodeAtauNama('QUIZ');
+    $evaluasi = EvaluasiResolverService::cariDariKodeAtauNama('KUIS');
 
     expect($evaluasi)->not->toBeNull()
-        ->and($evaluasi?->nama)->toBe('Quiz');
+        ->and($evaluasi?->nama)->toBe('Kuis');
 });
+
+it('nama lama sebelum penyelarasan si-obe tetap dikenali saat impor', function (string $namaLama, string $kode) {
+    expect(EvaluasiResolverService::cariDariKodeAtauNama($namaLama)?->kode)->toBe($kode);
+})->with([
+    ['Quiz', 'quiz'],
+    ['ujian tengah semester', 'uts'],
+    ['Ujian Akhir Semester', 'uas'],
+    ['Proyek Individu', 'proyek_individu'],
+    ['Proyek Kelompok', 'proyek_kelompok'],
+    ['Partisipasi Individu', 'partisipasi_individu'],
+    ['Partisipasi Kelompok', 'partisipasi_kelompok'],
+    ['Studi Kasus', 'proyek_individu'],
+    ['studi_kasus', 'proyek_individu'],
+]);
 
 it('validasi evaluasi menolak kode tidak ada', function () {
     $hasil = EvaluasiResolverService::validasi('TidakAda');
