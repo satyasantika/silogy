@@ -103,7 +103,7 @@ Password default semua akun: **`siliwangi`**
 | `dosen` | Dosen Pengampu |
 | `auditor` | Auditor Mutu |
 
-Sumber lengkap: [PreVibeCoding §7.2](docs/SILOGY_PreVibeCoding_v6.md).
+Sumber kebenaran: [`database/seeders/RolePermissionSeeder.php`](database/seeders/RolePermissionSeeder.php) (dirangkum juga di [PreVibeCoding §7.2](docs/SILOGY_PreVibeCoding_v6.md#72-pola-data-sample)).
 
 ### Pusat Simulasi (data latihan yang bisa dibuat & dihapus kapan saja)
 
@@ -152,7 +152,8 @@ instans yang berjalan, bukan ilustrasi tiruan:
 ```bash
 docker compose exec app php artisan simulasi:buat   # isi dulu datanya
 npm install && npx playwright install chromium
-APP_URL=http://localhost:8017 npm run tangkap-layar
+npm run tangkap-layar                               # bawaan http://localhost:8008
+APP_URL=http://localhost:8017 npm run tangkap-layar # bila instans di port lain
 npm run tangkap-layar -- --periksa                  # manifes vs Markdown
 docker compose exec app php artisan panduan:tautkan-aset
 ```

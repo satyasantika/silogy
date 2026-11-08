@@ -14,7 +14,7 @@ docker compose exec app php artisan simulasi:buat
 npm install && npx playwright install chromium
 
 # 3. Tangkap semuanya, atau sebagian saja.
-APP_URL=http://localhost:8017 npm run tangkap-layar
+npm run tangkap-layar   # bawaan http://localhost:8008; setel APP_URL bila instans di port/host lain
 npm run tangkap-layar -- --adegan=tk-cpl-form,km-cpmk-list
 npm run tangkap-layar -- --peran=sim-timkur
 

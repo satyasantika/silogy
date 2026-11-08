@@ -434,7 +434,7 @@ APP_NAME=SILOGY
 APP_ENV=local
 APP_KEY=
 APP_DEBUG=true
-APP_URL=http://localhost:8080
+APP_URL=http://localhost:8008
 APP_LOCALE=id
 
 DB_CONNECTION=mysql
@@ -515,13 +515,13 @@ seed:      ; docker compose exec app php artisan db:seed
 ### 4.9 Bootstrapping Project (30 menit)
 
 ```bash
-git clone git@github.com:unsil/silogy.git && cd silogy
+git clone git@github.com:satyasantika/silogy.git && cd silogy
 cp .env.docker .env
 docker compose up -d --build
 docker compose exec app composer install
 docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate --seed
-# Buka http://localhost:8080/admin → login superadmin / Silogy2026!
+# Buka http://localhost:8008/login → login superadmin / siliwangi
 ```
 
 ---
@@ -845,23 +845,32 @@ public function definition(): array
 }
 ```
 
-**Akun siap pakai (dari `RolePermissionSeeder` v6):**
+**Akun siap pakai (dari `RolePermissionSeeder`; password semua akun `siliwangi`):**
 
-| Username | Password | Role |
-|---|---|---|
-| `superadmin` | `Silogy2026!` | Super Admin |
-| `rektor` | `Silogy2026!` | Pimpinan Universitas |
-| `wakilrektor` | `Silogy2026!` | Pimpinan Universitas |
-| `dekan` | `Silogy2026!` | Pimpinan Fakultas |
-| `wakildekan` | `Silogy2026!` | Pimpinan Fakultas |
-| `kajur` | `Silogy2026!` | Pimpinan Jurusan |
-| `sekjur` | `Silogy2026!` | Pimpinan Jurusan |
-| `kaprodi` | `Silogy2026!` | Pimpinan Program Studi |
-| `adminuniv`/`adminfak`/`adminjur`/`adminprodi` | `Silogy2026!` | Admin per level |
-| `timkur` | `Silogy2026!` | Tim Kurikulum |
-| `korma` | `Silogy2026!` | Koordinator Mata Kuliah |
-| `dosen` | `Silogy2026!` | Dosen Pengampu |
-| `auditor` | `Silogy2026!` | Auditor Mutu |
+| Username | Role |
+|---|---|
+| `superadmin` | Super Admin |
+| `rektor` | Pimpinan (universitas) |
+| `wakilrektor` | Pimpinan (universitas) |
+| `dekan` | Pimpinan (fakultas) |
+| `wakildekan` | Pimpinan (fakultas) |
+| `kajur` | Pimpinan (jurusan) |
+| `sekjur` | Pimpinan (jurusan) |
+| `kaprodi` | Pimpinan (prodi) |
+| `adminuniv` | Admin (universitas) |
+| `adminfak` | Admin (fakultas) |
+| `adminjur` | Admin (jurusan) |
+| `adminprodi` | Admin (prodi) |
+| `timkur` | Tim Kurikulum (prodi) |
+| `timkurfak` | Tim Kurikulum (fakultas) |
+| `timkuruniv` | Tim Kurikulum (universitas) |
+| `dosentimkur` | Dosen Pengampu + Tim Kurikulum (universitas, fakultas, prodi) |
+| `korma` | Koordinator Mata Kuliah |
+| `dosenuniv` | Dosen Pengampu (universitas) |
+| `dosenfak` | Dosen Pengampu (fakultas) |
+| `dosenjur` | Dosen Pengampu (jurusan) |
+| `dosen` | Dosen Pengampu |
+| `auditor` | Auditor Mutu |
 
 ### 7.3 Aturan Seeder
 
@@ -899,7 +908,7 @@ Dipilih karena menyentuh **semua lapisan** stack tanpa kompleksitas kalkulasi:
 
 ```text
 Browser
-   │  http://localhost:8080/admin/login
+   │  http://localhost:8008/login
    ▼
 [Nginx → PHP-FPM → Laravel 13]
    │  POST /admin/login (username/email + password)
@@ -924,7 +933,7 @@ Browser
 
 | Lapisan | Task | Selesai jika… |
 |---|---|---|
-| **Infra** | Docker compose jalan (`make up`) | `curl http://localhost:8080` → 200 |
+| **Infra** | Docker compose jalan (`make up`) | `curl http://localhost:8008` → 200 |
 | **DB** | Migration `users`, `academic_units`, `academic_unit_users`, `mahasiswas` ter-jalan | `php artisan migrate:status` semua green |
 | **Seed** | `RolePermissionSeeder` + `AcademicUnitSeeder` + `MahasiswaSeeder` | Login `adminprodi` ada; ≥ 30 mahasiswa di prodi |
 | **Auth** | Login form Filament + custom validator username/email | Berhasil login & redirect ke `/admin` |
@@ -937,8 +946,8 @@ Browser
 ### 9.3 Acceptance Demo (15 menit)
 
 1. `make fresh` — DB di-reset & di-seed.
-2. Buka `http://localhost:8080/admin/login`.
-3. Login `adminprodi` / `Silogy2026!`.
+2. Buka `http://localhost:8008/login`.
+3. Login `adminprodi` / `siliwangi`.
 4. Klik menu **Mahasiswa** — tampil ≥ 30 mahasiswa dari prodi yang ditugaskan.
 5. Logout, login `adminprodi-lain` (dummy) — daftar mahasiswa berbeda (scoping bekerja).
 6. Login `auditor` — bisa lihat semua mahasiswa (read-only).

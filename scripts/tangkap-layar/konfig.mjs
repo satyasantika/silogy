@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 
 export const AKAR = path.resolve(DIR, '../..');
-export const BASIS = (process.env.APP_URL ?? 'http://localhost:8017').replace(/\/$/, '');
+export const BASIS = (process.env.APP_URL ?? 'http://localhost:8008').replace(/\/$/, '');
 export const DIR_ASET = path.join(AKAR, 'docs/user-manual/aset');
 export const BERKAS_MANIFES = path.join(DIR_ASET, 'manifes.json');
 export const DIR_SESI = path.join(DIR, '.state');
