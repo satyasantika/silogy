@@ -269,6 +269,8 @@
                         </div>
                     </div>
                 </section>
+
+                @include('filament.modules.penilaian.partials.blok-rtl')
             </div>
         </x-filament::section>
     </div>

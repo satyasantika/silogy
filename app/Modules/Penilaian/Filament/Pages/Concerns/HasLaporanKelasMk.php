@@ -2,14 +2,18 @@
 
 namespace App\Modules\Penilaian\Filament\Pages\Concerns;
 
+use App\Models\User;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Penilaian\Services\CatatanRtlService;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
+use Filament\Notifications\Notification;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -52,7 +56,7 @@ trait HasLaporanKelasMk
     public array $nilai = [];
 
     /**
-     * @var list<array{cpl_kode: string, cpl_deskripsi: string, kontribusi: list<array{nama: string, bobot: float}>, rata_rata: float|null, tercapai: bool}>
+     * @var list<array{cpl_id: string, cpl_kode: string, cpl_deskripsi: string, kontribusi: list<array{nama: string, bobot: float}>, rata_rata: float|null, tercapai: bool}>
      */
     public array $ketercapaianCpl = [];
 
@@ -79,6 +83,20 @@ trait HasLaporanKelasMk
 
     public int $targetCapaianLulusan = 75;
 
+    /**
+     * Blok F "Analisis & Rencana Tindak Lanjut" (lihat CatatanRtlService::blok()).
+     *
+     * @var array{baris: list<array{cpl_id: string, kode: string, deskripsi: string, rata_rata: float, analisis: string|null, rencana: string|null}>, umum: string|null, semua_tercapai: bool, terakhir: array{nama: string, waktu: string}|null}
+     */
+    public array $blokRtl = ['baris' => [], 'umum' => null, 'semua_tercapai' => false, 'terakhir' => null];
+
+    /**
+     * Isian formulir blok F (hanya dipakai bila boleh mengisi).
+     *
+     * @var array{cpl: array<string, array{analisis: string|null, rencana: string|null}>, umum: string|null}
+     */
+    public array $isianRtl = ['cpl' => [], 'umum' => null];
+
     public bool $penugasanBelumSelesai = false;
 
     /**
@@ -97,6 +115,55 @@ trait HasLaporanKelasMk
         $this->detailCplCpmkSubcpmk = [];
         $this->rencanaEvaluasi = null;
         $this->penugasanBelumSelesai = false;
+        $this->blokRtl = ['baris' => [], 'umum' => null, 'semua_tercapai' => false, 'terakhir' => null];
+        $this->isianRtl = ['cpl' => [], 'umum' => null];
+    }
+
+    /**
+     * Apakah pengguna ini boleh mengisi blok F untuk kelas terpilih.
+     * Bawaan: tidak (Laporan Koordinator = baca saja); InputNilai menimpanya.
+     */
+    public function bolehMengisiRtl(): bool
+    {
+        return false;
+    }
+
+    protected function muatBlokRtl(KelasMk $kelasMk): void
+    {
+        $this->blokRtl = app(CatatanRtlService::class)->blok($kelasMk, $this->ketercapaianCpl);
+        $this->isianRtl = [
+            'cpl' => collect($this->blokRtl['baris'])
+                ->mapWithKeys(fn (array $baris): array => [$baris['cpl_id'] => [
+                    'analisis' => $baris['analisis'],
+                    'rencana' => $baris['rencana'],
+                ]])
+                ->all(),
+            'umum' => $this->blokRtl['umum'],
+        ];
+    }
+
+    public function simpanCatatanRtl(): void
+    {
+        $kelasMk = $this->kelasMkId !== null
+            ? KelasMk::query()->with('mkUnit')->find($this->kelasMkId)
+            : null;
+        $user = auth()->user();
+
+        if ($kelasMk === null || ! $user instanceof User || ! $this->bolehMengisiRtl()) {
+            return;
+        }
+
+        try {
+            app(CatatanRtlService::class)->simpan($kelasMk, $user, $this->isianRtl);
+        } catch (AuthorizationException $e) {
+            Notification::make()->title($e->getMessage())->danger()->send();
+
+            return;
+        }
+
+        $this->muatBlokRtl($kelasMk);
+
+        Notification::make()->title('Catatan evaluasi disimpan')->success()->send();
     }
 
     /**
@@ -124,6 +191,7 @@ trait HasLaporanKelasMk
         $this->distribusiNilaiHuruf = $evaluasiCpl->distribusiNilaiHuruf($kelasMk);
         $this->detailCplCpmkSubcpmk = $evaluasiCpl->detailCplCpmkSubcpmk($kelasMk);
         $this->rencanaEvaluasi = app(RencanaEvaluasiService::class)->build($kelasMk->mkUnit?->mk_id, $kelasMk->semester_id);
+        $this->muatBlokRtl($kelasMk);
     }
 
     /**

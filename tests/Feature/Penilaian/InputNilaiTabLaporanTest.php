@@ -10,6 +10,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -17,6 +18,7 @@ use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
+use App\Modules\Penilaian\Models\CatatanRtlKelas;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
@@ -634,4 +636,55 @@ it('radarData menyusun label dan nilai untuk keempat grafik jaring laba-laba', f
         ->and($radar['subcpmk']['data'])->toBe([75.0])
         ->and($radar['asesmen']['labels'])->toBe(['Asesmen01'])
         ->and($radar['asesmen']['data'])->toBe([75.0]);
+});
+
+/**
+ * Naikkan target kurikulum di atas capaian fixture (CPL06 = 75) supaya
+ * CPL06 menjadi "tidak tercapai".
+ */
+function naikkanTargetKurikulumTabLaporan(KelasMk $kelas, int $target = 80): void
+{
+    Kurikulum::query()->create([
+        'academic_unit_id' => $kelas->mkUnit->academic_unit_id,
+        'nama' => 'Kurikulum Target Tinggi',
+        'tahun' => 2026,
+        'is_active' => true,
+        'target_capaian_lulusan' => $target,
+    ]);
+}
+
+it('blok F menampilkan cpl yang tidak tercapai dan dosen pengampu dapat menyimpan analisis serta rtl', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+    naikkanTargetKurikulumTabLaporan($fixtures['kelas']);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('F. Analisis &amp; Rencana Tindak Lanjut', escape: false)
+        ->assertSeeHtml('data-silogy="blok-rtl-cpl-CPL06"')
+        ->assertSee('Simpan catatan')
+        ->assertSee('— belum diisi —');
+
+    $cplId = $test->get('blokRtl')['baris'][0]['cpl_id'];
+
+    $test->set("isianRtl.cpl.{$cplId}.analisis", 'Latihan pemecahan masalah kurang.')
+        ->set("isianRtl.cpl.{$cplId}.rencana", 'Tambah kuis mingguan dan tutor sebaya.')
+        ->set('isianRtl.umum', 'Kehadiran menurun pada pekan 5-7.')
+        ->call('simpanCatatanRtl')
+        ->assertNotified('Catatan evaluasi disimpan')
+        ->assertSee('Tambah kuis mingguan dan tutor sebaya.')
+        ->assertDontSee('— belum diisi —');
+
+    expect(CatatanRtlKelas::query()->where('kelas_mk_id', $fixtures['kelas']->id)->count())->toBe(2);
+});
+
+it('blok F menyatakan semua cpl tercapai bila tidak ada cpl di bawah target', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->assertSee('F. Analisis &amp; Rencana Tindak Lanjut', escape: false)
+        ->assertSee('Semua CPL tercapai')
+        ->assertDontSeeHtml('data-silogy="blok-rtl-cpl-CPL06"');
 });

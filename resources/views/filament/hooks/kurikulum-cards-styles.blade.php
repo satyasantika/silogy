@@ -1377,7 +1377,16 @@
         position: relative;
     }
 
+    /* Versi teks blok F milik pengisi: hanya muncul saat dicetak. */
+    .silogy-hanya-cetak {
+        display: none;
+    }
+
     @media print {
+        body[data-silogy-print="laporan-lengkap"] .silogy-hanya-cetak {
+            display: block !important;
+        }
+
         @page {
             size: auto;
             margin: 12mm;

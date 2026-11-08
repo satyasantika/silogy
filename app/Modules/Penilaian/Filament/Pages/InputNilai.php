@@ -12,6 +12,7 @@ use App\Modules\Penilaian\Services\InputNilaiMatrixClipboardService;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
+use App\Modules\Simulasi\Support\HanyaBaca;
 use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
@@ -556,5 +557,21 @@ class InputNilai extends Page
             && ! $this->penugasanBelumSelesai
             && $this->rows !== []
             && $this->columns !== [];
+    }
+
+    /**
+     * Dosen pengampu mengisi blok F untuk kelasnya sendiri; tidak di ruang
+     * simulasi hanya-baca.
+     */
+    public function bolehMengisiRtl(): bool
+    {
+        if ($this->kelasMkId === null || HanyaBaca::aktif()) {
+            return false;
+        }
+
+        return KelasMk::query()
+            ->whereKey($this->kelasMkId)
+            ->where('dosen_pengampu_id', auth()->id())
+            ->exists();
     }
 }

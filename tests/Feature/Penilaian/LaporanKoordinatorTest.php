@@ -20,8 +20,10 @@ use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Filament\Pages\LaporanKoordinator;
+use App\Modules\Penilaian\Models\CatatanRtlKelas;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
@@ -286,4 +288,54 @@ it('laporan koordinator menampilkan tren ketercapaian cpl mk ini antarsemester',
         ->assertSee('Ganjil 2024/2025')
         ->assertSee('Genap 2024/2025')
         ->assertSee('CPL-KOOR');
+});
+
+it('koordinator membaca blok F catatan rtl tulisan dosen pengampu tanpa formulir isian', function () {
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create(['kode' => 'CPL-RTL']);
+    $cplBok = CplBok::query()->create([
+        'cpl_id' => $cpl->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bobot' => 100,
+    ]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $this->mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::factory()->forCplMkAndCpmk($cplMk, Cpmk::factory()->forMk($this->mk)->untukSemester($this->semester->id)->create())->create();
+    $subcpmk = Subcpmk::factory()->for($mkCpmk)->untukSemester($this->semester->id)->create();
+    $komponen = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => Evaluasi::query()->where('kode', 'uts')->value('id'),
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 100,
+    ]);
+    $skp = SubcpmkKomponenPenilaian::query()->create([
+        'semester_id' => semesterAsesmen($komponen->id),
+        'subcpmk_id' => $subcpmk->id,
+        'komponen_penilaian_id' => $komponen->id,
+        'bobot' => 100,
+    ]);
+
+    $kelas = buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A');
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $skp->id,
+        'kelas_mk_mahasiswa_id' => $kelas['kmm']->id,
+        'nilai' => 50,
+    ]);
+
+    CatatanRtlKelas::query()->create([
+        'kelas_mk_id' => $kelas['kelas']->id,
+        'cpl_id' => $cpl->id,
+        'analisis' => 'Materi prasyarat belum dikuasai.',
+        'rencana_tindak_lanjut' => 'Matrikulasi di awal semester.',
+        'diubah_oleh_id' => $this->dosen->id,
+    ]);
+
+    Livewire::test(LaporanKoordinator::class)
+        ->call('pilihKelas', $kelas['kelas']->id)
+        ->assertSee('F. Analisis &amp; Rencana Tindak Lanjut', escape: false)
+        ->assertSee('Materi prasyarat belum dikuasai.')
+        ->assertSee('Matrikulasi di awal semester.')
+        ->assertDontSee('Simpan catatan')
+        ->assertDontSeeHtml('data-silogy="form-rtl"')
+        ->call('simpanCatatanRtl');
+
+    expect(CatatanRtlKelas::query()->count())->toBe(1);
 });

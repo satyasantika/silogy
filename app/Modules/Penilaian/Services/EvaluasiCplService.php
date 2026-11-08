@@ -94,7 +94,7 @@ class EvaluasiCplService
      * Ketercapaian CPL rata-rata seluruh kelas, atau satu mahasiswa saja bila
      * `$kelasMkMahasiswaId` diisi (dipakai modal "Capaian" per mahasiswa).
      *
-     * @return list<array{cpl_kode: string, cpl_deskripsi: string, kontribusi: list<array{nama: string, bobot: float}>, rata_rata: float|null, tercapai: bool}>
+     * @return list<array{cpl_id: string, cpl_kode: string, cpl_deskripsi: string, kontribusi: list<array{nama: string, bobot: float}>, rata_rata: float|null, tercapai: bool}>
      */
     public function ketercapaianCplPerKelas(KelasMk $kelasMk, ?string $kelasMkMahasiswaId = null): array
     {
@@ -158,6 +158,7 @@ class EvaluasiCplService
                 $rataRata = $rataRata !== null ? round((float) $rataRata, 2) : null;
 
                 return [
+                    'cpl_id' => (string) $cpl->id,
                     'cpl_kode' => $cpl->kode,
                     'cpl_deskripsi' => $cpl->deskripsi,
                     'kontribusi' => $kontribusi,
