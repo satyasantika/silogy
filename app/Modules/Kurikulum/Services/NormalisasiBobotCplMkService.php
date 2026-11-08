@@ -74,4 +74,22 @@ class NormalisasiBobotCplMkService
             'total_terkunci' => $totalTerkunci,
         ];
     }
+
+    /**
+     * Menormalisasi semua MK sekaligus (tombol "Normalisasi semua" di
+     * matriks CPL ↔ MK). Aturan per MK sama persis dengan normalisasi().
+     *
+     * @param  iterable<Mk>  $mks
+     * @return array{dinormalisasi: int, sudah_pas: int, terkunci: int, kosong: int}
+     */
+    public function normalisasiSemua(iterable $mks, string $unitId, int $desimal = 0): array
+    {
+        $ringkasan = ['dinormalisasi' => 0, 'sudah_pas' => 0, 'terkunci' => 0, 'kosong' => 0];
+
+        foreach ($mks as $mk) {
+            $ringkasan[$this->normalisasi($mk, $unitId, $desimal)['status']]++;
+        }
+
+        return $ringkasan;
+    }
 }

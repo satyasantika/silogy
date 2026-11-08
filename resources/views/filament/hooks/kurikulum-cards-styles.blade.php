@@ -1348,10 +1348,19 @@
         color: #0b3914;
     }
 
+    /* Empat radar (CPL, CPMK, Sub-CPMK, Asesmen) disusun 2×2 di layar
+       lebar — bukan 4 sejajar — supaya jaring laba-laba cukup besar dan
+       labelnya terbaca; satu kolom di layar sempit. */
     .silogy-laporan-radar-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
+    }
+
+    @media (min-width: 768px) {
+        .silogy-laporan-radar-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
     .silogy-laporan-radar-kartu {
@@ -1363,6 +1372,8 @@
     .silogy-laporan-radar-kartu__kanvas {
         aspect-ratio: 1 / 1;
         width: 100%;
+        max-width: 560px;
+        margin-inline: auto;
         position: relative;
     }
 

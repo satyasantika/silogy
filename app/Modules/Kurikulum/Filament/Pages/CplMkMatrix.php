@@ -5,6 +5,7 @@ namespace App\Modules\Kurikulum\Filament\Pages;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kurikulum\Filament\Pages\Concerns\InteraksiMatrixPage;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Services\NormalisasiBobotCplMkService;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\MK\Models\Mk;
@@ -15,6 +16,7 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Matriks interaksi CPL ↔ MK: kolom CPL (via BoK), baris mata kuliah,
@@ -107,6 +109,96 @@ class CplMkMatrix extends Page
     }
 
     /**
+     * MK yang tampil sebagai baris matriks: MK kurikulum ini + MK unit lain
+     * yang diadaptasi ke kurikulum ini.
+     *
+     * @return Collection<int, Mk>
+     */
+    protected function mkTampil(Kurikulum $kurikulum): Collection
+    {
+        $adaptedMkIds = CplBokAdaptasiScope::adaptedMkIds($kurikulum->id);
+
+        return Mk::query()
+            ->where(fn ($query) => $query
+                ->where('kurikulum_id', $kurikulum->id)
+                ->when(
+                    $adaptedMkIds->isNotEmpty(),
+                    fn ($q) => $q->orWhereIn('id', $adaptedMkIds),
+                ))
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [$this->normalisasiSemuaCplMkAction()];
+    }
+
+    /**
+     * Tombol "Normalisasi semua" — menjalankan normalisasi per baris untuk
+     * seluruh MK yang tampil di matriks sekaligus. MK yang sudah 100%, MK
+     * tanpa CPL, dan MK milik unit lain dilewati.
+     */
+    public function normalisasiSemuaCplMkAction(): Action
+    {
+        return Action::make('normalisasiSemuaCplMk')
+            ->label('Normalisasi semua')
+            ->icon(Heroicon::OutlinedScale)
+            ->color('warning')
+            ->visible(fn (): bool => $this->getKurikulum() !== null)
+            ->requiresConfirmation()
+            ->modalHeading('Normalisasi bobot semua MK')
+            ->modalDescription(
+                'Bobot setiap MK terhadap CPL (via BoK) akan disesuaikan secara proporsional sehingga '
+                .'total tiap baris tepat 100%. MK yang sudah 100%, MK yang belum punya CPL, dan MK milik '
+                .'unit lain tidak akan disentuh.',
+            )
+            ->schema([
+                NormalisasiBobotDesimal::field(),
+            ])
+            ->modalSubmitActionLabel('Normalisasi semua')
+            ->action(function (array $data): void {
+                $kurikulum = $this->getKurikulum();
+
+                if ($kurikulum === null) {
+                    return;
+                }
+
+                $ringkasan = app(NormalisasiBobotCplMkService::class)->normalisasiSemua(
+                    $this->mkTampil($kurikulum),
+                    $kurikulum->academic_unit_id,
+                    NormalisasiBobotDesimal::dariData($data),
+                );
+
+                $rincian = sprintf(
+                    'Sudah 100%%: %d MK · belum ada CPL: %d MK · milik unit lain (dilewati): %d MK.',
+                    $ringkasan['sudah_pas'],
+                    $ringkasan['kosong'],
+                    $ringkasan['terkunci'],
+                );
+
+                if ($ringkasan['dinormalisasi'] === 0) {
+                    Notification::make()
+                        ->title('Tidak ada MK yang perlu dinormalisasi')
+                        ->body($rincian)
+                        ->info()
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->title(sprintf('%d MK berhasil dinormalisasi', $ringkasan['dinormalisasi']))
+                    ->body($rincian)
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
      * Tombol "Normalisasi" per baris MK — muncul bila total bobot CPL (via
      * BoK) yang berinteraksi dengan MK tsb belum tepat 100%. Hanya sel
      * yang benar-benar bisa diedit unit ini yang diredistribusi; sel
@@ -191,17 +283,7 @@ class CplMkMatrix extends Page
         $unitId = $kurikulum->academic_unit_id;
         $kurikulumId = $kurikulum->id;
 
-        $adaptedMkIds = CplBokAdaptasiScope::adaptedMkIds($kurikulumId);
-
-        $mks = Mk::query()
-            ->where(fn ($query) => $query
-                ->where('kurikulum_id', $kurikulumId)
-                ->when(
-                    $adaptedMkIds->isNotEmpty(),
-                    fn ($q) => $q->orWhereIn('id', $adaptedMkIds),
-                ))
-            ->orderBy('nama')
-            ->get();
+        $mks = $this->mkTampil($kurikulum);
 
         $cplBoks = CplBokAdaptasiScope::scopeVisibleCplBok(CplBok::query(), $kurikulumId)
             ->with(['cpl.academicUnit', 'bok.academicUnit'])

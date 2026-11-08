@@ -106,3 +106,43 @@ it('status sudah_pas bila total sudah tepat 100', function () {
 
     expect($hasil['status'])->toBe('sudah_pas');
 });
+
+it('normalisasi semua: tiap mk milik prodi jadi 100, mk unit lain dan mk tanpa cpl dilewati', function () {
+    $cplBokA = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+    ]);
+    $cplBokB = CplBok::query()->create([
+        'cpl_id' => Cpl::factory()->forAcademicUnit($this->prodi)->create()->id,
+        'bok_id' => Bok::factory()->forAcademicUnit($this->prodi)->create()->id,
+    ]);
+
+    $mk2 = Mk::factory()->forAcademicUnit($this->prodi)->create();
+    $mkPas = Mk::factory()->forAcademicUnit($this->prodi)->create();
+    $mkKosong = Mk::factory()->forAcademicUnit($this->prodi)->create();
+    $mkUniv = Mk::factory()->forAcademicUnit($this->univ)->create();
+
+    $a1 = CplMk::query()->create(['cpl_bok_id' => $cplBokA->id, 'mk_id' => $this->mk->id, 'bobot' => 20]);
+    $b1 = CplMk::query()->create(['cpl_bok_id' => $cplBokB->id, 'mk_id' => $this->mk->id, 'bobot' => 20]);
+    $a2 = CplMk::query()->create(['cpl_bok_id' => $cplBokA->id, 'mk_id' => $mk2->id, 'bobot' => 90]);
+    $b2 = CplMk::query()->create(['cpl_bok_id' => $cplBokB->id, 'mk_id' => $mk2->id, 'bobot' => 60]);
+    CplMk::query()->create(['cpl_bok_id' => $cplBokA->id, 'mk_id' => $mkPas->id, 'bobot' => 100]);
+    $univ = CplMk::query()->create(['cpl_bok_id' => $cplBokA->id, 'mk_id' => $mkUniv->id, 'bobot' => 40]);
+
+    $ringkasan = $this->service->normalisasiSemua(
+        collect([$this->mk, $mk2, $mkPas, $mkKosong, $mkUniv]),
+        $this->prodi->id,
+    );
+
+    expect($ringkasan)->toBe([
+        'dinormalisasi' => 2,
+        'sudah_pas' => 1,
+        'terkunci' => 1,
+        'kosong' => 1,
+    ])
+        ->and((float) $a1->fresh()->bobot)->toBe(50.0)
+        ->and((float) $b1->fresh()->bobot)->toBe(50.0)
+        ->and((float) $a2->fresh()->bobot)->toBe(60.0)
+        ->and((float) $b2->fresh()->bobot)->toBe(40.0)
+        ->and((float) $univ->fresh()->bobot)->toBe(40.0);
+});
