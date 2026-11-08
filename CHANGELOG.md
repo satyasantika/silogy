@@ -8,10 +8,16 @@ Format mengacu [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), dan pro
 
 ### Added
 
+- **Tombol "Normalisasi semua"** di matriks Interaksi CPL ↔ MK — menormalisasi setiap baris MK ke 100% sekaligus, dengan aturan yang sama seperti tombol per baris (MK yang sudah 100%, tanpa CPL, atau milik unit lain dilewati).
+- **Grafik tren ketercapaian CPL antarsemester** (beserta tabel data) di Grafik CPL, tab Grafik CPL Analisis MK, dan versi satu MK di Laporan Koordinator. Per semester, kontribusi MK dibagi ulang hanya di antara MK yang dinilai pada semester itu.
+- **Peringatan "Data belum lengkap"** — kartu kelas menampilkan persentase nilai terisi, dan banner kuning muncul (ikut tercetak) bila sebagian nilai masih kosong. Nilai 0 dihitung terisi; hanya sel kosong yang dihitung belum.
+- **Blok F "Analisis & Rencana Tindak Lanjut"** pada laporan kelas — dosen pengampu mengisi analisis penyebab dan RTL untuk tiap CPL di bawah target, ditambah catatan umum; koordinator MK membaca saja. Tabel baru `catatan_rtl_kelas`.
 - **Tombol Tambah manual kembali** di daftar Profil Lulusan, CPL, BoK, MK, CPMK, Sub-CPMK, dan Asesmen — tombol bulat berikon **+** setinggi tombol **Impor massal**, di sampingnya. Data kini boleh masuk satu per satu atau sekaligus; visibilitas mengikuti izin membuat (ikut tersembunyi saat CPMK terkunci dan di contoh simulasi hanya-baca).
 
 ### Changed
 
+- **Jenis komponen penilaian disamakan dengan SI-OBE**: Aktivitas Partisipatif (Individu/Kelompok), Hasil PjBL/PBL/IBL/CBL (Individu/Kelompok), Tugas, Kuis, UTS, UAS — berurutan lewat kolom baru `evaluasi.urutan`. Kode internal tidak berubah dan nama lama tetap diterima saat impor. Migrasi `2026_11_08_000001` melebur **Studi Kasus** ke Hasil PjBL/PBL/IBL/CBL (Individu); peleburan ini **tidak dapat di-rollback**.
+- **Radar Laporan Kelas** disusun 2×2 di layar lebar (sebelumnya bisa 4 sejajar), lebar kanvas dibatasi 560px.
 - **Domain CPL menjadi Sikap, Pengetahuan, Keterampilan** sesuai label Permendiktisaintek 39/2025. Migrasi `2026_11_06_000001` memetakan data lama (afektif→sikap, kognitif→pengetahuan, psikomotorik→keterampilan) dan dapat di-rollback. Impor massal CPL tetap menerima istilah lama sebagai alias. Taksonomi Bloom Sub-CPMK (C/A/P) tidak berubah.
 
 ## [6.4.0] - 2026-09-24

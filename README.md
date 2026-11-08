@@ -2,10 +2,10 @@
 
 **Siliwangi Learning Outcomes & Quality Analytics** — platform manajemen dan analitik capaian pembelajaran berbasis paradigma **Outcome-Based Education (OBE)** untuk Universitas Siliwangi.
 
-**Versi rilis:** [6.0.0](CHANGELOG.md#600---2026-05-18) (MVP) · Stack: Laravel 13 · MySQL 8 · Redis 7 · Filament v4 · Docker Compose
+**Versi rilis:** [6.4.0](CHANGELOG.md#640---2026-09-24) (lihat [Unreleased](CHANGELOG.md#unreleased) untuk perubahan sesudahnya) · Stack: PHP 8.4 · Laravel 13 · MySQL 8 · Redis 7 · Filament v4 · Docker Compose
 
-[![CI](https://github.com/unsil/silogy/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/unsil/silogy/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/unsil/silogy?include_prereleases&label=release)](https://github.com/unsil/silogy/releases)
+[![CI](https://github.com/satyasantika/silogy/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/satyasantika/silogy/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/satyasantika/silogy?include_prereleases&label=release)](https://github.com/satyasantika/silogy/releases)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
 ---
@@ -37,7 +37,7 @@
 
 **Panduan pengguna (per role):**
 
-- [docs/user-manual/](docs/user-manual/00-README.md) — indeks panduan, satu file per role (Super Admin, Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu, Pimpinan & Auditor)
+- [docs/user-manual/](docs/user-manual/00-README.md) — indeks panduan, satu file per role (Super Admin, Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu, Pimpinan, Auditor Mutu), plus [alur simulasi end-to-end](docs/user-manual/08-simulasi-penggunaan.md) lintas peran
 
 ---
 
@@ -46,7 +46,7 @@
 Prasyarat: [Docker Desktop](https://www.docker.com/products/docker-desktop/) (atau Docker Engine + Compose v2) dan `make` (Git Bash / WSL / Linux / macOS).
 
 ```bash
-git clone https://github.com/unsil/silogy.git
+git clone https://github.com/satyasantika/silogy.git
 cd silogy
 cp .env.docker .env
 make up
@@ -117,6 +117,8 @@ docker compose exec app php artisan simulasi:status
 docker compose exec app php artisan simulasi:buat
 docker compose exec app php artisan simulasi:hapus            # laporan saja
 docker compose exec app php artisan simulasi:hapus --terapkan # benar-benar hapus
+docker compose exec app php artisan simulasi:kolam            # buang ruang kedaluwarsa, segarkan contoh bersama
+docker compose exec app php artisan simulasi:selesaikan <id>  # selesaikan pembangunan ruang (biasanya dipanggil proses latar)
 ```
 
 **Yang dimiliki simulasi.** Pohon unit tersendiri — Universitas Simulasi → Fakultas
@@ -208,12 +210,15 @@ Catatan: pengaturan pengguna (`/users`) kini eksklusif untuk `superadmin`.
 | `make test` | Jalankan test paralel di container |
 | `make pint` | Format kode (Pint) |
 | `make stan` | Static analysis (Larastan level 6) |
+| `make simulasi` | Bangun data simulasi (`simulasi:buat`) |
+| `make simulasi-hapus` | Hapus data simulasi (`simulasi:hapus --terapkan`) |
+| `make panduan-aset` | Tautkan aset gambar panduan ke `public/` (`panduan:tautkan-aset`) |
 
 ---
 
 ## Kualitas Kode & Test
 
-Di dalam container (`make sh`) atau host dengan PHP 8.3+:
+Di dalam container (`make sh`) atau host dengan PHP 8.4+ (sesuai `composer.json`):
 
 ```bash
 composer pint -- --test
