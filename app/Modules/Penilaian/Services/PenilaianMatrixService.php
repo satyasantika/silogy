@@ -220,54 +220,94 @@ class PenilaianMatrixService
     }
 
     /**
-     * Kolom laporan Portofolio dikelompokkan per jenis penilaian (Evaluasi),
-     * bukan per KomponenPenilaian — satu jenis (mis. "Tugas") bisa punya
-     * beberapa asesmen sekaligus (Tugas 1, Tugas 2, dst.), jadi nilainya
-     * diakumulasi lewat nilaiEvaluasiUntukMatrix().
+     * Kolom tetap laporan Portofolio, berurutan. Pasangan Individu/Kelompok
+     * SI-OBE sengaja dilebur menjadi satu kolom (permintaan pemilik produk
+     * 11 Nov 2026); Tugas dan Quiz tetap terpisah. studi_kasus disertakan
+     * untuk basis data yang belum menjalankan migrasi penyelarasan SI-OBE.
+     *
+     * @var array<string, array{label: string, kode: list<string>}>
+     */
+    public const KOLOM_PORTOFOLIO = [
+        'partisipasi' => ['label' => 'Aktivitas Partisipatif', 'kode' => ['partisipasi_individu', 'partisipasi_kelompok']],
+        'proyek' => ['label' => 'Hasil PjBL/PBL/IBL/CBL', 'kode' => ['proyek_individu', 'proyek_kelompok', 'studi_kasus']],
+        'tugas' => ['label' => 'Tugas', 'kode' => ['tugas']],
+        'quiz' => ['label' => 'Quiz', 'kode' => ['quiz']],
+        'uts' => ['label' => 'UTS', 'kode' => ['uts']],
+        'uas' => ['label' => 'UAS', 'kode' => ['uas']],
+    ];
+
+    /**
+     * Kolom laporan Portofolio: enam jenis tetap (KOLOM_PORTOFOLIO), selalu
+     * tampil walau bobotnya 0 supaya bentuk tabel seragam antarkelas. Satu
+     * kolom bisa menampung beberapa asesmen (Tugas 1, Tugas 2, atau Individu
+     * + Kelompok), jadi nilainya diakumulasi lewat nilaiEvaluasiUntukMatrix().
+     * Jenis penilaian di luar daftar tetap tampil sebagai kolom tambahan di
+     * belakang agar bobotnya tidak hilang dari laporan.
      *
      * @param  Collection<int, KomponenPenilaian>  $komponens
      * @return list<array{id: string, label: string, bobot: float, cpl: string|null, komponen_ids: list<string>}>
      */
     public function kolomEvaluasiDariKomponens(Collection $komponens, string $semesterId): array
     {
-        return $komponens
-            ->groupBy('evaluasi_id')
-            ->map(function (Collection $group) use ($semesterId): array {
-                /** @var KomponenPenilaian $pertama */
-                $pertama = $group->first();
+        $kunciUntukKode = [];
 
-                $cplKodes = $group
-                    ->flatMap(fn (KomponenPenilaian $komponen) => $komponen->subcpmkKomponens)
-                    ->map(fn (SubcpmkKomponenPenilaian $skp): ?string => $skp->subcpmk?->mkCpmk?->cplMk?->cplBok?->cpl?->kode)
-                    ->filter()
-                    ->unique()
-                    ->values();
+        foreach (self::KOLOM_PORTOFOLIO as $kunci => $definisi) {
+            foreach ($definisi['kode'] as $kode) {
+                $kunciUntukKode[$kode] = $kunci;
+            }
+        }
 
-                return [
-                    'id' => $pertama->evaluasi_id,
-                    'label' => $pertama->evaluasi?->nama ?? '—',
-                    'bobot' => round(
-                        (float) $group->sum(fn (KomponenPenilaian $k): float => $k->bobotUntukSemester($semesterId)),
-                        2,
-                    ),
-                    'cpl' => $cplKodes->isNotEmpty() ? $cplKodes->implode(', ') : null,
-                    'komponen_ids' => $group->pluck('id')->all(),
-                ];
-            })
-            ->sortByDesc('bobot')
-            ->values()
-            ->all();
+        $perKunci = $komponens->groupBy(
+            fn (KomponenPenilaian $komponen): string => $kunciUntukKode[$komponen->evaluasi?->kode ?? '']
+                ?? 'lain:'.$komponen->evaluasi_id,
+        );
+
+        $susunKolom = function (string $kunci, string $label, Collection $group) use ($semesterId): array {
+            $cplKodes = $group
+                ->flatMap(fn (KomponenPenilaian $komponen) => $komponen->subcpmkKomponens)
+                ->map(fn (SubcpmkKomponenPenilaian $skp): ?string => $skp->subcpmk?->mkCpmk?->cplMk?->cplBok?->cpl?->kode)
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values();
+
+            return [
+                'id' => 'portofolio-'.$kunci,
+                'label' => $label,
+                'bobot' => round(
+                    (float) $group->sum(fn (KomponenPenilaian $k): float => $k->bobotUntukSemester($semesterId)),
+                    2,
+                ),
+                'cpl' => $cplKodes->isNotEmpty() ? $cplKodes->implode(', ') : null,
+                'komponen_ids' => $group->pluck('id')->values()->all(),
+            ];
+        };
+
+        $kolom = [];
+
+        foreach (self::KOLOM_PORTOFOLIO as $kunci => $definisi) {
+            $kolom[] = $susunKolom($kunci, $definisi['label'], $perKunci->get($kunci, collect()));
+        }
+
+        foreach ($perKunci as $kunci => $group) {
+            if (! array_key_exists($kunci, self::KOLOM_PORTOFOLIO)) {
+                $kolom[] = $susunKolom($kunci, $group->first()?->evaluasi?->nama ?? '—', $group);
+            }
+        }
+
+        return $kolom;
     }
 
     /**
      * Akumulasi nilai per kelompok jenis penilaian (rata-rata berbobot bobot
      * KomponenPenilaian di baliknya) — sel yang belum dinilai dianggap 0,
-     * konsisten dengan hitungNilaiAkhirMahasiswa().
+     * konsisten dengan hitungNilaiAkhirMahasiswa(). Kolom tanpa asesmen
+     * sama sekali bernilai null (ditampilkan "—"), bukan 0.
      *
      * @param  list<array{id: string, bobot: float}>  $columns  kolom asli per komponen (untuk lookup bobot)
      * @param  list<array{id: string, komponen_ids: list<string>}>  $kolomEvaluasi
      * @param  array<string, array<string, string|null>>  $nilai
-     * @return array<string, array<string, float>>
+     * @return array<string, array<string, float|null>>
      */
     public function nilaiEvaluasiUntukMatrix(array $columns, array $kolomEvaluasi, array $nilai): array
     {
@@ -279,6 +319,12 @@ class PenilaianMatrixService
             $hasil[$kmmId] = [];
 
             foreach ($kolomEvaluasi as $kolom) {
+                if ($kolom['komponen_ids'] === []) {
+                    $hasil[$kmmId][$kolom['id']] = null;
+
+                    continue;
+                }
+
                 $totalBobot = 0.0;
                 $totalNilai = 0.0;
 

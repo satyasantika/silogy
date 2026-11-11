@@ -40,16 +40,20 @@
                         style="position:sticky;top:33px;z-index:2;padding:8px 6px;white-space:nowrap;min-width:120px;vertical-align:top;"
                         title="{{ $kolom['label'] }}"
                     >
-                        <span class="silogy-badge silogy-tone-indigo" style="font-size:10px;margin-bottom:4px;">
-                            {{ rtrim(rtrim(number_format($kolom['bobot'], 2, '.', ''), '0'), '.') }}%
-                        </span>
                         <span style="display:block;font-weight:700;font-size:12px;">{{ $kolom['label'] }}</span>
+                        <span style="display:block;font-weight:600;font-size:12px;margin-top:2px;">
+                            ({{ rtrim(rtrim(number_format($kolom['bobot'], 2, '.', ''), '0'), '.') ?: '0' }}%)
+                        </span>
                         <span style="display:flex;align-items:center;gap:4px;justify-content:center;margin-top:3px;">
                             <span style="font-size:9px;opacity:.7;">CPL:</span>
                             @if ($kolom['cpl'])
                                 <span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:9px;font-weight:600;background:#18181b;color:#fff;">
                                     {{ $kolom['cpl'] }}
                                 </span>
+                            @elseif (array_key_exists('komponen_ids', $kolom) && $kolom['komponen_ids'] === [])
+                                {{-- Kolom Portofolio 0%: tidak ada komponen, jadi tidak ada yang perlu dipetakan.
+                                     Kolom per-komponen (tanpa kunci komponen_ids) tetap memakai badge merah. --}}
+                                <span data-silogy="cpl-kosong" style="font-size:10px;opacity:.6;">—</span>
                             @else
                                 <span style="display:inline-block;padding:1px 7px;border-radius:6px;font-size:9px;font-weight:700;background:#ef4444;color:#fff;">
                                     -
@@ -89,9 +93,9 @@
                         @endif
                     </td>
                     @forelse ($kolomEvaluasi as $kolom)
-                        @php($nilaiSel = $nilaiEvaluasi[$row['id']][$kolom['id']] ?? 0.0)
+                        @php($nilaiSel = $nilaiEvaluasi[$row['id']][$kolom['id']] ?? null)
                         <td style="padding:6px;text-align:center;">
-                            {{ rtrim(rtrim(number_format($nilaiSel, 2, '.', ''), '0'), '.') ?: '0' }}
+                            {{ $nilaiSel !== null ? (rtrim(rtrim(number_format($nilaiSel, 2, '.', ''), '0'), '.') ?: '0') : '—' }}
                         </td>
                     @empty
                         <td style="padding:6px;text-align:center;">—</td>

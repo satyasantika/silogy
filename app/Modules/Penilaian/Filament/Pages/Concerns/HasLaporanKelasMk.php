@@ -428,9 +428,14 @@ trait HasLaporanKelasMk
         ];
 
         $nilaiEvaluasiMahasiswa = $this->getNilaiEvaluasiProperty()[$kmmId] ?? [];
+        // Hanya jenis yang punya asesmen: kolom Portofolio 0% tidak boleh
+        // muncul sebagai sumbu bernilai 0 yang menyesatkan.
+        $kolomBerasesmen = collect($this->kolomEvaluasi)
+            ->filter(fn (array $kolom): bool => $kolom['komponen_ids'] !== [])
+            ->values();
         $radarPenugasan = [
-            'labels' => collect($this->kolomEvaluasi)->pluck('label')->all(),
-            'data' => collect($this->kolomEvaluasi)
+            'labels' => $kolomBerasesmen->pluck('label')->all(),
+            'data' => $kolomBerasesmen
                 ->map(fn (array $kolom): float => $nilaiEvaluasiMahasiswa[$kolom['id']] ?? 0.0)
                 ->all(),
         ];

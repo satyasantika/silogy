@@ -223,16 +223,17 @@ it('mengelompokkan kolom Portofolio per jenis penilaian dan mengakumulasi nilai 
         ->set('kelasMkId', $fixtures['kelas']->id)
         ->assertSee('Nilai Akhir', escape: false)
         ->assertSee('Nilai Komponen Evaluasi', escape: false)
-        ->assertSee('Kuis', escape: false);
+        ->assertSee('Quiz', escape: false);
 
     $kolomEvaluasi = $test->get('kolomEvaluasi');
 
-    expect($kolomEvaluasi)->toHaveCount(1)
-        ->and($kolomEvaluasi[0]['label'])->toBe('Kuis')
-        ->and($kolomEvaluasi[0]['bobot'])->toBe(100.0);
+    $kolomQuiz = collect($kolomEvaluasi)->firstWhere('label', 'Quiz');
+
+    expect($kolomQuiz['bobot'])->toBe(100.0)
+        ->and($kolomQuiz['komponen_ids'])->toHaveCount(2);
 
     $nilaiEvaluasi = $test->instance()->getNilaiEvaluasiProperty();
-    $idKolomQuiz = $kolomEvaluasi[0]['id'];
+    $idKolomQuiz = $kolomQuiz['id'];
 
     // kmmDuluan: Asesmen01=100 (bobot 60), Asesmen02=40 (bobot 40)
     // akumulasi = (60*100 + 40*40) / 100 = 76.0
@@ -241,6 +242,120 @@ it('mengelompokkan kolom Portofolio per jenis penilaian dan mengakumulasi nilai 
     // kmmBelakangan: Asesmen01=50 (bobot 60), Asesmen02 belum dinilai (0)
     // akumulasi = (60*50 + 40*0) / 100 = 30.0
     expect($nilaiEvaluasi[$fixtures['kmmBelakangan']->id][$idKolomQuiz])->toBe(30.0);
+});
+
+it('kolom Portofolio selalu enam jenis tetap berurutan, walau MK hanya punya komponen Quiz', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $kolomEvaluasi = $test->get('kolomEvaluasi');
+
+    expect(collect($kolomEvaluasi)->pluck('label')->all())->toBe([
+        'Aktivitas Partisipatif',
+        'Hasil PjBL/PBL/IBL/CBL',
+        'Tugas',
+        'Quiz',
+        'UTS',
+        'UAS',
+    ])
+        ->and(collect($kolomEvaluasi)->pluck('bobot')->all())->toBe([0.0, 0.0, 0.0, 100.0, 0.0, 0.0]);
+
+    // Kolom tanpa komponen tidak punya nilai (tampil "—"), bukan 0.
+    $nilaiEvaluasi = $test->instance()->getNilaiEvaluasiProperty();
+    $idTugas = collect($kolomEvaluasi)->firstWhere('label', 'Tugas')['id'];
+
+    expect($nilaiEvaluasi[$fixtures['kmmDuluan']->id][$idTugas])->toBeNull()
+        ->and($test->instance()->getRataRataEvaluasiProperty()[$idTugas])->toBeNull();
+});
+
+it('kolom Portofolio menggabungkan jenis Individu dan Kelompok untuk Partisipatif dan PjBL', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $komponenQuiz = KomponenPenilaian::query()->where('kode', 'Asesmen01')->firstOrFail();
+    $semesterId = semesterAsesmen($komponenQuiz->id);
+    KomponenPenilaianSemester::query()
+        ->where('komponen_penilaian_id', $komponenQuiz->id)
+        ->where('semester_id', $semesterId)
+        ->update(['bobot' => 40]);
+
+    // [kode evaluasi, kode asesmen, bobot, nilai kmmDuluan]
+    $tambahan = [
+        ['partisipasi_individu', 'PI', 10, 80],
+        ['partisipasi_kelompok', 'PK', 10, 60],
+        ['proyek_individu', 'PJI', 15, 90],
+        ['proyek_kelompok', 'PJK', 25, 70],
+    ];
+
+    foreach ($tambahan as [$kodeEvaluasi, $kode, $bobot, $nilai]) {
+        $komponen = komponenUntukSemester($komponenQuiz->mk_id, $semesterId, [
+            'evaluasi_id' => Evaluasi::query()->where('kode', $kodeEvaluasi)->firstOrFail()->id,
+            'kode' => $kode,
+            'nama' => $kode,
+            'bobot' => $bobot,
+        ]);
+        $skp = SubcpmkKomponenPenilaian::query()->create([
+            'semester_id' => semesterAsesmen($komponen->id),
+            'subcpmk_id' => $fixtures['subcpmk']->id,
+            'komponen_penilaian_id' => $komponen->id,
+            'bobot' => 100,
+        ]);
+        NilaiMahasiswa::query()->create([
+            'subcpmk_komponenpenilaian_id' => $skp->id,
+            'kelas_mk_mahasiswa_id' => $fixtures['kmmDuluan']->id,
+            'nilai' => $nilai,
+        ]);
+    }
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $kolom = collect($test->get('kolomEvaluasi'))->keyBy('label');
+
+    expect($kolom)->toHaveCount(6)
+        ->and($kolom['Aktivitas Partisipatif']['bobot'])->toBe(20.0)
+        ->and($kolom['Hasil PjBL/PBL/IBL/CBL']['bobot'])->toBe(40.0);
+
+    $nilaiDuluan = $test->instance()->getNilaiEvaluasiProperty()[$fixtures['kmmDuluan']->id];
+
+    // (10*80 + 10*60) / 20 = 70; (15*90 + 25*70) / 40 = 77.5
+    expect($nilaiDuluan[$kolom['Aktivitas Partisipatif']['id']])->toBe(70.0)
+        ->and($nilaiDuluan[$kolom['Hasil PjBL/PBL/IBL/CBL']['id']])->toBe(77.5);
+});
+
+it('header kolom Portofolio menulis bobot dalam kurung di bawah label lalu baris CPL', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $html = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->html();
+
+    $mulai = strpos($html, 'matriks-portofolio-'.$fixtures['kelas']->id);
+    $thead = substr($html, $mulai, strpos($html, '</thead>', $mulai) - $mulai);
+
+    expect($thead)->toMatch('/Quiz<\/span>\s*<span[^>]*>\s*\(100%\)\s*<\/span>/')
+        ->toMatch('/\(100%\).*CPL:.*CPL06/s')
+        ->toMatch('/UAS<\/span>\s*<span[^>]*>\s*\(0%\)\s*<\/span>/');
+});
+
+it('kolom Portofolio tanpa komponen menampilkan CPL netral, bukan badge merah belum terpetakan', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $html = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id)
+        ->html();
+
+    $mulai = strpos($html, 'matriks-portofolio-'.$fixtures['kelas']->id);
+    $thead = substr($html, $mulai, strpos($html, '</thead>', $mulai) - $mulai);
+
+    // Fixture: hanya Quiz berkomponen; lima kolom lain 0% → tanpa badge merah.
+    expect(substr_count($thead, 'background:#ef4444'))->toBe(0)
+        ->and(substr_count($thead, 'data-silogy="cpl-kosong"'))->toBe(5);
 });
 
 it('menampilkan rata-rata kelas untuk kolom Nilai Akhir pada baris Rata-rata Kelas', function () {
@@ -506,6 +621,23 @@ it('modal Capaian menampilkan grafik CPMK, Sub-CPMK, dan Besaran Nilai Penugasan
         ->toContain('renderRadarSilogy')
         ->toContain('renderBarSilogy')
         ->not->toContain('belum tersedia');
+});
+
+it('grafik Besaran Nilai Penugasan hanya memuat jenis penilaian yang punya asesmen', function () {
+    $this->actingAs($this->dosen);
+    $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    $test = Livewire::test(InputNilai::class)
+        ->set('kelasMkId', $fixtures['kelas']->id);
+
+    $method = new ReflectionMethod(InputNilai::class, 'capaianMahasiswaHtml');
+    // @js() meng-escape tanda kutip menjadi \u0022 — kembalikan dulu.
+    $html = str_replace('\\u0022', '"', (string) $method->invoke($test->instance(), $fixtures['kmmDuluan']->id));
+
+    // Fixture hanya punya asesmen Quiz: kolom Portofolio 0% lainnya tidak
+    // boleh menjadi batang bernilai 0.
+    expect($html)->toContain('"labels":["Quiz"]')
+        ->not->toContain('"UAS"');
 });
 
 it('modal Capaian menampilkan peringatan alih-alih grafik bila mahasiswa belum dinilai', function () {
