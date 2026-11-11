@@ -125,7 +125,7 @@ class ListKelasMks extends ListRecords
                         Placeholder::make('konteks_kosong')
                             ->hiddenLabel()
                             ->content(new HtmlString(
-                                '<p style="font-size:13px;color:#991b1b;">Tahun akademik/semester dan program studi belum dapat '
+                                '<p class="silogy-teks-danger" style="font-size:13px;">Tahun akademik/semester dan program studi belum dapat '
                                 .'ditentukan. Pilih semester dan/atau kurikulum terlebih dahulu lewat filter di atas tabel.</p>',
                             )),
                     ];
@@ -137,20 +137,20 @@ class ListKelasMks extends ListRecords
 
                 $ringkasan = match ($preview['status']) {
                     'error' => sprintf(
-                        '<p style="font-size:13px;color:#991b1b;">Gagal mengambil data dari Sintesys untuk tahun akademik <strong>%s</strong> '
+                        '<p class="silogy-teks-danger" style="font-size:13px;">Gagal mengambil data dari Sintesys untuk tahun akademik <strong>%s</strong> '
                         .'· program studi <strong>%s</strong>: %s</p>',
                         e($semester->nama),
                         e($academicUnit->nama_lengkap),
                         e((string) $preview['pesan']),
                     ),
                     'kosong' => sprintf(
-                        '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari Sintesys untuk tahun akademik '
+                        '<p class="silogy-teks-warning" style="font-size:13px;">Tidak ada data ditemukan dari Sintesys untuk tahun akademik '
                         .'<strong>%s</strong> · program studi <strong>%s</strong>. Tidak ada yang bisa diimpor.</p>',
                         e($semester->nama),
                         e($academicUnit->nama_lengkap),
                     ),
                     default => sprintf(
-                        '<p style="font-size:13px;color:#166534;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
+                        '<p class="silogy-teks-success" style="font-size:13px;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
                         .'siap diimpor untuk tahun akademik <strong>%s</strong> · program studi <strong>%s</strong>.</p>',
                         $preview['jumlah_kelas'],
                         $preview['jumlah_peserta'],

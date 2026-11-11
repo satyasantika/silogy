@@ -272,7 +272,7 @@ class KelasMkResource extends Resource
                             }
 
                             if (filled($record->koordinator_mk_id) && $record->koordinator_mk_id === $record->dosen_pengampu_id) {
-                                return e($state).' <span style="color:#166534;font-weight:600;">(koordinator)</span>';
+                                return e($state).' <span class="silogy-teks-success" style="font-weight:600;">(koordinator)</span>';
                             }
 
                             return e($state);

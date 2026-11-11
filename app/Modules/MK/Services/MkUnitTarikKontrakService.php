@@ -54,7 +54,7 @@ class MkUnitTarikKontrakService
 
         return match ($preview['status']) {
             'error' => sprintf(
-                '<p style="font-size:13px;color:#991b1b;">Gagal mengambil data dari %s untuk mata kuliah <strong>%s</strong> '
+                '<p class="silogy-teks-danger" style="font-size:13px;">Gagal mengambil data dari %s untuk mata kuliah <strong>%s</strong> '
                 .'(%s) · tahun akademik <strong>%s</strong>: %s</p>',
                 e($labelSumber),
                 e($namaMk),
@@ -63,7 +63,7 @@ class MkUnitTarikKontrakService
                 e((string) ($preview['pesan'] ?? 'Terjadi kesalahan.')),
             ),
             'kosong' => sprintf(
-                '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari %s untuk mata kuliah <strong>%s</strong> '
+                '<p class="silogy-teks-warning" style="font-size:13px;">Tidak ada data ditemukan dari %s untuk mata kuliah <strong>%s</strong> '
                 .'(%s) · tahun akademik <strong>%s</strong>. Tidak ada yang bisa diimpor.</p>',
                 e($labelSumber),
                 e($namaMk),
@@ -71,7 +71,7 @@ class MkUnitTarikKontrakService
                 e($semester->nama),
             ),
             default => sprintf(
-                '<p style="font-size:13px;color:#166534;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
+                '<p class="silogy-teks-success" style="font-size:13px;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
                 .'siap diimpor dari %s untuk mata kuliah <strong>%s</strong> (%s) · tahun akademik <strong>%s</strong>.</p>',
                 (int) $preview['jumlah_kelas'],
                 (int) $preview['jumlah_peserta'],

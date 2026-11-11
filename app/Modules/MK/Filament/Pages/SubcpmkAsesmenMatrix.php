@@ -531,7 +531,7 @@ class SubcpmkAsesmenMatrix extends Page
         $ringkasanHtml = sprintf(
             '<p style="font-size:13px;margin-bottom:8px;"><strong>%d baris dikenali</strong>%s'
             .' — <span style="color:#16a34a;font-weight:600;">%d sel diperbarui</span>, '
-            .'<span style="color:#6b7280;font-weight:600;">%d sel dihapus</span>, '
+            .'<span class="silogy-teks-redup" style="font-weight:600;">%d sel dihapus</span>, '
             .'<span style="color:#dc2626;font-weight:600;">%d sel tidak valid</span>.</p>',
             $ringkasan['baris_dikenali'],
             $ringkasan['baris_tidak_dikenali'] > 0

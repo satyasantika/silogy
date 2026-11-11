@@ -223,15 +223,15 @@ class MataKuliahKoordinatorService
         $baris = static::unitBarisUntukCard($mk);
         $unitHtml = $baris['label'] === null
             ? e($baris['nama'])
-            : '<span style="font-weight:600;color:#374151;">'.e($baris['label']).'</span>'
+            : '<span class="silogy-teks-kuat" style="font-weight:600;">'.e($baris['label']).'</span>'
                 .' · '.e($baris['nama']);
 
         return new HtmlString(
             '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;margin:0;padding:0;">'
-            .'<div style="font-size:12px;line-height:1.4;font-weight:600;color:#374151;margin:0;padding:0;">'
+            .'<div class="silogy-teks-kuat" style="font-size:12px;line-height:1.4;font-weight:600;margin:0;padding:0;">'
             .e($kurikulumLabel)
             .'</div>'
-            .'<div style="font-size:12px;line-height:1.4;color:#6b7280;margin:0;padding:0;">'
+            .'<div class="silogy-teks-redup" style="font-size:12px;line-height:1.4;margin:0;padding:0;">'
             .$unitHtml
             .'</div>'
             .static::ketersediaanPenilaianHtml($mk, $user)->toHtml()

@@ -40,6 +40,8 @@
             --c-card-hover-border: rgba(0,133,0,.28);
             --c-shadow: rgba(0,133,0,.07);
             --c-eyebrow-color: var(--g700);
+            --c-accent:        var(--g700);
+            --c-accent-strong: var(--g800);
             --c-eyebrow-bg:    rgba(0,133,0,.07);
             --c-eyebrow-border:rgba(0,133,0,.18);
             --c-sh-color: #212529;
@@ -65,6 +67,8 @@
             --c-card-hover-border: rgba(77,204,77,.3);
             --c-shadow: rgba(0,0,0,.4);
             --c-eyebrow-color: var(--g400);
+            --c-accent:        var(--g400);
+            --c-accent-strong: var(--g400);
             --c-eyebrow-bg:    rgba(0,133,0,.12);
             --c-eyebrow-border:rgba(77,204,77,.25);
             --c-sh-color: #f0f6ff;
@@ -90,6 +94,8 @@
                 --c-card-hover-border: rgba(77,204,77,.3);
                 --c-shadow: rgba(0,0,0,.4);
                 --c-eyebrow-color: var(--g400);
+                --c-accent:        var(--g400);
+                --c-accent-strong: var(--g400);
                 --c-eyebrow-bg:    rgba(0,133,0,.12);
                 --c-eyebrow-border:rgba(77,204,77,.25);
                 --c-sh-color: #f0f6ff;
@@ -256,8 +262,8 @@
             cursor: pointer; transition: all .18s ease;
         }
         .hero-tab:hover { background: rgba(0,0,0,.04); border-color: var(--c-card-border2); color: var(--c-text); transform: translateY(-1px); }
-        .hero-tab.on { background: var(--c-eyebrow-bg); border-color: var(--c-eyebrow-border); color: var(--g700); }
-        .hero-tab.on:hover { background: rgba(0,153,0,.16); border-color: rgba(0,153,0,.4); color: var(--g800); }
+        .hero-tab.on { background: var(--c-eyebrow-bg); border-color: var(--c-eyebrow-border); color: var(--c-accent); }
+        .hero-tab.on:hover { background: rgba(0,153,0,.16); border-color: rgba(0,153,0,.4); color: var(--c-accent-strong); }
         .hero-scroll-hint {
             display: flex; align-items: center; justify-content: center; gap: .6rem;
             margin-top: 3.5rem; color: var(--c-muted); font-size: .78rem;
@@ -317,9 +323,7 @@
             color: #fff; font-family: 'Nunito', sans-serif; font-size: .7rem; font-weight: 900;
         }
         .ci p { font-size: .92rem; color: var(--c-text); line-height: 1.55; transition: color .2s; }
-        .ci strong { color: var(--g800); }
-        [data-theme="dark"] .ci strong,
-        @media (prefers-color-scheme: dark) { .ci strong } { color: var(--g400); }
+        .ci strong { color: var(--c-accent-strong); }
         .why-aside {
             position: sticky; top: 5rem;
             background: linear-gradient(155deg, var(--ink) 0%, #0f2e15 100%);
@@ -349,7 +353,7 @@
         .p2 { background: linear-gradient(155deg, var(--g800) 0%, var(--g600) 100%); border: 1px solid rgba(128,217,128,.2); box-shadow: 0 24px 70px rgba(0,133,0,.35); }
         .p3 { background: linear-gradient(155deg, var(--dark2) 0%, var(--ink) 100%); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 20px 60px rgba(0,0,0,.2); }
         .pillar::after { content: ''; position: absolute; bottom: -55px; right: -55px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,.04); pointer-events: none; }
-        .pillar-seq { font-size: .7rem; font-family: 'Nunito',sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; color: rgba(255,255,255,.28); margin-bottom: 1.25rem; }
+        .pillar-seq { font-size: .7rem; font-family: 'Nunito',sans-serif; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; color: rgba(255,255,255,.55); margin-bottom: 1.25rem; }
         .pillar-ico { width: 54px; height: 54px; border-radius: 15px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.13); display: grid; place-items: center; color: var(--g300); font-size: 1.45rem; margin-bottom: 1.3rem; }
         .p2 .pillar-ico { background: rgba(255,255,255,.15); color: #fff; }
         .pillar-name { font-family: 'Nunito',sans-serif; font-size: 1.65rem; font-weight: 900; letter-spacing: -.03em; color: var(--tw); line-height: 1; margin-bottom: .75rem; }
@@ -362,7 +366,7 @@
         .eco-card:hover { border-color: var(--c-card-hover-border); box-shadow: 0 12px 36px var(--c-shadow); transform: translateY(-3px); }
         .eco-ico { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; background: linear-gradient(145deg, var(--ink) 0%, #10331a 100%); border: 1px solid rgba(77,204,77,.18); display: grid; place-items: center; color: var(--g400); font-size: 1.35rem; }
         .eco-name { font-family: 'Nunito',sans-serif; font-size: 1.1rem; font-weight: 900; letter-spacing: -.01em; margin-bottom: .2rem; color: var(--c-text); transition: color .2s; }
-        .eco-full { font-size: .82rem; font-weight: 700; color: var(--g700); margin-bottom: .55rem; }
+        .eco-full { font-size: .82rem; font-weight: 700; color: var(--c-accent); margin-bottom: .55rem; }
         .eco-desc { font-size: .9rem; color: var(--c-muted); line-height: 1.68; }
         .eco-motto { background: linear-gradient(145deg, var(--ink) 0%, #0e2b13 100%); border: 1px solid var(--bd-d); border-radius: 18px; padding: 1.6rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem; margin-top: 1.25rem; }
         .eco-motto-text strong { color: var(--tw); display: block; font-family: 'Nunito',sans-serif; font-size: 1rem; font-weight: 900; margin-bottom: .3rem; letter-spacing: -.01em; }
@@ -378,8 +382,7 @@
         .ii:hover { border-color: var(--c-card-hover-border); background: var(--c-card); box-shadow: 0 6px 22px var(--c-shadow); transform: translateX(4px); }
         .ii-ico { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; background: linear-gradient(135deg, var(--g800), var(--g500)); display: grid; place-items: center; color: #fff; font-size: 1rem; box-shadow: 0 4px 12px rgba(0,133,0,.3); }
         .ii p { font-size: .93rem; color: var(--c-text); line-height: 1.56; padding-top: .22rem; transition: color .2s; }
-        .ii strong { color: var(--g800); }
-        [data-theme="dark"] .ii strong { color: var(--g400); }
+        .ii strong { color: var(--c-accent-strong); }
 
         /* ── CTA CARD ── */
         .cta-c { position: sticky; top: 5rem; background: linear-gradient(155deg, var(--g900) 0%, var(--g700) 60%, var(--g600) 100%); border-radius: 24px; padding: 2.75rem 2.25rem; color: #fff; overflow: hidden; box-shadow: 0 30px 80px rgba(0,133,0,.4), inset 0 1px 0 rgba(255,255,255,.12); }
@@ -413,7 +416,7 @@
         .footer-c { width: min(1200px,92%); margin: 0 auto; padding: 4rem 0 2.5rem; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.6rem; }
         .fb .logo { color: #fff; }
         .fb p { color: var(--tws); font-size: .87rem; line-height: 1.72; margin-top: .9rem; max-width: 290px; }
-        .fb-line { display: flex; align-items: center; gap: .5rem; color: var(--twss); font-size: .82rem; margin-top: .8rem; }
+        .fb-line { display: flex; align-items: center; gap: .5rem; color: var(--tws); font-size: .82rem; margin-top: .8rem; }
         .fb-line i { color: var(--g600); }
         .fc h4 { font-family: 'Nunito',sans-serif; color: var(--tw); font-size: .8rem; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1.1rem; }
         .fl { display: flex; flex-direction: column; gap: .6rem; }
@@ -423,9 +426,9 @@
         .fct li { display: flex; align-items: flex-start; gap: .5rem; color: var(--tws); font-size: .87rem; line-height: 1.55; }
         .fct li i { color: var(--g600); margin-top: .15rem; flex-shrink: 0; }
         .footer-bot { width: min(1200px,92%); margin: 0 auto; padding: 1.3rem 0; border-top: 1px solid var(--bd-d); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; }
-        .footer-bot span { color: var(--twss); font-size: .79rem; }
-        .footer-bot a { color: var(--g500); font-size: .79rem; transition: .14s; }
-        .footer-bot a:hover { color: var(--g400); }
+        .footer-bot span { color: var(--tws); font-size: .79rem; }
+        .footer-bot a { color: var(--g400); font-size: .79rem; transition: .14s; }
+        .footer-bot a:hover { color: var(--g300); }
 
         .divider { width: min(1200px,92%); margin: 0 auto; height: 1px; background: var(--c-divider); }
 

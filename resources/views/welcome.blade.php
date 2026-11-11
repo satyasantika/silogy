@@ -149,7 +149,7 @@
                 <div style="flex:1;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
                         <div class="eco-name">SILARIS</div>
-                        <span style="font-size:.74rem;font-family:'Nunito',sans-serif;font-weight:800;color:var(--g700);display:inline-flex;align-items:center;gap:.3rem;">
+                        <span style="font-size:.74rem;font-family:'Nunito',sans-serif;font-weight:800;color:var(--c-accent);display:inline-flex;align-items:center;gap:.3rem;">
                             silaris.unsil.ac.id <i class="bi bi-arrow-up-right"></i>
                         </span>
                     </div>

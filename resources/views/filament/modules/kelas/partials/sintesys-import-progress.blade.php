@@ -6,7 +6,7 @@
     @endphp
     <div style="margin-bottom:16px;padding:12px 16px;border:1px solid rgba(128,128,128,.25);border-radius:12px;background:rgba(128,128,128,.04);font-size:13px;">
         @if ($gagal)
-            <span style="color:#991b1b;">
+            <span class="silogy-teks-danger">
                 Percobaan terakhir mengambil data dari Sintesys <strong>gagal</strong>, {{ $kapan }} ({{ $konteks }}).
             </span>
             @if (filled($import->pesan_gagal))

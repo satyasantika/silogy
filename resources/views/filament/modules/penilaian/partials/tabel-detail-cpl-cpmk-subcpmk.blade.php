@@ -97,7 +97,7 @@
                 <tr style="border-top:2px solid rgba(128,128,128,.35);background:rgba(22,163,74,.06);">
                     <td colspan="9" style="padding:14px;">
                         <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
-                            <div style="font-weight:600;font-size:13px;color:#166534;">
+                            <div class="silogy-teks-success" style="font-weight:600;font-size:13px;">
                                 Persentase ketercapaian MK terhadap perkiraan sumbangan ke CPL
                             </div>
                             <div style="display:flex;flex-wrap:wrap;gap:10px;">

@@ -7,7 +7,7 @@
         @foreach ($radarPerCpl as $cplData)
             <div wire:key="grafik-cpl-{{ $cplData['cpl_id'] }}" style="border:1px solid rgba(128,128,128,.2);border-radius:10px;padding:14px;">
                 <div style="margin-bottom:8px;">
-                    <strong style="font-size:14px;color:#1d4ed8;">{{ $cplData['cpl_kode'] }}</strong>
+                    <strong class="silogy-teks-info" style="font-size:14px;">{{ $cplData['cpl_kode'] }}</strong>
                     <p style="font-size:12px;opacity:.75;margin-top:2px;">{{ $cplData['cpl_deskripsi'] }}</p>
                 </div>
 

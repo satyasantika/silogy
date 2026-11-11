@@ -389,7 +389,7 @@ class MkUnitResource extends Resource
                         Placeholder::make('konteks_kosong')
                             ->hiddenLabel()
                             ->content(new HtmlString(
-                                '<p style="font-size:13px;color:#991b1b;">Penawaran MK tidak ditemukan.</p>',
+                                '<p class="silogy-teks-danger" style="font-size:13px;">Penawaran MK tidak ditemukan.</p>',
                             )),
                         Hidden::make('preview_status')->default('validasi'),
                         Hidden::make('payload_json')->default('[]'),
@@ -405,7 +405,7 @@ class MkUnitResource extends Resource
                         Placeholder::make('konteks_kosong')
                             ->hiddenLabel()
                             ->content(new HtmlString(
-                                '<p style="font-size:13px;color:#991b1b;">Pilih semester terlebih dahulu lewat filter di atas tabel.</p>',
+                                '<p class="silogy-teks-danger" style="font-size:13px;">Pilih semester terlebih dahulu lewat filter di atas tabel.</p>',
                             )),
                         Hidden::make('preview_status')->default('validasi'),
                         Hidden::make('payload_json')->default('[]'),

@@ -37,7 +37,7 @@
                 <li><i class="bi bi-geo-alt-fill"></i> Tasikmalaya, Jawa Barat</li>
                 <li><i class="bi bi-envelope-fill"></i> helpdesk@unsil.ac.id</li>
                 <li><i class="bi bi-globe"></i>
-                    <a href="https://lpmpp.unsil.ac.id" target="_blank" style="color:var(--g500);">lpmpp.unsil.ac.id</a>
+                    <a href="https://lpmpp.unsil.ac.id" target="_blank" style="color:var(--g400);">lpmpp.unsil.ac.id</a>
                 </li>
             </ul>
         </div>

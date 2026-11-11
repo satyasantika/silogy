@@ -350,7 +350,7 @@ class ListPesertaKelas extends ListRecords
                         Placeholder::make('konteks_kosong')
                             ->hiddenLabel()
                             ->content(new HtmlString(
-                                '<p style="font-size:13px;color:#991b1b;">Mata kuliah/semester belum dapat ditentukan, atau mata '
+                                '<p class="silogy-teks-danger" style="font-size:13px;">Mata kuliah/semester belum dapat ditentukan, atau mata '
                                 .'kuliah ini belum memiliki kode penawaran pada program studi manapun.</p>',
                             )),
                     ];
@@ -364,7 +364,7 @@ class ListPesertaKelas extends ListRecords
 
                 $ringkasan = match ($preview['status']) {
                     'error' => sprintf(
-                        '<p style="font-size:13px;color:#991b1b;">Gagal mengambil data dari Sintesys untuk mata kuliah <strong>%s</strong> '
+                        '<p class="silogy-teks-danger" style="font-size:13px;">Gagal mengambil data dari Sintesys untuk mata kuliah <strong>%s</strong> '
                         .'(%s) · tahun akademik <strong>%s</strong>: %s</p>',
                         e($namaMk),
                         e($mkUnit->kode),
@@ -372,14 +372,14 @@ class ListPesertaKelas extends ListRecords
                         e((string) $preview['pesan']),
                     ),
                     'kosong' => sprintf(
-                        '<p style="font-size:13px;color:#92400e;">Tidak ada data ditemukan dari Sintesys untuk mata kuliah <strong>%s</strong> '
+                        '<p class="silogy-teks-warning" style="font-size:13px;">Tidak ada data ditemukan dari Sintesys untuk mata kuliah <strong>%s</strong> '
                         .'(%s) · tahun akademik <strong>%s</strong>. Tidak ada yang bisa diimpor.</p>',
                         e($namaMk),
                         e($mkUnit->kode),
                         e($semester->nama),
                     ),
                     default => sprintf(
-                        '<p style="font-size:13px;color:#166534;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
+                        '<p class="silogy-teks-success" style="font-size:13px;">Ditemukan <strong>%d kelas</strong> dan <strong>%d peserta</strong> '
                         .'siap diimpor untuk mata kuliah <strong>%s</strong> (%s) · tahun akademik <strong>%s</strong>.</p>',
                         $preview['jumlah_kelas'],
                         $preview['jumlah_peserta'],

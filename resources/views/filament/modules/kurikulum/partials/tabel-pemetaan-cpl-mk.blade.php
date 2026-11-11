@@ -22,7 +22,7 @@
                             @if ($i === 0)
                                 <td rowspan="{{ count($baris['mk_rows']) }}" style="padding:8px;background:rgba(37,99,235,.04);">
                                     <div style="display:flex;flex-direction:column;gap:2px;">
-                                        <strong style="font-size:14px;color:#1d4ed8;">{{ $baris['cpl_kode'] }}</strong>
+                                        <strong class="silogy-teks-info" style="font-size:14px;">{{ $baris['cpl_kode'] }}</strong>
                                         <span style="font-size:12px;opacity:.75;">{{ $baris['cpl_deskripsi'] }}</span>
                                         <span style="font-size:11px;opacity:.6;">
                                             Σ kontribusi {{ count($baris['mk_rows']) }} MK = 100%

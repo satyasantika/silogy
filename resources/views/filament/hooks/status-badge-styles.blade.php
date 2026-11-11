@@ -72,6 +72,23 @@
         color: #d1d5db;
     }
 
+    /*
+     * Teks bernada tanpa latar (pesan modal, label sel tabel). Varian gelap
+     * wajib: merah/hijau/amber tua (#991b1b dst.) tak terbaca di atas
+     * latar gelap Filament.
+     */
+    .silogy-teks-success { color: #166534; }
+    .dark .silogy-teks-success { color: #4ade80; }
+    .silogy-teks-warning { color: #92400e; }
+    .dark .silogy-teks-warning { color: #fbbf24; }
+    .silogy-teks-danger { color: #991b1b; }
+    .dark .silogy-teks-danger { color: #f87171; }
+    .silogy-teks-info { color: #1d4ed8; }
+    .dark .silogy-teks-info { color: #60a5fa; }
+    .silogy-teks-kuat { color: #374151; }
+    .dark .silogy-teks-kuat { color: #e5e7eb; }
+    .silogy-teks-redup { color: #6b7280; }
+    .dark .silogy-teks-redup { color: #d4d4d8; }
     /* Kartu ringkasan (mis. "Target Kelulusan CPL") */
     .silogy-stat-card {
         border: 1px solid rgba(0, 153, 0, .3);

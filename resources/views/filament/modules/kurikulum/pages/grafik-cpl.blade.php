@@ -5,7 +5,7 @@
 
     <div
         data-silogy="banner-header-panel"
-        style="border-radius:14px;overflow:hidden;border:1px solid rgba(128,128,128,.2);background:var(--gray-50, #f9fafb);"
+        style="border-radius:14px;overflow:hidden;border:1px solid rgba(128,128,128,.2);background:var(--silogy-panel-bg, #f9fafb);"
     >
         @livewire('silogy.kurikulum-terpilih-banner', ['catatan' => null, 'sebagaiHeaderPanel' => true])
 

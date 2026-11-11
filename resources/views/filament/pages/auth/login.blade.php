@@ -20,6 +20,7 @@
         --lp-left-bg: #f8f9fa;
         --bd-d: rgba(33,37,41,.08); --bd-d2: rgba(33,37,41,.14);
         --tw: #212529; --tws: #6c757d; --twss: #8a97a3;
+        --lp-accent: #007000; --lp-accent-hover: #0a4d14;
 
         /* Right panel (light by default) */
         --rp-bg:           #ffffff;
@@ -54,6 +55,9 @@
             --rp-back-hover:   #4dcc4d;
             --rp-sub-link:     #4dcc4d;
             --rp-sub-link-hover: #80d980;
+            --tw: #f0f6ff; --tws: #8ba3c0; --twss: #6f86a3;
+            --bd-d: rgba(255,255,255,.09); --bd-d2: rgba(255,255,255,.14);
+            --lp-accent: #4dcc4d; --lp-accent-hover: #80d980;
         }
     }
     /* Force dark */
@@ -72,6 +76,9 @@
         --rp-back-hover:   #4dcc4d;
         --rp-sub-link:     #4dcc4d;
         --rp-sub-link-hover: #80d980;
+        --tw: #f0f6ff; --tws: #8ba3c0; --twss: #6f86a3;
+        --bd-d: rgba(255,255,255,.09); --bd-d2: rgba(255,255,255,.14);
+        --lp-accent: #4dcc4d; --lp-accent-hover: #80d980;
     }
     /* Force light */
     [data-theme="light"] {
@@ -89,6 +96,9 @@
         --rp-back-hover:   #007000;
         --rp-sub-link:     #008500;
         --rp-sub-link-hover: #009900;
+        --tw: #212529; --tws: #6c757d; --twss: #8a97a3;
+        --bd-d: rgba(33,37,41,.08); --bd-d2: rgba(33,37,41,.14);
+        --lp-accent: #007000; --lp-accent-hover: #0a4d14;
     }
 
     /* ── FILAMENT RESET ── */
@@ -169,7 +179,7 @@
     .lp-eyebrow {
         display: inline-flex; align-items: center; gap: .4rem;
         font-size: .7rem; font-family: 'Nunito', sans-serif; font-weight: 900;
-        text-transform: uppercase; letter-spacing: .1em; color: var(--g700);
+        text-transform: uppercase; letter-spacing: .1em; color: var(--lp-accent);
         background: rgba(0,153,0,.08); border: 1px solid rgba(0,153,0,.2);
         border-radius: 999px; padding: .26rem .85rem; margin-bottom: 1.5rem;
     }
@@ -197,7 +207,7 @@
     .lp-bi-icon {
         width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
         background: rgba(0,133,0,.12); border: 1px solid rgba(0,153,0,.2);
-        display: grid; place-items: center; color: var(--g700); font-size: .85rem;
+        display: grid; place-items: center; color: var(--lp-accent); font-size: .85rem;
     }
     .lp-bi-text { font-size: .84rem; color: var(--tw); line-height: 1.55; }
     .lp-bi-text span { color: var(--tws); display: block; font-size: .78rem; margin-top: .1rem; }
@@ -209,7 +219,7 @@
         color: var(--twss); font-size: .77rem; line-height: 1.65;
     }
     .lp-left-foot a { color: var(--g600); transition: .14s; }
-    .lp-left-foot a:hover { color: var(--g800); }
+    .lp-left-foot a:hover { color: var(--lp-accent-hover); }
 
     /* ── RIGHT PANEL ── */
     .lp-right {
@@ -246,7 +256,7 @@
     .lp-form-eyebrow {
         font-size: .7rem; font-family: 'Nunito', sans-serif; font-weight: 900;
         text-transform: uppercase; letter-spacing: .12em;
-        color: var(--g700); margin-bottom: 1.1rem;
+        color: var(--lp-accent); margin-bottom: 1.1rem;
         display: flex; align-items: center; gap: .5rem;
     }
     .lp-form-eyebrow::after {
@@ -290,7 +300,7 @@
         color: var(--rp-muted); font-size: 1rem; padding: 0; line-height: 1;
         transition: color .14s;
     }
-    .lp-pw-toggle:hover { color: var(--g700); }
+    .lp-pw-toggle:hover { color: var(--lp-accent); }
 
     /* Submit button */
     .lp-btn {

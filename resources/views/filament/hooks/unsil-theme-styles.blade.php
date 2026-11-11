@@ -5,6 +5,20 @@
      * masing-masing di bawah untuk varian .dark-nya).
      */
 
+    /*
+     * Latar kartu panel kustom (banner-header-panel, matriks, laporan).
+     * Jangan pakai var(--gray-50) langsung: palet Filament tidak berganti
+     * saat mode gelap, sehingga kartu tetap terang sementara teks di dalamnya
+     * mewarisi putih dari .fi-main -> tidak terbaca.
+     */
+    :root {
+        --silogy-panel-bg: var(--gray-50, #f9fafb);
+    }
+
+    .dark {
+        --silogy-panel-bg: var(--gray-900, #18181b);
+    }
+
     /* ── SIDEBAR: Hijau Tua Gelap, teks putih ── */
     .fi-sidebar,
     .fi-sidebar-header {

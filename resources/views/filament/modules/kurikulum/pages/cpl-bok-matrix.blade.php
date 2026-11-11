@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     <div
         data-silogy="banner-header-panel"
-        style="border-radius:14px;overflow:hidden;border:1px solid rgba(128,128,128,.2);background:var(--gray-50, #f9fafb);"
+        style="border-radius:14px;overflow:hidden;border:1px solid rgba(128,128,128,.2);background:var(--silogy-panel-bg, #f9fafb);"
     >
         @livewire('silogy.kurikulum-terpilih-banner', ['catatan' => null, 'sebagaiHeaderPanel' => true])
 
@@ -106,9 +106,10 @@
                         style="margin-top:10px;max-width:42rem;border-top:1px solid rgba(128,128,128,.18);padding-top:8px;"
                     >
                         <summary
+                            class="silogy-teks-warning"
                             style="cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;
                                 font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-                                color:#92400e;opacity:.72;user-select:none;"
+                                opacity:.72;user-select:none;"
                         >
                             <span aria-hidden="true" style="font-size:12px;line-height:1;">ⓘ</span>
                             <span>{{ $terkunciBobot->count() }} irisan terkunci · CPL ↔ MK</span>

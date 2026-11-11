@@ -426,8 +426,8 @@ class KurikulumResource extends Resource
 
         return new HtmlString(
             '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px;width:100%;margin:0;padding:0;">'
-            .'<div style="font-size:12px;line-height:1.4;color:#6b7280;margin:0;padding:0;">'
-            .'<span style="font-weight:600;color:#374151;">'.e($typeLabel).'</span>'
+            .'<div class="silogy-teks-redup" style="font-size:12px;line-height:1.4;margin:0;padding:0;">'
+            .'<span class="silogy-teks-kuat" style="font-weight:600;">'.e($typeLabel).'</span>'
             .' · '.e($unitNama)
             .'</div>'
             .static::ketersediaanMenuHtml($kurikulum)->toHtml()

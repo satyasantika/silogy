@@ -300,6 +300,6 @@ it('kolom dosen pengampu menandai koordinator mk saat dosen yang sama juga koord
 
     Livewire::test(ListKelasMks::class)
         ->loadTable()
-        ->assertTableColumnFormattedStateSet('dosenPengampu.full_name', $korma->full_name.' <span style="color:#166534;font-weight:600;">(koordinator)</span>', $kelasKoordinatorMerangkap)
+        ->assertTableColumnFormattedStateSet('dosenPengampu.full_name', $korma->full_name.' <span class="silogy-teks-success" style="font-weight:600;">(koordinator)</span>', $kelasKoordinatorMerangkap)
         ->assertTableColumnFormattedStateSet('dosenPengampu.full_name', $this->dosen->full_name, $kelasBiasa);
 });
