@@ -258,7 +258,7 @@ class PenilaianMatrixService
         }
 
         $perKunci = $komponens->groupBy(
-            fn (KomponenPenilaian $komponen): string => $kunciUntukKode[$komponen->evaluasi?->kode ?? '']
+            fn (KomponenPenilaian $komponen): string => $kunciUntukKode[$komponen->evaluasi->kode ?? '']
                 ?? 'lain:'.$komponen->evaluasi_id,
         );
 
