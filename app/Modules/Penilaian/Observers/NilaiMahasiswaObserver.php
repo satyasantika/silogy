@@ -14,7 +14,7 @@ class NilaiMahasiswaObserver
 
         $kelasMk = $nilai->kelasMkMahasiswa?->kelasMk;
 
-        if ($kelasMk !== null) {
+        if ($kelasMk !== null && ($nilai->wasRecentlyCreated || $nilai->wasChanged('nilai'))) {
             app(ValidasiNilaiService::class)->gugurkan($kelasMk);
         }
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Support;
 
 use App\Models\User;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
@@ -40,5 +41,25 @@ final class ValidatorNilaiScope
             'mkUnit',
             fn (Builder $query) => $query->whereIn('academic_unit_id', self::unitIdsFor($user)->all()),
         );
+    }
+
+    /**
+     * Jabatan pada penugasan bertanda validator yang paling dekat dengan unit
+     * (unit itu sendiri lebih dulu, lalu induk terdekat); null bila tak ada.
+     */
+    public static function jabatanUntuk(User $validator, AcademicUnit $unit): ?string
+    {
+        $rantai = AcademicUnitScope::ancestorIdsIncludingSelf($unit);
+
+        $terdekat = AcademicUnitUser::query()
+            ->where('user_id', $validator->id)
+            ->where('status_validator_nilai', true)
+            ->whereIn('academic_unit_id', $rantai)
+            ->orderBy('id')
+            ->get()
+            ->sortBy(fn (AcademicUnitUser $pivot): int => (int) array_search($pivot->academic_unit_id, $rantai, true))
+            ->first();
+
+        return $terdekat?->jabatan;
     }
 }

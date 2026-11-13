@@ -3,8 +3,6 @@
 namespace App\Modules\Penilaian\Filament\Pages\Concerns;
 
 use App\Models\User;
-use App\Modules\Institusi\Models\AcademicUnitUser;
-use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Services\CatatanRtlService;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
@@ -13,6 +11,7 @@ use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SidikLaporanKelas;
 use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use App\Modules\Penilaian\Support\StatusValidasiNilai;
+use App\Modules\Penilaian\Support\ValidatorNilaiScope;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
@@ -262,13 +261,8 @@ trait HasLaporanKelasMk
             return;
         }
 
-        $unitId = $kelasMk->loadMissing('mkUnit.academicUnit')->mkUnit?->academicUnit;
-        $jabatan = $unitId === null ? null : AcademicUnitUser::query()
-            ->where('user_id', $baris->validator_id)
-            ->where('status_validator_nilai', true)
-            ->whereIn('academic_unit_id', AcademicUnitScope::ancestorIdsIncludingSelf($unitId))
-            ->whereNotNull('jabatan')
-            ->value('jabatan');
+        $unit = $kelasMk->loadMissing('mkUnit.academicUnit')->mkUnit?->academicUnit;
+        $jabatan = $unit === null ? null : ValidatorNilaiScope::jabatanUntuk($baris->validator, $unit);
 
         $this->infoValidasi = [
             'nama' => $baris->validator->namaDenganGelar(),

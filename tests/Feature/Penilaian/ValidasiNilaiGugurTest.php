@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
@@ -136,4 +137,32 @@ it('menyimpan catatan RTL tanpa perubahan isi tidak menggugurkan', function () {
     bukaLaporan($this->kelas)
         ->call('simpanCatatanRtl')
         ->assertSet('statusValidasi', 'tervalidasi');
+});
+
+it('menyimpan matriks tanpa perubahan lewat halaman tidak menggugurkan, perubahan nyata menggugurkan', function () {
+    // Simpan sekali dulu agar nilai akhir turunan (nilai_angka) sudah terisi.
+    bukaLaporan($this->kelas)->call('save');
+    validasiSekarang($this->kelas, $this->dosen);
+
+    $test = bukaLaporan($this->kelas)->call('save');
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->toBeNull();
+
+    $kmmId = $this->fixture['kmm'][0]->id;
+    $komponenId = $this->fixture['komponen']->id;
+    $test->set("nilai.{$kmmId}.{$komponenId}", '55')->call('save');
+
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
+});
+
+it('infoValidasi memuat jabatan penugasan validator pada unit kelas atau induknya', function () {
+    $validator = User::factory()->create();
+    $fakultas = $this->kelas->mkUnit->academicUnit->parent;
+    jadikanValidator($validator, $fakultas);
+    AcademicUnitUser::query()
+        ->where('user_id', $validator->id)->update(['jabatan' => 'Wakil Dekan I']);
+
+    $sidik = bukaLaporan($this->kelas)->get('sidikLaporan');
+    app(ValidasiNilaiService::class)->validasi($this->kelas, $validator, $sidik);
+
+    bukaLaporan($this->kelas)->assertSet('infoValidasi.jabatan', 'Wakil Dekan I');
 });
