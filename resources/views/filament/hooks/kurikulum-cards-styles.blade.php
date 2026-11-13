@@ -1419,6 +1419,7 @@
             visibility: hidden !important;
         }
 
+        body[data-silogy-print="laporan-lengkap"] .silogy-tanda-air-belum-divalidasi,
         body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"],
         body[data-silogy-print="laporan-lengkap"] [data-silogy="laporan-cetak-badan"] * {
             visibility: visible !important;

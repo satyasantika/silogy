@@ -7,7 +7,13 @@
             'mahasiswa' => 'Hasil Analisis per Mahasiswa',
             'laporan-lengkap' => 'Laporan',
         ];
+        $tervalidasi = $this->statusValidasi === 'tervalidasi';
     @endphp
+
+    @unless ($tervalidasi)
+        {{-- Di luar semua sub-tab: Ctrl+P dari sub-tab manapun tetap bertanda air. --}}
+        <div data-silogy="tanda-air-belum-divalidasi" class="silogy-tanda-air-belum-divalidasi" aria-hidden="true">BELUM DIVALIDASI</div>
+    @endunless
 
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
         @foreach ($subTabs as $subTabKey => $subTabLabel)
@@ -143,7 +149,6 @@
             heading="Laporan Mata Kuliah ke Prodi"
             description="Portofolio penilaian dan evaluasi untuk kelas terpilih."
         >
-            @php($tervalidasi = $this->statusValidasi === 'tervalidasi')
             <div class="silogy-laporan-cetak-aksi" style="display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
                 @include('filament.modules.penilaian.partials.status-validasi-nilai')
                 @if (! $tervalidasi)
@@ -291,8 +296,6 @@
                         @endif
                         <div>{{ $this->infoValidasi['waktu'] }}</div>
                     </section>
-                @else
-                    <div data-silogy="tanda-air-belum-divalidasi" class="silogy-tanda-air-belum-divalidasi" aria-hidden="true">BELUM DIVALIDASI</div>
                 @endif
             </div>
         </x-filament::section>

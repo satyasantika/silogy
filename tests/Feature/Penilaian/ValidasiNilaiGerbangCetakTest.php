@@ -52,6 +52,14 @@ it('kelas belum divalidasi: tombol cetak terkunci dan tanda air ada', function (
         ->assertDontSeeHtml('data-silogy="blok-validasi-nilai"');
 });
 
+it('tanda air muncul sekali, di luar kontainer sub-tab laporan lengkap', function () {
+    $html = laporanGerbang($this->kelas)->html();
+
+    expect(substr_count($html, 'data-silogy="tanda-air-belum-divalidasi"'))->toBe(1)
+        ->and(strpos($html, 'data-silogy="tanda-air-belum-divalidasi"'))
+        ->toBeLessThan(strpos($html, "x-show=\"subTab === 'portofolio'\""));
+});
+
 it('kelas tervalidasi: tombol aktif, blok validasi memuat nama, tanpa tanda air', function () {
     validasiGerbang($this->kelas);
 
