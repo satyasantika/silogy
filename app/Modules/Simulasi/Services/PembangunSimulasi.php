@@ -56,7 +56,7 @@ class PembangunSimulasi
      * Naikkan setiap kali bentuk contoh terisi berubah. Salinan bersama yang
      * versinya lebih rendah dibangun ulang otomatis oleh penjadwal dan deploy.
      */
-    public const VERSI_CONTOH = 4;
+    public const VERSI_CONTOH = 5;
 
     public static function jumlahMahasiswa(string $mode): int
     {

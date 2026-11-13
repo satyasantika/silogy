@@ -200,3 +200,27 @@ it('kelas tervalidasi tetap siap cetak setelah render ulang di halaman validator
         ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
     expect($test->instance()->laporanSesuaiValidasi())->toBeTrue();
 });
+
+it('mengganti dosen pengampu lewat query builder menggugurkan validasi saat laporan dimuat', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    Livewire::test(ValidasiNilai::class)->call('bukaKelas', $kelas->id)->callAction('validasi');
+
+    DB::table('kelas_mk')->where('id', $kelas->id)->update(['dosen_pengampu_id' => User::factory()->create()->id]);
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->assertSet('statusValidasi', 'perlu_ulang');
+
+    expect(ValidasiNilaiKelas::firstOrFail()->gugur_at)->not->toBeNull();
+});
+
+it('mengganti nama mata kuliah lewat query builder menggugurkan validasi saat laporan dimuat', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    Livewire::test(ValidasiNilai::class)->call('bukaKelas', $kelas->id)->callAction('validasi');
+
+    DB::table('mk')->where('id', $kelas->mkUnit->mk_id)->update(['nama' => 'Nama MK Baru']);
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->assertSet('statusValidasi', 'perlu_ulang');
+});

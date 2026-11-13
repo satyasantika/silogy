@@ -18,7 +18,7 @@ class DataLaporanKelasService
      *     nilai: array<string, array<string, string|null>>, targetCapaianLulusan: int,
      *     ketercapaianCpl: list<array<string, mixed>>, distribusiNilaiHuruf: list<array<string, mixed>>,
      *     detailCplCpmkSubcpmk: list<array<string, mixed>>, rencanaEvaluasi: array<string, mixed>|null,
-     *     blokRtl: array<string, mixed>
+     *     blokRtl: array<string, mixed>, identitas: array{mk_nama: string|null, mk_kode: string|null, sks: int, dosen: string|null, semester_id: string}
      * }
      */
     public function muat(KelasMk $kelasMk): array
@@ -46,6 +46,27 @@ class DataLaporanKelasService
             'detailCplCpmkSubcpmk' => $evaluasiCpl->detailCplCpmkSubcpmk($kelasMk),
             'rencanaEvaluasi' => app(RencanaEvaluasiService::class)->build($kelasMk->mkUnit?->mk_id, $kelasMk->semester_id),
             'blokRtl' => app(CatatanRtlService::class)->blok($kelasMk, $ketercapaianCpl),
+            'identitas' => $this->identitas($kelasMk),
+        ];
+    }
+
+    /**
+     * Identitas kelas (Blok A laporan) dibaca dari KelasMk itu sendiri — bukan
+     * dari pilihan halaman — agar halaman dan pembangun simulasi menghasilkan
+     * sidik yang sama.
+     *
+     * @return array{mk_nama: string|null, mk_kode: string|null, sks: int, dosen: string|null, semester_id: string}
+     */
+    public function identitas(KelasMk $kelasMk): array
+    {
+        $kelasMk->loadMissing(['mkUnit.mk', 'dosenPengampu']);
+
+        return [
+            'mk_nama' => $kelasMk->mkUnit?->mk?->nama,
+            'mk_kode' => $kelasMk->mkUnit?->kode,
+            'sks' => (int) ($kelasMk->mkUnit?->mk?->sks ?? 0),
+            'dosen' => $kelasMk->dosenPengampu?->namaDenganGelar(),
+            'semester_id' => (string) $kelasMk->semester_id,
         ];
     }
 
@@ -69,6 +90,7 @@ class DataLaporanKelasService
             'rencanaEvaluasi' => $data['rencanaEvaluasi'],
             'targetCapaianLulusan' => $data['targetCapaianLulusan'],
             'rtl' => ['baris' => $data['blokRtl']['baris'], 'umum' => $data['blokRtl']['umum']],
+            'identitas' => $data['identitas'],
         ];
     }
 

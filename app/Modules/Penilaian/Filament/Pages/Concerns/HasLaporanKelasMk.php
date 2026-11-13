@@ -222,13 +222,18 @@ trait HasLaporanKelasMk
 
     /**
      * Isi laporan yang menentukan sidik validasi — tanpa data volatil
-     * (waktu, metadata "terakhir diubah").
+     * (waktu, metadata "terakhir diubah"). Identitas kelas (Blok A) dibaca
+     * langsung dari KelasMk, sama seperti yang dirender Blok A.
      *
      * @return array<string, mixed>
      */
-    protected function dataUntukSidik(): array
+    protected function dataUntukSidik(?KelasMk $kelasMk = null): array
     {
-        return app(DataLaporanKelasService::class)->untukSidik([
+        $layanan = app(DataLaporanKelasService::class);
+        $kelasMk ??= $this->kelasMkId !== null ? KelasMk::query()->find($this->kelasMkId) : null;
+
+        return $layanan->untukSidik([
+            'identitas' => $kelasMk instanceof KelasMk ? $layanan->identitas($kelasMk) : null,
             'rows' => $this->rows,
             'columns' => $this->columns,
             'kolomEvaluasi' => $this->kolomEvaluasi,
@@ -249,7 +254,7 @@ trait HasLaporanKelasMk
     protected function muatStatusValidasi(KelasMk $kelasMk, bool $laporanDimuat): void
     {
         $this->sidikLaporan = $laporanDimuat
-            ? app(SidikLaporanKelas::class)->dariData($this->dataUntukSidik())
+            ? app(SidikLaporanKelas::class)->dariData($this->dataUntukSidik($kelasMk))
             : null;
 
         $status = app(ValidasiNilaiService::class)->periksa($kelasMk, $this->sidikLaporan);
@@ -403,7 +408,8 @@ trait HasLaporanKelasMk
     }
 
     /**
-     * Identitas MK/kelas untuk kop laporan gabungan. "dosen" selalu diambil
+     * Identitas MK/kelas untuk kop laporan gabungan — sumber yang sama dengan
+     * kunci "identitas" pada sidik validasi. "dosen" selalu diambil
      * dari dosen pengampu kelas yang sedang dilihat (bukan user yang login),
      * karena koordinator MK bisa melihat laporan kelas milik dosen lain.
      *
@@ -411,17 +417,15 @@ trait HasLaporanKelasMk
      */
     public function getIdentitasMkProperty(): array
     {
-        $mk = $this->getMkTerpilihProperty();
-        $kelasMk = $this->kelasMkId !== null
-            ? KelasMk::query()->with(['mkUnit', 'dosenPengampu'])->find($this->kelasMkId)
-            : null;
+        $kelasMk = $this->kelasMkId !== null ? KelasMk::query()->find($this->kelasMkId) : null;
+        $identitas = $kelasMk instanceof KelasMk ? app(DataLaporanKelasService::class)->identitas($kelasMk) : null;
 
         return [
-            'nama' => $mk?->nama ?? '—',
-            'kode' => $kelasMk?->mkUnit?->kode ?? '—',
-            'sks' => (int) ($mk?->sks ?? 0),
+            'nama' => $identitas['mk_nama'] ?? '—',
+            'kode' => $identitas['mk_kode'] ?? '—',
+            'sks' => $identitas['sks'] ?? 0,
             'semester' => $this->getSemesterTerpilihProperty(),
-            'dosen' => $kelasMk?->dosenPengampu?->namaDenganGelar() ?? '—',
+            'dosen' => $identitas['dosen'] ?? '—',
             'target' => $this->targetCapaianLulusan,
         ];
     }
