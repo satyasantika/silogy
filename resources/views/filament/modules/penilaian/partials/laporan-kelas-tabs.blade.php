@@ -19,6 +19,11 @@
         <div data-silogy="tanda-air-belum-divalidasi" class="silogy-tanda-air-belum-divalidasi" aria-hidden="true">BELUM DIVALIDASI</div>
     @endunless
 
+    {{-- Badge status di atas laporan, terlihat dari sub-tab manapun. --}}
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        @include('filament.modules.penilaian.partials.status-validasi-nilai', ['statusValidasiTampil' => $statusValidasiTampil])
+    </div>
+
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
         @foreach ($subTabs as $subTabKey => $subTabLabel)
             <button
@@ -154,7 +159,6 @@
             description="Portofolio penilaian dan evaluasi untuk kelas terpilih."
         >
             <div class="silogy-laporan-cetak-aksi" style="display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-                @include('filament.modules.penilaian.partials.status-validasi-nilai', ['statusValidasiTampil' => $statusValidasiTampil])
                 @if (! $tervalidasi)
                     <span data-silogy="alasan-cetak-terkunci" style="font-size:12px;opacity:.75;">
                         {{ match (true) {

@@ -161,3 +161,12 @@ it('sidik dan status validasi terkunci dari klien', function (string $properti, 
     'statusValidasi' => ['statusValidasi', 'tervalidasi'],
     'infoValidasi' => ['infoValidasi', ['nama' => 'X', 'jabatan' => null, 'waktu' => 'kemarin']],
 ])->throws(CannotUpdateLockedPropertyException::class);
+
+it('badge status validasi tampil sekali di atas tombol sub-tab', function () {
+    $html = laporanGerbang($this->kelas)->html();
+    $posisiBadge = strpos($html, 'data-silogy="status-validasi-nilai"');
+
+    expect(substr_count($html, 'data-silogy="status-validasi-nilai"'))->toBe(1)
+        ->and($posisiBadge)->toBeLessThan(strpos($html, "@click=\"subTab = 'portofolio'\""))
+        ->and($posisiBadge)->toBeLessThan(strpos($html, "x-show=\"subTab === 'laporan-lengkap'\""));
+});
