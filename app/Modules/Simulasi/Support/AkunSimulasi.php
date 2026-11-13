@@ -146,6 +146,7 @@ final class AkunSimulasi
             'dosen-pengampu' => ['prodi' => 'sim-dosen'],
             'pimpinan' => ['prodi' => 'sim-kaprodi'],
             'auditor-mutu' => ['prodi' => 'sim-auditor'],
+            'validator-nilai' => ['prodi' => 'sim-validator'],
         ];
     }
 }

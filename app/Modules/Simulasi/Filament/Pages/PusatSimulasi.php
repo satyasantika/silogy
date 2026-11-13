@@ -116,7 +116,7 @@ class PusatSimulasi extends Page implements HasActions
             ->modalHeading('Siapkan ruang simulasi')
             ->modalDescription(
                 'Tiap ruang berisi satu program studi dengan satu kurikulum dan satu mata kuliah kosong, '
-                .'enam akun (satu per peran), dan sebuah token. Bagikan token itu kepada peserta: mereka memasukkan '
+                .'tujuh akun (satu per peran), dan sebuah token. Bagikan token itu kepada peserta: mereka memasukkan '
                 .'token lalu memilih satu peran. Data inti TIDAK disentuh. Setelah Siapkan ditekan, jendela ini '
                 .'berganti menjadi layar progres.'
             )

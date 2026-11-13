@@ -216,7 +216,7 @@ it('daftar ruang menampilkan token dan peran yang sedang dipegang', function () 
 
     $this->get('/simulasi')->assertSuccessful()
         ->assertSee($ruang->pin)
-        ->assertSee('1 / 6')
+        ->assertSee('1 / 7')
         ->assertSee('Dosen Pengampu');
 });
 

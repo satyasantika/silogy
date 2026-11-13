@@ -44,7 +44,7 @@ class RuangSimulasi
     }
 
     /**
-     * Enam peran beserta status terisinya, urutan sama dengan halaman panduan.
+     * Peran yang bisa dicoba beserta status terisinya, urutan sama dengan halaman panduan.
      *
      * @return array<string, array{label: string, ikon: string, ringkas: string, terisi: bool}>
      */

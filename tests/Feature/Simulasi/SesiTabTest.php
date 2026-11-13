@@ -140,7 +140,7 @@ it('semua pengunjung memakai contoh terisi bersama yang sama, tanpa kapasitas ta
         ->and(SimulasiJalan::query()->masihAda()->count())->toBe(1);
 });
 
-it('enam peran di tingkat prodi mendarat di akun yang benar', function () {
+it('tujuh peran di tingkat prodi mendarat di akun yang benar', function () {
     PengaturanSimulasi::atur('batas_coba', 1000);
 
     $diharapkan = [
@@ -150,6 +150,7 @@ it('enam peran di tingkat prodi mendarat di akun yang benar', function () {
         'dosen-pengampu' => 'sim-dosen',
         'pimpinan' => 'sim-kaprodi',
         'auditor-mutu' => 'sim-auditor',
+        'validator-nilai' => 'sim-validator',
     ];
 
     foreach ($diharapkan as $slug => $kunci) {

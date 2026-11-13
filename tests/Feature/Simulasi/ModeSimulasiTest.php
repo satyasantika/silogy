@@ -334,7 +334,7 @@ it('sandbox peninggalan versi lama dibongkar otomatis; ruang bertoken, contoh be
 
 // ── Tombol "Lihat contoh terisi" ─────────────────────────────────────────
 
-it('tombol lihat contoh terisi membuka tab di contoh bersama untuk keenam peran, tanpa membangun ruang', function (string $slug) {
+it('tombol lihat contoh terisi membuka tab di contoh bersama untuk ketujuh peran, tanpa membangun ruang', function (string $slug) {
     $respons = $this->post(route('panduan.coba', ['peran' => $slug]), ['level' => 'prodi']);
 
     $respons->assertRedirect();
@@ -347,7 +347,7 @@ it('tombol lihat contoh terisi membuka tab di contoh bersama untuk keenam peran,
         ->and(SimulasiJalan::query()->where('bersama', false)->count())->toBe(0)
         ->and(SesiTab::cari($m[1])['jalan'])->toBe((string) $bersama->first()->getKey())
         ->and(SesiTab::cari($m[1])['ruang'])->toBeFalse();
-})->with(['admin-unit', 'tim-kurikulum', 'koordinator-mk', 'dosen-pengampu', 'pimpinan', 'auditor-mutu']);
+})->with(['admin-unit', 'tim-kurikulum', 'koordinator-mk', 'dosen-pengampu', 'pimpinan', 'auditor-mutu', 'validator-nilai']);
 
 it('parameter mode di tombol lama diabaikan: selalu contoh terisi bersama', function () {
     $this->post(route('panduan.coba', ['peran' => 'tim-kurikulum']), ['level' => 'prodi', 'mode' => 'kosong'])->assertRedirect();
@@ -391,7 +391,7 @@ it('halaman peran menampilkan tombol contoh terisi dan tautan ruang simulasi di 
         ->assertSee('Masuk ruang simulasi')
         ->assertSee(route('simulasi.ruang'), false)
         ->assertDontSee('Coba mengisi sendiri');
-})->with(['admin-unit', 'tim-kurikulum', 'koordinator-mk', 'dosen-pengampu', 'pimpinan', 'auditor-mutu']);
+})->with(['admin-unit', 'tim-kurikulum', 'koordinator-mk', 'dosen-pengampu', 'pimpinan', 'auditor-mutu', 'validator-nilai']);
 
 it('halaman peran di tingkat Universitas dan Fakultas tetap memuat panduan tanpa tombol coba', function (string $level) {
     $this->get(route('panduan.peran', ['peran' => 'tim-kurikulum', 'level' => $level]))
@@ -404,14 +404,14 @@ it('halaman peran di tingkat Universitas dan Fakultas tetap memuat panduan tanpa
 it('halaman level prodi menampilkan tombol contoh terisi untuk setiap peran', function () {
     $html = $this->get(route('panduan.level', ['level' => 'prodi']))->getContent();
 
-    expect(substr_count($html, 'Lihat contoh terisi'))->toBe(6)
+    expect(substr_count($html, 'Lihat contoh terisi'))->toBe(7)
         ->and($html)->not->toContain('Coba mengisi sendiri');
 });
 
 it('halaman level universitas dan fakultas tetap menampilkan panduan tetapi tanpa tombol coba', function (string $level) {
     $html = $this->get(route('panduan.level', ['level' => $level]))->assertOk()->getContent();
 
-    expect(substr_count($html, 'Baca panduan'))->toBe(6)
+    expect(substr_count($html, 'Baca panduan'))->toBe(7)
         ->and($html)->not->toContain('Lihat contoh terisi')
         ->and($html)->toContain('Simulasi di tingkat Program Studi');
 })->with(['univ', 'fak']);

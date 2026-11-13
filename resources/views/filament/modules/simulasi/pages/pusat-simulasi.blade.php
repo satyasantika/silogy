@@ -30,7 +30,7 @@
 
         <p style="margin-top:16px;font-size:13px;opacity:.75;line-height:1.6;">
             Tiap <strong>ruang</strong> berisi satu program studi dengan satu kurikulum dan satu mata kuliah kosong,
-            enam akun (satu per peran), dan sebuah <strong>token</strong> enam karakter. Bagikan token itu kepada peserta:
+            tujuh akun (satu per peran), dan sebuah <strong>token</strong> enam karakter. Bagikan token itu kepada peserta:
             mereka membuka <span style="font-family:ui-monospace,Menlo,monospace;">/ruang</span>, memasukkan token, lalu
             memilih satu peran. Satu peran hanya dipegang satu peserta; peran yang sudah terisi tidak bisa dipilih dan
             terbuka lagi bila pemegangnya keluar atau tak aktif selama {{ \App\Modules\Simulasi\Support\PengaturanSimulasi::ambil('sewa_menit') }} menit.
@@ -44,7 +44,7 @@
         @if ($daftar->isEmpty())
             <p style="font-size:13px;opacity:.75;line-height:1.6;">
                 Belum ada ruang. Tekan <strong>Siapkan Ruang</strong> dan isi jumlah yang dibutuhkan
-                (satu ruang untuk enam peserta).
+                (satu ruang untuk tujuh peserta).
             </p>
         @else
             <div style="overflow-x:auto;">

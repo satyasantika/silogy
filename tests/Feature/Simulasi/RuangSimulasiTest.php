@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\URL;
 
 uses(RefreshDatabase::class);
 
-const PERAN_RUANG = ['admin-unit', 'tim-kurikulum', 'koordinator-mk', 'dosen-pengampu', 'pimpinan', 'auditor-mutu'];
+const PERAN_RUANG = ['admin-unit', 'tim-kurikulum', 'koordinator-mk', 'dosen-pengampu', 'pimpinan', 'auditor-mutu', 'validator-nilai'];
 
 beforeEach(function () {
     Cache::flush();
@@ -118,20 +118,20 @@ it('halaman ruang dan pemilihan peran tertutup rapat (404) saat mode latihan dit
 
 // ── Satu peserta per peran ───────────────────────────────────────────────
 
-it('halaman ruang menampilkan enam peran, dan peran yang terisi dinonaktifkan', function () {
+it('halaman ruang menampilkan tujuh peran, dan peran yang terisi dinonaktifkan', function () {
     $ruang = ruangBaru();
 
     $kosong = $this->get(route('simulasi.ruang.tampil', ['pin' => $ruang->pin]))->assertOk()->getContent();
     expect(substr_count($kosong, 'aria-disabled="true"'))->toBe(0)
-        ->and(substr_count($kosong, 'data-masuk'))->toBe(6);
+        ->and(substr_count($kosong, 'data-masuk'))->toBe(7);
 
     pilihPeran($ruang, 'dosen-pengampu');
 
     $html = $this->get(route('simulasi.ruang.tampil', ['pin' => $ruang->pin]))->assertOk()->getContent();
 
-    // Tepat satu tombol mati ("Sudah terisi") dan lima tombol masuk; yang mati milik Dosen Pengampu.
+    // Tepat satu tombol mati ("Sudah terisi") dan enam tombol masuk; yang mati milik Dosen Pengampu.
     expect(substr_count($html, 'aria-disabled="true"'))->toBe(1)
-        ->and(substr_count($html, 'data-masuk'))->toBe(5)
+        ->and(substr_count($html, 'data-masuk'))->toBe(6)
         ->and($html)->toContain('data-peran="dosen-pengampu" data-terisi="1"')
         ->and($html)->toContain('Sudah terisi')
         ->and(terisiDi($ruang))->toBe(['dosen-pengampu']);
@@ -153,20 +153,20 @@ it('peran yang sudah dipegang tidak bisa dipilih peserta kedua, tetapi peran lai
         ->and(terisiDi($ruang))->toBe(['dosen-pengampu', 'tim-kurikulum']);
 });
 
-it('keenam peran bisa diisi enam peserta berbeda, dan peserta ketujuh tak mendapat satu pun', function () {
+it('ketujuh peran bisa diisi tujuh peserta berbeda, dan peserta kedelapan tak mendapat satu pun', function () {
     $ruang = ruangBaru();
 
     foreach (PERAN_RUANG as $peran) {
         expect(pilihPeran($ruang, $peran))->not->toBeNull();
     }
 
-    expect(terisiDi($ruang))->toHaveCount(6);
+    expect(terisiDi($ruang))->toHaveCount(7);
 
     foreach (PERAN_RUANG as $peran) {
         $this->post(route('simulasi.ruang.masuk', ['pin' => $ruang->pin, 'peran' => $peran]))->assertSessionHas('panduan_galat');
     }
 
-    expect(SimulasiPeranTerisi::query()->count())->toBe(6);
+    expect(SimulasiPeranTerisi::query()->count())->toBe(7);
 });
 
 it('kunci unik di basis data menjadi pengaman terakhir bila dua peserta mengambil peran yang sama serentak', function () {
@@ -205,7 +205,7 @@ it('endpoint status melaporkan peran terisi untuk penyegaran otomatis', function
         ->and($json['dosen-pengampu'])->toBeFalse();
 });
 
-it('peran yang tak dikenal atau di luar enam peran ditolak 404 dan tidak mencatat apa pun', function () {
+it('peran yang tak dikenal atau di luar tujuh peran ditolak 404 dan tidak mencatat apa pun', function () {
     $ruang = ruangBaru();
 
     $this->post(route('simulasi.ruang.masuk', ['pin' => $ruang->pin, 'peran' => 'super-admin']))->assertNotFound();
@@ -223,6 +223,7 @@ it('tiap peran mendarat di akun ruang itu sendiri, bukan akun inti maupun akun r
     $diharapkan = [
         'admin-unit' => 'sim-adminprodi', 'tim-kurikulum' => 'sim-timkur', 'koordinator-mk' => 'sim-korma',
         'dosen-pengampu' => 'sim-dosen', 'pimpinan' => 'sim-kaprodi', 'auditor-mutu' => 'sim-auditor',
+        'validator-nilai' => 'sim-validator',
     ];
 
     foreach ($diharapkan as $slug => $kunci) {
@@ -296,7 +297,7 @@ it('keluar dari peran melepasnya, menghapus catatan tab, dan mengembalikan ke ha
     // Tombol peran itu kembali bisa dipilih.
     $html = $this->get(route('simulasi.ruang.tampil', ['pin' => $ruang->pin]))->getContent();
     expect(substr_count($html, 'aria-disabled="true"'))->toBe(0)
-        ->and(substr_count($html, 'data-masuk'))->toBe(6);
+        ->and(substr_count($html, 'data-masuk'))->toBe(7);
 
     expect(pilihPeran($ruang, 'tim-kurikulum'))->not->toBeNull();
 });

@@ -131,7 +131,7 @@
             <p style="font-weight:700;color:#15803d;margin-bottom:4px;">{{ $banyak ? 'Semua ruang siap dipakai' : 'Ruang siap dipakai' }}</p>
             <p style="font-size:12.5px;line-height:1.6;opacity:.85;">
                 @if ($banyak)
-                    Token tiap ruang ada di daftar <strong>Ruang</strong> pada halaman ini. Bagikan satu token per kelompok enam peserta.
+                    Token tiap ruang ada di daftar <strong>Ruang</strong> pada halaman ini. Bagikan satu token per kelompok tujuh peserta.
                 @elseif (! empty($p['pin']))
                     Bagikan token <span style="font-family:ui-monospace,Menlo,monospace;font-weight:700;letter-spacing:.12em;">{{ $p['pin'] }}</span>
                     kepada peserta. Mereka membuka halaman <strong>/ruang</strong>, memasukkan token, lalu memilih satu peran.
