@@ -23,8 +23,12 @@ class ValidasiNilaiPolicy
 
     /**
      * Alasan validasi ditolak, atau null bila boleh. Urutan pemeriksaan tetap.
+     * $kelengkapan boleh diberikan pemanggil yang sudah menghitungnya pada
+     * request yang sama (hasil PenilaianMatrixService::kelengkapanKelas()).
+     *
+     * @param  array{status_kelengkapan: string}|null  $kelengkapan
      */
-    public function alasanTidakBisaValidasi(User $user, KelasMk $kelasMk): ?string
+    public function alasanTidakBisaValidasi(User $user, KelasMk $kelasMk, ?array $kelengkapan = null): ?string
     {
         if (! $this->lihat($user, $kelasMk)) {
             return 'Kelas di luar cakupan Anda.';
@@ -42,7 +46,9 @@ class ValidasiNilaiPolicy
             return 'Penugasan asesmen belum selesai.';
         }
 
-        if (app(PenilaianMatrixService::class)->kelengkapanKelas($kelasMk)['status_kelengkapan'] !== 'lengkap') {
+        $kelengkapan ??= app(PenilaianMatrixService::class)->kelengkapanKelas($kelasMk);
+
+        if ($kelengkapan['status_kelengkapan'] !== 'lengkap') {
             return 'Nilai belum lengkap.';
         }
 

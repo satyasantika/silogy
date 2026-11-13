@@ -4,8 +4,10 @@ use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Filament\Pages\ValidasiNilai;
 use App\Modules\Penilaian\Models\ValidasiNilaiKelas;
+use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -223,4 +225,50 @@ it('mengganti nama mata kuliah lewat query builder menggugurkan validasi saat la
     Livewire::test(ValidasiNilai::class)
         ->call('bukaKelas', $kelas->id)
         ->assertSet('statusValidasi', 'perlu_ulang');
+});
+
+it('satu render dengan kelas terbuka menghitung kelengkapan tiap kelas sekali saja', function () {
+    $kelasBuka = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    $kelasLain = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    $test = Livewire::test(ValidasiNilai::class)->call('bukaKelas', $kelasBuka->id);
+
+    $panggilan = [];
+    $penghitung = new class($panggilan) extends PenilaianMatrixService
+    {
+        /** @param  array<string, int>  $panggilan */
+        public function __construct(private array &$panggilan) {}
+
+        public function kelengkapanKelas(KelasMk $kelasMk): array
+        {
+            $this->panggilan[$kelasMk->id] = ($this->panggilan[$kelasMk->id] ?? 0) + 1;
+
+            return parent::kelengkapanKelas($kelasMk);
+        }
+    };
+    app()->instance(PenilaianMatrixService::class, $penghitung);
+
+    $test->call('$refresh')->assertSee('Validasi');
+
+    expect($panggilan[$kelasLain->id] ?? 0)->toBe(1)
+        ->and($panggilan[$kelasBuka->id] ?? 0)->toBe(1);
+});
+
+it('daftar kelas segar kembali pada request yang sama setelah validasi dan batal', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    $statusDiDaftar = function ($test): string {
+        $html = $test->html();
+        $awal = strpos($html, 'data-silogy="validasi-nilai-daftar"');
+        $akhir = strpos($html, '</table>', $awal);
+
+        return substr($html, $awal, $akhir - $awal);
+    };
+
+    $test = Livewire::test(ValidasiNilai::class)->call('bukaKelas', $kelas->id);
+    expect($statusDiDaftar($test))->toContain('Belum divalidasi')->not->toContain('Tervalidasi');
+
+    $test->callAction('validasi');
+    expect($statusDiDaftar($test))->toContain('Tervalidasi')->not->toContain('Belum divalidasi');
+
+    $test->callAction('batalkanValidasi');
+    expect($statusDiDaftar($test))->toContain('Belum divalidasi')->not->toContain('Tervalidasi');
 });

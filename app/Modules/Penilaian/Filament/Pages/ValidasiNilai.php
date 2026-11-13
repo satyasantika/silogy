@@ -52,6 +52,15 @@ class ValidasiNilai extends Page
 
     public ?string $kelasMkId = null;
 
+    /**
+     * Memo hasil hitung untuk SATU request saja (properti privat tidak ikut
+     * snapshot Livewire). Kunci memuat id semester/kelas sehingga berganti
+     * pilihan otomatis memakai entri baru; validasi/batal mengosongkannya.
+     *
+     * @var array<string, mixed>
+     */
+    private array $memo = [];
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -150,7 +159,44 @@ class ValidasiNilai extends Page
             return null;
         }
 
-        return KelasMk::query()->with(['mkUnit.mk', 'dosenPengampu'])->find($this->kelasMkId);
+        $id = $this->kelasMkId;
+
+        return $this->ingat("kelas:{$id}", fn (): ?KelasMk => KelasMk::query()->with(['mkUnit.mk', 'dosenPengampu'])->find($id));
+    }
+
+    /**
+     * @template T
+     *
+     * @param  callable(): T  $hitung
+     * @return T
+     */
+    private function ingat(string $kunci, callable $hitung): mixed
+    {
+        if (! array_key_exists($kunci, $this->memo)) {
+            $this->memo[$kunci] = $hitung();
+        }
+
+        return $this->memo[$kunci];
+    }
+
+    /**
+     * @return array{nilai_total: int, nilai_terisi: int, mahasiswa_belum_lengkap: int, status_kelengkapan: string}
+     */
+    private function kelengkapan(KelasMk $kelas): array
+    {
+        return $this->ingat("kelengkapan:{$kelas->id}", fn (): array => app(PenilaianMatrixService::class)->kelengkapanKelas($kelas));
+    }
+
+    /**
+     * Banner "Data belum lengkap" memakai kelengkapan yang sama dengan daftar.
+     *
+     * @return array{nilai_total: int, nilai_terisi: int, mahasiswa_belum_lengkap: int, status_kelengkapan: string}|null
+     */
+    public function getKelengkapanKelasAktifProperty(): ?array
+    {
+        $kelas = $this->kelasAktif();
+
+        return $kelas === null ? null : $this->kelengkapan($kelas);
     }
 
     /**
@@ -166,7 +212,10 @@ class ValidasiNilai extends Page
             return null;
         }
 
-        return app(ValidasiNilaiPolicy::class)->alasanTidakBisaValidasi($user, $kelas);
+        return $this->ingat(
+            "alasan:{$kelas->id}",
+            fn (): ?string => app(ValidasiNilaiPolicy::class)->alasanTidakBisaValidasi($user, $kelas, $this->kelengkapan($kelas)),
+        );
     }
 
     /**
@@ -183,7 +232,14 @@ class ValidasiNilai extends Page
             return [];
         }
 
-        $matrix = app(PenilaianMatrixService::class);
+        return $this->ingat("daftar:{$this->semesterTerpilihId}", fn (): array => $this->hitungDaftarKelas($user));
+    }
+
+    /**
+     * @return list<array{id: string, mk_nama: string, mk_kode: string, kode_kelas: string, dosen: string, nilai_terisi: int, nilai_total: int, status_kelengkapan: string, status_validasi: string, divalidasi_at: ?string}>
+     */
+    private function hitungDaftarKelas(User $user): array
+    {
         $service = app(ValidasiNilaiService::class);
 
         $kelasList = ValidatorNilaiScope::kelasMkQuery($user)
@@ -201,7 +257,7 @@ class ValidasiNilai extends Page
         $daftar = [];
 
         foreach ($kelasList as $kelas) {
-            $kelengkapan = $matrix->kelengkapanKelas($kelas);
+            $kelengkapan = $this->kelengkapan($kelas);
             $divalidasiAt = $kelas->validasiNilai?->divalidasi_at;
 
             $daftar[] = [
@@ -256,6 +312,7 @@ class ValidasiNilai extends Page
                 }
 
                 app(ValidasiNilaiService::class)->validasi($kelas, $user, $this->sidikLaporan);
+                $this->memo = [];
                 $this->muatStatusValidasi($kelas, true);
 
                 Notification::make()->title('Nilai kelas divalidasi')->success()->send();
@@ -288,6 +345,7 @@ class ValidasiNilai extends Page
                 Gate::authorize('batalkanValidasiNilai', $kelas);
 
                 app(ValidasiNilaiService::class)->batalkan($kelas);
+                $this->memo = [];
                 $this->muatLaporan($kelas);
 
                 Notification::make()->title('Validasi dibatalkan')->success()->send();
