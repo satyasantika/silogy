@@ -54,25 +54,31 @@ class RincianNilaiService
         return $hasil;
     }
 
-    /** Hanya asesmen dengan >= 2 pivot Sub-CPMK yang bisa dirinci. */
-    public function bisaDirinci(KomponenPenilaian $komponen): bool
+    /** Hanya asesmen dengan >= 2 pivot Sub-CPMK pada semester kelas yang bisa dirinci. */
+    public function bisaDirinci(KelasMk $kelasMk, KomponenPenilaian $komponen): bool
     {
-        return $komponen->subcpmkKomponens()->count() >= 2;
+        return count($this->pivotKelas($kelasMk, $komponen->id)) >= 2;
     }
 
     public function nyalakan(KelasMk $kelasMk, KomponenPenilaian $komponen, User $oleh): void
     {
-        if (! $this->bisaDirinci($komponen)) {
+        if (! $this->bisaDirinci($kelasMk, $komponen)) {
             throw ValidationException::withMessages([
                 'rincian' => 'Hanya asesmen yang dibebankan ke dua Sub-CPMK atau lebih yang bisa dirinci.',
             ]);
         }
 
         DB::transaction(function () use ($kelasMk, $komponen, $oleh): void {
-            RincianNilaiKelas::query()->firstOrCreate(
+            $penanda = RincianNilaiKelas::query()->firstOrCreate(
                 ['kelas_mk_id' => $kelasMk->id, 'komponen_penilaian_id' => $komponen->id],
                 ['dinyalakan_oleh' => $oleh->id],
             );
+
+            // Idempoten: penanda sudah ada berarti nilai sudah dirinci; menyebar
+            // ulang akan menimpa angka per Sub-CPMK yang sudah diisi.
+            if (! $penanda->wasRecentlyCreated) {
+                return;
+            }
 
             $pivots = $this->pivotKelas($kelasMk, $komponen->id);
 
