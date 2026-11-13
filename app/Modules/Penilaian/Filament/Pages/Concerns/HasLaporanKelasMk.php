@@ -20,6 +20,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
+use Livewire\Attributes\Locked;
 
 /**
  * Data & komputasi tab "Laporan" (Portofolio, Evaluasi CPL, Hasil Analisis
@@ -105,14 +106,17 @@ trait HasLaporanKelasMk
     public bool $penugasanBelumSelesai = false;
 
     /** Sidik isi laporan, dihitung pada request yang sama dengan pemuatan data. */
+    #[Locked]
     public ?string $sidikLaporan = null;
 
     /** Nilai StatusValidasiNilai untuk kelas terpilih. */
+    #[Locked]
     public string $statusValidasi = 'belum';
 
     /**
      * @var array{nama: string, jabatan: string|null, waktu: string}|null
      */
+    #[Locked]
     public ?array $infoValidasi = null;
 
     /**
@@ -270,6 +274,21 @@ trait HasLaporanKelasMk
             'jabatan' => $jabatan,
             'waktu' => Carbon::parse($baris->divalidasi_at)->locale('id')->translatedFormat('d F Y H:i'),
         ];
+    }
+
+    /**
+     * Apakah isi laporan yang dirender SEKARANG sama dengan yang divalidasi:
+     * status tersimpan Tervalidasi dan sidik state komponen saat ini (mis.
+     * nilai yang diketik/ditempel tapi belum disimpan) sama dengan sidik saat
+     * dimuat. Murni baca — tidak menulis apa pun.
+     */
+    public function laporanSesuaiValidasi(): bool
+    {
+        if ($this->statusValidasi !== StatusValidasiNilai::Tervalidasi->value || $this->sidikLaporan === null) {
+            return false;
+        }
+
+        return hash_equals($this->sidikLaporan, app(SidikLaporanKelas::class)->dariData($this->dataUntukSidik()));
     }
 
     /**

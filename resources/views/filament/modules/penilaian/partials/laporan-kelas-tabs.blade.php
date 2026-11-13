@@ -7,7 +7,11 @@
             'mahasiswa' => 'Hasil Analisis per Mahasiswa',
             'laporan-lengkap' => 'Laporan',
         ];
-        $tervalidasi = $this->statusValidasi === 'tervalidasi';
+        // Cetak hanya bila isi yang dirender sekarang sama dengan yang divalidasi
+        // (nilai yang diketik/ditempel tapi belum disimpan ikut dibandingkan).
+        $tervalidasi = $this->laporanSesuaiValidasi();
+        $adaPerubahanBelumDisimpan = $this->statusValidasi === 'tervalidasi' && ! $tervalidasi;
+        $statusValidasiTampil = $adaPerubahanBelumDisimpan ? 'perlu_ulang' : $this->statusValidasi;
     @endphp
 
     @unless ($tervalidasi)
@@ -150,10 +154,14 @@
             description="Portofolio penilaian dan evaluasi untuk kelas terpilih."
         >
             <div class="silogy-laporan-cetak-aksi" style="display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-                @include('filament.modules.penilaian.partials.status-validasi-nilai')
+                @include('filament.modules.penilaian.partials.status-validasi-nilai', ['statusValidasiTampil' => $statusValidasiTampil])
                 @if (! $tervalidasi)
                     <span data-silogy="alasan-cetak-terkunci" style="font-size:12px;opacity:.75;">
-                        {{ $this->statusValidasi === 'perlu_ulang' ? 'Data berubah sejak divalidasi — perlu validasi ulang.' : 'Belum divalidasi Validator Nilai.' }}
+                        {{ match (true) {
+                            $adaPerubahanBelumDisimpan => 'Ada perubahan nilai yang belum disimpan — simpan lalu minta validasi ulang.',
+                            $this->statusValidasi === 'perlu_ulang' => 'Data berubah sejak divalidasi — perlu validasi ulang.',
+                            default => 'Belum divalidasi Validator Nilai.',
+                        } }}
                     </span>
                     <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" disabled>
                         Cetak

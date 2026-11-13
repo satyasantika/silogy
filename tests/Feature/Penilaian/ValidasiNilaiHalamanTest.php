@@ -184,3 +184,19 @@ it('mengubah kelasMkId langsung ke kelas di luar cakupan tidak memuat laporan', 
         ->assertSet('kelasMkId', null)
         ->assertSet('rows', []);
 });
+
+it('kelas tervalidasi tetap siap cetak setelah render ulang di halaman validator', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+
+    $test = Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->callAction('validasi');
+
+    expect($test->instance()->laporanSesuaiValidasi())->toBeTrue();
+
+    $test->call('$refresh')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertSeeHtml('data-silogy="blok-validasi-nilai"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+    expect($test->instance()->laporanSesuaiValidasi())->toBeTrue();
+});

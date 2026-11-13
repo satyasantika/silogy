@@ -11,6 +11,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 require_once __DIR__.'/../../Support/KelasValidasiFixture.php';
@@ -85,3 +86,78 @@ it('kelas gugur: alasan "Data berubah sejak divalidasi" dan tanda air', function
         ->assertDontSeeHtml('onclick="silogyCetakLaporanLengkap()"')
         ->assertDontSeeHtml('data-silogy="blok-validasi-nilai"');
 });
+
+it('state tervalidasi yang tidak disentuh tetap sesuai validasi setelah render ulang dan pembaruan tanpa efek', function () {
+    validasiGerbang($this->kelas);
+
+    $test = laporanGerbang($this->kelas);
+    expect($test->instance()->laporanSesuaiValidasi())->toBeTrue();
+
+    // Render ulang dari state terhidrasi (round-trip klien).
+    $test->call('$refresh');
+    expect($test->instance()->laporanSesuaiValidasi())->toBeTrue();
+
+    // Pembaruan properti yang tidak memengaruhi isi laporan.
+    $test->set('showKalkulasiBadge', true)
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertSeeHtml('data-silogy="blok-validasi-nilai"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+    expect($test->instance()->laporanSesuaiValidasi())->toBeTrue();
+});
+
+it('nilai diubah tanpa disimpan pada kelas tervalidasi mengunci cetak, mengembalikannya membuka lagi', function () {
+    $kelas = $this->kelas;
+    validasiGerbang($kelas);
+
+    $test = laporanGerbang($kelas);
+    $nilai = $test->get('nilai');
+    $kmmId = array_key_first($nilai);
+    $komponenId = array_key_first($nilai[$kmmId]);
+    $asli = $nilai[$kmmId][$komponenId];
+
+    $test->set("nilai.{$kmmId}.{$komponenId}", '15')
+        ->assertSeeHtml('data-silogy="tanda-air-belum-divalidasi"')
+        ->assertDontSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="blok-validasi-nilai"')
+        ->assertSee('Ada perubahan nilai yang belum disimpan — simpan lalu minta validasi ulang.')
+        ->assertSee('Perlu validasi ulang')
+        ->assertDontSee('Tervalidasi')
+        ->assertSet('statusValidasi', 'tervalidasi');
+
+    expect($kelas->validasiNilai()->first()->gugur_at)->toBeNull();
+
+    $test->set("nilai.{$kmmId}.{$komponenId}", $asli)
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertSeeHtml('data-silogy="blok-validasi-nilai"')
+        ->assertSee('Tervalidasi');
+});
+
+it('tempel dari Excel tanpa disimpan pada kelas tervalidasi mengunci cetak', function () {
+    validasiGerbang($this->kelas);
+
+    $test = laporanGerbang($this->kelas);
+    $rows = $test->get('rows');
+    $columns = $test->get('columns');
+    $baris = collect($rows)->map(fn (array $row): string => implode("\t", [
+        $row['nim'], $row['nama'], ...array_fill(0, count($columns), '12'),
+    ]))->implode("\n");
+    $nilaiAwal = $test->get('nilai');
+
+    $test->call('applyTempel', $baris)
+        ->assertSeeHtml('data-silogy="tanda-air-belum-divalidasi"')
+        ->assertDontSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="blok-validasi-nilai"')
+        ->assertSee('Ada perubahan nilai yang belum disimpan — simpan lalu minta validasi ulang.');
+
+    expect($test->get('nilai'))->not->toBe($nilaiAwal)
+        ->and($this->kelas->validasiNilai()->first()->gugur_at)->toBeNull();
+});
+
+it('sidik dan status validasi terkunci dari klien', function (string $properti, mixed $nilai) {
+    laporanGerbang($this->kelas)->set($properti, $nilai);
+})->with([
+    'sidikLaporan' => ['sidikLaporan', 'palsu'],
+    'statusValidasi' => ['statusValidasi', 'tervalidasi'],
+    'infoValidasi' => ['infoValidasi', ['nama' => 'X', 'jabatan' => null, 'waktu' => 'kemarin']],
+])->throws(CannotUpdateLockedPropertyException::class);

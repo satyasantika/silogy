@@ -1,5 +1,5 @@
 @php
-    $statusValidasiEnum = \App\Modules\Penilaian\Support\StatusValidasiNilai::from($this->statusValidasi);
+    $statusValidasiEnum = \App\Modules\Penilaian\Support\StatusValidasiNilai::from($statusValidasiTampil ?? $this->statusValidasi);
     $nadaValidasi = match ($statusValidasiEnum) {
         \App\Modules\Penilaian\Support\StatusValidasiNilai::Tervalidasi => 'success',
         \App\Modules\Penilaian\Support\StatusValidasiNilai::PerluUlang => 'warning',

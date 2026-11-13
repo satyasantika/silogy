@@ -25,6 +25,7 @@ use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -350,4 +351,26 @@ it('menampilkan gerbang cetak yang sama dengan Input Nilai bagi kelas belum diva
         ->assertSeeHtml('data-silogy="tanda-air-belum-divalidasi"')
         ->assertDontSeeHtml('onclick="silogyCetakLaporanLengkap()"')
         ->assertDontSeeHtml('data-silogy="blok-validasi-nilai"');
+});
+
+it('menampilkan kelas tervalidasi sebagai siap cetak dan tetap begitu setelah render ulang', function () {
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    $kelas = buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A')['kelas'];
+
+    $sidik = Livewire::test(LaporanKoordinator::class)->get('sidikLaporan');
+    expect($sidik)->not->toBeNull();
+    app(ValidasiNilaiService::class)->validasi($kelas, User::factory()->create(['full_name' => 'Validator Koordinator']), $sidik);
+
+    $test = Livewire::test(LaporanKoordinator::class)
+        ->assertSet('statusValidasi', 'tervalidasi')
+        ->assertSee('Tervalidasi')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertSeeHtml('data-silogy="blok-validasi-nilai"')
+        ->assertSee('Divalidasi oleh Validator Koordinator')
+        ->assertDontSeeHtml('data-silogy="alasan-cetak-terkunci"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+
+    $test->call('$refresh')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
 });
