@@ -110,6 +110,36 @@ if (! function_exists('siapkanKelasValidasi')) {
     }
 }
 
+if (! function_exists('siapkanKelasDuaSubcpmk')) {
+    /**
+     * Kelas validasi yang asesmennya dibebankan ke dua Sub-CPMK: pivot pertama
+     * (kode SUB-A, bobot 100) sudah bernilai 80 dan 60 bagi kedua peserta;
+     * pivot kedua (kode SUB-B, bobot 300) belum bernilai.
+     *
+     * @return array{kelas: KelasMk, kmm: list<KelasMkMahasiswa>, komponen: KomponenPenilaian, pivot: SubcpmkKomponenPenilaian, pivot2: SubcpmkKomponenPenilaian}
+     */
+    function siapkanKelasDuaSubcpmk(User $dosen, ?AcademicUnit $prodi = null): array
+    {
+        $data = siapkanKelasValidasi($dosen, $prodi);
+        $pivot = $data['pivot'];
+
+        $pivot->subcpmk()->update(['kode' => 'SUB-A']);
+        $subcpmk2 = Subcpmk::factory()
+            ->for($pivot->subcpmk->mkCpmk)
+            ->untukSemester((string) $pivot->semester_id)
+            ->create(['kode' => 'SUB-B']);
+
+        $data['pivot2'] = SubcpmkKomponenPenilaian::query()->create([
+            'semester_id' => $pivot->semester_id,
+            'subcpmk_id' => $subcpmk2->id,
+            'komponen_penilaian_id' => $data['komponen']->id,
+            'bobot' => 300,
+        ]);
+
+        return $data;
+    }
+}
+
 if (! function_exists('jadikanValidator')) {
     /** Menugaskan user pada unit dengan penanda validator nilai (peran ikut otomatis). */
     function jadikanValidator(User $user, AcademicUnit $unit): void
