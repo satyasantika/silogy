@@ -63,7 +63,7 @@ Daftar hanya punya tombol **Lihat**. Tombol Validasi tidak ada di daftar, supaya
 - nilai kelas sudah **lengkap** (tidak ada sel kosong), dan
 - penugasan asesmen sudah selesai (bobot komponen berjumlah 100% dan seluruhnya terpetakan ke Sub-CPMK).
 
-Bila syarat belum terpenuhi, alasannya tampil di dekat tombol.
+Bila syarat belum terpenuhi, tombol **Validasi** tidak muncul; alasannya tampil sebagai catatan pada halaman laporan kelas.
 
 Anda **tidak dapat** memvalidasi kelas yang Anda ampu, maupun kelas dari mata kuliah yang Anda koordinatori, karena koordinator yang menentukan bobot dan pemetaan yang menjadi dasar laporan. Super Admin pun tidak otomatis boleh memvalidasi.
 
@@ -94,11 +94,12 @@ Validasi gugur otomatis, menjadi **Perlu validasi ulang**, bila isi laporan beru
 - pemetaan komponen ke Sub-CPMK/CPMK/CPL berubah;
 - peserta kelas bertambah atau berkurang;
 - isi **Analisis & RTL** (analisis, rencana tindak lanjut, catatan umum) berubah;
-- penugasan asesmen tidak lagi selesai.
+- penugasan asesmen tidak lagi selesai;
+- identitas kelas berubah: dosen pengampu, nama/kode MK, SKS, atau semester.
 
-Menekan **Simpan** di Input Nilai tanpa mengubah satu nilai pun **tidak** menggugurkan validasi. Nilai tidak dikunci setelah validasi; dosen tetap bisa mengubahnya, hanya saja kelas itu lalu perlu divalidasi ulang.
+Menekan **Simpan** di Input Nilai tanpa mengubah satu nilai pun **tidak** menggugurkan validasi. Nilai tidak dikunci setelah validasi; dosen tetap bisa mengubahnya, hanya saja kelas itu lalu perlu divalidasi ulang. Selama ada nilai yang sudah diketik atau ditempel di Input Nilai tetapi belum disimpan, tombol **Cetak** terkunci dan cetakan bertanda air **BELUM DIVALIDASI**; simpan perubahannya, lalu minta validasi ulang.
 
-Catatan tentang daftar: perubahan nilai langsung tampak di daftar. Perubahan lain (bobot, pemetaan, peserta, Analisis & RTL) baru terdeteksi saat laporan kelas itu dibuka, sehingga daftar bisa masih menampilkan **Tervalidasi** sampai Anda membukanya. Cetakan tetap aman, sebab mencetak selalu lewat laporan yang sudah diperiksa terhadap data terkini.
+Catatan tentang daftar: perubahan nilai langsung tampak di daftar. Perubahan lain (bobot, pemetaan, peserta, Analisis & RTL, identitas kelas) baru terdeteksi saat laporan kelas itu dibuka, sehingga daftar bisa masih menampilkan **Tervalidasi** sampai Anda membukanya. Cetakan tetap aman, sebab mencetak selalu lewat laporan yang sudah diperiksa terhadap data terkini.
 
 ## Berlaku untuk semua kelas
 
