@@ -301,6 +301,32 @@ export const ADEGAN = [
     ],
   },
 
+  // ══ Validator Nilai ══════════════════════════════════════════════
+  { nama: 'sidebar-validator-nilai', akun: 'sim-validator', url: '/dashboard', bidik: SIDEBAR, judul: 'Menu Validator Nilai' },
+  {
+    nama: 'validator-daftar',
+    akun: 'sim-validator',
+    url: '/penilaian/validasi-nilai',
+    judul: 'Daftar kelas dalam cakupan validator',
+    sorot: [
+      { pilih: '[data-silogy="langkah-semester"]', label: 1, teks: 'Pilih <b>Semester</b>; semester lampau juga tersedia.' },
+      { pilih: '[data-silogy="validasi-nilai-daftar"] tbody tr:first-child', label: 2, teks: 'Tiap baris satu kelas, dengan jumlah nilai terisi dan <b>status validasi</b>.' },
+      { pilih: '[data-silogy="validasi-nilai-daftar"] tbody tr:first-child button', label: 3, teks: 'Tekan <b>Lihat</b> untuk membuka laporan kelas.' },
+    ],
+  },
+  {
+    nama: 'validator-laporan',
+    akun: 'sim-validator',
+    url: '/penilaian/validasi-nilai',
+    siapkan: async (page) => {
+      await page.locator('[data-silogy="validasi-nilai-daftar"] tbody tr:first-child button').first().click();
+      await page.locator('[data-silogy="validasi-nilai-laporan"]').waitFor({ timeout: 15_000 });
+      await page.waitForLoadState('networkidle');
+    },
+    judul: 'Laporan kelas pada tampilan validator',
+    topeng: TOPENG_WAKTU,
+  },
+
   // ══ Pimpinan ═════════════════════════════════════════════════════
   { nama: 'sidebar-pimpinan', akun: 'sim-kaprodi', url: '/dashboard', bidik: SIDEBAR, judul: 'Menu Pimpinan' },
   { nama: 'pimpinan-dasbor', akun: 'sim-kaprodi', url: '/dashboard', judul: 'Dasbor Pimpinan', topeng: TOPENG_WAKTU },

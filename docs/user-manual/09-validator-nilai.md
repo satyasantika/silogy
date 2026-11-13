@@ -44,12 +44,16 @@ Cakupan Anda adalah unit yang berpenanda **Validator nilai** **beserta semua uni
 
 Menu ini hanya muncul untuk peran Validator Nilai.
 
+![Menu Validator Nilai](aset/sidebar-validator-nilai.png)
+
 ## Tugas yang sering dilakukan
 
 ### 1. Memilih semester dan kelas
 1. Buka **Penilaian → Validasi Nilai**.
 2. Pilih **Semester**. Semester lampau juga tersedia.
 3. Daftar menampilkan mata kuliah, kelas, dosen, jumlah nilai terisi (misalnya `31/40`), dan status validasi.
+
+![Daftar kelas dalam cakupan validator](aset/validator-daftar.png)
 
 Daftar hanya punya tombol **Lihat**. Tombol Validasi tidak ada di daftar, supaya kelas tidak bisa divalidasi tanpa membuka laporannya.
 
@@ -58,6 +62,8 @@ Daftar hanya punya tombol **Lihat**. Tombol Validasi tidak ada di daftar, supaya
 2. Telaah laporan kelas pada tab-tabnya: nilai mahasiswa, ketercapaian CPL, distribusi nilai, rencana evaluasi, dan Analisis & RTL.
 3. Bila sudah yakin, tekan **Validasi** lalu konfirmasi.
 4. Status kelas berubah menjadi **Tervalidasi**.
+
+![Laporan kelas pada tampilan validator](aset/validator-laporan.png)
 
 **Validasi** hanya bisa ditekan bila:
 - nilai kelas sudah **lengkap** (tidak ada sel kosong), dan

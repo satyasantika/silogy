@@ -68,7 +68,7 @@ async function hitungSorot(page, sorot, kotak) {
 }
 
 async function jalankanAdegan(browser, adegan, manifes) {
-  const { ctx, page } = adegan.akun
+  const { ctx, page, awalan = '' } = adegan.akun
     ? await konteksUntuk(browser, adegan.akun, adegan.peran)
     : await konteksTamu(browser, adegan.tema ?? 'light');
 
@@ -77,7 +77,7 @@ async function jalankanAdegan(browser, adegan, manifes) {
   page.setDefaultNavigationTimeout(30_000);
 
   try {
-    await page.goto(BASIS + (adegan.url ?? '/'), { waitUntil: 'networkidle' });
+    await page.goto(BASIS + awalan + (adegan.url ?? '/'), { waitUntil: 'networkidle' });
 
     if (adegan.siapkan) await adegan.siapkan(page);
 

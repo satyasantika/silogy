@@ -692,7 +692,47 @@
       "judul": "Menolak usulan wajib disertai alasan",
       "akun": "sim-timkur",
       "sorot": []
+    },
+    "sidebar-validator-nilai.png": {
+      "lebar": 320,
+      "tinggi": 836,
+      "judul": "Menu Validator Nilai",
+      "akun": "sim-validator",
+      "sorot": []
+    },
+    "validator-daftar.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Daftar kelas dalam cakupan validator",
+      "akun": "sim-validator",
+      "sorot": [
+        {
+          "label": 1,
+          "x": 39.1,
+          "y": 34.9,
+          "teks": "Pilih <b>Semester</b>; semester lampau juga tersedia."
+        },
+        {
+          "label": 2,
+          "x": 61.1,
+          "y": 47.2,
+          "teks": "Tiap baris satu kelas, dengan jumlah nilai terisi dan <b>status validasi</b>."
+        },
+        {
+          "label": 3,
+          "x": 95.3,
+          "y": 47.2,
+          "teks": "Tekan <b>Lihat</b> untuk membuka laporan kelas."
+        }
+      ]
+    },
+    "validator-laporan.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Laporan kelas pada tampilan validator",
+      "akun": "sim-validator",
+      "sorot": []
     }
   },
-  "dibuat": "2026-09-23T22:52:26.589Z"
+  "dibuat": "2026-11-13T22:30:18.511Z"
 }

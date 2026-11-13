@@ -33,6 +33,39 @@ async function masuk(page, akun) {
 }
 
 /**
+ * Akun simulasi bersandi acak dan tidak bisa masuk lewat formulir. Jalannya
+ * sama dengan pengunjung: tombol "Coba sebagai …" di halaman panduan peran,
+ * yang membuka contoh terisi di bawah awalan /s/<token>. Kunci = akun di
+ * adegan.mjs, nilai = slug panduan (lihat AkunSimulasi::akunPanduan()).
+ */
+const PANDUAN_AKUN = {
+  'sim-adminprodi': 'admin-unit',
+  'sim-timkur': 'tim-kurikulum',
+  'sim-korma': 'koordinator-mk',
+  'sim-dosen': 'dosen-pengampu',
+  'sim-kaprodi': 'pimpinan',
+  'sim-auditor': 'auditor-mutu',
+  'sim-validator': 'validator-nilai',
+};
+
+/** Masuk lewat "Coba sebagai"; mengembalikan awalan tab, mis. `/s/AbC123`. */
+async function masukSimulasi(page, akun) {
+  const slug = PANDUAN_AKUN[akun];
+  await page.goto(`${BASIS}/panduan/${slug}`, { waitUntil: 'networkidle' });
+
+  const form = page.locator(`form[action$="/panduan/${slug}/coba"]`).first();
+  if (!(await form.count())) throw new Error(`tombol coba peran tidak ada di panduan ${slug}`);
+
+  // Formulirnya membuka tab baru; di sini cukup tab yang sama.
+  await form.evaluate((f) => f.removeAttribute('target'));
+  await form.locator('button[type="submit"], button:not([type])').first().click();
+  await page.waitForURL(/\/s\/[^/]+\/dashboard/, { timeout: 60_000 });
+  await page.waitForLoadState('networkidle');
+
+  return new URL(page.url()).pathname.replace(/\/dashboard.*$/, '');
+}
+
+/**
  * Akun multi-peran mendarat di "Pilih peran & unit". Pemilihan dilakukan di
  * sini supaya tiap adegan mulai dari keadaan yang sudah pasti.
  */
@@ -87,6 +120,21 @@ async function penuhiPrasyarat(page, akun) {
 }
 
 export async function konteksUntuk(browser, akun, peran) {
+  if (PANDUAN_AKUN[akun]) {
+    const ctx = await browser.newContext({
+      viewport: VIEWPORT,
+      deviceScaleFactor: SKALA,
+      colorScheme: 'light',
+      locale: 'id-ID',
+      timezoneId: 'Asia/Jakarta',
+      reducedMotion: 'reduce',
+    });
+    const page = await ctx.newPage();
+    const awalan = await masukSimulasi(page, akun);
+
+    return { ctx, page, awalan };
+  }
+
   fs.mkdirSync(DIR_SESI, { recursive: true });
   const berkasSesi = path.join(DIR_SESI, `${akun}.json`);
 
