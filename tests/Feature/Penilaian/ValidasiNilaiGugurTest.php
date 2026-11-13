@@ -64,6 +64,14 @@ it('mengubah nilai langsung menggugurkan lewat observer', function () {
     expect($this->kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
 });
 
+it('menghapus nilai lewat model menggugurkan lewat observer', function () {
+    validasiSekarang($this->kelas, $this->dosen);
+
+    NilaiMahasiswa::query()->first()->delete();
+
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
+});
+
 it('mengubah bobot pivot lewat query builder gugur saat laporan dimuat', function () {
     validasiSekarang($this->kelas, $this->dosen);
 

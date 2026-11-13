@@ -23,6 +23,7 @@ use App\Modules\Penilaian\Filament\Pages\LaporanKoordinator;
 use App\Modules\Penilaian\Models\CatatanRtlKelas;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\ValidasiNilaiService;
@@ -373,4 +374,21 @@ it('menampilkan kelas tervalidasi sebagai siap cetak dan tetap begitu setelah re
     $test->call('$refresh')
         ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
         ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+});
+
+it('penugasan yang rusak menggugurkan validasi saat koordinator membuka laporan', function () {
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    $kelas = buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A')['kelas'];
+    $sidik = Livewire::test(LaporanKoordinator::class)->get('sidikLaporan');
+    app(ValidasiNilaiService::class)->validasi($kelas, User::factory()->create(), $sidik);
+
+    KomponenPenilaianSemester::query()->update(['bobot' => 90]);
+
+    Livewire::test(LaporanKoordinator::class)
+        ->call('pilihKelas', $kelas->id)
+        ->assertSet('penugasanBelumSelesai', true)
+        ->assertSet('sidikLaporan', null)
+        ->assertSet('statusValidasi', 'perlu_ulang');
+
+    expect($kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
 });

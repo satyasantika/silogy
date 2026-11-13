@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
@@ -8,6 +9,7 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 uses(RefreshDatabase::class);
 
@@ -42,4 +44,18 @@ it('akun demo validator menempel pada prodi nyata dengan penanda aktif', functio
     $penugasan = AcademicUnitUser::where('user_id', $user->id)->firstOrFail();
     expect($penugasan->status_validator_nilai)->toBeTrue()
         ->and($penugasan->jabatan)->toBe('Validator Nilai');
+});
+
+it('migrasi peran saja membuat peran Validator Nilai dengan tepat tiga izinnya', function () {
+    Role::findByName('Validator Nilai', 'web')->delete();
+    Permission::query()->where('name', 'validasi_nilai')->delete();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    expect(Role::where('name', 'Validator Nilai')->exists())->toBeFalse()
+        ->and(Permission::where('name', 'validasi_nilai')->exists())->toBeFalse();
+
+    (require database_path('migrations/2026_11_13_000002_tambah_peran_validator_nilai.php'))->up();
+
+    $peran = Role::findByName('Validator Nilai', 'web');
+    expect($peran->permissions()->pluck('name')->all())
+        ->toEqualCanonicalizing(['validasi_nilai', 'lihat_laporan', 'lihat_dashboard']);
 });

@@ -43,9 +43,16 @@ it('validator dengan peran aktif dosen ditolak', function () {
     $this->dosen->assignRole('Validator Nilai');
     jadikanValidator($this->dosen, $this->prodi);
     $this->actingAs($this->dosen);
-    ActiveRole::set('Dosen Pengampu');
 
-    expect(ValidasiNilai::canAccess())->toBeFalse();
+    // Tanpa pilihan di switcher, peran aktif bawaan = peran pertama (Dosen
+    // Pengampu) sementara relasi roles() belum disaring: hanya pemeriksaan
+    // DelegasiMenu yang menolak di sini.
+    expect($this->dosen->hasRole('Validator Nilai'))->toBeTrue()
+        ->and(ValidasiNilai::canAccess())->toBeFalse();
+
+    ActiveRole::set('Validator Nilai');
+
+    expect(ValidasiNilai::canAccess())->toBeTrue();
 });
 
 it('daftar hanya memuat kelas dalam cakupan pada semester terpilih', function () {
