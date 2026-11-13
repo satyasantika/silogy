@@ -1,0 +1,186 @@
+<?php
+
+use App\Models\User;
+use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Kalender\Models\Semester;
+use App\Modules\Penilaian\Filament\Pages\ValidasiNilai;
+use App\Modules\Penilaian\Models\ValidasiNilaiKelas;
+use Database\Seeders\AcademicUnitSeeder;
+use Database\Seeders\EvaluasiSeeder;
+use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SemesterSeeder;
+use Filament\Facades\Filament;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
+
+require_once __DIR__.'/../../Support/KelasValidasiFixture.php';
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    $this->seed([AcademicUnitSeeder::class, RolePermissionSeeder::class, SemesterSeeder::class, EvaluasiSeeder::class]);
+
+    $this->prodi = AcademicUnit::where('type', 'study_program')->orderBy('id')->firstOrFail();
+    $this->validator = User::factory()->create();
+    jadikanValidator($this->validator, $this->prodi);
+    $this->dosen = User::factory()->create();
+    $this->actingAs($this->validator);
+});
+
+it('bukan validator ditolak', function () {
+    $this->actingAs(User::where('username', 'dosen')->firstOrFail());
+
+    $this->get(ValidasiNilai::getUrl())->assertForbidden();
+});
+
+it('validator dengan peran aktif dosen ditolak', function () {
+    $this->dosen->assignRole('Dosen Pengampu');
+    $this->dosen->assignRole('Validator Nilai');
+    jadikanValidator($this->dosen, $this->prodi);
+    $this->actingAs($this->dosen);
+    ActiveRole::set('Dosen Pengampu');
+
+    expect(ValidasiNilai::canAccess())->toBeFalse();
+});
+
+it('daftar hanya memuat kelas dalam cakupan pada semester terpilih', function () {
+    [$prodiA, $prodiB] = siapkanDuaProdi();
+    $validatorA = User::factory()->create();
+    jadikanValidator($validatorA, $prodiA);
+    $kelasA = siapkanKelasValidasi($this->dosen, $prodiA)['kelas'];
+    $kelasB = siapkanKelasValidasi(User::factory()->create(), $prodiB)['kelas'];
+    $namaA = $kelasA->mkUnit->mk->nama;
+    $namaB = $kelasB->mkUnit->mk->nama;
+    $this->actingAs($validatorA);
+
+    Livewire::test(ValidasiNilai::class)
+        ->assertSee($namaA)
+        ->assertDontSee($namaB)
+        ->assertSee('Belum divalidasi');
+});
+
+it('menampilkan kalimat kosong bila tidak ada kelas dalam cakupan', function () {
+    Livewire::test(ValidasiNilai::class)
+        ->assertSuccessful()
+        ->assertSee('Belum ada kelas dalam cakupan Anda pada semester terpilih.');
+});
+
+it('semester lampau bisa dipilih dan kelasnya bisa divalidasi', function () {
+    $f = siapkanKelasValidasi($this->dosen, $this->prodi);
+    $lampau = Semester::findOrFail($f['kelas']->semester_id);
+    Semester::query()->create([
+        'kode' => '99991',
+        'nama' => 'Ganjil 2099/2100',
+        'tahun_mulai' => 2099,
+        'tahun_selesai' => 2100,
+        'jenis' => 'ganjil',
+        'status_aktif' => true,
+    ]);
+    $namaMk = $f['kelas']->mkUnit->mk->nama;
+
+    $test = Livewire::test(ValidasiNilai::class)
+        ->assertDontSee($namaMk)
+        ->set('semesterTerpilihId', $lampau->id)
+        ->assertSee($namaMk)
+        ->call('bukaKelas', $f['kelas']->id)
+        ->assertSet('kelasMkId', $f['kelas']->id)
+        ->callAction('validasi')
+        ->assertNotified('Nilai kelas divalidasi');
+
+    expect(ValidasiNilaiKelas::where('kelas_mk_id', $f['kelas']->id)->exists())->toBeTrue();
+});
+
+it('validasi dari tampilan laporan menyimpan baris dengan sidik laporan', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+
+    $test = Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->callAction('validasi')
+        ->assertNotified('Nilai kelas divalidasi');
+
+    $baris = ValidasiNilaiKelas::where('kelas_mk_id', $kelas->id)->firstOrFail();
+    expect($baris->validator_id)->toBe($this->validator->id)
+        ->and($baris->sidik)->toBe($test->get('sidikLaporan'))
+        ->and($baris->sidik)->not->toBeNull()
+        ->and($baris->gugur_at)->toBeNull()
+        ->and($test->get('statusValidasi'))->toBe('tervalidasi');
+});
+
+it('menolak validasi bila data berubah sejak laporan dibuka', function () {
+    $f = siapkanKelasValidasi($this->dosen, $this->prodi);
+
+    $test = Livewire::test(ValidasiNilai::class)->call('bukaKelas', $f['kelas']->id);
+
+    DB::table('nilai_mahasiswas')
+        ->where('kelas_mk_mahasiswa_id', $f['kmm'][0]->id)
+        ->update(['nilai' => 10]);
+
+    $test->callAction('validasi')
+        ->assertNotified('Data berubah sejak laporan dibuka. Periksa kembali sebelum memvalidasi.');
+
+    expect(ValidasiNilaiKelas::count())->toBe(0);
+});
+
+it('aksi validasi tersembunyi untuk kelas sendiri dan menampilkan alasannya', function () {
+    $kelas = siapkanKelasValidasi($this->validator, $this->prodi)['kelas'];
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->assertActionHidden('validasi')
+        ->assertSee('Anda dosen pengampu kelas ini.');
+});
+
+it('bukaKelas di luar cakupan diabaikan', function () {
+    [, $prodiB] = siapkanDuaProdi();
+    $kelasB = siapkanKelasValidasi($this->dosen, $prodiB)['kelas'];
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelasB->id)
+        ->assertSet('kelasMkId', null);
+});
+
+it('batalkan validasi menghapus baris', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->callAction('validasi')
+        ->assertSet('statusValidasi', 'tervalidasi')
+        ->callAction('batalkanValidasi');
+
+    expect(ValidasiNilaiKelas::count())->toBe(0);
+});
+
+it('daftar memakai status tersimpan tanpa menghitung sidik', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    Livewire::test(ValidasiNilai::class)->call('bukaKelas', $kelas->id)->callAction('validasi');
+    // ubah tanpa event: baris tersimpan tetap, daftar tidak menggugurkan
+    DB::table('nilai_mahasiswas')->update(['nilai' => 10]);
+
+    Livewire::test(ValidasiNilai::class)->assertSee('Tervalidasi');
+
+    expect(ValidasiNilaiKelas::firstOrFail()->gugur_at)->toBeNull();
+});
+
+it('validator bisa mencetak kelas tervalidasi dari halaman ini', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->callAction('validasi')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertSee('Divalidasi oleh');
+});
+
+it('mengubah kelasMkId langsung ke kelas di luar cakupan tidak memuat laporan', function () {
+    [, $prodiB] = siapkanDuaProdi();
+    $kelasB = siapkanKelasValidasi($this->dosen, $prodiB)['kelas'];
+
+    Livewire::test(ValidasiNilai::class)
+        ->set('kelasMkId', $kelasB->id)
+        ->assertSet('kelasMkId', null)
+        ->assertSet('rows', []);
+});
