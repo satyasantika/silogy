@@ -9,13 +9,18 @@ use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use Database\Seeders\AcademicUnitSeeder;
+use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
+
+require_once __DIR__.'/../../Support/KelasValidasiFixture.php';
 
 uses(RefreshDatabase::class);
 
@@ -404,6 +409,18 @@ it('tidak mengizinkan hapus user yang datanya dipakai tabel lain', function () {
 
     expect($dosen->hasDependentRecords())->toBeTrue()
         ->and($superadmin->can('delete', $dosen))->toBeFalse();
+});
+
+it('tidak mengizinkan hapus user yang pernah memvalidasi nilai kelas', function () {
+    $this->seed([SemesterSeeder::class, EvaluasiSeeder::class]);
+    $superadmin = User::where('username', 'superadmin')->first();
+    $kelas = siapkanKelasValidasi(User::factory()->create())['kelas'];
+    $validator = User::factory()->create();
+
+    app(ValidasiNilaiService::class)->validasi($kelas, $validator, str_repeat('a', 64));
+
+    expect($validator->hasDependentRecords())->toBeTrue()
+        ->and($superadmin->can('delete', $validator))->toBeFalse();
 });
 
 it('mengizinkan hapus user yang datanya belum dipakai tabel lain', function () {
