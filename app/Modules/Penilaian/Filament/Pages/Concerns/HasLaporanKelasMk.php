@@ -62,6 +62,20 @@ trait HasLaporanKelasMk
     public array $nilai = [];
 
     /**
+     * Asesmen yang dirinci per Sub-CPMK: komponenId => pivot terurut.
+     *
+     * @var array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>
+     */
+    public array $rincian = [];
+
+    /**
+     * Skor tiap pivot asesmen dirinci: kmmId => pivotId => skor.
+     *
+     * @var array<string, array<string, string|null>>
+     */
+    public array $nilaiRinci = [];
+
+    /**
      * @var list<array{cpl_id: string, cpl_kode: string, cpl_deskripsi: string, kontribusi: list<array{nama: string, bobot: float}>, rata_rata: float|null, tercapai: bool}>
      */
     public array $ketercapaianCpl = [];
@@ -126,6 +140,8 @@ trait HasLaporanKelasMk
     protected function resetDataLaporan(): void
     {
         $this->nilai = [];
+        $this->rincian = [];
+        $this->nilaiRinci = [];
         $this->rows = [];
         $this->portofolioRows = [];
         $this->columns = [];
@@ -211,6 +227,8 @@ trait HasLaporanKelasMk
         $this->rows = $data['rows'];
         $this->portofolioRows = $data['portofolioRows'];
         $this->nilai = $data['nilai'];
+        $this->rincian = $data['rincian'];
+        $this->nilaiRinci = $data['nilaiRinci'];
         $this->targetCapaianLulusan = $data['targetCapaianLulusan'];
         $this->ketercapaianCpl = $data['ketercapaianCpl'];
         $this->distribusiNilaiHuruf = $data['distribusiNilaiHuruf'];
@@ -238,6 +256,8 @@ trait HasLaporanKelasMk
             'columns' => $this->columns,
             'kolomEvaluasi' => $this->kolomEvaluasi,
             'nilai' => $this->nilai,
+            'rincian' => $this->rincian,
+            'nilaiRinci' => $this->nilaiRinci,
             'ketercapaianCpl' => $this->ketercapaianCpl,
             'distribusiNilaiHuruf' => $this->distribusiNilaiHuruf,
             'detailCplCpmkSubcpmk' => $this->detailCplCpmkSubcpmk,

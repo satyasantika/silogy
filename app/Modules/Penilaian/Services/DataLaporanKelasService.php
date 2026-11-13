@@ -15,7 +15,9 @@ class DataLaporanKelasService
      * @return array{
      *     columns: list<array<string, mixed>>, kolomEvaluasi: list<array<string, mixed>>,
      *     rows: list<array<string, mixed>>, portofolioRows: list<array<string, mixed>>,
-     *     nilai: array<string, array<string, string|null>>, targetCapaianLulusan: int,
+     *     nilai: array<string, array<string, string|null>>,
+     *     rincian: array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>,
+     *     nilaiRinci: array<string, array<string, string|null>>, targetCapaianLulusan: int,
      *     ketercapaianCpl: list<array<string, mixed>>, distribusiNilaiHuruf: list<array<string, mixed>>,
      *     detailCplCpmkSubcpmk: list<array<string, mixed>>, rencanaEvaluasi: array<string, mixed>|null,
      *     blokRtl: array<string, mixed>, identitas: array{mk_nama: string|null, mk_kode: string|null, sks: int, dosen: string|null, semester_id: string}
@@ -30,7 +32,13 @@ class DataLaporanKelasService
         $rows = $matrix->barisUntukKelas($kelasMk);
 
         $evaluasiCpl = app(EvaluasiCplService::class);
-        $nilai = $matrix->nilaiUntukMatrix($rows, $matrix->pivotIdsByKomponen($komponens));
+        $rincian = app(RincianNilaiService::class)->rincianUntukKelas($kelasMk);
+        $nilaiRinci = $matrix->nilaiRinciUntukMatrix($rows, $rincian);
+        $nilai = $matrix->terapkanRincian(
+            $matrix->nilaiUntukMatrix($rows, $matrix->pivotIdsByKomponen($komponens)),
+            $nilaiRinci,
+            $rincian,
+        );
         $evaluasiCpl->jalankanKalkulasiSinkron($kelasMk);
         $ketercapaianCpl = $evaluasiCpl->ketercapaianCplPerKelas($kelasMk);
 
@@ -40,6 +48,8 @@ class DataLaporanKelasService
             'rows' => $rows,
             'portofolioRows' => $matrix->barisUntukKelas($kelasMk, 'mahasiswas.nim'),
             'nilai' => $nilai,
+            'rincian' => $rincian,
+            'nilaiRinci' => $nilaiRinci,
             'targetCapaianLulusan' => $evaluasiCpl->targetCapaianLulusan($kelasMk),
             'ketercapaianCpl' => $ketercapaianCpl,
             'distribusiNilaiHuruf' => $evaluasiCpl->distribusiNilaiHuruf($kelasMk),
@@ -79,7 +89,7 @@ class DataLaporanKelasService
      */
     public function untukSidik(array $data): array
     {
-        return [
+        $sidik = [
             'rows' => $data['rows'],
             'columns' => $data['columns'],
             'kolomEvaluasi' => $data['kolomEvaluasi'],
@@ -92,6 +102,15 @@ class DataLaporanKelasService
             'rtl' => ['baris' => $data['blokRtl']['baris'], 'umum' => $data['blokRtl']['umum']],
             'identitas' => $data['identitas'],
         ];
+
+        // Kunci baru hanya masuk bila ada asesmen dirinci, supaya sidik
+        // kelas tanpa rincian (dan validasinya) tidak berubah.
+        if (($data['rincian'] ?? []) !== []) {
+            $sidik['rincian'] = $data['rincian'];
+            $sidik['nilaiRinci'] = $data['nilaiRinci'] ?? [];
+        }
+
+        return $sidik;
     }
 
     /** @param  array<string, mixed>  $data keluaran muat() */

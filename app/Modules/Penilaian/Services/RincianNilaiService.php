@@ -44,7 +44,7 @@ class RincianNilaiService
                 continue;
             }
 
-            $pivots = $this->pivotTerurut($komponen);
+            $pivots = $this->matrix->pivotTerurut($komponen);
 
             if (count($pivots) >= 2) {
                 $hasil[$komponen->id] = $pivots;
@@ -197,24 +197,6 @@ class RincianNilaiService
     {
         $komponen = $this->matrix->komponenUntukKelas($kelasMk)->firstWhere('id', $komponenId);
 
-        return $komponen === null ? [] : $this->pivotTerurut($komponen);
-    }
-
-    /**
-     * @return list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>
-     */
-    private function pivotTerurut(KomponenPenilaian $komponen): array
-    {
-        $pivots = $komponen->subcpmkKomponens
-            ->map(fn ($pivot): array => [
-                'pivot_id' => (string) $pivot->id,
-                'subcpmk_kode' => (string) ($pivot->subcpmk->kode ?? ''),
-                'bobot' => (float) $pivot->bobot,
-            ])
-            ->all();
-
-        usort($pivots, fn (array $a, array $b): int => [$a['subcpmk_kode'], $a['pivot_id']] <=> [$b['subcpmk_kode'], $b['pivot_id']]);
-
-        return $pivots;
+        return $komponen === null ? [] : $this->matrix->pivotTerurut($komponen);
     }
 }

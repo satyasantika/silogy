@@ -91,9 +91,32 @@ class PenilaianMatrixService
     {
         return $komponens
             ->mapWithKeys(fn (KomponenPenilaian $komponen): array => [
-                $komponen->id => $komponen->subcpmkKomponens->pluck('id')->all(),
+                $komponen->id => array_column($this->pivotTerurut($komponen), 'pivot_id'),
             ])
             ->all();
+    }
+
+    /**
+     * Pivot Sub-CPMK satu asesmen, terurut menurut kode Sub-CPMK lalu id.
+     * Satu aturan urutan untuk pembacaan nilai tak-dirinci (pivot pertama
+     * yang dibaca) maupun rincian nilai per Sub-CPMK, supaya keduanya
+     * selalu menunjuk pivot yang sama.
+     *
+     * @return list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>
+     */
+    public function pivotTerurut(KomponenPenilaian $komponen): array
+    {
+        $pivots = $komponen->subcpmkKomponens
+            ->map(fn ($pivot): array => [
+                'pivot_id' => (string) $pivot->id,
+                'subcpmk_kode' => (string) ($pivot->subcpmk->kode ?? ''),
+                'bobot' => (float) $pivot->bobot,
+            ])
+            ->all();
+
+        usort($pivots, fn (array $a, array $b): int => [$a['subcpmk_kode'], $a['pivot_id']] <=> [$b['subcpmk_kode'], $b['pivot_id']]);
+
+        return $pivots;
     }
 
     /**
@@ -127,18 +150,91 @@ class PenilaianMatrixService
             ->groupBy('kelas_mk_mahasiswa_id');
 
         foreach ($rows as $row) {
+            $milikRow = ($existing->get($row['id']) ?? collect())->keyBy('subcpmk_komponenpenilaian_id');
+
             foreach ($pivotIdsByKomponen as $komponenId => $pivotIds) {
-                $nilaiRow = $existing
-                    ->get($row['id'])
-                    ?->first(fn (NilaiMahasiswa $n): bool => in_array(
-                        $n->subcpmk_komponenpenilaian_id,
-                        $pivotIds,
-                        true,
-                    ));
+                // Pivot pertama menurut urutan yang punya baris nilai.
+                $nilaiRow = null;
+                foreach ($pivotIds as $pivotId) {
+                    $nilaiRow = $milikRow->get($pivotId);
+                    if ($nilaiRow !== null) {
+                        break;
+                    }
+                }
 
                 $nilai[$row['id']][$komponenId] = $nilaiRow?->nilai !== null
                     ? (string) $nilaiRow->nilai
                     : null;
+            }
+        }
+
+        return $nilai;
+    }
+
+    /**
+     * Skor tiap pivot untuk asesmen yang dirinci.
+     *
+     * @param  list<array{id: string}>  $rows
+     * @param  array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>  $rincian
+     * @return array<string, array<string, string|null>> kmmId => pivotId => skor
+     */
+    public function nilaiRinciUntukMatrix(array $rows, array $rincian): array
+    {
+        if ($rincian === []) {
+            return [];
+        }
+
+        $hasil = [];
+        $pivotIds = collect($rincian)->flatten(1)->pluck('pivot_id')->all();
+
+        foreach ($rows as $row) {
+            $hasil[$row['id']] = [];
+            foreach ($pivotIds as $pivotId) {
+                $hasil[$row['id']][$pivotId] = null;
+            }
+        }
+
+        if ($pivotIds === [] || $rows === []) {
+            return $hasil;
+        }
+
+        $ada = NilaiMahasiswa::query()
+            ->whereIn('kelas_mk_mahasiswa_id', array_column($rows, 'id'))
+            ->whereIn('subcpmk_komponenpenilaian_id', $pivotIds)
+            ->get();
+
+        foreach ($ada as $baris) {
+            if ($baris->nilai !== null) {
+                $hasil[$baris->kelas_mk_mahasiswa_id][$baris->subcpmk_komponenpenilaian_id] = (string) $baris->nilai;
+            }
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Ganti sel asesmen yang dirinci dengan rata-rata tertimbang skor
+     * pivotnya (string 2 desimal, null bila tak ada yang terisi).
+     *
+     * @param  array<string, array<string, string|null>>  $nilai
+     * @param  array<string, array<string, string|null>>  $nilaiRinci
+     * @param  array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>  $rincian
+     * @return array<string, array<string, string|null>>
+     */
+    public function terapkanRincian(array $nilai, array $nilaiRinci, array $rincian): array
+    {
+        if ($rincian === []) {
+            return $nilai;
+        }
+
+        $layanan = app(RincianNilaiService::class);
+
+        foreach ($nilai as $kmmId => $nilaiBaris) {
+            foreach ($rincian as $komponenId => $pivots) {
+                $bobot = array_column($pivots, 'bobot', 'pivot_id');
+                $agregat = $layanan->nilaiAsesmen($nilaiRinci[$kmmId] ?? [], $bobot);
+
+                $nilai[$kmmId][$komponenId] = $agregat === null ? null : number_format($agregat, 2, '.', '');
             }
         }
 
@@ -161,6 +257,23 @@ class PenilaianMatrixService
         );
         $rows = $this->barisUntukKelas($kelasMk);
         $nilai = $this->nilaiUntukMatrix($rows, $pivotIdsByKomponen);
+
+        // Asesmen dirinci: sel terisi hanya bila semua sub-kolomnya terisi.
+        $rincian = array_intersect_key(app(RincianNilaiService::class)->rincianUntukKelas($kelasMk), $pivotIdsByKomponen);
+        if ($rincian !== []) {
+            $nilaiRinci = $this->nilaiRinciUntukMatrix($rows, $rincian);
+            $nilai = $this->terapkanRincian($nilai, $nilaiRinci, $rincian);
+
+            foreach ($nilai as $kmmId => $nilaiBaris) {
+                foreach ($rincian as $komponenId => $pivots) {
+                    foreach ($pivots as $pivot) {
+                        if (($nilaiRinci[$kmmId][$pivot['pivot_id']] ?? null) === null) {
+                            $nilai[$kmmId][$komponenId] = null;
+                        }
+                    }
+                }
+            }
+        }
 
         $total = count($rows) * count($pivotIdsByKomponen);
         $terisi = 0;
@@ -410,9 +523,15 @@ class PenilaianMatrixService
         $komponens = $this->komponenUntukKelas($kelasMk);
         $rows = $this->barisUntukKelas($kelasMk);
 
+        $rincian = app(RincianNilaiService::class)->rincianUntukKelas($kelasMk);
+
         $this->simpanNilaiAkhir(
             $this->kolomDariKomponens($komponens, (string) $kelasMk->semester_id),
-            $this->nilaiUntukMatrix($rows, $this->pivotIdsByKomponen($komponens)),
+            $this->terapkanRincian(
+                $this->nilaiUntukMatrix($rows, $this->pivotIdsByKomponen($komponens)),
+                $this->nilaiRinciUntukMatrix($rows, $rincian),
+                $rincian,
+            ),
         );
     }
 
