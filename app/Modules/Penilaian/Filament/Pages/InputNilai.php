@@ -2,6 +2,7 @@
 
 namespace App\Modules\Penilaian\Filament\Pages;
 
+use App\Models\User;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Penilaian\Filament\Pages\Concerns\HasKelasMkDosenPicker;
@@ -11,6 +12,7 @@ use App\Modules\Penilaian\Policies\InputNilaiPolicy;
 use App\Modules\Penilaian\Services\InputNilaiMatrixClipboardService;
 use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
+use App\Modules\Penilaian\Services\RincianNilaiService;
 use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
 use App\Modules\Simulasi\Support\HanyaBaca;
 use App\Support\Filament\NavigationGroupPeran;
@@ -76,6 +78,13 @@ class InputNilai extends Page
     public array $nilaiTersimpan = [];
 
     /**
+     * Snapshot skor sub-kolom (asesmen dirinci) yang terakhir dimuat/disimpan.
+     *
+     * @var array<string, array<string, string|null>>
+     */
+    public array $nilaiRinciTersimpan = [];
+
+    /**
      * Menu/akses "Input Nilai" baru muncul bila dosen punya minimal satu
      * kelas yang sudah siap dinilai (asesmen MK sudah disusun koordinator)
      * pada semester terpilih — mencegah menu tampil/terbuka sebelum ada
@@ -97,6 +106,7 @@ class InputNilai extends Page
     {
         $this->showKalkulasiBadge = false;
         $this->nilaiTersimpan = [];
+        $this->nilaiRinciTersimpan = [];
     }
 
     /**
@@ -124,6 +134,7 @@ class InputNilai extends Page
 
         if ($this->kelasMkId === null) {
             $this->nilaiTersimpan = [];
+            $this->nilaiRinciTersimpan = [];
 
             return;
         }
@@ -132,6 +143,7 @@ class InputNilai extends Page
 
         if (! $kelasMk instanceof KelasMk) {
             $this->nilaiTersimpan = [];
+            $this->nilaiRinciTersimpan = [];
 
             return;
         }
@@ -142,6 +154,7 @@ class InputNilai extends Page
         if ($this->penugasanBelumSelesai) {
             $this->muatStatusValidasi($kelasMk, false);
             $this->nilaiTersimpan = [];
+            $this->nilaiRinciTersimpan = [];
 
             return;
         }
@@ -162,6 +175,7 @@ class InputNilai extends Page
         }
 
         $this->nilaiTersimpan = $this->salinNilaiSnapshot($this->nilai);
+        $this->nilaiRinciTersimpan = $this->salinNilaiSnapshot($this->nilaiRinci);
     }
 
     public function save(): void
@@ -181,6 +195,11 @@ class InputNilai extends Page
 
         $matrix = app(PenilaianMatrixService::class);
         $pivotIdsByKomponen = $matrix->pivotIdsByKomponen($matrix->komponenUntukKelas($kelasMk));
+        // Dibaca ulang dari basis data, bukan dari state halaman: pemetaan
+        // asesmen bisa berubah sejak halaman dimuat.
+        $rincian = app(RincianNilaiService::class)->rincianUntukKelas($kelasMk);
+
+        $this->simpanSkorRinci($allowedKmmIds, $rincian);
 
         foreach ($this->nilai as $kmmId => $cells) {
             if (! in_array($kmmId, $allowedKmmIds, true)) {
@@ -194,6 +213,12 @@ class InputNilai extends Page
                     throw ValidationException::withMessages([
                         'nilai' => 'Data komponen penilaian tidak valid untuk kelas ini.',
                     ]);
+                }
+
+                // Nilai asesmen dirinci diturunkan dari sub-kolomnya; tidak
+                // pernah ditulis sebagai satu angka (itu akan menyamakan semua pivot).
+                if (array_key_exists($komponenId, $rincian)) {
+                    continue;
                 }
 
                 $pivotIds = $pivotIdsByKomponen[$komponenId];
@@ -235,7 +260,10 @@ class InputNilai extends Page
             }
         }
 
-        $matrix->simpanNilaiAkhir($this->columns, $this->nilai);
+        $matrix->simpanNilaiAkhir(
+            $this->columns,
+            $matrix->terapkanRincian($this->nilai, $matrix->nilaiRinciUntukMatrix($this->rows, $rincian), $rincian),
+        );
 
         Notification::make()
             ->title('Tersimpan')
@@ -244,6 +272,245 @@ class InputNilai extends Page
 
         $this->showKalkulasiBadge = true;
         $this->loadMatrix();
+    }
+
+    /**
+     * Menulis skor tiap sub-kolom asesmen yang dirinci. Kosong = reset pivot
+     * itu saja (hanya baris yang sudah ada); tidak ada fan-out antar pivot.
+     *
+     * @param  list<string>  $allowedKmmIds
+     * @param  array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>  $rincian
+     */
+    protected function simpanSkorRinci(array $allowedKmmIds, array $rincian): void
+    {
+        $pivotSah = collect($rincian)->flatten(1)->pluck('pivot_id')->all();
+
+        foreach ($this->nilaiRinci as $kmmId => $skorPerPivot) {
+            if (! in_array($kmmId, $allowedKmmIds, true)) {
+                throw ValidationException::withMessages([
+                    'nilaiRinci' => 'Data mahasiswa tidak valid untuk kelas ini.',
+                ]);
+            }
+
+            foreach ($skorPerPivot as $pivotId => $value) {
+                // Sisa state asesmen yang tak lagi dirinci (pemetaan berubah): abaikan.
+                if (! in_array((string) $pivotId, $pivotSah, true)) {
+                    continue;
+                }
+
+                if ($value === null || $value === '') {
+                    NilaiMahasiswa::query()
+                        ->where('subcpmk_komponenpenilaian_id', $pivotId)
+                        ->where('kelas_mk_mahasiswa_id', $kmmId)
+                        ->whereNotNull('nilai')
+                        ->get()
+                        ->each(fn (NilaiMahasiswa $n) => $n->update(['nilai' => null]));
+
+                    continue;
+                }
+
+                $numeric = (float) $value;
+
+                if ($numeric < 0 || $numeric > 100) {
+                    throw ValidationException::withMessages([
+                        "nilaiRinci.{$kmmId}.{$pivotId}" => 'Nilai harus antara 0 dan 100.',
+                    ]);
+                }
+
+                NilaiMahasiswa::query()->updateOrCreate(
+                    [
+                        'subcpmk_komponenpenilaian_id' => $pivotId,
+                        'kelas_mk_mahasiswa_id' => $kmmId,
+                    ],
+                    ['nilai' => $numeric],
+                );
+            }
+        }
+    }
+
+    /**
+     * Hitung ulang nilai asesmen (dan nilai akhir peserta di layar) dari skor
+     * sub-kolom yang baru diubah, sebelum disimpan.
+     */
+    public function updatedNilaiRinci(mixed $value, ?string $key = null): void
+    {
+        $this->hitungUlangRincianLayar($key !== null ? explode('.', $key, 2)[0] : null);
+    }
+
+    /** @param  string|null  $kmmId  null = semua peserta (setelah tempel) */
+    protected function hitungUlangRincianLayar(?string $kmmId): void
+    {
+        if ($this->rincian === []) {
+            return;
+        }
+
+        $matrix = app(PenilaianMatrixService::class);
+
+        $this->nilai = $matrix->terapkanRincian($this->nilai, $this->nilaiRinci, $this->rincian);
+
+        foreach ($this->rows as $i => $row) {
+            if ($kmmId !== null && $row['id'] !== $kmmId) {
+                continue;
+            }
+
+            $idPeserta = $row['id'];
+            $nilaiAkhir = $matrix->hitungNilaiAkhirMahasiswa($this->columns, $this->nilai[$idPeserta] ?? []);
+            $this->rows[$i]['nilai_angka'] = $nilaiAkhir;
+            $this->rows[$i]['nilai_huruf'] = $matrix->hurufDariNilaiAkhir($nilaiAkhir);
+        }
+    }
+
+    /**
+     * Komponen (id) yang boleh dirinci pada kelas terpilih: asesmen dengan
+     * dua Sub-CPMK atau lebih (aturan sama dengan RincianNilaiService::bisaDirinci,
+     * dihitung sekali per render agar tidak memuat ulang pemetaan per kolom).
+     *
+     * @return array<string, true>
+     */
+    public function getKomponenBisaDirinciProperty(): array
+    {
+        if ($this->kelasMkId === null || ! $this->bolehUbahNilai) {
+            return [];
+        }
+
+        $kelasMk = KelasMk::query()->with('mkUnit')->find($this->kelasMkId);
+
+        if (! $kelasMk instanceof KelasMk) {
+            return [];
+        }
+
+        $matrix = app(PenilaianMatrixService::class);
+        $hasil = [];
+
+        foreach ($matrix->komponenUntukKelas($kelasMk) as $komponen) {
+            if (count($matrix->pivotTerurut($komponen)) >= 2) {
+                $hasil[$komponen->id] = true;
+            }
+        }
+
+        return $hasil;
+    }
+
+    public function rinciAsesmen(string $komponenId): void
+    {
+        $this->ubahRincian($komponenId, true);
+    }
+
+    public function gabungkanAsesmen(string $komponenId): void
+    {
+        $this->ubahRincian($komponenId, false);
+    }
+
+    protected function ubahRincian(string $komponenId, bool $nyalakan): void
+    {
+        if ($this->kelasMkId === null) {
+            return;
+        }
+
+        $kelasMk = KelasMk::query()->with('mkUnit')->findOrFail($this->kelasMkId);
+
+        Gate::authorize('inputNilai', $kelasMk);
+
+        // Mengubah rincian memuat ulang matriks; perubahan yang belum disimpan
+        // akan hilang diam-diam, jadi ditolak.
+        if ($this->adaPerubahanNilai()) {
+            Notification::make()
+                ->title('Simpan nilai dulu sebelum mengubah rincian.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $komponen = app(PenilaianMatrixService::class)
+            ->komponenUntukKelas($kelasMk)
+            ->firstWhere('id', $komponenId);
+
+        abort_unless($komponen !== null, 404);
+
+        $layanan = app(RincianNilaiService::class);
+
+        if ($nyalakan) {
+            $user = auth()->user();
+            abort_unless($user instanceof User, 403);
+
+            try {
+                $layanan->nyalakan($kelasMk, $komponen, $user);
+            } catch (ValidationException $e) {
+                Notification::make()
+                    ->title($e->validator->errors()->first() ?: 'Asesmen ini tidak bisa dirinci.')
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        } else {
+            $layanan->matikan($kelasMk, $komponen);
+        }
+
+        $this->loadMatrix();
+    }
+
+    public function gabungkanAsesmenAction(): Action
+    {
+        return Action::make('gabungkanAsesmen')
+            ->label('Gabungkan kembali')
+            ->color('gray')
+            ->size('xs')
+            ->requiresConfirmation()
+            ->modalHeading('Gabungkan kembali nilai asesmen?')
+            ->modalDescription('Skor terpisah per Sub-CPMK akan hilang dan digantikan satu nilai asesmen (rata-rata tertimbang yang sedang tampil).')
+            ->modalSubmitActionLabel('Gabungkan')
+            ->modalCancelActionLabel('Batal')
+            ->visible(fn (): bool => $this->bolehUbahNilai)
+            ->action(function (array $arguments): void {
+                $this->gabungkanAsesmen((string) ($arguments['komponenId'] ?? ''));
+            });
+    }
+
+    /**
+     * Kolom untuk Salin/Tempel: asesmen dirinci diurai menjadi satu kolom per
+     * Sub-CPMK (id "p:{pivotId}", label "kode asesmen/kode Sub-CPMK").
+     *
+     * @param  list<array{id: string, label: string, asesmen: string}>  $columns
+     * @return list<array{id: string, label: string}>
+     */
+    protected function kolomKlip(array $columns): array
+    {
+        $hasil = [];
+
+        foreach ($columns as $column) {
+            if (! isset($this->rincian[$column['id']])) {
+                $hasil[] = ['id' => $column['id'], 'label' => $column['label']];
+
+                continue;
+            }
+
+            foreach ($this->rincian[$column['id']] as $pivot) {
+                $hasil[] = [
+                    'id' => 'p:'.$pivot['pivot_id'],
+                    'label' => $column['asesmen'].'/'.$pivot['subcpmk_kode'],
+                ];
+            }
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * @return array<string, array<string, string|null>>
+     */
+    protected function nilaiKlip(): array
+    {
+        $hasil = $this->nilai;
+
+        foreach ($this->nilaiRinci as $kmmId => $skorPerPivot) {
+            foreach ($skorPerPivot as $pivotId => $skor) {
+                $hasil[$kmmId]['p:'.$pivotId] = $skor;
+            }
+        }
+
+        return $hasil;
     }
 
     public function applyTempel(string $raw): void
@@ -260,11 +527,26 @@ class InputNilai extends Page
         $result = app(InputNilaiMatrixClipboardService::class)->applyPaste(
             $raw,
             $this->rows,
-            $this->columns,
-            $this->nilai,
+            $this->kolomKlip($this->columns),
+            $this->nilaiKlip(),
+            collect($this->columns)
+                ->filter(fn (array $column): bool => isset($this->rincian[$column['id']]))
+                ->pluck('asesmen')
+                ->values()
+                ->all(),
         );
 
-        $this->nilai = $result['nilai'];
+        foreach ($result['nilai'] as $kmmId => $cells) {
+            foreach ($cells as $kolomId => $value) {
+                if (str_starts_with((string) $kolomId, 'p:')) {
+                    $this->nilaiRinci[$kmmId][substr((string) $kolomId, 2)] = $value;
+                } else {
+                    $this->nilai[$kmmId][$kolomId] = $value;
+                }
+            }
+        }
+
+        $this->hitungUlangRincianLayar(null);
 
         $body = sprintf(
             '%d sel diperbarui pada %d mahasiswa. Klik Simpan untuk menyimpan ke database.',
@@ -307,8 +589,8 @@ class InputNilai extends Page
      */
     public function adaPerubahanNilai(): bool
     {
-        return $this->salinNilaiSnapshot($this->nilai)
-            !== $this->salinNilaiSnapshot($this->nilaiTersimpan);
+        return $this->salinNilaiSnapshot($this->nilai) !== $this->salinNilaiSnapshot($this->nilaiTersimpan)
+            || $this->salinNilaiSnapshot($this->nilaiRinci) !== $this->salinNilaiSnapshot($this->nilaiRinciTersimpan);
     }
 
     /**
@@ -504,8 +786,8 @@ class InputNilai extends Page
 
         return app(InputNilaiMatrixClipboardService::class)->exportTsv(
             $this->rows,
-            $this->getColumnsTampilProperty(),
-            $this->nilai,
+            $this->kolomKlip($this->getColumnsTampilProperty()),
+            $this->nilaiKlip(),
         );
     }
 

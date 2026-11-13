@@ -127,16 +127,25 @@
                             />
                         </div>
 
+                        @php
+                            $komponenBisaDirinci = $this->komponenBisaDirinci;
+                            $adaKolomDirinci = collect($this->columnsTampil)->contains(fn ($c) => isset($rincian[$c['id']]));
+                            $fmtAngka = fn ($v) => rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.') ?: '0';
+                        @endphp
                         <div style="overflow-x:auto;" wire:key="matriks-input-nilai-{{ $kelasMkId }}">
                             <table class="input-nilai-matrix" style="width:100%;min-width:max-content;border-collapse:collapse;font-size:13px;">
                                 <thead>
                                     <tr style="text-align:left;">
-                                        <th class="input-nilai-sticky input-nilai-sticky-head" style="position:sticky;left:0;top:0;z-index:3;padding:8px 10px;min-width:190px;">
+                                        <th @if ($adaKolomDirinci) rowspan="2" @endif class="input-nilai-sticky input-nilai-sticky-head" style="position:sticky;left:0;top:0;z-index:3;padding:8px 10px;min-width:190px;">
                                             Mahasiswa
                                         </th>
                                         @foreach ($this->columnsTampil as $column)
+                                            @php
+                                                $dirinci = isset($rincian[$column['id']]);
+                                            @endphp
                                             <th
                                                 class="input-nilai-sticky-topcol"
+                                                @if ($dirinci) colspan="{{ count($rincian[$column['id']]) + 1 }}" @elseif ($adaKolomDirinci) rowspan="2" @endif
                                                 style="position:sticky;top:0;z-index:2;padding:8px 6px;text-align:center;white-space:nowrap;min-width:110px;vertical-align:top;"
                                                 title="{{ $column['label'] }}"
                                             >
@@ -156,9 +165,39 @@
                                                         </span>
                                                     @endif
                                                 </span>
+                                                @if ($bolehUbahNilai && $dirinci)
+                                                    <span style="display:block;margin-top:4px;" data-silogy="rinci-asesmen">
+                                                        {{ ($this->gabungkanAsesmenAction())(['komponenId' => $column['id']]) }}
+                                                    </span>
+                                                @elseif ($bolehUbahNilai && isset($komponenBisaDirinci[$column['id']]))
+                                                    <button
+                                                        type="button"
+                                                        data-silogy="rinci-asesmen"
+                                                        wire:click="rinciAsesmen('{{ $column['id'] }}')"
+                                                        wire:loading.attr="disabled"
+                                                        wire:target="rinciAsesmen"
+                                                        style="margin-top:4px;padding:1px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid rgba(128,128,128,.4);background:transparent;color:inherit;"
+                                                    >
+                                                        Rinci per Sub-CPMK
+                                                    </button>
+                                                @endif
                                             </th>
                                         @endforeach
                                     </tr>
+                                    @if ($adaKolomDirinci)
+                                        <tr style="text-align:center;">
+                                            @foreach ($this->columnsTampil as $column)
+                                                @if (isset($rincian[$column['id']]))
+                                                    @foreach ($rincian[$column['id']] as $pivot)
+                                                        <th class="input-nilai-sticky-topcol" style="padding:4px 6px;font-size:11px;white-space:nowrap;" title="Bobot {{ $fmtAngka($pivot['bobot']) }}">
+                                                            {{ $column['asesmen'] }}/{{ $pivot['subcpmk_kode'] }}
+                                                        </th>
+                                                    @endforeach
+                                                    <th class="input-nilai-sticky-topcol" style="padding:4px 6px;font-size:11px;white-space:nowrap;">Nilai</th>
+                                                @endif
+                                            @endforeach
+                                        </tr>
+                                    @endif
                                 </thead>
                                 <tbody>
                                     @foreach ($rows as $row)
@@ -184,6 +223,39 @@
                                                 </span>
                                             </td>
                                             @foreach ($this->columnsTampil as $column)
+                                                @if (isset($rincian[$column['id']]))
+                                                    @foreach ($rincian[$column['id']] as $pivot)
+                                                        <td
+                                                            style="padding:6px;text-align:center;"
+                                                            wire:key="cell-rinci-{{ $row['id'] }}-{{ $pivot['pivot_id'] }}"
+                                                        >
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                step="0.01"
+                                                                title="{{ $column['asesmen'] }}/{{ $pivot['subcpmk_kode'] }}"
+                                                                @if ($bolehUbahNilai)
+                                                                    wire:model.blur="nilaiRinci.{{ $row['id'] }}.{{ $pivot['pivot_id'] }}"
+                                                                @else
+                                                                    value="{{ $nilaiRinci[$row['id']][$pivot['pivot_id']] ?? '' }}"
+                                                                    readonly
+                                                                    disabled
+                                                                @endif
+                                                                style="width:74px;padding:4px 6px;border:1.5px solid rgba(128,128,128,.5);border-radius:6px;background:transparent;text-align:center;"
+                                                                placeholder="—"
+                                                            />
+                                                        </td>
+                                                    @endforeach
+                                                    <td
+                                                        data-silogy="nilai-asesmen-dirinci"
+                                                        style="padding:6px;text-align:center;font-weight:700;"
+                                                        wire:key="cell-agregat-{{ $row['id'] }}-{{ $column['id'] }}"
+                                                    >
+                                                        {{ ($nilai[$row['id']][$column['id']] ?? null) !== null && $nilai[$row['id']][$column['id']] !== '' ? $fmtAngka($nilai[$row['id']][$column['id']]) : '—' }}
+                                                    </td>
+                                                    @continue
+                                                @endif
                                                 <td
                                                     style="padding:6px;text-align:center;"
                                                     wire:key="cell-{{ $row['id'] }}-{{ $column['id'] }}"
@@ -217,7 +289,7 @@
                                             @php
                                                 $rataRata = $this->rataRataKelas[$column['id']] ?? null;
                                             @endphp
-                                            <td style="padding:6px;text-align:center;">
+                                            <td @if (isset($rincian[$column['id']])) colspan="{{ count($rincian[$column['id']]) + 1 }}" @endif style="padding:6px;text-align:center;">
                                                 {{ $rataRata !== null ? rtrim(rtrim(number_format($rataRata, 2, '.', ''), '0'), '.') : '—' }}
                                             </td>
                                         @endforeach

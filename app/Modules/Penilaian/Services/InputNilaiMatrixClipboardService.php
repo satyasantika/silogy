@@ -42,6 +42,9 @@ class InputNilaiMatrixClipboardService
      * @param  list<array{id: string, nim: string, nama: string}>  $rows
      * @param  list<array{id: string, label: string}>  $columns
      * @param  array<string, array<string, string|null>>  $currentNilai
+     * @param  list<string>  $kolomDitolak  label kolom yang tidak boleh ditimpa (mis. kode asesmen yang
+     *                                      sedang dirinci per Sub-CPMK); bila muncul di kepala tempel, dilaporkan
+     *                                      sebagai galat dan nilainya diabaikan
      * @return array{
      *     nilai: array<string, array<string, string|null>>,
      *     applied_cells: int,
@@ -54,6 +57,7 @@ class InputNilaiMatrixClipboardService
         array $rows,
         array $columns,
         array $currentNilai,
+        array $kolomDitolak = [],
     ): array {
         $lines = preg_split('/\r\n|\r|\n/', trim($raw)) ?: [];
         $lines = array_values(array_filter(
@@ -83,7 +87,17 @@ class InputNilaiMatrixClipboardService
             ]);
         }
 
-        $columnIndexes = $this->resolveColumnIndexes($headerCells, $columns);
+        $errors = [];
+        $adaKolomDitolak = false;
+
+        foreach ($kolomDitolak as $label) {
+            if ($headerCells !== null && in_array($this->normalizeHeader($label), array_map($this->normalizeHeader(...), $headerCells), true)) {
+                $adaKolomDitolak = true;
+                $errors[] = "Kolom \"{$label}\" tidak diterapkan: asesmen ini dirinci per Sub-CPMK, isi kolom per Sub-CPMK (berlabel {$label}/kode Sub-CPMK).";
+            }
+        }
+
+        $columnIndexes = $this->resolveColumnIndexes($headerCells, $columns, $adaKolomDitolak);
         $rowsByNim = collect($rows)->keyBy(
             fn (array $row): string => $this->normalizeNim($row['nim']),
         );
@@ -91,7 +105,6 @@ class InputNilaiMatrixClipboardService
         $nilai = $currentNilai;
         $appliedCells = 0;
         $matchedRows = 0;
-        $errors = [];
 
         foreach ($dataLines as $lineIndex => $cells) {
             $lineNumber = $hasHeader ? $lineIndex + 2 : $lineIndex + 1;
@@ -192,7 +205,7 @@ class InputNilaiMatrixClipboardService
      * @param  list<array{id: string, label: string}>  $columns
      * @return array<string, int>
      */
-    private function resolveColumnIndexes(?array $headerCells, array $columns): array
+    private function resolveColumnIndexes(?array $headerCells, array $columns, bool $adaKolomDitolak = false): array
     {
         $indexes = [];
 
@@ -224,7 +237,9 @@ class InputNilaiMatrixClipboardService
             $indexes[$column['id']] = array_shift($headerIndexesByLabel[$label]);
         }
 
-        if ($indexes !== []) {
+        // Kepala yang hanya memuat kolom ditolak tidak boleh jatuh ke urutan
+        // posisi: nilainya akan salah mendarat di kolom lain.
+        if ($indexes !== [] || $adaKolomDitolak) {
             return $indexes;
         }
 
