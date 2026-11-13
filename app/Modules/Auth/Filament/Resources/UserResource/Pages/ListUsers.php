@@ -261,6 +261,7 @@ class ListUsers extends ListRecords
                 [
                     'status_pimpinan' => $roleNames->contains('Pimpinan'),
                     'status_tim_kurikulum' => $roleNames->contains('Tim Kurikulum'),
+                    'status_validator_nilai' => $roleNames->contains('Validator Nilai'),
                 ],
             );
         }
