@@ -41,6 +41,7 @@ use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
+use App\Modules\Penilaian\Services\RincianNilaiService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -256,6 +257,10 @@ class SimulasiAkademikBuilder
         foreach ($peserta as $kmm) {
             $this->isiNilaiAcak($kmm, $skpIds);
         }
+
+        // Satu asesmen contoh dirinci per Sub-CPMK; harus sebelum kalkulasi
+        // dan validasi contoh supaya hasil dan sidik tersimpan memakai skornya.
+        $this->rincikanAsesmenContoh($kelas, $komponenList[0], $this->dosenProdi);
 
         $lapor('Menghitung hasil analisis CPL');
         $this->jalankanKalkulasi(collect([$kelas]), $prodi);
@@ -824,7 +829,7 @@ class SimulasiAkademikBuilder
                     ['id' => (string) Str::uuid()],
                 );
 
-                foreach ($skpIds as $skpId) {
+                foreach ($this->nilaiAcakPerPivot($skpIds) as $skpId => $nilai) {
                     NilaiMahasiswa::query()->updateOrCreate(
                         [
                             'subcpmk_komponenpenilaian_id' => $skpId,
@@ -832,7 +837,7 @@ class SimulasiAkademikBuilder
                         ],
                         [
                             'id' => (string) Str::uuid(),
-                            'nilai' => fake()->randomFloat(2, 60, 95),
+                            'nilai' => $nilai,
                         ],
                     );
                 }
@@ -848,7 +853,7 @@ class SimulasiAkademikBuilder
     protected function isiNilaiAcak(KelasMkMahasiswa $kmm, array $skpIds): void
     {
         NilaiMahasiswa::withoutEvents(function () use ($kmm, $skpIds): void {
-            foreach ($skpIds as $skpId) {
+            foreach ($this->nilaiAcakPerPivot($skpIds) as $skpId => $nilai) {
                 NilaiMahasiswa::query()->updateOrCreate(
                     [
                         'subcpmk_komponenpenilaian_id' => $skpId,
@@ -856,9 +861,74 @@ class SimulasiAkademikBuilder
                     ],
                     [
                         'id' => (string) Str::uuid(),
-                        'nilai' => fake()->randomFloat(2, 60, 95),
+                        'nilai' => $nilai,
                     ],
                 );
+            }
+        });
+    }
+
+    /**
+     * Satu angka acak per asesmen untuk seorang mahasiswa, dipakai oleh semua
+     * pivot Sub-CPMK asesmen itu. Begitulah nilai tersimpan bila asesmen tidak
+     * dirinci per Sub-CPMK.
+     *
+     * @param  list<string>  $skpIds
+     * @return array<string, float>
+     */
+    protected function nilaiAcakPerPivot(array $skpIds): array
+    {
+        $komponenPerPivot = SubcpmkKomponenPenilaian::query()
+            ->whereIn('id', $skpIds)
+            ->pluck('komponen_penilaian_id', 'id');
+
+        $nilaiPerKomponen = [];
+        $hasil = [];
+
+        foreach ($skpIds as $skpId) {
+            $komponenId = (string) ($komponenPerPivot[$skpId] ?? $skpId);
+            $nilaiPerKomponen[$komponenId] ??= fake()->randomFloat(2, 60, 95);
+            $hasil[$skpId] = $nilaiPerKomponen[$komponenId];
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * Contoh asesmen yang dirinci per Sub-CPMK: penanda dinyalakan lalu skor
+     * tiap Sub-CPMK dibuat berbeda dari angka bersama (selang-seling naik dan
+     * turun, Sub-CPMK terakhir paling rendah) supaya ada yang tampak lemah.
+     * Harus dipanggil setelah nilai terisi dan sebelum kalkulasi serta validasi.
+     */
+    protected function rincikanAsesmenContoh(KelasMk $kelas, KomponenPenilaian $komponen, User $oleh): void
+    {
+        NilaiMahasiswa::withoutEvents(function () use ($kelas, $komponen, $oleh): void {
+            app(RincianNilaiService::class)->nyalakan($kelas, $komponen, $oleh);
+
+            $pivotIds = SubcpmkKomponenPenilaian::query()
+                ->where('komponen_penilaian_id', $komponen->id)
+                ->where('semester_id', $this->semester->id)
+                ->orderBy('subcpmk_id')
+                ->pluck('id')
+                ->all();
+
+            $terakhir = count($pivotIds) - 1;
+            $kmmIds = KelasMkMahasiswa::query()->where('kelas_mk_id', $kelas->id)->pluck('id');
+
+            foreach ($kmmIds as $kmmId) {
+                foreach ($pivotIds as $i => $pivotId) {
+                    $baris = NilaiMahasiswa::query()
+                        ->where('kelas_mk_mahasiswa_id', $kmmId)
+                        ->where('subcpmk_komponenpenilaian_id', $pivotId)
+                        ->first();
+
+                    if ($baris === null) {
+                        continue;
+                    }
+
+                    $selisih = $i === $terakhir ? -15.0 : ($i % 2 === 0 ? 6.0 : -6.0);
+                    $baris->update(['nilai' => max(0.0, min(100.0, round((float) $baris->nilai + $selisih, 2)))]);
+                }
             }
         });
     }

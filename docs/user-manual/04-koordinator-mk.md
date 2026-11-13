@@ -153,6 +153,10 @@ Jika kosong: asesmen belum 100%, nilai belum disimpan, atau pemetaan CPL–CPMK 
 
 Tombol **Cetak** pada Laporan Lengkap hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai; cetakan kelas yang belum divalidasi bertanda air **BELUM DIVALIDASI**. Mengubah bobot atau pemetaan asesmen setelah kelas divalidasi menggugurkan validasi kelas yang laporannya terdampak, sehingga kelas itu perlu divalidasi ulang. Anda tidak dapat memvalidasi kelas dari mata kuliah yang Anda koordinatori. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
 
+## Asesmen yang dirinci per Sub-CPMK
+
+Asesmen yang Anda petakan ke dua Sub-CPMK atau lebih boleh dinilai per Sub-CPMK oleh dosen pengampu (tombol **Rinci per Sub-CPMK** di Input Nilai). Bobot dan pemetaan tidak berubah; hanya angkanya yang bisa berbeda per Sub-CPMK. Di Laporan Lengkap, bagian **Ketercapaian Sub-CPMK** menandai Sub-CPMK yang **Lemah** dan **Terlemah**. Sub-CPMK yang hanya diukur lewat asesmen bersama yang tidak dirinci ditandai **Tidak dapat dibedakan**, karena angkanya sama dengan Sub-CPMK lain pada asesmen itu.
+
 ## Reset satu semester
 
 Tombol **Reset** hanya melepas data dari **semester yang sedang dipilih**. Data yang masih dipakai semester lain tetap utuh. Yang tidak dipakai semester mana pun baru benar-benar terhapus.

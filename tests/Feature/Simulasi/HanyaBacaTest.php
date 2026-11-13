@@ -17,6 +17,7 @@ use App\Modules\Penilaian\Filament\Resources\PenilaianDosenResource;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
+use App\Modules\Penilaian\Services\RincianNilaiService;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
 use App\Modules\Simulasi\Support\AkunSimulasi;
@@ -266,7 +267,12 @@ it('contoh terisi sudah punya nilai akhir tiap peserta sehingga distribusi nilai
     $matrix = app(PenilaianMatrixService::class);
     $komponens = $matrix->komponenUntukKelas($kelas);
     $rows = $matrix->barisUntukKelas($kelas);
-    $nilai = $matrix->nilaiUntukMatrix($rows, $matrix->pivotIdsByKomponen($komponens));
+    $rincian = app(RincianNilaiService::class)->rincianUntukKelas($kelas);
+    $nilai = $matrix->terapkanRincian(
+        $matrix->nilaiUntukMatrix($rows, $matrix->pivotIdsByKomponen($komponens)),
+        $matrix->nilaiRinciUntukMatrix($rows, $rincian),
+        $rincian,
+    );
     $kolom = $matrix->kolomDariKomponens($komponens, (string) $kelas->semester_id);
     $baris = $rows[0];
 

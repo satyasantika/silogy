@@ -43,6 +43,17 @@ Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai kompon
 3. Isi nilai pada template (jangan mengubah kolom kunci seperti NIM/kode komponen).
 4. Unggah kembali file tersebut, lalu konfirmasi. Periksa ringkasan hasil import dan perbaiki baris yang gagal bila ada.
 
+## Merinci nilai per Sub-CPMK
+
+Biasanya satu asesmen punya satu angka per mahasiswa, dan angka itu berlaku sama untuk semua Sub-CPMK yang dibebankan ke asesmen tersebut. Bila sebuah asesmen dibebankan ke **dua Sub-CPMK atau lebih**, di tab **Input** muncul tombol **Rinci per Sub-CPMK** pada kolomnya.
+
+- Setelah dinyalakan, kolom asesmen terpecah menjadi satu kolom per Sub-CPMK. Isi angka tiap Sub-CPMK sendiri-sendiri; nilai asesmen menjadi rata-rata tertimbang bobot Sub-CPMK itu. Angka yang sudah ada tidak berubah saat tombol dinyalakan, sehingga nilai akhir mahasiswa tetap sama sampai Anda mengubahnya.
+- **Gabungkan kembali** mengembalikan satu angka per asesmen. Angka terpisah per Sub-CPMK hilang (Anda diminta mengonfirmasi), dan nilai asesmen menjadi rata-ratanya.
+- Tombol tidak bisa dipakai selama masih ada perubahan yang belum disimpan; simpan dulu.
+- Saat menempel dari Excel, pakai judul kolom seperti `UTS/SUB-1A`.
+- Pada **Laporan Lengkap**, bagian **C3. Ketercapaian Sub-CPMK** menandai tiap Sub-CPMK **Tercapai** atau **Lemah**. **Terlemah** adalah Sub-CPMK dengan ketercapaian paling rendah. Kolom Dasar berisi **Terukur terpisah** bila angkanya diisi sendiri, atau **Tidak dapat dibedakan** bila Sub-CPMK itu hanya diukur lewat asesmen bersama yang tidak dirinci, sehingga angkanya sama dengan Sub-CPMK lain dan tidak bisa dibandingkan.
+- Mengubah skor per Sub-CPMK menggugurkan validasi, seperti perubahan nilai lainnya; kelas lalu perlu divalidasi ulang.
+
 ## Mencetak laporan memerlukan validasi
 
 Tombol **Cetak** pada tab **Laporan Lengkap** hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai. Cetakan dari kelas yang belum divalidasi (termasuk lewat Ctrl+P) bertanda air **BELUM DIVALIDASI**.
