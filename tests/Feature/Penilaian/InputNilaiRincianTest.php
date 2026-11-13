@@ -115,12 +115,41 @@ it('skor di atas 100 pada sub-kolom ditolak dan basis data tidak berubah', funct
     $halaman = halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
 
     $halaman
+        ->set("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot']->id}", '50')
         ->set("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot2']->id}", '101')
         ->call('save')
         ->assertHasErrors(["nilaiRinci.{$this->kmm1->id}.{$this->data['pivot2']->id}"]);
 
     expect(nilaiPivotDb($this->data['pivot']->id, $this->kmm1->id))->toBe(80.0)
         ->and(nilaiPivotDb($this->data['pivot2']->id, $this->kmm1->id))->toBe(80.0);
+});
+
+it('sel non-rinci 101 menggagalkan seluruh simpan: tidak ada pivot rinci yang tertulis', function () {
+    [$komponen2, $pivotTunggal] = tambahAsesmenTunggal($this->data);
+    $halaman = halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
+
+    $halaman
+        ->set("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot']->id}", '50')
+        ->set("nilai.{$this->kmm1->id}.{$komponen2->id}", '101')
+        ->call('save')
+        ->assertHasErrors(["nilai.{$this->kmm1->id}.{$komponen2->id}"]);
+
+    expect(nilaiPivotDb($this->data['pivot']->id, $this->kmm1->id))->toBe(80.0)
+        ->and(nilaiPivotDb($pivotTunggal->id, $this->kmm1->id))->toBeNull();
+});
+
+it('simpan ditolak pada kelas tervalidasi tidak menggugurkan validasi', function () {
+    $halaman = halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
+    $validator = User::factory()->create();
+    app(ValidasiNilaiService::class)->validasi($this->kelas, $validator, $halaman->call('loadMatrix')->get('sidikLaporan'));
+
+    halamanRinci($this->kelas)
+        ->set("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot']->id}", '50')
+        ->set("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot2']->id}", '101')
+        ->call('save')
+        ->assertHasErrors();
+
+    halamanRinci($this->kelas)->assertSet('statusValidasi', 'tervalidasi');
 });
 
 it('mengosongkan satu sub-kolom hanya mereset pivot itu', function () {
@@ -239,12 +268,29 @@ it('pemetaan berubah sampai tinggal satu pivot: halaman tidak galat dan kolom ke
         ->assertHasNoErrors();
 });
 
-it('sisa state rincian yang basi tidak membuat save galat setelah pemetaan menyusut', function () {
+it('pemetaan menyusut setelah halaman dimuat dengan rincian: simpan ditolak tanpa menulis apa pun', function () {
     $halaman = halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
     $halaman->set("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot']->id}", '70');
     $this->data['pivot2']->delete();
 
-    $halaman->call('save')->assertHasNoErrors();
+    $halaman->call('save')
+        ->assertNotified('Pemetaan atau rincian asesmen berubah. Muat ulang halaman sebelum menyimpan.')
+        ->assertSet("nilaiRinci.{$this->kmm1->id}.{$this->data['pivot']->id}", '70');
+
+    expect(nilaiPivotDb($this->data['pivot']->id, $this->kmm1->id))->toBe(80.0);
+});
+
+it('rincian dinyalakan dari tab lain setelah halaman dimuat tanpa rincian: simpan ditolak', function () {
+    $halaman = halamanRinci($this->kelas);
+    $halaman->set("nilai.{$this->kmm1->id}.{$this->komponenId}", '55');
+    app(RincianNilaiService::class)->nyalakan($this->kelas, $this->data['komponen'], $this->dosen);
+
+    $halaman->call('save')
+        ->assertNotified('Pemetaan atau rincian asesmen berubah. Muat ulang halaman sebelum menyimpan.')
+        ->assertSet("nilai.{$this->kmm1->id}.{$this->komponenId}", '55');
+
+    expect(nilaiPivotDb($this->data['pivot']->id, $this->kmm1->id))->toBe(80.0)
+        ->and(nilaiPivotDb($this->data['pivot2']->id, $this->kmm1->id))->toBe(80.0);
 });
 
 it('tempel dengan kepala sub-kolom saja mengubah hanya pivot itu', function () {

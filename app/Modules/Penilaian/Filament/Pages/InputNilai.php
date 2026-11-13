@@ -23,6 +23,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
@@ -199,71 +200,84 @@ class InputNilai extends Page
         // asesmen bisa berubah sejak halaman dimuat.
         $rincian = app(RincianNilaiService::class)->rincianUntukKelas($kelasMk);
 
-        $this->simpanSkorRinci($allowedKmmIds, $rincian);
+        if ($this->rincianLayarBasi($rincian)) {
+            Notification::make()
+                ->title('Pemetaan atau rincian asesmen berubah. Muat ulang halaman sebelum menyimpan.')
+                ->warning()
+                ->send();
 
-        foreach ($this->nilai as $kmmId => $cells) {
-            if (! in_array($kmmId, $allowedKmmIds, true)) {
-                throw ValidationException::withMessages([
-                    'nilai' => 'Data mahasiswa tidak valid untuk kelas ini.',
-                ]);
-            }
-
-            foreach ($cells as $komponenId => $value) {
-                if (! array_key_exists($komponenId, $pivotIdsByKomponen)) {
-                    throw ValidationException::withMessages([
-                        'nilai' => 'Data komponen penilaian tidak valid untuk kelas ini.',
-                    ]);
-                }
-
-                // Nilai asesmen dirinci diturunkan dari sub-kolomnya; tidak
-                // pernah ditulis sebagai satu angka (itu akan menyamakan semua pivot).
-                if (array_key_exists($komponenId, $rincian)) {
-                    continue;
-                }
-
-                $pivotIds = $pivotIdsByKomponen[$komponenId];
-
-                if ($value === null || $value === '') {
-                    // Mengosongkan sel = mereset nilai asesmen ini untuk mahasiswa
-                    // yang bersangkutan (dipakai juga saat tempel dari Excel hanya
-                    // menyertakan sebagian asesmen) — hanya baris yang memang sudah
-                    // tersimpan yang disentuh, agar tidak membuat baris kosong baru.
-                    NilaiMahasiswa::query()
-                        ->whereIn('subcpmk_komponenpenilaian_id', $pivotIds)
-                        ->where('kelas_mk_mahasiswa_id', $kmmId)
-                        ->whereNotNull('nilai')
-                        ->get()
-                        ->each(fn (NilaiMahasiswa $n) => $n->update(['nilai' => null]));
-
-                    continue;
-                }
-
-                $numeric = (float) $value;
-
-                if ($numeric < 0 || $numeric > 100) {
-                    throw ValidationException::withMessages([
-                        "nilai.{$kmmId}.{$komponenId}" => 'Nilai harus antara 0 dan 100.',
-                    ]);
-                }
-
-                foreach ($pivotIds as $pivotId) {
-                    NilaiMahasiswa::query()->updateOrCreate(
-                        [
-                            'subcpmk_komponenpenilaian_id' => $pivotId,
-                            'kelas_mk_mahasiswa_id' => $kmmId,
-                        ],
-                        [
-                            'nilai' => $numeric,
-                        ],
-                    );
-                }
-            }
+            return;
         }
 
-        $matrix->simpanNilaiAkhir(
-            $this->columns,
-            $matrix->terapkanRincian($this->nilai, $matrix->nilaiRinciUntukMatrix($this->rows, $rincian), $rincian),
-        );
+        // Atomik: satu sel tak sah (atau galat lain) membatalkan semua tulisan,
+        // termasuk gugurnya validasi nilai oleh observer.
+        DB::transaction(function () use ($allowedKmmIds, $rincian, $pivotIdsByKomponen, $matrix): void {
+            $this->simpanSkorRinci($allowedKmmIds, $rincian);
+
+            foreach ($this->nilai as $kmmId => $cells) {
+                if (! in_array($kmmId, $allowedKmmIds, true)) {
+                    throw ValidationException::withMessages([
+                        'nilai' => 'Data mahasiswa tidak valid untuk kelas ini.',
+                    ]);
+                }
+
+                foreach ($cells as $komponenId => $value) {
+                    if (! array_key_exists($komponenId, $pivotIdsByKomponen)) {
+                        throw ValidationException::withMessages([
+                            'nilai' => 'Data komponen penilaian tidak valid untuk kelas ini.',
+                        ]);
+                    }
+
+                    // Nilai asesmen dirinci diturunkan dari sub-kolomnya; tidak
+                    // pernah ditulis sebagai satu angka (itu akan menyamakan semua pivot).
+                    if (array_key_exists($komponenId, $rincian)) {
+                        continue;
+                    }
+
+                    $pivotIds = $pivotIdsByKomponen[$komponenId];
+
+                    if ($value === null || $value === '') {
+                        // Mengosongkan sel = mereset nilai asesmen ini untuk mahasiswa
+                        // yang bersangkutan (dipakai juga saat tempel dari Excel hanya
+                        // menyertakan sebagian asesmen) — hanya baris yang memang sudah
+                        // tersimpan yang disentuh, agar tidak membuat baris kosong baru.
+                        NilaiMahasiswa::query()
+                            ->whereIn('subcpmk_komponenpenilaian_id', $pivotIds)
+                            ->where('kelas_mk_mahasiswa_id', $kmmId)
+                            ->whereNotNull('nilai')
+                            ->get()
+                            ->each(fn (NilaiMahasiswa $n) => $n->update(['nilai' => null]));
+
+                        continue;
+                    }
+
+                    $numeric = (float) $value;
+
+                    if ($numeric < 0 || $numeric > 100) {
+                        throw ValidationException::withMessages([
+                            "nilai.{$kmmId}.{$komponenId}" => 'Nilai harus antara 0 dan 100.',
+                        ]);
+                    }
+
+                    foreach ($pivotIds as $pivotId) {
+                        NilaiMahasiswa::query()->updateOrCreate(
+                            [
+                                'subcpmk_komponenpenilaian_id' => $pivotId,
+                                'kelas_mk_mahasiswa_id' => $kmmId,
+                            ],
+                            [
+                                'nilai' => $numeric,
+                            ],
+                        );
+                    }
+                }
+            }
+
+            $matrix->simpanNilaiAkhir(
+                $this->columns,
+                $matrix->terapkanRincian($this->nilai, $matrix->nilaiRinciUntukMatrix($this->rows, $rincian), $rincian),
+            );
+        });
 
         Notification::make()
             ->title('Tersimpan')
@@ -272,6 +286,26 @@ class InputNilai extends Page
 
         $this->showKalkulasiBadge = true;
         $this->loadMatrix();
+    }
+
+    /**
+     * Apakah himpunan asesmen dirinci beserta pivotnya di layar berbeda dari
+     * keadaan basis data sekarang (pemetaan berubah atau rincian dinyalakan
+     * dari tab lain). Menyimpan dari state basi akan menulis nilai yang tak
+     * pernah diketik pengguna.
+     *
+     * @param  array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>  $rincianDb
+     */
+    protected function rincianLayarBasi(array $rincianDb): bool
+    {
+        $ringkas = function (array $rincian): array {
+            $hasil = array_map(fn (array $pivots): array => collect($pivots)->pluck('pivot_id')->map(fn ($id): string => (string) $id)->sort()->values()->all(), $rincian);
+            ksort($hasil);
+
+            return $hasil;
+        };
+
+        return $ringkas($this->rincian) !== $ringkas($rincianDb);
     }
 
     /**
