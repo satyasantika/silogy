@@ -43,6 +43,15 @@ Dosen Pengampu menjalankan kelas dan **menginput nilai mahasiswa** sesuai kompon
 3. Isi nilai pada template (jangan mengubah kolom kunci seperti NIM/kode komponen).
 4. Unggah kembali file tersebut, lalu konfirmasi. Periksa ringkasan hasil import dan perbaiki baris yang gagal bila ada.
 
+## Mencetak laporan memerlukan validasi
+
+Tombol **Cetak** pada tab **Laporan Lengkap** hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai. Cetakan dari kelas yang belum divalidasi (termasuk lewat Ctrl+P) bertanda air **BELUM DIVALIDASI**.
+
+- Validasi **gugur** bila nilai, bobot, pemetaan, peserta, atau isi Analisis & RTL berubah. Menekan **Simpan** tanpa mengubah nilai tidak menggugurkannya.
+- Nilai tidak dikunci; Anda tetap bisa mengubahnya, tetapi kelas lalu perlu divalidasi ulang.
+- Aturan ini berlaku untuk semua kelas, juga semester lampau.
+- Hubungi Validator Nilai di unit Anda untuk meminta validasi. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
+
 ## Praktik baik
 
 - Pastikan komponen penilaian sudah tersedia sebelum input. Jika belum, hubungi Koordinator MK.

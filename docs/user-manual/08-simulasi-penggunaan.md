@@ -126,7 +126,7 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 ---
 
-## TAHAP 6 — Monitoring, analisis & audit (Pimpinan & Auditor)
+## TAHAP 6 — Monitoring, analisis, audit & validasi (Pimpinan, Auditor & Validator Nilai)
 
 1. **Pimpinan** (`kaprodi`/`dekan`/`rektor`) — **Dashboard/Laporan**: tinjau ketercapaian CPL/CPMK pada unit.
 2. **Pimpinan** — **AI Analisis → Minta Analisis**: ajukan analisis (pilih lingkup unit/semester/MK) → cek hasil di **Riwayat Analisis**.
@@ -139,7 +139,9 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 ![Log aktivitas sebagai bukti audit](aset/auditor-log.png)
 
-✅ *Output:* laporan ketercapaian, analisis AI, dan bukti audit.
+5. **Validator Nilai** (`validator`) — **Penilaian → Validasi Nilai**: buka laporan kelas lewat **Lihat**, lalu **Validasi** agar Laporan Lengkap boleh dicetak. Validasi gugur bila nilai, bobot, pemetaan, peserta, atau Analisis & RTL berubah.
+
+✅ *Output:* laporan ketercapaian, analisis AI, bukti audit, dan kelas tervalidasi yang siap dicetak.
 
 ---
 
@@ -149,8 +151,8 @@ Simulasi hanya tersedia di tingkat **Program Studi**. Panduan tingkat Universita
 
 | Pilihan | Cara masuk | Isi data | Sifat | Dipakai untuk |
 |---|---|---|---|---|
-| **Lihat contoh terisi** | Tombol di halaman panduan tiap peran, tanpa token | Satu program studi dengan satu mata kuliah (Kalkulus I) yang rantai OBE-nya lengkap: 2 CPL, 2 CPMK, 4 Sub-CPMK, 4 asesmen, 10 mahasiswa, sampai nilai dan hasil analisis | Satu salinan **dipakai bersama** semua orang dan **hanya dapat dibaca** | Melihat seperti apa hasil akhir tiap menu. Tersedia untuk keenam peran |
-| **Ruang simulasi** | Halaman **/ruang**: masukkan **token ruang**, lalu pilih peran | Satu program studi dengan satu kurikulum kosong, satu mata kuliah kosong yang Koordinator MK-nya sudah ditetapkan, dan 30 mahasiswa | Satu ruang untuk **enam peserta**, **satu peserta per peran**, dapat diubah | Mengikuti tahap 2 sampai 5 di bawah ini dari awal, bersama-sama |
+| **Lihat contoh terisi** | Tombol di halaman panduan tiap peran, tanpa token | Satu program studi dengan satu mata kuliah (Kalkulus I) yang rantai OBE-nya lengkap: 2 CPL, 2 CPMK, 4 Sub-CPMK, 4 asesmen, 10 mahasiswa, sampai nilai dan hasil analisis | Satu salinan **dipakai bersama** semua orang dan **hanya dapat dibaca** | Melihat seperti apa hasil akhir tiap menu. Tersedia untuk ketujuh peran |
+| **Ruang simulasi** | Halaman **/ruang**: masukkan **token ruang**, lalu pilih peran | Satu program studi dengan satu kurikulum kosong, satu mata kuliah kosong yang Koordinator MK-nya sudah ditetapkan, dan 30 mahasiswa | Satu ruang untuk **tujuh peserta**, **satu peserta per peran**, dapat diubah | Mengikuti tahap 2 sampai 5 di bawah ini dari awal, bersama-sama |
 
 ### Contoh terisi bersifat hanya-baca
 
@@ -162,7 +164,7 @@ Karena dipakai bersama, tombol simpan, ubah, dan hapus dinonaktifkan, dan setiap
 
 1. Buka menu **Simulasi**, tekan **Siapkan Ruang**, isi jumlah ruang (bawaan 1), lalu **Siapkan**. Layar progres menampilkan tiap tahap pembangunan.
 2. Tiap ruang mendapat **token enam karakter** (huruf besar dan angka, tanpa huruf yang mudah tertukar seperti 0, O, 1, I, L). Token tampil di daftar **Ruang**.
-3. Bagikan satu token per kelompok enam peserta. Satu ruang menampung satu peserta untuk tiap peran.
+3. Bagikan satu token per kelompok tujuh peserta. Satu ruang menampung satu peserta untuk tiap peran.
 4. Bila diperlukan: **Lepas peran** (tombol × pada peran yang terisi) membebaskan satu peran, **Ganti token** membuat token baru bila token lama bocor (peserta yang sudah masuk tidak terganggu), dan **Hapus** membongkar ruang.
 5. **Pengaturan** memuat kapasitas ruang, batas percobaan per IP, batas token salah, umur ruang tanpa aktivitas (hari), dan lama peran dibebaskan otomatis (menit). Semuanya disimpan di basis data, tanpa mengubah berkas di server.
 
@@ -222,6 +224,7 @@ Ruang yang tidak dipakai selama 3 hari (bawaan) dibuang otomatis oleh penjadwal.
 - [ ] Dashboard menampilkan ketercapaian CPL/CPMK
 - [ ] Analisis AI berhasil dijalankan
 - [ ] Log audit mencatat aktivitas
+- [ ] Kelas berstatus Tervalidasi, tombol Cetak Laporan Lengkap aktif
 
 ---
 

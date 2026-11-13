@@ -19,6 +19,7 @@ beranda SILOGY, lengkap dengan tangkapan layar sistem yang sebenarnya. Alamat re
 | Dosen Pengampu | [05-dosen-pengampu.md](05-dosen-pengampu.md) | `/panduan/dosen-pengampu` |
 | Pimpinan (Universitas/Fakultas/Jurusan/Prodi) | [06-pimpinan.md](06-pimpinan.md) | `/panduan/pimpinan` |
 | Auditor Mutu | [07-auditor-mutu.md](07-auditor-mutu.md) | `/panduan/auditor-mutu` |
+| Validator Nilai | [09-validator-nilai.md](09-validator-nilai.md) | `/panduan/validator-nilai` |
 | Semua peran — alur end-to-end | [08-simulasi-penggunaan.md](08-simulasi-penggunaan.md) | `/panduan/alur-end-to-end` |
 
 ## Cara masuk (login)

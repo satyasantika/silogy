@@ -61,6 +61,12 @@ final class PeranPanduan
                 'ringkas' => 'Membaca laporan dan jejak perubahan, tanpa mengubah data.',
                 'ikon' => 'bi-clipboard-check',
             ],
+            'validator-nilai' => [
+                'berkas' => '09-validator-nilai.md',
+                'label' => 'Validator Nilai',
+                'ringkas' => 'Memeriksa dan memvalidasi nilai kelas sebelum laporan dicetak.',
+                'ikon' => 'bi-patch-check',
+            ],
             'alur-end-to-end' => [
                 'berkas' => '08-simulasi-penggunaan.md',
                 'label' => 'Alur End-to-End',

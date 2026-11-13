@@ -43,6 +43,10 @@ it('merender halaman tiap peran untuk tamu', function (string $slug) {
         ->assertSee(PeranPanduan::definisi($slug)['label'], escape: false);
 })->with(PeranPanduan::slug());
 
+it('merender panduan Validator Nilai untuk tamu', function () {
+    $this->get('/panduan/validator-nilai')->assertOk()->assertSee('Validator Nilai');
+});
+
 it('mengabaikan parameter tingkat yang ngawur pada halaman peran', function () {
     $this->get(route('panduan.peran', ['peran' => 'pimpinan', 'level' => 'ngawur']))->assertSuccessful();
 });

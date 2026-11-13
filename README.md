@@ -37,7 +37,7 @@
 
 **Panduan pengguna (per role):**
 
-- [docs/user-manual/](docs/user-manual/00-README.md) — indeks panduan, satu file per role (Super Admin, Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu, Pimpinan, Auditor Mutu), plus [alur simulasi end-to-end](docs/user-manual/08-simulasi-penggunaan.md) lintas peran
+- [docs/user-manual/](docs/user-manual/00-README.md) — indeks panduan, satu file per role (Super Admin, Admin Unit, Tim Kurikulum, Koordinator MK, Dosen Pengampu, Pimpinan, Auditor Mutu, Validator Nilai), plus [alur simulasi end-to-end](docs/user-manual/08-simulasi-penggunaan.md) lintas peran
 
 ---
 
@@ -102,6 +102,7 @@ Password default semua akun: **`siliwangi`**
 | `dosenjur` | Dosen Pengampu (penugasan jurusan) |
 | `dosen` | Dosen Pengampu |
 | `auditor` | Auditor Mutu |
+| `validator` | Validator Nilai (penugasan prodi) |
 
 Sumber kebenaran: [`database/seeders/RolePermissionSeeder.php`](database/seeders/RolePermissionSeeder.php) (dirangkum juga di [PreVibeCoding §7.2](docs/SILOGY_PreVibeCoding_v6.md#72-pola-data-sample)).
 
