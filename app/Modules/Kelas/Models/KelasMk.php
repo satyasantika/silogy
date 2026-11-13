@@ -7,6 +7,7 @@ use App\Modules\Kalender\Models\Semester;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
+use App\Modules\Penilaian\Models\ValidasiNilaiKelas;
 use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class KelasMk extends Model
 {
@@ -138,5 +140,13 @@ class KelasMk extends Model
             ->using(KelasMkMahasiswa::class)
             ->withPivot(['nilai_angka', 'nilai_huruf'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasOne<ValidasiNilaiKelas, $this>
+     */
+    public function validasiNilai(): HasOne
+    {
+        return $this->hasOne(ValidasiNilaiKelas::class);
     }
 }
