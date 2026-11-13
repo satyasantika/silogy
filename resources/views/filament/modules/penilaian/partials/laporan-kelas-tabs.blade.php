@@ -143,10 +143,21 @@
             heading="Laporan Mata Kuliah ke Prodi"
             description="Portofolio penilaian dan evaluasi untuk kelas terpilih."
         >
-            <div class="silogy-laporan-cetak-aksi" style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-                <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" onclick="silogyCetakLaporanLengkap()">
-                    Cetak
-                </x-filament::button>
+            @php($tervalidasi = $this->statusValidasi === 'tervalidasi')
+            <div class="silogy-laporan-cetak-aksi" style="display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                @include('filament.modules.penilaian.partials.status-validasi-nilai')
+                @if (! $tervalidasi)
+                    <span data-silogy="alasan-cetak-terkunci" style="font-size:12px;opacity:.75;">
+                        {{ $this->statusValidasi === 'perlu_ulang' ? 'Data berubah sejak divalidasi — perlu validasi ulang.' : 'Belum divalidasi Validator Nilai.' }}
+                    </span>
+                    <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" disabled>
+                        Cetak
+                    </x-filament::button>
+                @else
+                    <x-filament::button size="sm" color="gray" icon="heroicon-o-printer" onclick="silogyCetakLaporanLengkap()">
+                        Cetak
+                    </x-filament::button>
+                @endif
             </div>
 
             <div data-silogy="laporan-cetak-badan" class="silogy-laporan-cetak-badan">
@@ -271,6 +282,18 @@
                 </section>
 
                 @include('filament.modules.penilaian.partials.blok-rtl')
+
+                @if ($tervalidasi && $this->infoValidasi)
+                    <section class="silogy-laporan-blok" data-silogy="blok-validasi-nilai" style="border:1px solid rgba(128,128,128,.3);border-radius:10px;padding:14px;font-size:13px;">
+                        <div style="font-weight:600;">Divalidasi oleh {{ $this->infoValidasi['nama'] }}</div>
+                        @if (filled($this->infoValidasi['jabatan']))
+                            <div>{{ $this->infoValidasi['jabatan'] }}</div>
+                        @endif
+                        <div>{{ $this->infoValidasi['waktu'] }}</div>
+                    </section>
+                @else
+                    <div data-silogy="tanda-air-belum-divalidasi" class="silogy-tanda-air-belum-divalidasi" aria-hidden="true">BELUM DIVALIDASI</div>
+                @endif
             </div>
         </x-filament::section>
     </div>

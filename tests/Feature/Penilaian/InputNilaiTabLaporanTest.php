@@ -25,6 +25,7 @@ use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
+use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\MahasiswaSeeder;
@@ -690,6 +691,11 @@ it('menampilkan tab Laporan gabungan dengan identitas, rencana evaluasi, workclo
 
     $this->actingAs($this->dosen);
     $fixtures = siapkanFixtureTabLaporan($this->dosen);
+
+    // Tombol cetak aktif hanya pada kelas tervalidasi.
+    $sidik = Livewire::test(InputNilai::class)->set('kelasMkId', $fixtures['kelas']->id)->get('sidikLaporan');
+    app(ValidasiNilaiService::class)
+        ->validasi($fixtures['kelas'], User::factory()->create(), $sidik);
 
     $test = Livewire::test(InputNilai::class)
         ->set('kelasMkId', $fixtures['kelas']->id)

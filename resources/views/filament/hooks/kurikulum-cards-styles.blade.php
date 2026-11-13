@@ -1382,7 +1382,30 @@
         display: none;
     }
 
+    /* Tanda air laporan belum divalidasi: tersembunyi di layar, tampil
+       pada setiap cetak (termasuk Ctrl+P biasa) dan berulang tiap halaman. */
+    .silogy-tanda-air-belum-divalidasi {
+        display: none;
+    }
+
     @media print {
+        .silogy-tanda-air-belum-divalidasi {
+            display: block !important;
+            position: fixed !important;
+            top: 45%;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            transform: rotate(-35deg);
+            font-size: 84px;
+            font-weight: 800;
+            letter-spacing: 6px;
+            color: rgba(220, 38, 38, 0.18) !important;
+            pointer-events: none;
+            z-index: 9999;
+            visibility: visible !important;
+        }
+
         body[data-silogy-print="laporan-lengkap"] .silogy-hanya-cetak {
             display: block !important;
         }

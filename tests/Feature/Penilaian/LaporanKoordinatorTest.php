@@ -339,3 +339,15 @@ it('koordinator membaca blok F catatan rtl tulisan dosen pengampu tanpa formulir
 
     expect(CatatanRtlKelas::query()->count())->toBe(1);
 });
+
+it('menampilkan gerbang cetak yang sama dengan Input Nilai bagi kelas belum divalidasi', function () {
+    siapkanPenugasanLaporanKoordinator($this->mk, $this->prodi, $this->semester->id);
+    buatKelasUntukDosen($this->mkUnit, $this->dosen, $this->prodi, $this->semester->id, 'A');
+
+    Livewire::test(LaporanKoordinator::class)
+        ->assertSeeHtml('data-silogy="status-validasi-nilai"')
+        ->assertSee('Belum divalidasi Validator Nilai.')
+        ->assertSeeHtml('data-silogy="tanda-air-belum-divalidasi"')
+        ->assertDontSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="blok-validasi-nilai"');
+});
