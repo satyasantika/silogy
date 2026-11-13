@@ -81,6 +81,13 @@ trait HasLaporanKelasMk
     public array $ketercapaianCpl = [];
 
     /**
+     * Ketercapaian tiap Sub-CPMK (bagian C3); turunan, tidak masuk sidik.
+     *
+     * @var list<array{kode: string, nama: string|null, rata_rata: float|null, mencapai: int, dinilai: int, status: 'tercapai'|'lemah'|null, dasar: 'terpisah'|'tak_dibedakan', terlemah: bool}>
+     */
+    public array $ketercapaianSubcpmk = [];
+
+    /**
      * @var list<array{huruf: string, jumlah: int, persentase: float}>
      */
     public array $distribusiNilaiHuruf = [];
@@ -147,6 +154,7 @@ trait HasLaporanKelasMk
         $this->columns = [];
         $this->kolomEvaluasi = [];
         $this->ketercapaianCpl = [];
+        $this->ketercapaianSubcpmk = [];
         $this->distribusiNilaiHuruf = [];
         $this->detailCplCpmkSubcpmk = [];
         $this->rencanaEvaluasi = null;
@@ -231,6 +239,7 @@ trait HasLaporanKelasMk
         $this->nilaiRinci = $data['nilaiRinci'];
         $this->targetCapaianLulusan = $data['targetCapaianLulusan'];
         $this->ketercapaianCpl = $data['ketercapaianCpl'];
+        $this->ketercapaianSubcpmk = $data['ketercapaianSubcpmk'];
         $this->distribusiNilaiHuruf = $data['distribusiNilaiHuruf'];
         $this->detailCplCpmkSubcpmk = $data['detailCplCpmkSubcpmk'];
         $this->rencanaEvaluasi = $data['rencanaEvaluasi'];

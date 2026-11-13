@@ -18,7 +18,7 @@ class DataLaporanKelasService
      *     nilai: array<string, array<string, string|null>>,
      *     rincian: array<string, list<array{pivot_id: string, subcpmk_kode: string, bobot: float}>>,
      *     nilaiRinci: array<string, array<string, string|null>>, targetCapaianLulusan: int,
-     *     ketercapaianCpl: list<array<string, mixed>>, distribusiNilaiHuruf: list<array<string, mixed>>,
+     *     ketercapaianCpl: list<array<string, mixed>>, ketercapaianSubcpmk: list<array<string, mixed>>, distribusiNilaiHuruf: list<array<string, mixed>>,
      *     detailCplCpmkSubcpmk: list<array<string, mixed>>, rencanaEvaluasi: array<string, mixed>|null,
      *     blokRtl: array<string, mixed>, identitas: array{mk_nama: string|null, mk_kode: string|null, sks: int, dosen: string|null, semester_id: string}
      * }
@@ -41,6 +41,7 @@ class DataLaporanKelasService
         );
         $evaluasiCpl->jalankanKalkulasiSinkron($kelasMk);
         $ketercapaianCpl = $evaluasiCpl->ketercapaianCplPerKelas($kelasMk);
+        $target = $evaluasiCpl->targetCapaianLulusan($kelasMk);
 
         return [
             'columns' => $matrix->kolomDariKomponens($komponens, $semesterId),
@@ -50,8 +51,10 @@ class DataLaporanKelasService
             'nilai' => $nilai,
             'rincian' => $rincian,
             'nilaiRinci' => $nilaiRinci,
-            'targetCapaianLulusan' => $evaluasiCpl->targetCapaianLulusan($kelasMk),
+            'targetCapaianLulusan' => $target,
             'ketercapaianCpl' => $ketercapaianCpl,
+            // Turunan dari data yang sudah masuk sidik; sengaja tidak ikut untukSidik().
+            'ketercapaianSubcpmk' => app(KetercapaianSubcpmkService::class)->untukKelas($kelasMk, $rincian, $target),
             'distribusiNilaiHuruf' => $evaluasiCpl->distribusiNilaiHuruf($kelasMk),
             'detailCplCpmkSubcpmk' => $evaluasiCpl->detailCplCpmkSubcpmk($kelasMk),
             'rencanaEvaluasi' => app(RencanaEvaluasiService::class)->build($kelasMk->mkUnit?->mk_id, $kelasMk->semester_id),

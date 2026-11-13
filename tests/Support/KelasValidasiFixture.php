@@ -140,6 +140,50 @@ if (! function_exists('siapkanKelasDuaSubcpmk')) {
     }
 }
 
+if (! function_exists('siapkanKelasTigaSubcpmk')) {
+    /**
+     * Kelas dua-Sub-CPMK ditambah SUB-C (bobot pivot 200). Bawaan: SUB-C
+     * ikut asesmen yang sama (tiga pivot). Dengan `$asesmenTerpisah`, SUB-C
+     * dipindah ke asesmen tunggal kedua (Asesmen02, bobot 40; Asesmen01 60).
+     * `pivot3` bernilai null pada kedua peserta sampai tes mengisinya.
+     *
+     * @return array{kelas: KelasMk, kmm: list<KelasMkMahasiswa>, komponen: KomponenPenilaian, pivot: SubcpmkKomponenPenilaian, pivot2: SubcpmkKomponenPenilaian, pivot3: SubcpmkKomponenPenilaian, komponen2: KomponenPenilaian|null}
+     */
+    function siapkanKelasTigaSubcpmk(User $dosen, ?AcademicUnit $prodi = null, bool $asesmenTerpisah = false): array
+    {
+        $data = siapkanKelasDuaSubcpmk($dosen, $prodi);
+        $pivot = $data['pivot'];
+        $komponen2 = null;
+        $komponenPivot3 = $data['komponen'];
+
+        if ($asesmenTerpisah) {
+            $mkId = $data['komponen']->mk_id;
+            komponenUntukSemester($mkId, semesterAsesmen($data['komponen']->id), ['kode' => 'Asesmen01', 'bobot' => 60]);
+            $komponen2 = komponenUntukSemester($mkId, semesterAsesmen($data['komponen']->id), [
+                'kode' => 'Asesmen02',
+                'nama' => 'Tugas',
+                'bobot' => 40,
+            ]);
+            $komponenPivot3 = $komponen2;
+        }
+
+        $subcpmk3 = Subcpmk::factory()
+            ->for($pivot->subcpmk->mkCpmk)
+            ->untukSemester((string) $pivot->semester_id)
+            ->create(['kode' => 'SUB-C']);
+
+        $data['pivot3'] = SubcpmkKomponenPenilaian::query()->create([
+            'semester_id' => $pivot->semester_id,
+            'subcpmk_id' => $subcpmk3->id,
+            'komponen_penilaian_id' => $komponenPivot3->id,
+            'bobot' => 200,
+        ]);
+        $data['komponen2'] = $komponen2;
+
+        return $data;
+    }
+}
+
 if (! function_exists('jadikanValidator')) {
     /** Menugaskan user pada unit dengan penanda validator nilai (peran ikut otomatis). */
     function jadikanValidator(User $user, AcademicUnit $unit): void

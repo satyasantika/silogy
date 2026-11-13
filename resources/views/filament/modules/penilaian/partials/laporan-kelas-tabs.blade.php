@@ -246,6 +246,13 @@
                     </div>
                 </section>
 
+                <section class="silogy-laporan-blok" data-silogy="laporan-blok-c3">
+                    <div class="silogy-laporan-blok__judul">C3. Ketercapaian Sub-CPMK</div>
+                    <div class="silogy-laporan-blok__isi">
+                        @include('filament.modules.penilaian.partials.tabel-ketercapaian-subcpmk', ['ketercapaianSubcpmk' => $ketercapaianSubcpmk])
+                    </div>
+                </section>
+
                 <section class="silogy-laporan-blok silogy-laporan-blok--rapat" data-silogy="laporan-blok-d">
                     <div class="silogy-laporan-blok__judul">D. Distribusi Nilai</div>
                     <div class="silogy-laporan-blok__isi">
