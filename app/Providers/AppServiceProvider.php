@@ -146,7 +146,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('inputNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->inputNilai($user, $kelasMk));
         Gate::define('lihatNilai', fn (User $user, KelasMk $kelasMk): bool => app(InputNilaiPolicy::class)->lihatNilai($user, $kelasMk));
         Gate::define('lihatValidasiNilai', fn (User $user, KelasMk $kelasMk): bool => app(ValidasiNilaiPolicy::class)->lihat($user, $kelasMk));
-        Gate::define('validasiNilai', fn (User $user, KelasMk $kelasMk): bool => app(ValidasiNilaiPolicy::class)->validasi($user, $kelasMk));
+        Gate::define('validasiNilai', fn (User $user, KelasMk $kelasMk, ?array $kelengkapan = null): bool => app(ValidasiNilaiPolicy::class)->validasi($user, $kelasMk, $kelengkapan));
         Gate::define('batalkanValidasiNilai', fn (User $user, KelasMk $kelasMk): bool => app(ValidasiNilaiPolicy::class)->batalkanValidasi($user, $kelasMk));
 
         Event::listen(StateChanged::class, LogStateTransition::class);

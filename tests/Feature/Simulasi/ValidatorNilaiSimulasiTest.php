@@ -6,6 +6,7 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Filament\Pages\InputNilai;
 use App\Modules\Penilaian\Filament\Pages\ValidasiNilai;
 use App\Modules\Penilaian\Models\ValidasiNilaiKelas;
+use App\Modules\Penilaian\Policies\ValidasiNilaiPolicy;
 use App\Modules\Penilaian\Support\ValidatorNilaiScope;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Services\SimulasiService;
@@ -132,4 +133,21 @@ it('baris validasi terisolasi antarsandbox dan ikut terhapus bersama sandbox', f
     expect($a->fresh()->status)->toBe(SimulasiJalan::STATUS_DIBONGKAR)
         ->and(ValidasiNilaiKelas::query()->whereIn('kelas_mk_id', $kelasA)->count())->toBe(0)
         ->and(ValidasiNilaiKelas::query()->whereIn('kelas_mk_id', $kelasB)->count())->toBe(count($kelasB));
+});
+
+it('hanya-baca: tombol Validasi tidak tampil walau kelas belum divalidasi', function () {
+    [$jalan, $validator] = sandboxValidator(true);
+    $kelas = KelasMk::query()->get()->first(fn (KelasMk $k): bool => $k->penugasanSelesai());
+
+    // Proses sistem (di bawah Ranah::sebagai) boleh menulis; jadikan kelas belum divalidasi.
+    Ranah::sebagai((string) $jalan->getKey(), fn () => ValidasiNilaiKelas::query()->where('kelas_mk_id', $kelas->id)->delete());
+
+    expect(HanyaBaca::aktif($validator))->toBeTrue()
+        ->and(app(ValidasiNilaiPolicy::class)->alasanTidakBisaValidasi($validator, $kelas))->toBeNull();
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->assertSet('statusValidasi', 'belum')
+        ->assertActionHidden('validasi')
+        ->assertActionHidden('batalkanValidasi');
 });

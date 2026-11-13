@@ -219,6 +219,30 @@ class ValidasiNilai extends Page
     }
 
     /**
+     * Kebijakan validasi (termasuk penolakan mode hanya-baca) untuk kelas yang
+     * dibuka, sekali per request.
+     */
+    protected function bolehValidasi(): bool
+    {
+        $kelas = $this->kelasAktif();
+
+        return $kelas !== null && $this->ingat(
+            "boleh-validasi:{$kelas->id}",
+            fn (): bool => Gate::allows('validasiNilai', [$kelas, $this->kelengkapan($kelas)]),
+        );
+    }
+
+    protected function bolehBatalkanValidasi(): bool
+    {
+        $kelas = $this->kelasAktif();
+
+        return $kelas !== null && $this->ingat(
+            "boleh-batal:{$kelas->id}",
+            fn (): bool => Gate::allows('batalkanValidasiNilai', $kelas),
+        );
+    }
+
+    /**
      * Daftar kelas dalam cakupan pada semester terpilih. Status validasi dari
      * baris tersimpan saja — sidik tidak dihitung di daftar.
      *
@@ -288,7 +312,7 @@ class ValidasiNilai extends Page
             ->modalDescription('Dengan memvalidasi, Anda menyatakan isi laporan kelas ini sudah diperiksa. Laporan baru dapat dicetak setelah divalidasi.')
             ->visible(fn (): bool => $this->kelasMkId !== null
                 && $this->statusValidasi !== StatusValidasiNilai::Tervalidasi->value
-                && $this->getAlasanTidakBisaValidasiProperty() === null)
+                && $this->bolehValidasi())
             ->action(function (): void {
                 $kelas = $this->kelasAktif();
                 $user = auth()->user();
@@ -328,13 +352,8 @@ class ValidasiNilai extends Page
             ->requiresConfirmation()
             ->modalHeading('Batalkan validasi nilai kelas?')
             ->modalDescription('Laporan kelas ini tidak dapat dicetak lagi sampai divalidasi ulang.')
-            ->visible(function (): bool {
-                $kelas = $this->kelasAktif();
-
-                return $kelas !== null
-                    && $this->statusValidasi !== StatusValidasiNilai::Belum->value
-                    && Gate::allows('batalkanValidasiNilai', $kelas);
-            })
+            ->visible(fn (): bool => $this->statusValidasi !== StatusValidasiNilai::Belum->value
+                && $this->bolehBatalkanValidasi())
             ->action(function (): void {
                 $kelas = $this->kelasAktif();
 

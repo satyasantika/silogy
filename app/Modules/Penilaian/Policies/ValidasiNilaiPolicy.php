@@ -55,13 +55,16 @@ class ValidasiNilaiPolicy
         return null;
     }
 
-    public function validasi(User $user, KelasMk $kelasMk): bool
+    /**
+     * @param  array{status_kelengkapan: string}|null  $kelengkapan  lihat alasanTidakBisaValidasi()
+     */
+    public function validasi(User $user, KelasMk $kelasMk, ?array $kelengkapan = null): bool
     {
         if (HanyaBaca::aktif($user)) {
             return false;
         }
 
-        return $this->alasanTidakBisaValidasi($user, $kelasMk) === null;
+        return $this->alasanTidakBisaValidasi($user, $kelasMk, $kelengkapan) === null;
     }
 
     public function batalkanValidasi(User $user, KelasMk $kelasMk): bool
