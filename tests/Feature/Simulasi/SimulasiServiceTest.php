@@ -102,14 +102,14 @@ it('membangun rantai OBE lengkap di prodi sandbox, dengan induk kosong di atasny
     });
 });
 
-it('membuat 6 akun per sandbox, semuanya di prodi sandbox itu dan berdomain simulasi', function () {
+it('membuat 7 akun per sandbox, semuanya di prodi sandbox itu dan berdomain simulasi', function () {
     siapkanInfrastrukturNyata();
 
     $jalan = app(SimulasiService::class)->buat()->jalan;
 
     Ranah::sebagai($jalan->id, function () use ($jalan): void {
         $idUnit = AcademicUnit::query()->pluck('id');
-        expect(AkunSimulasi::akun())->toHaveCount(6);
+        expect(AkunSimulasi::akun())->toHaveCount(7);
 
         foreach (array_keys(AkunSimulasi::akun()) as $kunci) {
             $user = User::query()->where('username', AkunSimulasi::username($kunci, $jalan->kode()))->firstOrFail();
@@ -165,8 +165,8 @@ it('membangun dua sandbox berdampingan tanpa bentrok kolom unik', function () {
     $b = $simulasi->buat(mode: 'kosong')->jalan;
 
     expect($a->kode())->not->toBe($b->kode())
-        ->and(User::withoutGlobalScopes()->where('sandbox_id', $a->id)->count())->toBe(6)
-        ->and(User::withoutGlobalScopes()->where('sandbox_id', $b->id)->count())->toBe(6)
+        ->and(User::withoutGlobalScopes()->where('sandbox_id', $a->id)->count())->toBe(7)
+        ->and(User::withoutGlobalScopes()->where('sandbox_id', $b->id)->count())->toBe(7)
         ->and(Mahasiswa::withoutGlobalScopes()->where('sandbox_id', $a->id)->count())->toBe(30)
         ->and(Mahasiswa::withoutGlobalScopes()->where('sandbox_id', $b->id)->count())->toBe(30);
 });

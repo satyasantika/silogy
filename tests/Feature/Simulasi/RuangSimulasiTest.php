@@ -355,7 +355,7 @@ it('tabel ruang terisi hanya bisa ditulis lewat jalur sistem, bukan data akademi
     $ruang = ruangBaru();
 
     expect(HanyaBaca::TABEL_BOLEH)->toContain('simulasi_peran_terisi');
-    expect(Ranah::sebagai((string) $ruang->getKey(), fn () => User::query()->count()))->toBe(6);
+    expect(Ranah::sebagai((string) $ruang->getKey(), fn () => User::query()->count()))->toBe(7);
 });
 
 it('tab ruang tetap login pada permintaan berikutnya, bukan dilempar ke halaman login', function () {

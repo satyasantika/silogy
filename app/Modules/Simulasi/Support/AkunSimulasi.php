@@ -74,16 +74,16 @@ final class AkunSimulasi
     }
 
     /**
-     * Enam peran pada tingkat Program Studi. Kuncinya adalah nama dasar;
+     * Tujuh peran pada tingkat Program Studi. Kuncinya adalah nama dasar;
      * username nyata ditambah akhiran sandbox lewat username().
      *
-     * @return array<string, array{nama: string, peran: string, unit: string, jabatan: string, pimpinan: bool, tim_kurikulum: bool}>
+     * @return array<string, array{nama: string, peran: string, unit: string, jabatan: string, pimpinan: bool, tim_kurikulum: bool, validator_nilai: bool}>
      */
     public static function akun(): array
     {
-        $buat = static fn (string $nama, string $peran, string $jabatan, bool $pimpinan = false, bool $timKurikulum = false): array => [
+        $buat = static fn (string $nama, string $peran, string $jabatan, bool $pimpinan = false, bool $timKurikulum = false, bool $validatorNilai = false): array => [
             'nama' => $nama, 'peran' => $peran, 'unit' => 'prodi', 'jabatan' => $jabatan,
-            'pimpinan' => $pimpinan, 'tim_kurikulum' => $timKurikulum,
+            'pimpinan' => $pimpinan, 'tim_kurikulum' => $timKurikulum, 'validator_nilai' => $validatorNilai,
         ];
 
         return [
@@ -93,6 +93,7 @@ final class AkunSimulasi
             'sim-dosen' => $buat('Dosen Pengampu Program Studi (Simulasi)', 'Dosen Pengampu', 'Dosen'),
             'sim-kaprodi' => $buat('Ketua Program Studi (Simulasi)', 'Pimpinan', 'Ketua Program Studi', pimpinan: true),
             'sim-auditor' => $buat('Auditor Mutu Program Studi (Simulasi)', 'Auditor Mutu', 'Auditor Mutu'),
+            'sim-validator' => $buat('Validator Nilai Program Studi (Simulasi)', 'Validator Nilai', 'Validator Nilai', validatorNilai: true),
         ];
     }
 

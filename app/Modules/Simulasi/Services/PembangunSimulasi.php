@@ -6,11 +6,15 @@ use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\PerubahanCpmkRequest;
 use App\Modules\MK\Services\PerubahanCpmkService;
 use App\Modules\Penilaian\Models\Evaluasi;
+use App\Modules\Penilaian\Services\DataLaporanKelasService;
+use App\Modules\Penilaian\Services\PenilaianMatrixService;
+use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use App\Modules\Simulasi\Exceptions\SemesterAktifTidakAdaException;
 use App\Modules\Simulasi\Models\SimulasiJalan;
 use App\Modules\Simulasi\Support\AkunSimulasi;
@@ -52,7 +56,7 @@ class PembangunSimulasi
      * Naikkan setiap kali bentuk contoh terisi berubah. Salinan bersama yang
      * versinya lebih rendah dibangun ulang otomatis oleh penjadwal dan deploy.
      */
-    public const VERSI_CONTOH = 3;
+    public const VERSI_CONTOH = 4;
 
     public static function jumlahMahasiswa(string $mode): int
     {
@@ -66,7 +70,7 @@ class PembangunSimulasi
             ['label' => 'Menyiapkan peran dan izin', 'keterangan' => 'Memastikan peran dan izin akses tersedia.'],
             ['label' => 'Menyiapkan master evaluasi', 'keterangan' => 'Menyiapkan jenis evaluasi (tugas, UTS, UAS, dan sejenisnya).'],
             ['label' => 'Membangun program studi simulasi', 'keterangan' => 'Membuat Program Studi Simulasi beserta induknya yang kosong.'],
-            ['label' => 'Membuat akun simulasi', 'keterangan' => 'Membuat 6 akun (satu per peran) beserta penugasannya.'],
+            ['label' => 'Membuat akun simulasi', 'keterangan' => 'Membuat 7 akun (satu per peran) beserta penugasannya.'],
             ['label' => 'Membuat mahasiswa simulasi', 'keterangan' => 'Membuat '.self::jumlahMahasiswa($mode).' mahasiswa contoh di program studi simulasi.'],
         ];
 
@@ -89,6 +93,7 @@ class PembangunSimulasi
             ['label' => 'Mengisi nilai mahasiswa', 'keterangan' => 'Nilai tiap mahasiswa untuk setiap asesmen pada setiap Sub-CPMK.'],
             ['label' => 'Menghitung hasil analisis CPL', 'keterangan' => 'Menghitung capaian Sub-CPMK, CPMK, dan CPL untuk dasbor.'],
             ['label' => 'Mengajukan satu usulan perubahan CPMK', 'keterangan' => 'Satu usulan dari Koordinator MK untuk ditinjau Tim Kurikulum.'],
+            ['label' => 'Memvalidasi nilai kelas contoh', 'keterangan' => 'Kelas yang nilainya lengkap divalidasi oleh Validator Nilai, sehingga laporannya siap dicetak.'],
         ];
     }
 
@@ -154,6 +159,9 @@ class PembangunSimulasi
 
         $lapor('Mengajukan satu usulan perubahan CPMK');
         $this->buatUsulanPerubahanCpmk($unit['prodi'], $semester, $akun['sim-korma']);
+
+        $lapor('Memvalidasi nilai kelas contoh');
+        $this->validasiKelasContoh($unit['prodi'], $akun['sim-validator']);
 
         return ['unit' => $unit, 'akun' => $akun, 'semester' => $semester];
     }
@@ -247,6 +255,7 @@ class PembangunSimulasi
                 [
                     'status_pimpinan' => $definisi['pimpinan'],
                     'status_tim_kurikulum' => $definisi['tim_kurikulum'],
+                    'status_validator_nilai' => $definisi['validator_nilai'],
                     'jabatan' => $definisi['jabatan'],
                 ],
             );
@@ -295,6 +304,31 @@ class PembangunSimulasi
             alasan: 'Rumusan CPMK-1 belum mencerminkan kemampuan pemodelan yang diminta CPL-SIM-01. '
                 .'Mohon dibuka agar dapat disesuaikan pada semester berjalan.',
         );
+    }
+
+    /**
+     * Setiap kelas prodi simulasi yang nilainya lengkap divalidasi oleh
+     * sim-validator. Sidik dihitung dari sumber data yang sama dengan halaman
+     * laporan (DataLaporanKelasService), setelah kalkulasi pembangun selesai,
+     * sehingga contoh terisi hanya-baca tampil "Tervalidasi".
+     */
+    protected function validasiKelasContoh(AcademicUnit $prodi, User $validator): void
+    {
+        $laporan = app(DataLaporanKelasService::class);
+        $matrix = app(PenilaianMatrixService::class);
+
+        $kelasList = KelasMk::query()
+            ->with('mkUnit')
+            ->whereHas('mkUnit', fn ($q) => $q->where('academic_unit_id', $prodi->getKey()))
+            ->get();
+
+        foreach ($kelasList as $kelas) {
+            if ($matrix->kelengkapanKelas($kelas)['status_kelengkapan'] !== 'lengkap') {
+                continue;
+            }
+
+            app(ValidasiNilaiService::class)->validasi($kelas, $validator, $laporan->sidik($laporan->muat($kelas)));
+        }
     }
 
     protected function buatMahasiswa(AcademicUnit $prodi, string $kode, int $jumlah): void

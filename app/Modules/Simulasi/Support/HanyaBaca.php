@@ -46,7 +46,7 @@ final class HanyaBaca
         'forceDelete', 'forceDeleteAny', 'replicate', 'reorder',
         'manage', 'manageMk', 'kelolaMahasiswa', 'inputNilai', 'createUnit',
         'setujui', 'tolak', 'batalkan', 'assignPermissions', 'assignDosenPengampu',
-        'minta_analisis_ai',
+        'minta_analisis_ai', 'validasiNilai', 'batalkanValidasiNilai',
     ];
 
     /**

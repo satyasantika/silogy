@@ -5,9 +5,9 @@ namespace App\Modules\Penilaian\Filament\Pages\Concerns;
 use App\Models\User;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Services\CatatanRtlService;
+use App\Modules\Penilaian\Services\DataLaporanKelasService;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
-use App\Modules\Penilaian\Services\RencanaEvaluasiService;
 use App\Modules\Penilaian\Services\SidikLaporanKelas;
 use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use App\Modules\Penilaian\Support\StatusValidasiNilai;
@@ -149,7 +149,15 @@ trait HasLaporanKelasMk
 
     protected function muatBlokRtl(KelasMk $kelasMk): void
     {
-        $this->blokRtl = app(CatatanRtlService::class)->blok($kelasMk, $this->ketercapaianCpl);
+        $this->terapkanBlokRtl(app(CatatanRtlService::class)->blok($kelasMk, $this->ketercapaianCpl));
+    }
+
+    /**
+     * @param  array{baris: list<array{cpl_id: string, kode: string, deskripsi: string, rata_rata: float, analisis: string|null, rencana: string|null}>, umum: string|null, semua_tercapai: bool, terakhir: array{nama: string, waktu: string}|null}  $blok
+     */
+    private function terapkanBlokRtl(array $blok): void
+    {
+        $this->blokRtl = $blok;
         $this->isianRtl = [
             'cpl' => collect($this->blokRtl['baris'])
                 ->mapWithKeys(fn (array $baris): array => [$baris['cpl_id'] => [
@@ -192,26 +200,19 @@ trait HasLaporanKelasMk
      */
     protected function muatDataLaporan(KelasMk $kelasMk): void
     {
-        $matrix = app(PenilaianMatrixService::class);
-        $komponens = $matrix->komponenUntukKelas($kelasMk);
+        $data = app(DataLaporanKelasService::class)->muat($kelasMk);
 
-        $semesterId = (string) $kelasMk->semester_id;
-
-        $this->columns = $matrix->kolomDariKomponens($komponens, $semesterId);
-        $this->kolomEvaluasi = $matrix->kolomEvaluasiDariKomponens($komponens, $semesterId);
-
-        $this->rows = $matrix->barisUntukKelas($kelasMk);
-        $this->portofolioRows = $matrix->barisUntukKelas($kelasMk, 'mahasiswas.nim');
-        $this->nilai = $matrix->nilaiUntukMatrix($this->rows, $matrix->pivotIdsByKomponen($komponens));
-
-        $evaluasiCpl = app(EvaluasiCplService::class);
-        $evaluasiCpl->jalankanKalkulasiSinkron($kelasMk);
-        $this->targetCapaianLulusan = $evaluasiCpl->targetCapaianLulusan($kelasMk);
-        $this->ketercapaianCpl = $evaluasiCpl->ketercapaianCplPerKelas($kelasMk);
-        $this->distribusiNilaiHuruf = $evaluasiCpl->distribusiNilaiHuruf($kelasMk);
-        $this->detailCplCpmkSubcpmk = $evaluasiCpl->detailCplCpmkSubcpmk($kelasMk);
-        $this->rencanaEvaluasi = app(RencanaEvaluasiService::class)->build($kelasMk->mkUnit?->mk_id, $kelasMk->semester_id);
-        $this->muatBlokRtl($kelasMk);
+        $this->columns = $data['columns'];
+        $this->kolomEvaluasi = $data['kolomEvaluasi'];
+        $this->rows = $data['rows'];
+        $this->portofolioRows = $data['portofolioRows'];
+        $this->nilai = $data['nilai'];
+        $this->targetCapaianLulusan = $data['targetCapaianLulusan'];
+        $this->ketercapaianCpl = $data['ketercapaianCpl'];
+        $this->distribusiNilaiHuruf = $data['distribusiNilaiHuruf'];
+        $this->detailCplCpmkSubcpmk = $data['detailCplCpmkSubcpmk'];
+        $this->rencanaEvaluasi = $data['rencanaEvaluasi'];
+        $this->terapkanBlokRtl($data['blokRtl']);
         $this->muatStatusValidasi($kelasMk, true);
     }
 
@@ -223,7 +224,7 @@ trait HasLaporanKelasMk
      */
     protected function dataUntukSidik(): array
     {
-        return [
+        return app(DataLaporanKelasService::class)->untukSidik([
             'rows' => $this->rows,
             'columns' => $this->columns,
             'kolomEvaluasi' => $this->kolomEvaluasi,
@@ -233,8 +234,8 @@ trait HasLaporanKelasMk
             'detailCplCpmkSubcpmk' => $this->detailCplCpmkSubcpmk,
             'rencanaEvaluasi' => $this->rencanaEvaluasi,
             'targetCapaianLulusan' => $this->targetCapaianLulusan,
-            'rtl' => ['baris' => $this->blokRtl['baris'], 'umum' => $this->blokRtl['umum']],
-        ];
+            'blokRtl' => $this->blokRtl,
+        ]);
     }
 
     /**

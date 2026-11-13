@@ -75,7 +75,7 @@ it('ruang berisi satu prodi, satu kurikulum, satu MK kosong milik Koordinator, 3
     expect($jalan->mode)->toBe('kosong')
         ->and($jalan->bersama)->toBeFalse()
         ->and($jalan->pin)->toMatch('/^[A-HJ-KM-NP-Z2-9]{6}$/')
-        ->and($isi['akun'])->toBe(6)
+        ->and($isi['akun'])->toBe(7)
         ->and($isi['mahasiswa'])->toBe(30)
         ->and($isi['kurikulum'])->toBe(1)
         ->and($isi['mk'])->toBe(1)
@@ -135,8 +135,8 @@ it('dua ruang berdampingan tidak bentrok kolom unik dan bertoken berbeda', funct
     $a = $service->buat(mode: 'kosong')->jalan;
     $b = $service->buat(mode: 'kosong')->jalan;
 
-    expect(isiSandbox($a)['akun'])->toBe(6)
-        ->and(isiSandbox($b)['akun'])->toBe(6)
+    expect(isiSandbox($a)['akun'])->toBe(7)
+        ->and(isiSandbox($b)['akun'])->toBe(7)
         ->and($a->pin)->not->toBe($b->pin);
 });
 
@@ -161,7 +161,7 @@ it('contoh terisi hanya satu MK dengan rantai OBE lengkap: 2 CPL, 2 CPMK, 4 Sub-
         ->and($jalan->bersama)->toBeTrue()
         ->and($jalan->pin)->toBeNull()
         ->and($jalan->ringkasan['versi'])->toBe(PembangunSimulasi::VERSI_CONTOH)
-        ->and($isi['akun'])->toBe(6)
+        ->and($isi['akun'])->toBe(7)
         ->and($isi['mahasiswa'])->toBe(10)
         ->and($isi['kurikulum'])->toBe(1)
         ->and($isi['cpl'])->toBe(2)
@@ -371,7 +371,7 @@ it('tingkat yang tidak dikenal tetap 404', function () {
 
 it('akun hanya tersedia untuk tingkat Program Studi', function () {
     expect(array_keys(AkunSimulasi::akun()))->toBe([
-        'sim-adminprodi', 'sim-timkur', 'sim-korma', 'sim-dosen', 'sim-kaprodi', 'sim-auditor',
+        'sim-adminprodi', 'sim-timkur', 'sim-korma', 'sim-dosen', 'sim-kaprodi', 'sim-auditor', 'sim-validator',
     ]);
 
     foreach (AkunSimulasi::akunPanduan() as $peta) {
@@ -434,7 +434,7 @@ it('ruang tetap terisolasi dari data inti dan dari contoh terisi', function () {
     $this->actingAs($inti);
 
     expect(User::query()->where('username', 'like', 'sim-%')->count())->toBe(0)
-        ->and(isiSandbox($a)['akun'])->toBe(6)
+        ->and(isiSandbox($a)['akun'])->toBe(7)
         ->and(Ranah::sebagai((string) $a->getKey(), fn () => Cpl::query()->count()))->toBe(0)
         ->and(Ranah::sebagai((string) $b->getKey(), fn () => Cpl::query()->count()))->toBe(2);
 });
