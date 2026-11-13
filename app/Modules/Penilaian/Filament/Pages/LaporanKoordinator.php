@@ -152,6 +152,8 @@ class LaporanKoordinator extends Page
         $this->penugasanBelumSelesai = ! $kelasMk->penugasanSelesai();
 
         if ($this->penugasanBelumSelesai) {
+            $this->muatStatusValidasi($kelasMk, false);
+
             return;
         }
 

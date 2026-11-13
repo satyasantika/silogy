@@ -3,17 +3,23 @@
 namespace App\Modules\Penilaian\Filament\Pages\Concerns;
 
 use App\Models\User;
+use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Penilaian\Services\CatatanRtlService;
 use App\Modules\Penilaian\Services\EvaluasiCplService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use App\Modules\Penilaian\Services\RencanaEvaluasiService;
+use App\Modules\Penilaian\Services\SidikLaporanKelas;
+use App\Modules\Penilaian\Services\ValidasiNilaiService;
+use App\Modules\Penilaian\Support\StatusValidasiNilai;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
 use Filament\Notifications\Notification;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 
 /**
@@ -99,6 +105,17 @@ trait HasLaporanKelasMk
 
     public bool $penugasanBelumSelesai = false;
 
+    /** Sidik isi laporan, dihitung pada request yang sama dengan pemuatan data. */
+    public ?string $sidikLaporan = null;
+
+    /** Nilai StatusValidasiNilai untuk kelas terpilih. */
+    public string $statusValidasi = 'belum';
+
+    /**
+     * @var array{nama: string, jabatan: string|null, waktu: string}|null
+     */
+    public ?array $infoValidasi = null;
+
     /**
      * Reset seluruh state laporan — dipanggil sebelum memuat ulang (atau
      * saat belum ada kelas terpilih).
@@ -115,6 +132,9 @@ trait HasLaporanKelasMk
         $this->detailCplCpmkSubcpmk = [];
         $this->rencanaEvaluasi = null;
         $this->penugasanBelumSelesai = false;
+        $this->sidikLaporan = null;
+        $this->statusValidasi = StatusValidasiNilai::Belum->value;
+        $this->infoValidasi = null;
         $this->blokRtl = ['baris' => [], 'umum' => null, 'semua_tercapai' => false, 'terakhir' => null];
         $this->isianRtl = ['cpl' => [], 'umum' => null];
     }
@@ -162,6 +182,7 @@ trait HasLaporanKelasMk
         }
 
         $this->muatBlokRtl($kelasMk);
+        $this->muatStatusValidasi($kelasMk, true);
 
         Notification::make()->title('Catatan evaluasi disimpan')->success()->send();
     }
@@ -192,6 +213,68 @@ trait HasLaporanKelasMk
         $this->detailCplCpmkSubcpmk = $evaluasiCpl->detailCplCpmkSubcpmk($kelasMk);
         $this->rencanaEvaluasi = app(RencanaEvaluasiService::class)->build($kelasMk->mkUnit?->mk_id, $kelasMk->semester_id);
         $this->muatBlokRtl($kelasMk);
+        $this->muatStatusValidasi($kelasMk, true);
+    }
+
+    /**
+     * Isi laporan yang menentukan sidik validasi — tanpa data volatil
+     * (waktu, metadata "terakhir diubah").
+     *
+     * @return array<string, mixed>
+     */
+    protected function dataUntukSidik(): array
+    {
+        return [
+            'rows' => $this->rows,
+            'columns' => $this->columns,
+            'kolomEvaluasi' => $this->kolomEvaluasi,
+            'nilai' => $this->nilai,
+            'ketercapaianCpl' => $this->ketercapaianCpl,
+            'distribusiNilaiHuruf' => $this->distribusiNilaiHuruf,
+            'detailCplCpmkSubcpmk' => $this->detailCplCpmkSubcpmk,
+            'rencanaEvaluasi' => $this->rencanaEvaluasi,
+            'targetCapaianLulusan' => $this->targetCapaianLulusan,
+            'rtl' => ['baris' => $this->blokRtl['baris'], 'umum' => $this->blokRtl['umum']],
+        ];
+    }
+
+    /**
+     * Hitung sidik (null bila laporan tidak dimuat), periksa terhadap
+     * validasi tersimpan, dan isi status serta info validator.
+     */
+    protected function muatStatusValidasi(KelasMk $kelasMk, bool $laporanDimuat): void
+    {
+        $this->sidikLaporan = $laporanDimuat
+            ? app(SidikLaporanKelas::class)->dariData($this->dataUntukSidik())
+            : null;
+
+        $status = app(ValidasiNilaiService::class)->periksa($kelasMk, $this->sidikLaporan);
+        $this->statusValidasi = $status->value;
+        $this->infoValidasi = null;
+
+        if ($status !== StatusValidasiNilai::Tervalidasi) {
+            return;
+        }
+
+        $baris = $kelasMk->validasiNilai()->with('validator')->first();
+
+        if ($baris === null || $baris->validator === null) {
+            return;
+        }
+
+        $unitId = $kelasMk->loadMissing('mkUnit.academicUnit')->mkUnit?->academicUnit;
+        $jabatan = $unitId === null ? null : AcademicUnitUser::query()
+            ->where('user_id', $baris->validator_id)
+            ->where('status_validator_nilai', true)
+            ->whereIn('academic_unit_id', AcademicUnitScope::ancestorIdsIncludingSelf($unitId))
+            ->whereNotNull('jabatan')
+            ->value('jabatan');
+
+        $this->infoValidasi = [
+            'nama' => $baris->validator->namaDenganGelar(),
+            'jabatan' => $jabatan,
+            'waktu' => Carbon::parse($baris->divalidasi_at)->locale('id')->translatedFormat('d F Y H:i'),
+        ];
     }
 
     /**

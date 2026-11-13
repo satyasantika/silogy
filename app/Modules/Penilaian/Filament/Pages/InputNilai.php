@@ -140,6 +140,7 @@ class InputNilai extends Page
         $this->penugasanBelumSelesai = ! $kelasMk->penugasanSelesai();
 
         if ($this->penugasanBelumSelesai) {
+            $this->muatStatusValidasi($kelasMk, false);
             $this->nilaiTersimpan = [];
 
             return;
