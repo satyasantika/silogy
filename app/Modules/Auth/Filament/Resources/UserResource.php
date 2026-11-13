@@ -199,6 +199,10 @@ class UserResource extends Resource
                                     ->label('Tim kurikulum')
                                     ->inline(false)
                                     ->live(),
+                                Toggle::make('status_validator_nilai')
+                                    ->label('Validator nilai')
+                                    ->inline(false)
+                                    ->live(),
                                 TextInput::make('jabatan')
                                     ->label('Jabatan')
                                     ->maxLength(100)
@@ -327,6 +331,10 @@ class UserResource extends Resource
 
         if (filter_var($state['status_tim_kurikulum'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             $html .= '<span style="display:inline-flex;align-items:center;margin-inline-start:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;background:rgba(0,112,0,.14);color:#0b3914;">Tim kurikulum</span>';
+        }
+
+        if (filter_var($state['status_validator_nilai'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $html .= '<span style="display:inline-flex;align-items:center;margin-inline-start:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;background:rgba(5,150,105,.14);color:#065f46;">Validator nilai</span>';
         }
 
         return new HtmlString($html);

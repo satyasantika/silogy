@@ -25,6 +25,7 @@ class AcademicUnitUserRoleSync
     private const ROLE_COLUMNS = [
         'Pimpinan' => 'status_pimpinan',
         'Tim Kurikulum' => 'status_tim_kurikulum',
+        'Validator Nilai' => 'status_validator_nilai',
     ];
 
     /**

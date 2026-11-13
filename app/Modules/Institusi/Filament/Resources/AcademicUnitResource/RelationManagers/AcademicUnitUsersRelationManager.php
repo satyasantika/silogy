@@ -46,6 +46,10 @@ class AcademicUnitUsersRelationManager extends RelationManager
                     ->label('Tim kurikulum')
                     ->inline(false),
 
+                Toggle::make('status_validator_nilai')
+                    ->label('Validator nilai')
+                    ->inline(false),
+
                 TextInput::make('jabatan')
                     ->label('Jabatan')
                     ->maxLength(100),
@@ -71,6 +75,9 @@ class AcademicUnitUsersRelationManager extends RelationManager
                     ->boolean(),
                 IconColumn::make('status_tim_kurikulum')
                     ->label('Tim kurikulum')
+                    ->boolean(),
+                IconColumn::make('status_validator_nilai')
+                    ->label('Validator nilai')
                     ->boolean(),
                 TextColumn::make('jabatan')
                     ->label('Jabatan')

@@ -32,6 +32,7 @@ class AcademicUnitUser extends Model
         return [
             'status_pimpinan' => 'bool',
             'status_tim_kurikulum' => 'bool',
+            'status_validator_nilai' => 'bool',
         ];
     }
 

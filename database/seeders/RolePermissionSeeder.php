@@ -55,6 +55,7 @@ class RolePermissionSeeder extends Seeder
 
             // ---- Kelas & Penilaian ----
             'kelola_kelas', 'setdosen_mk', 'input_nilai', 'import_nilai', 'kelola_peserta_kelas',
+            'validasi_nilai',
 
             // ---- Laporan & AI ----
             'lihat_laporan', 'ekspor_data', 'minta_analisis_ai', 'lihat_dashboard',
@@ -121,6 +122,12 @@ class RolePermissionSeeder extends Seeder
         $pimpinan = Role::firstOrCreate(['name' => 'Pimpinan', 'guard_name' => 'web']);
         $pimpinan->syncPermissions([
             'lihat_laporan', 'ekspor_data', 'minta_analisis_ai', 'lihat_dashboard',
+        ]);
+
+        // --- Validator Nilai (memvalidasi nilai kelas sebelum laporan dicetak) ---
+        $validator = Role::firstOrCreate(['name' => 'Validator Nilai', 'guard_name' => 'web']);
+        $validator->syncPermissions([
+            'validasi_nilai', 'lihat_laporan', 'lihat_dashboard',
         ]);
 
         // --- Auditor Mutu ---
@@ -236,6 +243,11 @@ class RolePermissionSeeder extends Seeder
                 'nidn' => '0000000040', 'role' => 'Dosen Pengampu', 'unit' => $prodi,
                 'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Dosen'],
 
+            // Validator Nilai
+            ['username' => 'validator', 'full_name' => 'Validator Nilai',
+                'nidn' => '0000000050', 'role' => 'Validator Nilai', 'unit' => $prodi,
+                'pimpinan' => false, 'tim_kur' => false, 'validator' => true, 'jabatan' => 'Validator Nilai'],
+
             // Auditor
             ['username' => 'auditor', 'full_name' => 'Auditor Mutu',
                 'nidn' => '0000000099', 'role' => 'Auditor Mutu', 'unit' => null,
@@ -294,6 +306,7 @@ class RolePermissionSeeder extends Seeder
                         'id' => (string) Str::uuid(),
                         'status_pimpinan' => $a['pimpinan'],
                         'status_tim_kurikulum' => $a['tim_kur'],
+                        'status_validator_nilai' => $a['validator'] ?? false,
                         'jabatan' => $a['jabatan'],
                     ]
                 );

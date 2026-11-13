@@ -61,6 +61,7 @@ class PeranUnitFormFields
             'Tim Kurikulum' => Heroicon::OutlinedBookOpen,
             'Koordinator Mata Kuliah' => Heroicon::OutlinedClipboardDocumentList,
             'Dosen Pengampu' => Heroicon::OutlinedAcademicCap,
+            'Validator Nilai' => Heroicon::OutlinedCheckBadge,
             'Auditor Mutu' => Heroicon::OutlinedMagnifyingGlassCircle,
             default => Heroicon::OutlinedUserCircle,
         };
@@ -75,6 +76,7 @@ class PeranUnitFormFields
             'Tim Kurikulum' => 'info',
             'Koordinator Mata Kuliah' => 'success',
             'Dosen Pengampu' => 'primary',
+            'Validator Nilai' => 'success',
             'Auditor Mutu' => 'danger',
             default => 'gray',
         };

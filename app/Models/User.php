@@ -159,7 +159,7 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
     public function academicUnits(): BelongsToMany
     {
         return $this->belongsToMany(AcademicUnit::class, 'academic_unit_users')
-            ->withPivot(['status_pimpinan', 'status_tim_kurikulum', 'jabatan'])
+            ->withPivot(['status_pimpinan', 'status_tim_kurikulum', 'status_validator_nilai', 'jabatan'])
             ->withTimestamps();
     }
 
