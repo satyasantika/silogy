@@ -98,6 +98,8 @@ class PencatatArtefak
      *  - hasil_cpmk/_subcpmk→ CASCADE dari kelas_mk & kelas_mk_mahasiswa
      *  - hasil_cpl_mk       → CASCADE dari cpl, mk_units, kelas_mk_mahasiswa
      *  - hasil_cpl_unit/_mk_unit → CASCADE dari academic_units, cpl, mk
+     *  - validasi_nilai_kelas → CASCADE dari kelas_mk (validator_id RESTRICT ke
+     *    users, aman karena kelas dibongkar lebih dulu daripada pengguna)
      *
      * Ada alasan kedua yang memaksa keputusan ini: SimulasiAkademikBuilder
      * membungkus pembuatan peserta dan nilai dengan NilaiMahasiswa::withoutEvents(),
@@ -114,6 +116,7 @@ class PencatatArtefak
     public const MODEL_TURUNAN = [
         KelasMkMahasiswa::class,
         NilaiMahasiswa::class,
+        'App\Modules\Penilaian\Models\ValidasiNilaiKelas',
         'App\Modules\Kalkulasi\Models\HasilCpmk',
         'App\Modules\Kalkulasi\Models\HasilSubcpmk',
         'App\Modules\Kalkulasi\Models\HasilCplMk',

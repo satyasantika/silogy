@@ -84,7 +84,11 @@ it('hanya-baca: aksi validasi dan batalkan ditolak', function () {
     Livewire::test(ValidasiNilai::class)
         ->call('bukaKelas', $kelas->id)
         ->assertSet('statusValidasi', 'tervalidasi')
-        ->assertActionHidden('batalkanValidasi');
+        ->assertActionHidden('batalkanValidasi')
+        // Aksi tersembunyi yang ditaruh langsung di Blade dirender Filament
+        // sebagai tombol mati; pastikan tombolnya benar-benar tidak ada.
+        ->assertDontSeeHtml("mountAction('validasi')")
+        ->assertDontSeeHtml("mountAction('batalkanValidasi')");
 
     expect(ValidasiNilaiKelas::query()->where('kelas_mk_id', $kelas->id)->exists())->toBeTrue();
 });
@@ -150,4 +154,10 @@ it('hanya-baca: tombol Validasi tidak tampil walau kelas belum divalidasi', func
         ->assertSet('statusValidasi', 'belum')
         ->assertActionHidden('validasi')
         ->assertActionHidden('batalkanValidasi');
+});
+
+it('contoh terisi: baris validasi tidak dilaporkan sebagai model tak dikenal', function () {
+    $hasil = app(SimulasiService::class)->buat(mode: 'terisi', bersama: true);
+
+    expect($hasil->takDikenal)->toBe([]);
 });

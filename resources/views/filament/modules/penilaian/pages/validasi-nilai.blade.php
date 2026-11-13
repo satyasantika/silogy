@@ -93,8 +93,14 @@
                             {{ $this->alasanTidakBisaValidasi }}
                         </span>
                     @endif
-                    {{ $this->validasiAction }}
-                    {{ $this->batalkanValidasiAction }}
+                    {{-- Aksi tersembunyi dirender Filament sebagai tombol mati bila
+                         ditaruh langsung; saring di sini supaya benar-benar hilang. --}}
+                    @if ($this->validasiAction->isVisible())
+                        {{ $this->validasiAction }}
+                    @endif
+                    @if ($this->batalkanValidasiAction->isVisible())
+                        {{ $this->batalkanValidasiAction }}
+                    @endif
                     <x-filament::button size="sm" color="gray" wire:click="tutupKelas">Tutup</x-filament::button>
                 </div>
             </div>
@@ -115,4 +121,8 @@
             @endif
         </div>
     @endif
+
+    {{-- Dimuat sejak render pertama: skrip yang baru disisipkan lewat morph
+         Livewire (saat kelas dibuka) tidak dijalankan peramban. --}}
+    @include('filament.shared.charts.radar-bar-chartjs')
 </x-filament-panels::page>

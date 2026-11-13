@@ -279,3 +279,16 @@ it('daftar kelas segar kembali pada request yang sama setelah validasi dan batal
     $test->callAction('batalkanValidasi');
     expect($statusDiDaftar($test))->toContain('Belum divalidasi')->not->toContain('Tervalidasi');
 });
+
+it('memuat Chart.js sejak halaman pertama, sebelum ada kelas yang dibuka', function () {
+    // Skrip yang baru disisipkan lewat morph Livewire tidak dijalankan peramban,
+    // jadi grafik jaring laba-laba kosong bila Chart.js baru ikut saat kelas dibuka.
+    [$prodiA] = siapkanDuaProdi();
+    $validator = User::factory()->create();
+    jadikanValidator($validator, $prodiA);
+    $this->actingAs($validator);
+
+    Livewire::test(ValidasiNilai::class)
+        ->assertSet('kelasMkId', null)
+        ->assertSeeHtml('cdn.jsdelivr.net/npm/chart.js');
+});
