@@ -62,9 +62,9 @@ class DataLaporanKelasService
         $kelasMk->loadMissing(['mkUnit.mk', 'dosenPengampu']);
 
         return [
-            'mk_nama' => $kelasMk->mkUnit?->mk?->nama,
+            'mk_nama' => $kelasMk->mkUnit?->mk->nama,
             'mk_kode' => $kelasMk->mkUnit?->kode,
-            'sks' => (int) ($kelasMk->mkUnit?->mk?->sks ?? 0),
+            'sks' => (int) ($kelasMk->mkUnit?->mk->sks ?? 0),
             'dosen' => $kelasMk->dosenPengampu?->namaDenganGelar(),
             'semester_id' => (string) $kelasMk->semester_id,
         ];

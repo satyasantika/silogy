@@ -1417,44 +1417,8 @@ parameters:
 			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
 
 		-
-			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>sks" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/InputNilai.php
-
-		-
 			message: '#^Parameter \#3 \$nilai of method App\\Modules\\Penilaian\\Services\\PenilaianMatrixService\:\:rataRataKelas\(\) expects array\<string, array\<string, string\|null\>\>, array\<string, array\<string, float\>\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>sks" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Modules/Penilaian/Filament/Pages/LaporanKoordinator.php
 
@@ -1677,23 +1641,5 @@ parameters:
 		-
 			message: '#^Parameter \#3 \$nilai of method App\\Modules\\Penilaian\\Services\\PenilaianMatrixService\:\:rataRataKelas\(\) expects array\<string, array\<string, string\|null\>\>, array\<string, array\<string, float\>\> given\.$#'
 			identifier: argument.type
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/ValidasiNilai.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/ValidasiNilai.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>kode" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Penilaian/Filament/Pages/ValidasiNilai.php
-
-		-
-			message: '#^Using nullsafe property access "\?\-\>sks" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
 			count: 1
 			path: app/Modules/Penilaian/Filament/Pages/ValidasiNilai.php
