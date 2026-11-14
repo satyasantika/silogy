@@ -245,6 +245,23 @@ Target DoD: **< 30 detik** untuk filter di atas.
 
 ## Operasional Produksi
 
+### Masuk dengan Google (dosen)
+
+Dosen cukup memakai akun Google `@unsil.ac.id`; tidak perlu NIDN, sandi awal, atau menunggu admin.
+
+- **Aturan:** surel Google harus terverifikasi dan berdomain `GOOGLE_ALLOWED_DOMAIN`. Akun lama dicocokkan lewat
+  `google_id`, lalu surel. Akun yang belum punya peran diperiksa ke Sintesys: bila surelnya mengampu sedikitnya satu
+  kelas pada tahun akademik aktif, otomatis diberi peran **Dosen Pengampu** dan direlasikan ke prodi kelasnya.
+  Selain itu akun tetap dibuat **tanpa peran** (admin tinggal memberi peran) dan login ditolak dengan pesan jelas.
+  Bila Sintesys tak dapat dijangkau, tidak ada peran yang diberikan (gagal tertutup). Kode: `app/Modules/Auth/Support/MasukDenganGoogle.php`.
+- **Menyalakan di produksi tanpa akses server:** buat klien OAuth "Web application" di Google Cloud dengan redirect URI
+  `<APP_URL>/auth/google/callback`, lalu simpan di GitHub Secrets repo ini: `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET`.
+  Job deploy meneruskannya ke server dan `scripts/deploy.sh` menulisnya ke `.env` (nilai tidak pernah dicetak;
+  cadangan `.env.bak-sebelum-google` dibuat sekali). Tanpa kedua secret, `.env` tidak disentuh dan tombol tidak tampil.
+- **Mematikan cepat:** set variabel repo (bukan secret) `GOOGLE_LOGIN_ENABLED` = `false`, lalu jalankan ulang deploy.
+  Rute `/auth/google/*` kembali 404 dan tombol hilang.
+- **Lokal:** isi `GOOGLE_*` di `.env` dengan `GOOGLE_LOGIN_ENABLED=true`; redirect URI uji `http://127.0.0.1:8017/auth/google/callback`.
+
 ### Deploy di root domain vs subpath
 
 Aplikasi mendukung tiga mode deployment tanpa perubahan kode, dikontrol lewat `.env`:

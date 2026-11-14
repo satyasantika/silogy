@@ -168,12 +168,21 @@ jobs:
         # Gagal di sini belum memerahkan job; percobaan kedua di bawah yang menentukan.
         continue-on-error: true
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          # Kredensial "Masuk dengan Google": dari GitHub Secrets, diteruskan ke server
+          # dan ditulis ke .env oleh scripts/deploy.sh (nilai tidak pernah dicetak).
+          # Kosong/tidak ada = .env server tidak disentuh. Matikan cepat: set variabel
+          # repo GOOGLE_LOGIN_ENABLED=false lalu jalankan ulang deploy.
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_LOGIN_ENABLED: ${{ vars.GOOGLE_LOGIN_ENABLED || 'true' }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           timeout: 60s
           command_timeout: 25m
+          envs: GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_LOGIN_ENABLED
           script: |
             set -euo pipefail
             cd ~/docker-apps/silogy
@@ -189,12 +198,21 @@ jobs:
       - name: Rilis via SSH (percobaan 2)
         if: steps.rilis.outcome == 'failure'
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          # Kredensial "Masuk dengan Google": dari GitHub Secrets, diteruskan ke server
+          # dan ditulis ke .env oleh scripts/deploy.sh (nilai tidak pernah dicetak).
+          # Kosong/tidak ada = .env server tidak disentuh. Matikan cepat: set variabel
+          # repo GOOGLE_LOGIN_ENABLED=false lalu jalankan ulang deploy.
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_LOGIN_ENABLED: ${{ vars.GOOGLE_LOGIN_ENABLED || 'true' }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           timeout: 60s
           command_timeout: 25m
+          envs: GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_LOGIN_ENABLED
           script: |
             set -euo pipefail
             cd ~/docker-apps/silogy

@@ -144,6 +144,53 @@ prune_images() {
   docker image prune -f >/dev/null 2>&1 || true
 }
 
+# Menulis/menimpa satu kunci di .env tanpa mencetak nilainya. Izin dan pemilik
+# berkas dipertahankan (isi ditimpa lewat `cat >`, bukan diganti berkas baru).
+upsert_env() {
+  local kunci="$1" nilai="$2" tmp
+  tmp="$(mktemp .env.XXXXXX)"
+  KUNCI="$kunci" NILAI="$nilai" awk '
+    BEGIN { k = ENVIRON["KUNCI"]; v = ENVIRON["NILAI"]; selesai = 0 }
+    index($0, k "=") == 1 { if (!selesai) { print k "=" v; selesai = 1 } next }
+    { print }
+    END { if (!selesai) print k "=" v }
+  ' .env >"$tmp"
+  cat "$tmp" >.env
+  rm -f "$tmp"
+}
+
+# "Masuk dengan Google": klien OAuth datang dari GitHub Secrets lewat job deploy
+# (variabel lingkungan GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET), bukan ditulis
+# tangan di server. Tanpa keduanya, .env tidak disentuh sama sekali. Nilai tidak
+# pernah dicetak; kunci hanya ditulis bila bentuknya aman untuk env_file.
+terapkan_login_google() {
+  [[ -n "${GOOGLE_CLIENT_ID:-}" && -n "${GOOGLE_CLIENT_SECRET:-}" ]] || return 0
+
+  if [[ ! -f .env ]]; then
+    echo "GAGAL: .env tidak ada; tidak bisa menerapkan kredensial Google." >&2
+    return 1
+  fi
+
+  local k
+  for k in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET; do
+    if [[ ! "${!k}" =~ ^[A-Za-z0-9._~-]+$ ]]; then
+      echo "GAGAL: $k berisi karakter yang tidak aman untuk .env; periksa GitHub Secrets." >&2
+      return 1
+    fi
+  done
+
+  log "menerapkan kredensial Google dari GitHub Secrets ke .env"
+
+  # Cadangan sekali saja, sebelum perubahan pertama.
+  if [[ ! -f .env.bak-sebelum-google ]]; then
+    (umask 077 && cp -p .env .env.bak-sebelum-google)
+  fi
+
+  upsert_env GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+  upsert_env GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+  upsert_env GOOGLE_LOGIN_ENABLED "${GOOGLE_LOGIN_ENABLED:-true}"
+}
+
 main() {
   case "${1:-}" in
     --rollback) rollback "${2:-}"; exit 0 ;;
@@ -155,6 +202,8 @@ main() {
   local sha
   sha="$(git rev-parse --short HEAD)"
   log "rilis commit $sha — $(git log -1 --pretty=%s)"
+
+  terapkan_login_google
 
   backup_db
 
