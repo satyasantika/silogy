@@ -11,7 +11,10 @@ use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 require_once __DIR__.'/../../Support/KelasValidasiFixture.php';
@@ -20,14 +23,16 @@ uses(RefreshDatabase::class);
 
 beforeEach(fn () => $this->seed([AcademicUnitSeeder::class, RolePermissionSeeder::class, SemesterSeeder::class, EvaluasiSeeder::class]));
 
-function nilaiPivot(string $pivotId, string $kmmId): ?float
-{
-    $nilai = NilaiMahasiswa::query()
-        ->where('subcpmk_komponenpenilaian_id', $pivotId)
-        ->where('kelas_mk_mahasiswa_id', $kmmId)
-        ->value('nilai');
+if (! function_exists('nilaiPivot')) {
+    function nilaiPivot(string $pivotId, string $kmmId): ?float
+    {
+        $nilai = NilaiMahasiswa::query()
+            ->where('subcpmk_komponenpenilaian_id', $pivotId)
+            ->where('kelas_mk_mahasiswa_id', $kmmId)
+            ->value('nilai');
 
-    return $nilai === null ? null : (float) $nilai;
+        return $nilai === null ? null : (float) $nilai;
+    }
 }
 
 it('nilaiAsesmen: rata-rata tertimbang atas sub-kolom yang terisi', function () {
@@ -169,4 +174,49 @@ it('matikan menulis nilai asesmen tertimbang ke semua pivot', function () {
 
     expect(nilaiPivot($data['pivot']->id, $kmm1->id))->toBe(65.0);
     expect(nilaiPivot($data['pivot2']->id, $kmm1->id))->toBe(65.0);
+});
+
+it('nyalakan menyebar nilai yang tampil walau Sub-CPMK berkode terendah dipetakan setelah penilaian', function () {
+    $data = siapkanKelasDuaSubcpmk(User::factory()->create());
+    // Pivot kedua (belum bernilai) kini berurutan pertama menurut kode.
+    $data['pivot2']->subcpmk()->update(['kode' => 'SUB-0']);
+
+    app(RincianNilaiService::class)->nyalakan($data['kelas'], $data['komponen'], User::factory()->create());
+
+    foreach ($data['kmm'] as $i => $kmm) {
+        $tampil = [80.0, 60.0][$i];
+        expect(nilaiPivot($data['pivot']->id, $kmm->id))->toBe($tampil)
+            ->and(nilaiPivot($data['pivot2']->id, $kmm->id))->toBe($tampil);
+    }
+});
+
+it('nyalakan yang bersamaan dengan pembuatan penanda lain dianggap sudah menyala, tanpa galat', function () {
+    $data = siapkanKelasDuaSubcpmk(User::factory()->create());
+    $oleh = User::factory()->create();
+    $sudahDisisipkan = false;
+
+    // Meniru permintaan lain yang menyisipkan penanda di antara "cari" dan
+    // "buat": tepat setelah penanda dicari dan belum ditemukan.
+    DB::listen(function (QueryExecuted $query) use (&$sudahDisisipkan, $data, $oleh): void {
+        if ($sudahDisisipkan || ! str_starts_with($query->sql, 'select') || ! str_contains($query->sql, 'rincian_nilai_kelas')) {
+            return;
+        }
+
+        $sudahDisisipkan = true;
+        DB::table('rincian_nilai_kelas')->insert([
+            'id' => (string) Str::uuid(),
+            'kelas_mk_id' => $data['kelas']->id,
+            'komponen_penilaian_id' => $data['komponen']->id,
+            'dinyalakan_oleh' => $oleh->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    app(RincianNilaiService::class)->nyalakan($data['kelas'], $data['komponen'], $oleh);
+    $sudahDisisipkan = true;
+
+    // Penanda milik permintaan lain dipakai apa adanya: tidak menyebar ulang.
+    expect(RincianNilaiKelas::query()->count())->toBe(1)
+        ->and(nilaiPivot($data['pivot2']->id, $data['kmm'][0]->id))->toBeNull();
 });

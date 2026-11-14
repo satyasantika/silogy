@@ -155,7 +155,7 @@ Tombol **Cetak** pada Laporan Lengkap hanya aktif bila kelas sudah **Tervalidasi
 
 ## Asesmen yang dirinci per Sub-CPMK
 
-Asesmen yang Anda petakan ke dua Sub-CPMK atau lebih boleh dinilai per Sub-CPMK oleh dosen pengampu (tombol **Rinci per Sub-CPMK** di Input Nilai). Bobot dan pemetaan tidak berubah; hanya angkanya yang bisa berbeda per Sub-CPMK. Di Laporan Lengkap, bagian **Ketercapaian Sub-CPMK** menandai Sub-CPMK yang **Lemah** dan **Terlemah**. Sub-CPMK yang hanya diukur lewat asesmen bersama yang tidak dirinci ditandai **Tidak dapat dibedakan**, karena angkanya sama dengan Sub-CPMK lain pada asesmen itu.
+Asesmen yang Anda petakan ke dua Sub-CPMK atau lebih boleh dinilai per Sub-CPMK oleh dosen pengampu (tombol **Rinci per Sub-CPMK** di Input Nilai). Bobot dan pemetaan tidak berubah; hanya angkanya yang bisa berbeda per Sub-CPMK. Bila Anda kemudian mengubah pemetaan atau bobot Sub-CPMK pada asesmen yang sudah dirinci, nilai akhir mahasiswa di kelas itu dihitung ulang otomatis. Di Laporan Lengkap, bagian **Ketercapaian Sub-CPMK** menandai Sub-CPMK yang **Lemah** dan **Terlemah**. Sub-CPMK yang hanya diukur lewat asesmen bersama yang tidak dirinci ditandai **Tidak dapat dibedakan**, karena angkanya sama dengan Sub-CPMK lain pada asesmen itu. **Terlemah** hanya membandingkan Sub-CPMK bertanda **Terukur terpisah**, dan baru muncul bila ada sedikitnya dua Sub-CPMK seperti itu. Menyalakan atau mematikan rincian membuat nilai kelas itu harus divalidasi ulang.
 
 ## Reset satu semester
 

@@ -166,10 +166,18 @@
                                                     @endif
                                                 </span>
                                                 @if ($bolehUbahNilai && $dirinci)
-                                                    <span style="display:block;margin-top:4px;" data-silogy="rinci-asesmen">
-                                                        {{ ($this->gabungkanAsesmenAction())(['komponenId' => $column['id']]) }}
-                                                    </span>
+                                                    @if ($this->gabungkanAsesmenAction->isVisible())
+                                                        <span style="display:block;margin-top:4px;" data-silogy="rinci-asesmen">
+                                                            {{ ($this->gabungkanAsesmenAction)(['komponenId' => $column['id']]) }}
+                                                        </span>
+                                                    @endif
                                                 @elseif ($bolehUbahNilai && isset($komponenBisaDirinci[$column['id']]))
+                                                    {{-- Kelas tervalidasi: lewat aksi berkonfirmasi (validasi akan gugur). --}}
+                                                    @if ($this->rinciAsesmenAction->isVisible())
+                                                        <span style="display:block;margin-top:4px;" data-silogy="rinci-asesmen">
+                                                            {{ ($this->rinciAsesmenAction)(['komponenId' => $column['id']]) }}
+                                                        </span>
+                                                    @else
                                                     <button
                                                         type="button"
                                                         data-silogy="rinci-asesmen"
@@ -180,6 +188,7 @@
                                                     >
                                                         Rinci per Sub-CPMK
                                                     </button>
+                                                    @endif
                                                 @endif
                                             </th>
                                         @endforeach

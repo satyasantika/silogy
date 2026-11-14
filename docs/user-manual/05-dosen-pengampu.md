@@ -50,9 +50,10 @@ Biasanya satu asesmen punya satu angka per mahasiswa, dan angka itu berlaku sama
 - Setelah dinyalakan, kolom asesmen terpecah menjadi satu kolom per Sub-CPMK. Isi angka tiap Sub-CPMK sendiri-sendiri; nilai asesmen menjadi rata-rata tertimbang bobot Sub-CPMK itu. Angka yang sudah ada tidak berubah saat tombol dinyalakan, sehingga nilai akhir mahasiswa tetap sama sampai Anda mengubahnya.
 - **Gabungkan kembali** mengembalikan satu angka per asesmen. Angka terpisah per Sub-CPMK hilang (Anda diminta mengonfirmasi), dan nilai asesmen menjadi rata-ratanya.
 - Tombol tidak bisa dipakai selama masih ada perubahan yang belum disimpan; simpan dulu.
-- Saat menempel dari Excel, pakai judul kolom seperti `UTS/SUB-1A`.
-- Pada **Laporan Lengkap**, bagian **C3. Ketercapaian Sub-CPMK** menandai tiap Sub-CPMK **Tercapai** atau **Lemah**. **Terlemah** adalah Sub-CPMK dengan ketercapaian paling rendah. Kolom Dasar berisi **Terukur terpisah** bila angkanya diisi sendiri, atau **Tidak dapat dibedakan** bila Sub-CPMK itu hanya diukur lewat asesmen bersama yang tidak dirinci, sehingga angkanya sama dengan Sub-CPMK lain dan tidak bisa dibandingkan.
-- Mengubah skor per Sub-CPMK menggugurkan validasi, seperti perubahan nilai lainnya; kelas lalu perlu divalidasi ulang.
+- Saat menempel dari Excel, pakai judul kolom seperti `UTS/SUB-1A`. Selama ada asesmen yang dirinci, baris judul kolom wajib ikut ditempel; data tanpa baris judul ditolak supaya angka tidak masuk ke kolom yang salah.
+- Pada **Laporan Lengkap**, bagian **C3. Ketercapaian Sub-CPMK** menandai tiap Sub-CPMK **Tercapai** atau **Lemah**. Kolom Dasar berisi **Terukur terpisah** bila angkanya diisi sendiri, atau **Tidak dapat dibedakan** bila Sub-CPMK itu hanya diukur lewat asesmen bersama yang tidak dirinci, sehingga angkanya sama dengan Sub-CPMK lain dan tidak bisa dibandingkan. **Terlemah** menandai Sub-CPMK dengan ketercapaian paling rendah, tetapi yang dibandingkan hanya Sub-CPMK bertanda **Terukur terpisah**, dan tanda ini baru muncul bila ada sedikitnya dua Sub-CPMK seperti itu.
+- Menyalakan **Rinci per Sub-CPMK** atau menekan **Gabungkan kembali** membuat kelas harus divalidasi ulang, walaupun angkanya tidak berubah. Bila kelas sudah tervalidasi, Anda diminta mengonfirmasi lebih dulu.
+- Mengubah skor per Sub-CPMK juga menggugurkan validasi, seperti perubahan nilai lainnya; kelas lalu perlu divalidasi ulang.
 
 ## Mencetak laporan memerlukan validasi
 

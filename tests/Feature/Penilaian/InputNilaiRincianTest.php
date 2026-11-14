@@ -18,6 +18,7 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
 require_once __DIR__.'/../../Support/KelasValidasiFixture.php';
@@ -384,4 +385,113 @@ it('menyalakan rincian tanpa mengubah angka tidak menggeser nilai asesmen maupun
 
     expect($layanan->muat($this->kelas)['nilai'])->toBe($sebelum)
         ->and($this->kelas->kelasMkMahasiswas()->orderBy('id')->pluck('nilai_angka', 'id')->all())->toBe($akhirSebelum);
+});
+
+it('tempel tanpa baris judul kolom ditolak saat ada asesmen dirinci dan matriks tidak berubah', function () {
+    $halaman = halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
+    $nim1 = $this->kmm1->mahasiswa->nim;
+    $nim2 = $this->kmm2->mahasiswa->nim;
+    $nilaiRinciSebelum = $halaman->get('nilaiRinci');
+    $nilaiSebelum = $halaman->get('nilai');
+
+    $halaman->call('applyTempel', "{$nim1}\tSiti\t10\t20\n{$nim2}\tBudi\t30\t40")
+        ->assertHasErrors(['paste_data']);
+
+    expect($halaman->errors()->first('paste_data'))->toBe('Sertakan baris judul kolom saat ada asesmen yang dirinci per Sub-CPMK.')
+        ->and($halaman->get('nilaiRinci'))->toBe($nilaiRinciSebelum)
+        ->and($halaman->get('nilai'))->toBe($nilaiSebelum);
+});
+
+it('tempel tanpa baris judul kolom tetap diterapkan menurut posisi bila tidak ada asesmen dirinci', function () {
+    $nim1 = $this->kmm1->mahasiswa->nim;
+    $nim2 = $this->kmm2->mahasiswa->nim;
+
+    halamanRinci($this->kelas)
+        ->call('applyTempel', "{$nim1}\tSiti\t55\n{$nim2}\tBudi\t44")
+        ->assertHasNoErrors()
+        ->assertSet("nilai.{$this->kmm1->id}.{$this->komponenId}", '55')
+        ->assertSet("nilai.{$this->kmm2->id}.{$this->komponenId}", '44');
+});
+
+it('contoh tempel menampilkan judul sub-kolom saat ada asesmen dirinci', function () {
+    $halaman = halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
+    $contoh = (fn () => $this->contohTabelTempelHtml())->call($halaman->instance())->toHtml();
+
+    expect($contoh)->toContain('Asesmen01/SUB-A');
+
+    $halaman->mountAction('tempelNilai')->assertMountedActionModalSee('baris judul kolom');
+});
+
+it('rinci dan gabungkan menyelaraskan nilai akhir tersimpan dengan nilai asesmen yang tampil', function () {
+    foreach ($this->data['kmm'] as $kmm) {
+        $kmm->update(['nilai_angka' => 70, 'nilai_huruf' => 'B']);
+    }
+
+    halamanRinci($this->kelas)->call('rinciAsesmen', $this->komponenId);
+
+    expect((float) $this->kmm1->fresh()->nilai_angka)->toBe(80.0)
+        ->and((float) $this->kmm2->fresh()->nilai_angka)->toBe(60.0);
+
+    foreach ($this->data['kmm'] as $kmm) {
+        $kmm->update(['nilai_angka' => 70, 'nilai_huruf' => 'B']);
+    }
+
+    halamanRinci($this->kelas)->call('gabungkanAsesmen', $this->komponenId);
+
+    expect((float) $this->kmm1->fresh()->nilai_angka)->toBe(80.0)
+        ->and($this->kmm1->fresh()->nilai_huruf)->toBe('A-');
+});
+
+it('kelas tervalidasi: Rinci per Sub-CPMK meminta konfirmasi bahwa validasi harus diulang', function () {
+    $validator = User::factory()->create();
+    app(ValidasiNilaiService::class)->validasi($this->kelas, $validator, halamanRinci($this->kelas)->call('loadMatrix')->get('sidikLaporan'));
+
+    $halaman = halamanRinci($this->kelas)->assertSet('statusValidasi', 'tervalidasi');
+
+    expect($halaman->instance()->rinciAsesmenAction()->isConfirmationRequired())->toBeTrue()
+        ->and($halaman->html())->not->toContain("wire:click=\"rinciAsesmen('{$this->komponenId}')\"");
+
+    $halaman->mountAction('rinciAsesmen', ['komponenId' => $this->komponenId])
+        ->assertMountedActionModalSee('Validasi nilai kelas ini harus dilakukan ulang.')
+        ->callMountedAction()
+        ->assertSet('rincian.'.$this->komponenId.'.0.subcpmk_kode', 'SUB-A');
+
+    expect(RincianNilaiKelas::query()->count())->toBe(1);
+});
+
+it('kelas belum tervalidasi: Rinci per Sub-CPMK langsung tanpa konfirmasi', function () {
+    $halaman = halamanRinci($this->kelas);
+
+    expect($halaman->instance()->rinciAsesmenAction()->isVisible())->toBeFalse()
+        ->and($halaman->html())->toContain("wire:click=\"rinciAsesmen('{$this->komponenId}')\"");
+});
+
+it('kelas tervalidasi: konfirmasi Gabungkan kembali menyebut validasi harus diulang', function () {
+    app(RincianNilaiService::class)->nyalakan($this->kelas, $this->data['komponen'], $this->dosen);
+    $validator = User::factory()->create();
+    app(ValidasiNilaiService::class)->validasi($this->kelas, $validator, halamanRinci($this->kelas)->call('loadMatrix')->get('sidikLaporan'));
+
+    halamanRinci($this->kelas)
+        ->assertSet('statusValidasi', 'tervalidasi')
+        ->mountAction('gabungkanAsesmen', ['komponenId' => $this->komponenId])
+        ->assertMountedActionModalSee('Validasi nilai kelas ini harus dilakukan ulang.');
+
+    app(ValidasiNilaiService::class)->batalkan($this->kelas);
+
+    halamanRinci($this->kelas)
+        ->mountAction('gabungkanAsesmen', ['komponenId' => $this->komponenId])
+        ->assertMountedActionModalDontSee('Validasi nilai kelas ini harus dilakukan ulang.');
+});
+
+it('layanan tempel menolak judul kolom yang tak dikenali bila judul kolom wajib, tanpa jatuh ke urutan posisi', function () {
+    $rows = [['id' => 'k1', 'nim' => '111', 'nama' => 'A']];
+    $kolom = [['id' => 'p:1', 'label' => 'UTS/SUB-1A'], ['id' => 'p:2', 'label' => 'UTS/SUB-1B']];
+    $layanan = app(InputNilaiMatrixClipboardService::class);
+
+    expect(fn () => $layanan->applyPaste("NIM\tNama\tKuis\n111\tA\t90", $rows, $kolom, ['k1' => ['p:1' => '40']], [], true))
+        ->toThrow(ValidationException::class, 'Sertakan baris judul kolom saat ada asesmen yang dirinci per Sub-CPMK.');
+
+    // Tanpa kewajiban judul kolom, perilaku lama (urutan posisi) tetap berlaku.
+    $hasil = $layanan->applyPaste("111\tA\t90\t70", $rows, $kolom, ['k1' => []]);
+    expect($hasil['nilai']['k1'])->toBe(['p:1' => '90', 'p:2' => '70']);
 });

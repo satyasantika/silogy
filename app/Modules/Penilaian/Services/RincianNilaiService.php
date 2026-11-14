@@ -8,6 +8,7 @@ use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Penilaian\Models\RincianNilaiKelas;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -88,12 +89,19 @@ class RincianNilaiService
 
             $pivotIds = array_column($pivots, 'pivot_id');
 
-            // Nilai yang tampil sebelum rincian = nilai pivot pertama (urutan
-            // sama dengan matriks), jadi angka itulah yang disebar.
-            $this->tulisKeSemuaPivot($kelasMk, $pivotIds, function (array $skor) use ($pivotIds): ?float {
-                $tampil = $skor[$pivotIds[0]] ?? null;
+            // Angka yang disebar = angka yang tampil di matriks sebelum
+            // rincian, dibaca dengan aturan yang sama persis (nilaiUntukMatrix),
+            // supaya menyalakan rincian tidak menggeser nilai asesmen.
+            $kmmIds = KelasMkMahasiswa::query()->where('kelas_mk_id', $kelasMk->id)->pluck('id');
+            $tampil = $this->matrix->nilaiUntukMatrix(
+                $kmmIds->map(fn ($id): array => ['id' => (string) $id])->all(),
+                [$komponen->id => $pivotIds],
+            );
 
-                return $tampil === null ? null : (float) $tampil;
+            $this->tulisKeSemuaPivot($kelasMk, $pivotIds, function (array $skor, string $kmmId) use ($tampil, $komponen): ?float {
+                $nilai = $tampil[$kmmId][$komponen->id] ?? null;
+
+                return $nilai === null ? null : (float) $nilai;
             });
         });
     }
@@ -119,6 +127,45 @@ class RincianNilaiService
                 ->where('komponen_penilaian_id', $komponen->id)
                 ->delete();
         });
+    }
+
+    /**
+     * Dipanggil setiap pivot Sub-CPMK suatu asesmen pada satu semester
+     * dibuat, diubah, atau dihapus (SubcpmkKomponenPenilaianObserver). Nilai
+     * asesmen yang dirinci bergantung pada bobot pivot, jadi nilai akhir
+     * tersimpan kelas-kelas yang merinci asesmen itu dihitung ulang. Penanda
+     * asesmen yang tinggal kurang dari dua pivot dihapus, supaya kolomnya
+     * tidak diam-diam kembali dirinci saat pemetaan bertambah lagi. Kelas
+     * tanpa penanda tidak disentuh: nilainya tidak bergantung pada bobot pivot.
+     */
+    public function pemetaanAsesmenBerubah(string $komponenId, string $semesterId): void
+    {
+        $kelasIds = RincianNilaiKelas::query()
+            ->where('komponen_penilaian_id', $komponenId)
+            ->whereHas('kelasMk', fn ($query) => $query->where('semester_id', $semesterId))
+            ->pluck('kelas_mk_id')
+            ->unique()
+            ->values();
+
+        if ($kelasIds->isEmpty()) {
+            return;
+        }
+
+        $jumlahPivot = SubcpmkKomponenPenilaian::query()
+            ->where('komponen_penilaian_id', $komponenId)
+            ->where('semester_id', $semesterId)
+            ->count();
+
+        if ($jumlahPivot < 2) {
+            RincianNilaiKelas::query()
+                ->where('komponen_penilaian_id', $komponenId)
+                ->whereIn('kelas_mk_id', $kelasIds)
+                ->delete();
+        }
+
+        foreach (KelasMk::query()->with('mkUnit')->whereIn('id', $kelasIds)->get() as $kelasMk) {
+            $this->matrix->simpanNilaiAkhirKelas($kelasMk, hanyaYangSudahAda: true);
+        }
     }
 
     /**
@@ -152,7 +199,7 @@ class RincianNilaiService
 
     /**
      * @param  list<string>  $pivotIds
-     * @param  callable(array<string, string|null>): ?float  $tentukanNilai  menerima skor per pivot milik satu peserta
+     * @param  callable(array<string, string|null>, string): ?float  $tentukanNilai  menerima skor per pivot dan id peserta
      */
     private function tulisKeSemuaPivot(KelasMk $kelasMk, array $pivotIds, callable $tentukanNilai): void
     {
@@ -171,7 +218,7 @@ class RincianNilaiService
                 $skor[$pivotId] = $nilai === null ? null : (string) $nilai;
             }
 
-            $nilai = $tentukanNilai($skor);
+            $nilai = $tentukanNilai($skor, (string) $kmmId);
 
             if ($nilai === null) {
                 // Tak ada angka yang bisa ditulis; baris yang sudah ada dibiarkan.

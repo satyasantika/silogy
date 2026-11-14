@@ -14,6 +14,7 @@ use App\Modules\Penilaian\Services\PenilaianDosenService;
 use App\Modules\Penilaian\Services\PenilaianMatrixService;
 use App\Modules\Penilaian\Services\RincianNilaiService;
 use App\Modules\Penilaian\Support\PenilaianSemesterTerpilih;
+use App\Modules\Penilaian\Support\StatusValidasiNilai;
 use App\Modules\Simulasi\Support\HanyaBaca;
 use App\Support\Filament\NavigationGroupPeran;
 use Filament\Actions\Action;
@@ -33,6 +34,12 @@ class InputNilai extends Page
 {
     use HasKelasMkDosenPicker;
     use HasLaporanKelasMk;
+
+    /** Kalimat peringatan pada konfirmasi rinci/gabungkan untuk kelas yang sudah divalidasi. */
+    public const KALIMAT_VALIDASI_ULANG = 'Kelas ini sudah divalidasi. Validasi nilai kelas ini harus dilakukan ulang.';
+
+    /** Contoh judul sub-kolom bila belum ada asesmen yang dirinci untuk dijadikan contoh. */
+    protected const CONTOH_JUDUL_SUBKOLOM = 'UTS/SUB-1A';
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 
@@ -482,7 +489,39 @@ class InputNilai extends Page
             $layanan->matikan($kelasMk, $komponen);
         }
 
+        // Nilai akhir tersimpan diselaraskan dengan nilai asesmen yang kini
+        // tampil (bisa basi bila pemetaan berubah sebelumnya); yang belum
+        // pernah tersimpan tetap menunggu Simpan.
+        app(PenilaianMatrixService::class)->simpanNilaiAkhirKelas($kelasMk, hanyaYangSudahAda: true);
+
         $this->loadMatrix();
+    }
+
+    protected function kelasTervalidasi(): bool
+    {
+        return $this->statusValidasi === StatusValidasiNilai::Tervalidasi->value;
+    }
+
+    /**
+     * Rinci per Sub-CPMK dengan konfirmasi — hanya untuk kelas tervalidasi,
+     * karena mengubah rincian menggugurkan validasi. Kelas lain memakai
+     * tombol langsung (rinciAsesmen) tanpa konfirmasi.
+     */
+    public function rinciAsesmenAction(): Action
+    {
+        return Action::make('rinciAsesmen')
+            ->label('Rinci per Sub-CPMK')
+            ->color('gray')
+            ->size('xs')
+            ->requiresConfirmation()
+            ->modalHeading('Rinci nilai asesmen per Sub-CPMK?')
+            ->modalDescription('Nilai asesmen yang sedang tampil disalin ke setiap Sub-CPMK. '.self::KALIMAT_VALIDASI_ULANG)
+            ->modalSubmitActionLabel('Rinci')
+            ->modalCancelActionLabel('Batal')
+            ->visible(fn (): bool => $this->bolehUbahNilai && $this->kelasTervalidasi())
+            ->action(function (array $arguments): void {
+                $this->rinciAsesmen((string) ($arguments['komponenId'] ?? ''));
+            });
     }
 
     public function gabungkanAsesmenAction(): Action
@@ -493,7 +532,8 @@ class InputNilai extends Page
             ->size('xs')
             ->requiresConfirmation()
             ->modalHeading('Gabungkan kembali nilai asesmen?')
-            ->modalDescription('Skor terpisah per Sub-CPMK akan hilang dan digantikan satu nilai asesmen (rata-rata tertimbang yang sedang tampil).')
+            ->modalDescription(fn (): string => 'Skor terpisah per Sub-CPMK akan hilang dan digantikan satu nilai asesmen (rata-rata tertimbang yang sedang tampil).'
+                .($this->kelasTervalidasi() ? ' '.self::KALIMAT_VALIDASI_ULANG : ''))
             ->modalSubmitActionLabel('Gabungkan')
             ->modalCancelActionLabel('Batal')
             ->visible(fn (): bool => $this->bolehUbahNilai)
@@ -568,6 +608,7 @@ class InputNilai extends Page
                 ->pluck('asesmen')
                 ->values()
                 ->all(),
+            $this->rincian !== [],
         );
 
         foreach ($result['nilai'] as $kmmId => $cells) {
@@ -766,7 +807,10 @@ class InputNilai extends Page
             ->badgeColor('warning')
             ->visible(fn (): bool => $this->matrixSiapClipboard() && $this->bolehUbahNilai)
             ->modalHeading('Tempel matriks nilai')
-            ->modalDescription('Tempel blok sel dari Excel (termasuk baris header NIM/Nama).')
+            ->modalDescription(fn (): string => $this->rincian !== []
+                ? 'Tempel blok sel dari Excel termasuk baris judul kolom (NIM, Nama, lalu kode kolom). '
+                    .'Asesmen yang dirinci memakai judul sub-kolom seperti '.$this->contohJudulSubkolom().'; tempel tanpa baris judul kolom ditolak.'
+                : 'Tempel blok sel dari Excel (termasuk baris header NIM/Nama).')
             ->modalSubmitActionLabel('Terapkan ke matriks')
             ->modalCancelActionLabel('Batal')
             ->schema([
@@ -783,6 +827,10 @@ class InputNilai extends Page
                         .'<li>Pemisah tab dari Excel didukung; pipe (<code>|</code>) juga diterima.</li>'
                         .'<li>Baris dicocokkan berdasarkan NIM; nilai kosong akan dikosongkan.</li>'
                         .'<li>Boleh menyertakan sebagian kolom asesmen saja — kolom yang tidak disertakan tidak akan berubah.</li>'
+                        .($this->rincian !== []
+                            ? '<li>Asesmen yang dirinci per Sub-CPMK diisi per sub-kolom dengan judul seperti <code>'
+                                .e($this->contohJudulSubkolom()).'</code>; baris judul kolom wajib disertakan.</li>'
+                            : '')
                         .'<li>Setelah diterapkan, klik <strong>Simpan</strong> '
                         .'(tombol ber-badge 3 di atas, atau Simpan di bawah tabel).</li>'
                         .'</ul></div>'
@@ -832,7 +880,11 @@ class InputNilai extends Page
      */
     protected function contohTabelTempelHtml(): HtmlString
     {
-        $kodeAsesmen = collect($this->columns)->pluck('asesmen')->filter()->take(2)->values();
+        // Ada asesmen dirinci: contoh memakai judul kolom tempel yang sebenarnya
+        // (mis. Asesmen01/SUB-A), karena judul sub-kolom wajib disertakan.
+        $kodeAsesmen = $this->rincian !== []
+            ? collect($this->kolomKlip($this->columns))->pluck('label')->filter()->take(2)->values()
+            : collect($this->columns)->pluck('asesmen')->filter()->take(2)->values();
 
         if ($kodeAsesmen->isEmpty()) {
             $kodeAsesmen = collect(['Asesmen01', 'Asesmen02']);
@@ -866,6 +918,18 @@ class InputNilai extends Page
             .'</table>'
             .'</div>'
         );
+    }
+
+    /** Judul sub-kolom pertama kelas ini (mis. Asesmen01/SUB-A) sebagai contoh. */
+    protected function contohJudulSubkolom(): string
+    {
+        foreach ($this->kolomKlip($this->columns) as $kolom) {
+            if (str_starts_with($kolom['id'], 'p:')) {
+                return $kolom['label'];
+            }
+        }
+
+        return self::CONTOH_JUDUL_SUBKOLOM;
     }
 
     protected function matrixSiapClipboard(): bool

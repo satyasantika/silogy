@@ -3,6 +3,7 @@
 namespace App\Modules\Penilaian\Observers;
 
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
+use App\Modules\Penilaian\Services\RincianNilaiService;
 use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 
 /**
@@ -28,6 +29,8 @@ class SubcpmkKomponenPenilaianObserver
 
     private function hitungUlang(SubcpmkKomponenPenilaian $pivot): void
     {
+        $this->rincianIkutBerubah($pivot);
+
         if (blank($pivot->semester_id)) {
             return;
         }
@@ -36,5 +39,29 @@ class SubcpmkKomponenPenilaianObserver
             (string) $pivot->subcpmk_id,
             (string) $pivot->semester_id,
         );
+    }
+
+    /**
+     * Nilai asesmen yang dirinci per Sub-CPMK bergantung pada pivotnya; nilai
+     * akhir tersimpan kelas yang merincinya ikut dihitung ulang. Bila pivot
+     * dipindah ke asesmen/semester lain, pasangan lamanya juga terdampak.
+     */
+    private function rincianIkutBerubah(SubcpmkKomponenPenilaian $pivot): void
+    {
+        $pasangan = [
+            [$pivot->komponen_penilaian_id, $pivot->semester_id],
+            [$pivot->getOriginal('komponen_penilaian_id'), $pivot->getOriginal('semester_id')],
+        ];
+
+        $sudah = [];
+
+        foreach ($pasangan as [$komponenId, $semesterId]) {
+            if (blank($komponenId) || blank($semesterId) || isset($sudah[$komponenId.'|'.$semesterId])) {
+                continue;
+            }
+
+            $sudah[$komponenId.'|'.$semesterId] = true;
+            app(RincianNilaiService::class)->pemetaanAsesmenBerubah((string) $komponenId, (string) $semesterId);
+        }
     }
 }

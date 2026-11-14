@@ -45,6 +45,10 @@ class InputNilaiMatrixClipboardService
      * @param  list<string>  $kolomDitolak  label kolom yang tidak boleh ditimpa (mis. kode asesmen yang
      *                                      sedang dirinci per Sub-CPMK); bila muncul di kepala tempel, dilaporkan
      *                                      sebagai galat dan nilainya diabaikan
+     * @param  bool  $wajibJudulKolom  true bila ada asesmen yang dirinci: kolom tempel tidak
+     *                                 boleh dicocokkan menurut posisi (lembar lama "UTS, UAS"
+     *                                 akan mendarat di sub-kolom yang salah), jadi tempel tanpa
+     *                                 baris judul kolom yang dikenali ditolak
      * @return array{
      *     nilai: array<string, array<string, string|null>>,
      *     applied_cells: int,
@@ -58,6 +62,7 @@ class InputNilaiMatrixClipboardService
         array $columns,
         array $currentNilai,
         array $kolomDitolak = [],
+        bool $wajibJudulKolom = false,
     ): array {
         $lines = preg_split('/\r\n|\r|\n/', trim($raw)) ?: [];
         $lines = array_values(array_filter(
@@ -97,7 +102,13 @@ class InputNilaiMatrixClipboardService
             }
         }
 
-        $columnIndexes = $this->resolveColumnIndexes($headerCells, $columns, $adaKolomDitolak);
+        $columnIndexes = $this->resolveColumnIndexes($headerCells, $columns, $adaKolomDitolak, $wajibJudulKolom);
+
+        if ($columnIndexes === null) {
+            throw ValidationException::withMessages([
+                'paste_data' => 'Sertakan baris judul kolom saat ada asesmen yang dirinci per Sub-CPMK.',
+            ]);
+        }
         $rowsByNim = collect($rows)->keyBy(
             fn (array $row): string => $this->normalizeNim($row['nim']),
         );
@@ -203,13 +214,17 @@ class InputNilaiMatrixClipboardService
     /**
      * @param  list<string>|null  $headerCells
      * @param  list<array{id: string, label: string}>  $columns
-     * @return array<string, int>
+     * @return array<string, int>|null null = perlu jatuh ke urutan posisi padahal $wajibJudulKolom
      */
-    private function resolveColumnIndexes(?array $headerCells, array $columns, bool $adaKolomDitolak = false): array
+    private function resolveColumnIndexes(?array $headerCells, array $columns, bool $adaKolomDitolak = false, bool $wajibJudulKolom = false): ?array
     {
         $indexes = [];
 
         if ($headerCells === null) {
+            if ($wajibJudulKolom) {
+                return null;
+            }
+
             foreach ($columns as $offset => $column) {
                 $indexes[$column['id']] = $offset + 2;
             }
@@ -241,6 +256,10 @@ class InputNilaiMatrixClipboardService
         // posisi: nilainya akan salah mendarat di kolom lain.
         if ($indexes !== [] || $adaKolomDitolak) {
             return $indexes;
+        }
+
+        if ($wajibJudulKolom) {
+            return null;
         }
 
         foreach ($columns as $offset => $column) {

@@ -517,11 +517,25 @@ class PenilaianMatrixService
         }
     }
 
-    /** simpanNilaiAkhir() dari nilai asesmen yang sudah tersimpan untuk satu kelas. */
-    public function simpanNilaiAkhirKelas(KelasMk $kelasMk): void
+    /**
+     * simpanNilaiAkhir() dari nilai asesmen yang sudah tersimpan untuk satu kelas.
+     *
+     * @param  bool  $hanyaYangSudahAda  true = hanya peserta yang nilai akhirnya sudah
+     *                                   pernah tersimpan; nilai akhir yang masih kosong
+     *                                   menunggu dosen menekan Simpan
+     */
+    public function simpanNilaiAkhirKelas(KelasMk $kelasMk, bool $hanyaYangSudahAda = false): void
     {
         $komponens = $this->komponenUntukKelas($kelasMk);
         $rows = $this->barisUntukKelas($kelasMk);
+
+        if ($hanyaYangSudahAda) {
+            $rows = array_values(array_filter($rows, fn (array $row): bool => $row['nilai_angka'] !== null));
+
+            if ($rows === []) {
+                return;
+            }
+        }
 
         $rincian = app(RincianNilaiService::class)->rincianUntukKelas($kelasMk);
 
