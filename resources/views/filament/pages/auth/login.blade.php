@@ -323,6 +323,28 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Masuk dengan Google */
+    .lp-google-pesan {
+        display: flex; gap: .5rem; align-items: flex-start; margin-bottom: 1rem;
+        padding: .75rem .9rem; border-radius: 10px; font-size: .84rem; line-height: 1.5;
+        background: rgba(220,38,38,.1); color: #b91c1c; border: 1px solid rgba(220,38,38,.28);
+    }
+    .lp-atau {
+        display: flex; align-items: center; gap: .75rem; margin: 1.3rem 0 1rem;
+        color: var(--rp-muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .lp-atau::before, .lp-atau::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .25; }
+    .lp-google-btn {
+        display: flex; align-items: center; justify-content: center; gap: .6rem;
+        width: 100%; height: 46px; border-radius: 12px; text-decoration: none;
+        font-family: 'Nunito', sans-serif; font-weight: 800; font-size: .93rem;
+        background: #fff; color: #1f2937; border: 1px solid #d1d5db;
+        transition: all .16s ease;
+    }
+    .lp-google-btn:hover { background: #f3f4f6; border-color: #9ca3af; transform: translateY(-1px); }
+    .lp-google-btn svg { width: 18px; height: 18px; flex: none; }
+    .lp-google-catatan { margin-top: .6rem; text-align: center; color: var(--rp-muted); font-size: .74rem; line-height: 1.5; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 860px) {
         .lp-wrap { position: relative; display: block; overflow: visible; }
@@ -417,6 +439,13 @@
             dashboard pengelolaan mutu akademik SILOGY.
         </p>
 
+        @if (session('google_error'))
+            <div class="lp-google-pesan" role="alert">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>{{ session('google_error') }}</span>
+            </div>
+        @endif
+
         <form wire:submit="authenticate" autocomplete="on">
 
             <div class="lp-field">
@@ -473,6 +502,15 @@
             </button>
 
         </form>
+
+        @if (\App\Modules\Auth\Http\Controllers\GoogleAuthController::aktif())
+            <div class="lp-atau">atau</div>
+            <a href="{{ route('auth.google.redirect') }}" class="lp-google-btn">
+                <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 12-2.1 16-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+                Masuk dengan akun Google Unsil
+            </a>
+            <p class="lp-google-catatan">Dosen cukup memakai akun <strong>@unsil.ac.id</strong>, tanpa NIDN dan tanpa menunggu aktivasi admin.</p>
+        @endif
 
         <div class="lp-form-foot">
             Lupa password?

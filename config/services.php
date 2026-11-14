@@ -40,6 +40,17 @@ return [
         'token' => env('SINTESYS_API_TOKEN'),
     ],
 
+    // "Masuk dengan Google" untuk dosen (lihat App\Modules\Auth\Support\MasukDenganGoogle).
+    // Mati bawaan; menyala hanya bila GOOGLE_LOGIN_ENABLED=true dan klien terisi.
+    // `redirect` relatif dihitung dari APP_URL, jadi aman di root domain maupun subfolder.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI') ?: '/auth/google/callback',
+        'aktif' => (bool) env('GOOGLE_LOGIN_ENABLED', false),
+        'domain' => env('GOOGLE_ALLOWED_DOMAIN', 'unsil.ac.id'),
+    ],
+
     // Feeder akademik lama (semester ≤ 20242). Endpoint diisi saat integrasi Simak siap.
     'simak' => [
         'endpoint' => env('SIMAK_API_ENDPOINT'),

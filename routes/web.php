@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HealthController;
+use App\Modules\Auth\Http\Controllers\GoogleAuthController;
 use App\Modules\Auth\Http\Controllers\LeaveImpersonateController;
 use App\Modules\Kurikulum\Http\Controllers\KurikulumLaporanPimpinanRedirectController;
 use App\Modules\Kurikulum\Http\Controllers\KurikulumMenuRedirectController;
@@ -67,6 +68,12 @@ Route::post('/ruang/{pin}/peran/{peran}', [RuangSimulasiController::class, 'masu
 
 // Login dalam tab sandbox (/s/<token>/simulasi/masuk). Tanpa awalan tab: 404.
 Route::get('/simulasi/masuk', MasukSandboxController::class)->name('simulasi.masuk');
+
+// Masuk dengan Google (404 bila belum diaktifkan lewat GOOGLE_LOGIN_ENABLED).
+Route::middleware(['web', 'throttle:20,1'])->prefix('auth/google')->group(function (): void {
+    Route::get('redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
 
 // GET biasa (bukan aksi Livewire) — lihat catatan di LeaveImpersonateController
 // soal kenapa ini sengaja tidak dijalankan lewat POST /livewire/update.
