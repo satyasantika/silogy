@@ -732,7 +732,14 @@
       "judul": "Laporan kelas pada tampilan validator",
       "akun": "sim-validator",
       "sorot": []
+    },
+    "dosen-input-rincian.png": {
+      "lebar": 1440,
+      "tinggi": 900,
+      "judul": "Asesmen yang dirinci per Sub-CPMK pada halaman input nilai",
+      "akun": "sim-dosen",
+      "sorot": []
     }
   },
-  "dibuat": "2026-11-13T22:30:18.511Z"
+  "dibuat": "2026-11-14T00:04:42.312Z"
 }

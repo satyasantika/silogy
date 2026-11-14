@@ -300,6 +300,12 @@ export const ADEGAN = [
       { pilih: 'table', label: 1, teks: 'Tiap baris satu mahasiswa; tiap kolom satu <b>komponen penilaian</b>.' },
     ],
   },
+  {
+    nama: 'dosen-input-rincian',
+    akun: 'sim-dosen',
+    url: '/penilaian/input-nilai',
+    judul: 'Asesmen yang dirinci per Sub-CPMK pada halaman input nilai',
+  },
 
   // ══ Validator Nilai ══════════════════════════════════════════════
   { nama: 'sidebar-validator-nilai', akun: 'sim-validator', url: '/dashboard', bidik: SIDEBAR, judul: 'Menu Validator Nilai' },
