@@ -537,7 +537,7 @@
     }
 
     function loginCycleTheme() {
-        const current = localStorage.getItem('silogy-theme') || 'auto';
+        const current = localStorage.getItem('silogy-theme') || 'light';
         const order   = ['auto', 'dark', 'light'];
         const next    = order[(order.indexOf(current) + 1) % order.length];
         localStorage.setItem('silogy-theme', next);
@@ -545,7 +545,7 @@
     }
 
     (function () {
-        const stored = localStorage.getItem('silogy-theme') || 'auto';
+        const stored = localStorage.getItem('silogy-theme') || 'light';
         lpApplyTheme(stored);
     })();
 

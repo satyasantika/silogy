@@ -19,6 +19,7 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
+use Filament\Enums\ThemeMode;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -53,6 +54,8 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::hex('#009900'),
             ])
             ->darkMode(condition: true, isForced: false)
+            // Tema awal terang; pengguna tetap bisa memilih sendiri lewat switcher.
+            ->defaultThemeMode(ThemeMode::Light)
             ->sidebarCollapsibleOnDesktop()
             // Rail minimize: 71px → gutter ikon menu 15px kiri/kanan (ikon lg 24px + p-2).
             ->collapsedSidebarWidth('71px')
