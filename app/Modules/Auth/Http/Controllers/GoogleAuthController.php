@@ -5,6 +5,7 @@ namespace App\Modules\Auth\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Support\MasukDenganGoogle;
 use App\Modules\Auth\Support\MasukGoogleDitolak;
+use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Facades\Filament;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,9 @@ class GoogleAuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->intended(Filament::getPanel('admin')->getUrl());
+        // Sama dengan login biasa: reset peran/unit aktif, dan user multi-peran
+        // diarahkan ke gerbang Pilih Peran (bukan `/` yang landing page).
+        return app(LoginResponse::class)->toResponse($request);
     }
 
     public static function aktif(): bool

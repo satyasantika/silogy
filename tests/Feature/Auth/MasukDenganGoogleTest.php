@@ -250,3 +250,26 @@ it('unit prodi yang tidak dikenal diabaikan tanpa galat', function () {
         ->and(AcademicUnit::query()->where('code', '9999')->exists())->toBeFalse()
         ->and($user->academicUnits()->count())->toBe(0);
 });
+
+it('akun multi-peran diarahkan ke gerbang Pilih Peran, bukan landing atau dashboard', function () {
+    Http::fake();
+    $user = User::factory()->create(['email' => 'multi@unsil.ac.id']);
+    $user->assignRole(['Admin', 'Dosen Pengampu']);
+    googleMengembalikan('multi@unsil.ac.id');
+    session()->put(\App\Modules\Auth\Support\ActiveRole::SESSION_KEY, 'Admin');
+
+    $this->get(route('auth.google.callback'))
+        ->assertRedirect(\App\Modules\Auth\Filament\Pages\PilihPeranUnit::getUrl(panel: 'admin'));
+
+    expect(session()->has(\App\Modules\Auth\Support\ActiveRole::SESSION_KEY))->toBeFalse();
+});
+
+it('akun satu peran langsung ke dashboard, bukan landing page', function () {
+    Http::fake();
+    $user = User::factory()->create(['email' => 'satu@unsil.ac.id']);
+    $user->assignRole('Dosen Pengampu');
+    googleMengembalikan('satu@unsil.ac.id');
+
+    $this->get(route('auth.google.callback'))
+        ->assertRedirect(\App\Filament\Pages\Dashboard::getUrl(panel: 'admin'));
+});
