@@ -166,3 +166,32 @@ it('aksi tarik data di list memakai tahun akademik semester terpilih', function 
                 ->count()
         )->toBe(1);
 });
+
+it('kolom MK Unit berbadge menurut unit pemilik MK, sebelum kolom Mata kuliah', function () {
+    $fakultas = AcademicUnit::query()->where('type', 'faculty')->firstOrFail();
+    $universitas = AcademicUnit::query()->where('type', 'university')->firstOrFail();
+
+    $mkFakultas = Mk::factory()->forKurikulum($this->kurikulum)->create(['nama' => 'Filsafat Ilmu']);
+    $mkFakultas->forceFill(['academic_unit_id' => $fakultas->id])->save();
+    $mkUniv = Mk::factory()->forKurikulum($this->kurikulum)->create(['nama' => 'Pendidikan Agama']);
+    $mkUniv->forceFill(['academic_unit_id' => $universitas->id])->save();
+
+    $unitFakultas = MkUnit::factory()->forMk($mkFakultas)->forKurikulum($this->kurikulum)->create(['kode' => 'KP21514101']);
+    $unitUniv = MkUnit::factory()->forMk($mkUniv)->forKurikulum($this->kurikulum)->create(['kode' => 'KP21514102']);
+
+    $tabel = Livewire::test(ListMkUnits::class)
+        ->loadTable()
+        ->assertTableColumnFormattedStateSet('mk.academicUnit.type', 'MK Prodi', $this->mkUnit)
+        ->assertTableColumnFormattedStateSet('mk.academicUnit.type', 'MK Fakultas', $unitFakultas)
+        ->assertTableColumnFormattedStateSet('mk.academicUnit.type', 'MK Universitas', $unitUniv);
+
+    $kolom = $tabel->instance()->getTable()->getColumn('mk.academicUnit.type');
+    $warna = fn (MkUnit $r): mixed => $kolom->record($r->load('mk.academicUnit'))->getColor($r->mk->academicUnit->type);
+
+    expect($warna($unitUniv))->toBe('primary')
+        ->and($warna($unitFakultas))->toBe('info')
+        ->and($warna($this->mkUnit))->toBe('success');
+
+    $nama = array_keys($tabel->instance()->getTable()->getColumns());
+    expect(array_search('mk.academicUnit.type', $nama))->toBeLessThan(array_search('mk.nama', $nama));
+});

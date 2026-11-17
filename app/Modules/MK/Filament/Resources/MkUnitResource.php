@@ -238,6 +238,24 @@ class MkUnitResource extends Resource
                     'class' => 'silogy-mk-semester-toolbar',
                 ])
                 ->columns([
+                    TextColumn::make('mk.academicUnit.type')
+                        ->label('MK Unit')
+                        ->badge()
+                        ->formatStateUsing(fn (?string $state): string => match ($state) {
+                            'university' => 'MK Universitas',
+                            'faculty' => 'MK Fakultas',
+                            'department' => 'MK Departemen',
+                            'study_program' => 'MK Prodi',
+                            default => (string) $state,
+                        })
+                        // Warna sama dengan badge jenis di Unit Akademik.
+                        ->color(fn (?string $state): string => match ($state) {
+                            'university' => 'primary',
+                            'faculty' => 'info',
+                            'department' => 'warning',
+                            'study_program' => 'success',
+                            default => 'gray',
+                        }),
                     TextColumn::make('mk.nama')->label('Mata kuliah')->searchable(),
                     TextColumn::make('kode')->label('Kode')->sortable(),
                     TextColumn::make('semester_ke')->label('Semester ke-')->sortable(),
