@@ -2,6 +2,7 @@
 
 namespace App\Modules\MK\Services;
 
+use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
@@ -15,6 +16,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Reset data satu penawaran MK (MkUnit): seluruh kontrak kelas beserta
@@ -168,7 +170,7 @@ class MkUnitResetService
      *
      * @return array{kelas: int, mahasiswa: int, nilai: int, penawaran_direset: int, penawaran_dilewati: int}
      */
-    public function resetPenawaranMk(Mk $mk, \App\Models\User $user): array
+    public function resetPenawaranMk(Mk $mk, User $user): array
     {
         $total = ['kelas' => 0, 'mahasiswa' => 0, 'nilai' => 0, 'penawaran_direset' => 0, 'penawaran_dilewati' => 0];
 
@@ -177,7 +179,7 @@ class MkUnitResetService
                 continue;
             }
 
-            if (! \Illuminate\Support\Facades\Gate::forUser($user)->allows('update', $mkUnit)) {
+            if (! Gate::forUser($user)->allows('update', $mkUnit)) {
                 $total['penawaran_dilewati']++;
 
                 continue;

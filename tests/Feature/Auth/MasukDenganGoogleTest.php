@@ -1,6 +1,9 @@
 <?php
 
+use App\Filament\Pages\Dashboard;
 use App\Models\User;
+use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Auth\Support\MasukDenganGoogle;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
@@ -256,12 +259,12 @@ it('akun multi-peran diarahkan ke gerbang Pilih Peran, bukan landing atau dashbo
     $user = User::factory()->create(['email' => 'multi@unsil.ac.id']);
     $user->assignRole(['Admin', 'Dosen Pengampu']);
     googleMengembalikan('multi@unsil.ac.id');
-    session()->put(\App\Modules\Auth\Support\ActiveRole::SESSION_KEY, 'Admin');
+    session()->put(ActiveRole::SESSION_KEY, 'Admin');
 
     $this->get(route('auth.google.callback'))
-        ->assertRedirect(\App\Modules\Auth\Filament\Pages\PilihPeranUnit::getUrl(panel: 'admin'));
+        ->assertRedirect(PilihPeranUnit::getUrl(panel: 'admin'));
 
-    expect(session()->has(\App\Modules\Auth\Support\ActiveRole::SESSION_KEY))->toBeFalse();
+    expect(session()->has(ActiveRole::SESSION_KEY))->toBeFalse();
 });
 
 it('akun satu peran langsung ke dashboard, bukan landing page', function () {
@@ -271,5 +274,5 @@ it('akun satu peran langsung ke dashboard, bukan landing page', function () {
     googleMengembalikan('satu@unsil.ac.id');
 
     $this->get(route('auth.google.callback'))
-        ->assertRedirect(\App\Filament\Pages\Dashboard::getUrl(panel: 'admin'));
+        ->assertRedirect(Dashboard::getUrl(panel: 'admin'));
 });

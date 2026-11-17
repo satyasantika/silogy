@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\CPL\Models\Cpl;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
@@ -10,6 +11,7 @@ use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
+use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkUnitResource\Pages\EditMkUnit;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
@@ -84,7 +86,7 @@ it('reset tidak menyentuh kelas milik penawaran lain', function () {
 });
 
 it('reset membuang agregat CPL yang basi untuk unit dan induknya', function () {
-    $cpl = \App\Modules\CPL\Models\Cpl::factory()->create(['academic_unit_id' => $this->prodi->id, 'kurikulum_id' => $this->kurikulum->id]);
+    $cpl = Cpl::factory()->create(['academic_unit_id' => $this->prodi->id, 'kurikulum_id' => $this->kurikulum->id]);
     HasilCplMkUnit::query()->create([
         'cpl_id' => $cpl->id, 'mk_id' => $this->mk->id, 'academic_unit_id' => $this->prodi->id,
         'semester_id' => $this->semester->id, 'rata_rata' => 80, 'persentase_tercapai' => 100, 'jumlah_mahasiswa' => 1,
@@ -167,7 +169,7 @@ it('reset penawaran MK hanya menyentuh prodi dalam lingkup Tim Kurikulum dan mel
 });
 
 it('Tim Kurikulum mereset penawaran lewat halaman edit MK, kode MK harus diketik', function () {
-    $edit = \App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk::class;
+    $edit = EditMk::class;
 
     Livewire::test($edit, ['record' => $this->mk->getKey()])
         ->assertActionVisible('resetPenawaran')
@@ -188,14 +190,14 @@ it('Tim Kurikulum mereset penawaran lewat halaman edit MK, kode MK harus diketik
 it('Tim Kurikulum baru boleh menghapus MK setelah seluruh penawarannya direset', function () {
     expect($this->timkur->can('delete', $this->mk))->toBeFalse();
 
-    Livewire::test(\App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk::class, ['record' => $this->mk->getKey()])
+    Livewire::test(EditMk::class, ['record' => $this->mk->getKey()])
         ->assertActionHidden('delete');
 
     app(MkUnitResetService::class)->resetPenawaranMk($this->mk, $this->timkur);
 
     expect($this->timkur->fresh()->can('delete', $this->mk))->toBeTrue();
 
-    Livewire::test(\App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk::class, ['record' => $this->mk->getKey()])
+    Livewire::test(EditMk::class, ['record' => $this->mk->getKey()])
         ->callAction('delete');
 
     expect(Mk::query()->whereKey($this->mk->id)->exists())->toBeFalse()
@@ -203,7 +205,7 @@ it('Tim Kurikulum baru boleh menghapus MK setelah seluruh penawarannya direset',
 });
 
 it('hapus MK ikut menghapus relasinya dan membuang agregat CPL yang basi', function () {
-    $cpl = \App\Modules\CPL\Models\Cpl::factory()->create(['academic_unit_id' => $this->prodi->id, 'kurikulum_id' => $this->kurikulum->id]);
+    $cpl = Cpl::factory()->create(['academic_unit_id' => $this->prodi->id, 'kurikulum_id' => $this->kurikulum->id]);
     app(MkUnitResetService::class)->reset($this->mkUnit);
     HasilCplMkUnit::query()->create([
         'cpl_id' => $cpl->id, 'mk_id' => $this->mk->id, 'academic_unit_id' => $this->prodi->id,
@@ -218,7 +220,7 @@ it('hapus MK ikut menghapus relasinya dan membuang agregat CPL yang basi', funct
 });
 
 it('hapus penawaran oleh Super Admin ikut menghapus kelas, nilai, dan membangun ulang agregat', function () {
-    $cpl = \App\Modules\CPL\Models\Cpl::factory()->create(['academic_unit_id' => $this->prodi->id, 'kurikulum_id' => $this->kurikulum->id]);
+    $cpl = Cpl::factory()->create(['academic_unit_id' => $this->prodi->id, 'kurikulum_id' => $this->kurikulum->id]);
     HasilCplUnit::query()->create([
         'cpl_id' => $cpl->id, 'academic_unit_id' => $this->prodi->id,
         'semester_id' => $this->semester->id, 'rata_rata' => 80, 'persentase_tercapai' => 100, 'jumlah_mahasiswa' => 1,
