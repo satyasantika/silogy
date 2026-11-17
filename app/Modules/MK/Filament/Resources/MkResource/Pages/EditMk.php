@@ -7,15 +7,20 @@ use App\Modules\MK\Filament\Concerns\HasResetCpmkSubcpmkAsesmen;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Services\MkUnitResetService;
 use App\Support\Filament\Pages\BaseSimpleEditRecord;
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 
 class EditMk extends BaseSimpleEditRecord
 {
@@ -38,8 +43,61 @@ class EditMk extends BaseSimpleEditRecord
                 ->icon(Heroicon::OutlinedWrenchScrewdriver)
                 ->color('gray')
                 ->button(),
-            DeleteAction::make(),
+            $this->resetPenawaranAction(),
+            DeleteAction::make()
+                ->modalDescription('Penghapusan ikut menghapus seluruh relasi mata kuliah ini (penawaran, CPMK, Sub-CPMK, komponen asesmen, pemetaan CPL/BoK) dan menghitung ulang capaian CPL. Tidak dapat dibatalkan.'),
         ];
+    }
+
+    public function resetPenawaranAction(): Action
+    {
+        return Action::make('resetPenawaran')
+            ->label('Reset penawaran')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->visible(fn (): bool => auth()->user()?->can('update', $this->getRecord()) ?? false)
+            ->modalHeading(fn (): string => 'Reset penawaran '.$this->getRecord()->nama.'?')
+            ->modalDescription(function (): string {
+                $rekap = $this->rekapPenawaranMk();
+
+                return sprintf(
+                    'Akan menghapus %d kelas dan %d peserta kelas beserta seluruh nilai/penilaiannya pada penawaran '
+                    .'mata kuliah ini di lingkup prodi Anda. Data mata kuliah, CPMK, dan baris penawaran TIDAK terhapus. '
+                    .'Tidak dapat dibatalkan.',
+                    $rekap['total_kelas'],
+                    $rekap['total_mahasiswa'],
+                );
+            })
+            ->schema(fn (): array => [
+                TextInput::make('konfirmasi_kode')
+                    ->label('Ketik nama mata kuliah untuk konfirmasi: '.$this->getRecord()->nama)
+                    ->required()
+                    ->in([(string) $this->getRecord()->nama])
+                    ->validationMessages(['in' => 'Nama tidak sama dengan nama mata kuliah.']),
+            ])
+            ->modalSubmitActionLabel('Ya, reset penawaran')
+            ->action(function (): void {
+                /** @var Mk $mk */
+                $mk = $this->getRecord();
+                Gate::forUser(auth()->user())->authorize('update', $mk);
+
+                $r = app(MkUnitResetService::class)->resetPenawaranMk($mk, auth()->user());
+
+                $notif = Notification::make()
+                    ->title('Penawaran direset')
+                    ->body(sprintf(
+                        '%d kelas dan %d peserta dihapus dari %d penawaran.%s',
+                        $r['kelas'],
+                        $r['mahasiswa'],
+                        $r['penawaran_direset'],
+                        $r['penawaran_dilewati'] > 0
+                            ? " {$r['penawaran_dilewati']} penawaran prodi lain dilewati — reset oleh Tim Kurikulum prodi tersebut."
+                            : '',
+                    ));
+                ($r['penawaran_dilewati'] > 0 ? $notif->warning() : $notif->success())->send();
+
+                $this->redirect(static::getResource()::getUrl('edit', ['record' => $mk]));
+            });
     }
 
     public function content(Schema $schema): Schema
@@ -49,6 +107,8 @@ class EditMk extends BaseSimpleEditRecord
                 // Tombol aksi harus footer() milik Form: Simpan adalah
                 // type="submit" tanpa atribut form=, jadi di luar <form> ia
                 // tidak berbuat apa-apa.
+                View::make('filament.modules.mk.partials.prosedur-reset-hapus')
+                    ->viewData(['jenis' => 'mk']),
                 Form::make([EmbeddedSchema::make('form')])
                     ->id('form')
                     ->livewireSubmitHandler($this->getSubmitFormLivewireMethodName())

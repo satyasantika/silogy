@@ -8,18 +8,21 @@ use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Filament\Support\BannerKurikulumDikerjakan;
 use App\Modules\MK\Filament\Resources\MkUnitResource;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Services\MkUnitResetService;
 use App\Modules\MK\Services\MkUnitTarikKontrakService;
 use App\Support\Filament\Pages\BaseEditRecord;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\HtmlString;
 
 class EditMkUnit extends BaseEditRecord
@@ -50,14 +53,62 @@ class EditMkUnit extends BaseEditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            $this->resetDataMkAction(),
+            DeleteAction::make()
+                ->modalDescription('Penghapusan ikut menghapus seluruh relasi penawaran ini dan menghitung ulang capaian CPL. Tidak dapat dibatalkan.'),
         ];
+    }
+
+    public function resetDataMkAction(): Action
+    {
+        return Action::make('resetDataMk')
+            ->label('Reset data MK')
+            ->icon(Heroicon::OutlinedTrash)
+            ->color('danger')
+            ->visible(fn (): bool => auth()->user()?->can('update', $this->getRecord()) ?? false)
+            ->modalHeading(fn (): string => 'Reset data '.$this->getRecord()->kode.'?')
+            ->modalDescription(function (): string {
+                $r = app(MkUnitResetService::class)->ringkasan($this->getRecord());
+
+                return sprintf(
+                    'Akan menghapus %d kelas, %d peserta kelas, dan %d nilai mahasiswa beserta hasil kalkulasinya. '
+                    .'Mata kuliah, CPMK, Sub-CPMK, dan baris penawaran ini TIDAK terhapus. Tidak dapat dibatalkan.',
+                    $r['kelas'],
+                    $r['mahasiswa'],
+                    $r['nilai'],
+                );
+            })
+            ->schema(fn (): array => [
+                TextInput::make('konfirmasi_kode')
+                    ->label('Ketik kode MK unit untuk konfirmasi: '.$this->getRecord()->kode)
+                    ->required()
+                    ->in([(string) $this->getRecord()->kode])
+                    ->validationMessages(['in' => 'Kode tidak sama dengan kode MK unit.']),
+            ])
+            ->modalSubmitActionLabel('Ya, reset data')
+            ->action(function (): void {
+                $mkUnit = $this->getRecord();
+                Gate::forUser(auth()->user())->authorize('update', $mkUnit);
+
+                $r = app(MkUnitResetService::class)->reset($mkUnit);
+                $this->kelasDetailId = null;
+
+                Notification::make()
+                    ->title('Data MK direset')
+                    ->body(sprintf('%d kelas, %d peserta, dan %d nilai dihapus.', $r['kelas'], $r['mahasiswa'], $r['nilai']))
+                    ->success()
+                    ->send();
+
+                $this->redirect(static::getResource()::getUrl('edit', ['record' => $mkUnit]));
+            });
     }
 
     public function content(Schema $schema): Schema
     {
         return $schema
             ->components([
+                View::make('filament.modules.mk.partials.prosedur-reset-hapus')
+                    ->viewData(['jenis' => 'mk-unit']),
                 View::make('filament.modules.mk.partials.mk-unit-edit-banner')
                     ->viewData(fn (): array => [
                         'banner' => BannerKurikulumDikerjakan::html(

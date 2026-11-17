@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Services\MkUnitResetService;
 use App\Modules\MK\Support\PenawaranMkScope;
 
 class MkUnitPolicy
@@ -47,9 +48,22 @@ class MkUnitPolicy
         return $this->manage($user, $mkUnit);
     }
 
+    /**
+     * Super Admin menghapus langsung. Tim Kurikulum (pengelola penawaran
+     * prodinya) hanya boleh setelah data kontrak kelas dan penilaian
+     * direset — penghapusan tidak boleh diam-diam melenyapkan nilai.
+     */
     public function delete(User $user, MkUnit $mkUnit): bool
     {
-        return $user->hasRole('Super Admin') && $this->manage($user, $mkUnit);
+        if (! $this->manage($user, $mkUnit)) {
+            return false;
+        }
+
+        if ($user->hasRole('Super Admin')) {
+            return true;
+        }
+
+        return ! app(MkUnitResetService::class)->adaData($mkUnit);
     }
 
     public function deleteAny(User $user): bool

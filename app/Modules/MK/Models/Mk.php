@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\MK\Services\MkUnitResetService;
 use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkFactory;
@@ -42,6 +43,15 @@ class Mk extends Model
     public $incrementing = false;
 
     protected $guarded = ['id'];
+
+    protected static function booted(): void
+    {
+        // Penawaran, CPMK, komponen asesmen, pemetaan, dan seluruh kontrak
+        // kelas + nilai ikut terhapus lewat cascade DB; agregat CPL per unit
+        // tidak bertaut FK, jadi dibangun ulang di sini.
+        static::deleting(fn (self $mk) => app(MkUnitResetService::class)->catatSebelumHapusMk($mk));
+        static::deleted(fn (self $mk) => app(MkUnitResetService::class)->selesaikanSetelahHapusMk($mk));
+    }
 
     protected function casts(): array
     {

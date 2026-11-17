@@ -5,6 +5,7 @@ namespace App\Modules\MK\Models;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\MK\Services\MkUnitResetService;
 use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
 use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\MkUnitFactory;
@@ -37,6 +38,14 @@ class MkUnit extends Model
     public $incrementing = false;
 
     protected $guarded = ['id'];
+
+    protected static function booted(): void
+    {
+        // Relasi (kelas, nilai, hasil kalkulasi) ikut terhapus lewat cascade DB;
+        // agregat CPL per unit tidak bertaut FK, jadi dibersihkan di sini.
+        static::deleting(fn (self $mkUnit) => app(MkUnitResetService::class)->catatSebelumHapus($mkUnit));
+        static::deleted(fn (self $mkUnit) => app(MkUnitResetService::class)->selesaikanSetelahHapus($mkUnit));
+    }
 
     protected function casts(): array
     {
