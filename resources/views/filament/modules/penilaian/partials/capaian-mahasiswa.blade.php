@@ -86,7 +86,7 @@
                     @foreach ($ketercapaian as $cplRow)
                         <tr style="border-top:1px solid rgba(128,128,128,.15);vertical-align:top;">
                             <td style="padding:6px 8px;text-align:center;font-weight:700;">{{ $cplRow['cpl_kode'] }}</td>
-                            <td style="padding:6px 8px;">{{ $cplRow['cpl_deskripsi'] }}</td>
+                            <td style="padding:6px 8px;">{{ trim(html_entity_decode(strip_tags((string) $cplRow['cpl_deskripsi']))) }}</td>
                             <td style="padding:6px 8px;text-align:center;">
                                 {{ $cplRow['rata_rata'] !== null ? rtrim(rtrim(number_format($cplRow['rata_rata'], 2, '.', ''), '0'), '.').'%' : '—' }}
                             </td>

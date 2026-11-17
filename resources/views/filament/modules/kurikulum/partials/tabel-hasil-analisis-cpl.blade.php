@@ -62,7 +62,7 @@
                                 <td rowspan="{{ count($baris['mk_rows']) }}" style="{{ $cplTdStyle }}">
                                     <div style="display:flex;flex-direction:column;gap:2px;">
                                         <strong class="silogy-teks-info" style="font-size:{{ $sempitKolomCpl ? '13px' : '14px' }};">{{ $baris['cpl_kode'] }}</strong>
-                                        <span style="font-size:{{ $sempitKolomCpl ? '11px' : '12px' }};opacity:.75;line-height:1.4;">{{ $baris['cpl_deskripsi'] }}</span>
+                                        <span style="font-size:{{ $sempitKolomCpl ? '11px' : '12px' }};opacity:.75;line-height:1.4;">{{ trim(html_entity_decode(strip_tags((string) $baris['cpl_deskripsi']))) }}</span>
                                         <span style="font-size:10px;opacity:.6;">
                                             Σ kontribusi {{ count($baris['mk_rows']) }} MK = 100%
                                         </span>

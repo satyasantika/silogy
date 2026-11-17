@@ -29,7 +29,7 @@
                         @if ($baris['cpl_awal'])
                             <td rowspan="{{ $baris['cpl_rowspan'] }}" style="padding:8px;background:rgba(37,99,235,.04);">
                                 <strong>{{ $baris['cpl_kode'] }}</strong>
-                                <div style="opacity:.75;margin-top:2px;">{{ $baris['cpl_deskripsi'] }}</div>
+                                <div style="opacity:.75;margin-top:2px;">{{ trim(html_entity_decode(strip_tags((string) $baris['cpl_deskripsi']))) }}</div>
                             </td>
                         @endif
                         @if ($baris['cpmk_awal'])

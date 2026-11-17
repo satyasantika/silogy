@@ -24,7 +24,7 @@
                 @foreach ($capaian as $baris)
                     <tr style="border-top:1px solid rgba(128,128,128,.15);">
                         <td style="padding:6px;font-weight:600;">{{ $baris['cpl_kode'] }}</td>
-                        <td style="padding:6px;">{{ $baris['cpl_deskripsi'] }}</td>
+                        <td style="padding:6px;">{{ trim(html_entity_decode(strip_tags((string) $baris['cpl_deskripsi']))) }}</td>
                         <td style="padding:6px;text-align:center;">{{ number_format($baris['nilai_rata_rata'], 2) }}</td>
                     </tr>
                 @endforeach
