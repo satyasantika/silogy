@@ -59,16 +59,24 @@ class EditMkUnit extends BaseEditRecord
         ];
     }
 
+    private function mkUnit(): MkUnit
+    {
+        /** @var MkUnit $mkUnit */
+        $mkUnit = $this->getRecord();
+
+        return $mkUnit;
+    }
+
     public function resetDataMkAction(): Action
     {
         return Action::make('resetDataMk')
             ->label('Reset data MK')
             ->icon(Heroicon::OutlinedTrash)
             ->color('danger')
-            ->visible(fn (): bool => auth()->user()?->can('update', $this->getRecord()) ?? false)
-            ->modalHeading(fn (): string => 'Reset data '.$this->getRecord()->kode.'?')
+            ->visible(fn (): bool => auth()->user()?->can('update', $this->mkUnit()) ?? false)
+            ->modalHeading(fn (): string => 'Reset data '.$this->mkUnit()->kode.'?')
             ->modalDescription(function (): string {
-                $r = app(MkUnitResetService::class)->ringkasan($this->getRecord());
+                $r = app(MkUnitResetService::class)->ringkasan($this->mkUnit());
 
                 return sprintf(
                     'Akan menghapus %d kelas, %d peserta kelas, dan %d nilai mahasiswa beserta hasil kalkulasinya. '
@@ -80,14 +88,14 @@ class EditMkUnit extends BaseEditRecord
             })
             ->schema(fn (): array => [
                 TextInput::make('konfirmasi_kode')
-                    ->label('Ketik kode MK unit untuk konfirmasi: '.$this->getRecord()->kode)
+                    ->label('Ketik kode MK unit untuk konfirmasi: '.$this->mkUnit()->kode)
                     ->required()
-                    ->in([(string) $this->getRecord()->kode])
+                    ->in([(string) $this->mkUnit()->kode])
                     ->validationMessages(['in' => 'Kode tidak sama dengan kode MK unit.']),
             ])
             ->modalSubmitActionLabel('Ya, reset data')
             ->action(function (): void {
-                $mkUnit = $this->getRecord();
+                $mkUnit = $this->mkUnit();
                 Gate::forUser(auth()->user())->authorize('update', $mkUnit);
 
                 $r = app(MkUnitResetService::class)->reset($mkUnit);

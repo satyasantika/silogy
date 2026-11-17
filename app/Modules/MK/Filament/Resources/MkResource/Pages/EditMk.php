@@ -49,14 +49,22 @@ class EditMk extends BaseSimpleEditRecord
         ];
     }
 
+    private function mk(): Mk
+    {
+        /** @var Mk $mk */
+        $mk = $this->getRecord();
+
+        return $mk;
+    }
+
     public function resetPenawaranAction(): Action
     {
         return Action::make('resetPenawaran')
             ->label('Reset penawaran')
             ->icon(Heroicon::OutlinedTrash)
             ->color('danger')
-            ->visible(fn (): bool => auth()->user()?->can('update', $this->getRecord()) ?? false)
-            ->modalHeading(fn (): string => 'Reset penawaran '.$this->getRecord()->nama.'?')
+            ->visible(fn (): bool => auth()->user()?->can('update', $this->mk()) ?? false)
+            ->modalHeading(fn (): string => 'Reset penawaran '.$this->mk()->nama.'?')
             ->modalDescription(function (): string {
                 $rekap = $this->rekapPenawaranMk();
 
@@ -70,15 +78,14 @@ class EditMk extends BaseSimpleEditRecord
             })
             ->schema(fn (): array => [
                 TextInput::make('konfirmasi_kode')
-                    ->label('Ketik nama mata kuliah untuk konfirmasi: '.$this->getRecord()->nama)
+                    ->label('Ketik nama mata kuliah untuk konfirmasi: '.$this->mk()->nama)
                     ->required()
-                    ->in([(string) $this->getRecord()->nama])
+                    ->in([(string) $this->mk()->nama])
                     ->validationMessages(['in' => 'Nama tidak sama dengan nama mata kuliah.']),
             ])
             ->modalSubmitActionLabel('Ya, reset penawaran')
             ->action(function (): void {
-                /** @var Mk $mk */
-                $mk = $this->getRecord();
+                $mk = $this->mk();
                 Gate::forUser(auth()->user())->authorize('update', $mk);
 
                 $r = app(MkUnitResetService::class)->resetPenawaranMk($mk, auth()->user());
