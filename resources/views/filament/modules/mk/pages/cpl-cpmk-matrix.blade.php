@@ -37,8 +37,14 @@
                         data-silogy="gerbang-cpmk-tertutup"
                         style="margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(217,119,6,.45);background:rgba(245,158,11,.12);font-size:12px;line-height:1.5;"
                     >
-                        CPMK semester ini terkunci. Ajukan perubahan lewat
-                        <a href="{{ $usulanUrl }}" style="text-decoration:underline;font-weight:600;">Usulan Perubahan CPMK</a>.
+                        @if ($semesterKosong)
+                            Belum ada semester terpilih, sehingga pemetaan CPMK tidak dapat diubah.
+                        @else
+                            CPMK semester ini terkunci. Ajukan perubahan dari halaman
+                            <a href="{{ $cpmkUrl }}" style="text-decoration:underline;font-weight:600;">CPMK</a>;
+                            pantau statusnya di
+                            <a href="{{ $usulanUrl }}" style="text-decoration:underline;font-weight:600;">Usulan Perubahan CPMK</a>.
+                        @endif
                     </div>
                 @endif
                 <div style="overflow-x:auto;" wire:key="matriks-cpl-cpmk">
@@ -86,8 +92,10 @@
                                             @checked($sudahTerpetakan)
                                             @if ($terkunci)
                                                 title="Hapus Sub-CPMK terkait terlebih dahulu"
+                                            @elseif ($semesterKosong)
+                                                title="Belum ada semester terpilih"
                                             @elseif ($gerbangTertutup)
-                                                title="CPMK semester ini terkunci; ajukan Usulan Perubahan CPMK"
+                                                title="CPMK semester ini terkunci; ajukan perubahan dari halaman CPMK"
                                             @endif
                                         />
                                     </td>

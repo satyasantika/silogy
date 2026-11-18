@@ -12,6 +12,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Pages\CplCpmkMatrix;
 use App\Modules\MK\Filament\Pages\SubcpmkAsesmenMatrix;
+use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\EditCpmk;
 use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
 use App\Modules\MK\Models\Cpmk;
@@ -198,7 +199,24 @@ it('matriks menampilkan spanduk dan menonaktifkan kotak centang saat gerbang cpm
         ->html();
 
     expect($html)->not->toContain('wire:click="toggle')
-        ->and($html)->toContain(PerubahanCpmkResource::getUrl('index'));
+        ->and($html)->toContain(PerubahanCpmkResource::getUrl('index'))
+        ->and($html)->toContain(CpmkResource::getUrl('index'));
+});
+
+it('matriks mengunci kotak centang dengan pesan netral saat belum ada semester terpilih', function () {
+    [$mk, $cpl] = siapkanInteraksiCplMk($this);
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-NOSEM', 'deskripsi' => 'Tanpa semester.']);
+    Semester::query()->delete();
+
+    $html = Livewire::test(CplCpmkMatrix::class)
+        ->assertSee('Belum ada semester terpilih')
+        ->assertDontSee('CPMK semester ini terkunci')
+        ->html();
+
+    expect($html)->not->toContain('wire:click="toggle');
+
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cpl->id);
+    expect(MkCpmk::query()->count())->toBe(0);
 });
 
 it('matriks tidak menampilkan spanduk dan kotak centang aktif saat gerbang cpmk terbuka', function () {

@@ -187,13 +187,14 @@ it('satu cpl ke mk lewat dua bok menggabungkan cpmk kedua tautan', function () {
         ->and((float) $baris->first()->nilai_berbobot)->toBe(40.0);
 });
 
-it('cpmk kembar di dua tautan dihitung sekali', function () {
+it('gabungan cpmk lintas tautan: cpmk yang dipakai bersama dihitung sekali', function () {
     $dasar = $this->createKelasPenilaianDasar();
     $dasar['cplMk']->update(['bobot' => 30]);
     $cplMk2 = buatTautanBokKedua($dasar, 20);
     $cpmkLain = Cpmk::factory()->forMk($dasar['mk'])->create();
+    // Tautan 1: {A, C}; tautan 2: hanya {A}. Hasil harus gabungan {A, C}, bukan tautan terakhir saja.
+    MkCpmk::factory()->forCplMkAndCpmk($dasar['cplMk'], $cpmkLain)->create();
     MkCpmk::factory()->forCplMkAndCpmk($cplMk2, $dasar['cpmk'])->create();
-    MkCpmk::factory()->forCplMkAndCpmk($cplMk2, $cpmkLain)->create();
 
     buatHasilCpmkUji($dasar, $dasar['cpmk'], 90);
     buatHasilCpmkUji($dasar, $cpmkLain, 70);

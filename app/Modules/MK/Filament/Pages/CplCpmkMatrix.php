@@ -7,6 +7,7 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Pages\Concerns\InteraksiKoordinatorMatrixPage;
+use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
@@ -145,8 +146,10 @@ class CplCpmkMatrix extends Page
                 'cpls' => collect(),
                 'terpetakan' => collect(),
                 'terkunciSubcpmk' => collect(),
+                'semesterKosong' => false,
                 'gerbangTertutup' => false,
                 'usulanUrl' => PerubahanCpmkResource::getUrl('index'),
+                'cpmkUrl' => CpmkResource::getUrl('index'),
             ], $this->mkTerpilihViewData());
         }
 
@@ -159,8 +162,10 @@ class CplCpmkMatrix extends Page
                 'cpls' => collect(),
                 'terpetakan' => collect(),
                 'terkunciSubcpmk' => collect(),
+                'semesterKosong' => false,
                 'gerbangTertutup' => false,
                 'usulanUrl' => PerubahanCpmkResource::getUrl('index'),
+                'cpmkUrl' => CpmkResource::getUrl('index'),
             ], $this->mkTerpilihViewData());
         }
 
@@ -215,12 +220,14 @@ class CplCpmkMatrix extends Page
             'cpls' => $cpls,
             'terpetakan' => $terpetakan,
             'terkunciSubcpmk' => $terkunciSubcpmk,
-            'gerbangTertutup' => GerbangPerubahanCpmk::butuhPersetujuan(
+            'semesterKosong' => blank($semesterId),
+            'gerbangTertutup' => blank($semesterId) || GerbangPerubahanCpmk::butuhPersetujuan(
                 $mk,
-                filled($semesterId) ? (string) $semesterId : null,
+                (string) $semesterId,
                 auth()->user(),
             ),
             'usulanUrl' => PerubahanCpmkResource::getUrl('index'),
+            'cpmkUrl' => CpmkResource::getUrl('index'),
         ], $this->mkTerpilihViewData());
     }
 }

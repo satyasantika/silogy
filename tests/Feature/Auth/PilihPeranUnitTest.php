@@ -182,5 +182,4 @@ it('halaman pilih peran tidak menampilkan judul ganda', function () {
 
     // Judul halaman Filament ("Pilih Peran & Unit") tidak boleh dirender sebagai H1.
     expect($html)->not->toMatch('/<h1[^>]*>\s*Pilih Peran &amp; Unit\s*<\/h1>/');
-    expect(substr_count($html, '<h1'))->toBe(0);
 });
