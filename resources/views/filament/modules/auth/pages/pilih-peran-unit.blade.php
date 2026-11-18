@@ -198,7 +198,7 @@
             <p style="font-size:13px;opacity:.75;margin-bottom:16px;">
                 Klik kartu peran yang ingin digunakan sekarang — menu dan hak akses
                 akan mengikuti peran ini. Anda bisa menggantinya kapan saja lewat
-                menu identitas di footer sidebar atau sudut kanan atas.
+                menu pengguna di sudut kanan atas.
             </p>
 
             <div class="silogy-peran-cards" role="list">

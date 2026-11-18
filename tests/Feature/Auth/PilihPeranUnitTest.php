@@ -158,6 +158,8 @@ it('halaman pilih peran tidak merender sidebar, dashboard tetap', function () {
     $this->get(PilihPeranUnit::getUrl())
         ->assertOk()
         ->assertDontSee('<aside', false)
+        ->assertDontSee('menu identitas di footer sidebar')
+        ->assertSee('menu pengguna di sudut kanan atas')
         ->assertSee('silogy-peran-card', false)
         ->assertSee('Dosen Pengampu')
         ->assertSee('Tim Kurikulum');
