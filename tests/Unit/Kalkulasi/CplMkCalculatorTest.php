@@ -66,6 +66,22 @@ it('nilai berbobot tidak nol walau bobot cpl bok kosong', function () {
     expect((float) $hasil->nilai_berbobot)->toBe(50.0);
 });
 
+it('mengabaikan bobot cpl bok non-100 yang terisi', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $dasar['cplMk']->update(['bobot' => 50]);
+    $dasar['cplBok']->update(['bobot' => 80]);
+
+    $this->jalankanKalkulasiHinggaCpmk($dasar, 100);
+    $this->calculator->calculate($dasar['kelas']->id, $dasar['semester']->id);
+
+    $hasil = HasilCplMk::query()
+        ->where('cpl_id', $dasar['cpl']->id)
+        ->where('kelas_mk_mahasiswa_id', $dasar['kmm']->id)
+        ->first();
+
+    expect((float) $hasil->nilai_berbobot)->toBe(50.0);
+});
+
 it('menggunakan avg hasil cpmk dari beberapa cpmk pada cpl mk yang sama', function () {
     $dasar = $this->createKelasPenilaianDasar();
     $cpmk2 = Cpmk::factory()->forMk($dasar['mk'])->create();
