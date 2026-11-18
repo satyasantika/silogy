@@ -118,6 +118,24 @@ bash scripts/deploy.sh          # skrip rilis ikut ter-versioning di repo
 (`docker compose port nginx 80`, mis. `172.17.0.1:8081`) → prune image lama.
 Health gagal ⇒ skrip keluar non-zero dan job CD merah, disertai 50 baris log `app`.
 
+### Langkah pasca-deploy sekali jalan: hitung ulang CPL (rilis penguatan matriks interaksi)
+
+Rilis ini menghapus faktor bobot CPL×BoK dari rumus `nilai_berbobot` (bobot CPL×BoK
+bukan bagian model OBE). Baris lama di `hasil_cpl_mk` — terutama yang lahir dari matriks
+CPL×BoK dengan bobot kosong — masih menyimpan `nilai_berbobot = 0`, dan angka itu ikut
+mengalir ke `hasil_cpl_unit` serta cache dashboard. Kalkulasi hanya berjalan ulang saat
+sebuah nilai berubah, jadi data lama tidak akan membaik sendiri. Jalankan **sekali** setelah
+rilis ini naik (aman diulang):
+
+```bash
+cd ~/docker-apps/silogy
+docker compose -f docker-compose.prod.yml exec app php artisan kalkulasi:hitung-ulang-cpl
+# opsi: --sync (hitung langsung, tanpa antrean), --unit=<uuid>, --semester=<uuid>
+```
+
+Tanpa `--sync`, job masuk antrean `cpl-calculation`; pastikan container `queue` hidup
+dan pantau `queue:failed`. Perintah ini mencetak jumlah kelas yang diproses.
+
 GitHub Secrets yang wajib ada (repo → Settings → Secrets → Actions):
 
 | Secret | Isi |
