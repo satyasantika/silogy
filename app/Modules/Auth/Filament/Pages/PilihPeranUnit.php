@@ -11,6 +11,7 @@ use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 use Lab404\Impersonate\Services\ImpersonateManager;
 
 /**
@@ -47,6 +48,15 @@ class PilihPeranUnit extends Page
      * @var array<int, array{id: string, nama: string, type: string}>
      */
     public array $unitOptions = [];
+
+    /**
+     * Layout simple merender judul halaman sebagai H1; view sudah punya
+     * judul seksi sendiri, jadi judul halaman dikosongkan (tab tetap memakai $title).
+     */
+    public function getHeading(): string|Htmlable
+    {
+        return '';
+    }
 
     public function mount(): void
     {

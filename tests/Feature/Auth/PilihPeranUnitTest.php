@@ -170,3 +170,17 @@ it('halaman pilih peran tidak merender sidebar, dashboard tetap', function () {
         ->assertOk()
         ->assertSee('<aside', false);
 });
+
+it('halaman pilih peran tidak menampilkan judul ganda', function () {
+    $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosentimkur);
+
+    $html = $this->get(PilihPeranUnit::getUrl())
+        ->assertOk()
+        ->assertSee('Pilih peran dan unit Anda')
+        ->getContent();
+
+    // Judul halaman Filament ("Pilih Peran & Unit") tidak boleh dirender sebagai H1.
+    expect($html)->not->toMatch('/<h1[^>]*>\s*Pilih Peran &amp; Unit\s*<\/h1>/');
+    expect(substr_count($html, '<h1'))->toBe(0);
+});
