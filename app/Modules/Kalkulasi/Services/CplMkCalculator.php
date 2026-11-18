@@ -65,7 +65,6 @@ class CplMkCalculator
             }
 
             $bobotCplMk = (float) $cplMk->bobot / 100;
-            $bobotCplBok = (float) ($cplMk->cplBok?->bobot ?? 0) / 100;
 
             foreach ($kmmIds as $kmmId) {
                 $nilaiAkhir = HasilCpmk::query()
@@ -79,7 +78,7 @@ class CplMkCalculator
                 }
 
                 $nilaiAkhir = round((float) $nilaiAkhir, 2);
-                $nilaiBerbobot = round($nilaiAkhir * $bobotCplMk * $bobotCplBok, 2);
+                $nilaiBerbobot = round($nilaiAkhir * $bobotCplMk, 2);
 
                 $key = $cplId.'|'.$kmmId;
                 $hasil = $existing->get($key);

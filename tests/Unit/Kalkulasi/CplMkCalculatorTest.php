@@ -34,10 +34,9 @@ it('menghitung nilai cpl mk dari rata-rata hasil cpmk ter-mapping', function () 
         ->and((float) $hasil->nilai_berbobot)->toBe(80.0);
 });
 
-it('menghitung nilai berbobot dari bobot cpl mk dan cpl bok', function () {
+it('menghitung nilai berbobot hanya dari bobot cpl mk, tanpa bobot cpl bok', function () {
     $dasar = $this->createKelasPenilaianDasar();
     $dasar['cplMk']->update(['bobot' => 50]);
-    $dasar['cplBok']->update(['bobot' => 80]);
 
     $this->jalankanKalkulasiHinggaCpmk($dasar, 100);
     $this->calculator->calculate($dasar['kelas']->id, $dasar['semester']->id);
@@ -48,7 +47,23 @@ it('menghitung nilai berbobot dari bobot cpl mk dan cpl bok', function () {
         ->first();
 
     expect((float) $hasil->nilai_akhir)->toBe(100.0)
-        ->and((float) $hasil->nilai_berbobot)->toBe(40.0);
+        ->and((float) $hasil->nilai_berbobot)->toBe(50.0);
+});
+
+it('nilai berbobot tidak nol walau bobot cpl bok kosong', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $dasar['cplMk']->update(['bobot' => 50]);
+    $dasar['cplBok']->update(['bobot' => null]);
+
+    $this->jalankanKalkulasiHinggaCpmk($dasar, 100);
+    $this->calculator->calculate($dasar['kelas']->id, $dasar['semester']->id);
+
+    $hasil = HasilCplMk::query()
+        ->where('cpl_id', $dasar['cpl']->id)
+        ->where('kelas_mk_mahasiswa_id', $dasar['kmm']->id)
+        ->first();
+
+    expect((float) $hasil->nilai_berbobot)->toBe(50.0);
 });
 
 it('menggunakan avg hasil cpmk dari beberapa cpmk pada cpl mk yang sama', function () {
