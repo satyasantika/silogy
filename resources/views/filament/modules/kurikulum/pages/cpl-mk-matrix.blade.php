@@ -52,6 +52,7 @@
                                             return;
                                         }
                                         this.refreshRekap();
+                                        this.selaraskanInput();
                                     };
 
                                     terapkanSnapshot();
@@ -76,6 +77,26 @@
                                 },
                                 refreshRekap() {
                                     this.rekapTotal = this.hitungTotal();
+                                },
+                                // Server menolak sebuah perubahan (mis. pengosongan sel yang masih
+                                // dipetakan ke CPMK) tanpa mengubah HTML, sehingga morph tidak
+                                // menyentuh input yang sudah dikosongkan di klien. Samakan kembali
+                                // tampilan input dengan nilai tersimpan dari server.
+                                selaraskanInput() {
+                                    this.$el.querySelectorAll('input[data-silogy=bobot-sel]').forEach((input) => {
+                                        if (input === document.activeElement) {
+                                            return;
+                                        }
+                                        const tersimpan = this.values[input.dataset.cplbok];
+                                        const tampil = tersimpan === null || tersimpan === undefined || tersimpan === ''
+                                            ? ''
+                                            : String(this.round1(tersimpan));
+                                        const sekarang = String(input.value).trim();
+                                        const sama = tampil === '' ? sekarang === '' : Number(sekarang) === Number(tampil);
+                                        if (! sama) {
+                                            input.value = tampil;
+                                        }
+                                    });
                                 },
                                 get total() { return this.rekapTotal; },
                                 get selisih() { return this.round1(this.rekapTotal - this.target); },

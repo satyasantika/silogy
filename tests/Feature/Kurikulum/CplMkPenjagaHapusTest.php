@@ -80,3 +80,12 @@ it('tetap menghapus sel kosong tanpa MkCpmk', function () {
 
     expect(CplMk::query()->whereKey($cplMk->id)->exists())->toBeFalse();
 });
+
+it('merender snapshot nilai tersimpan dan penyelaras input setelah penolakan', function () {
+    [$mk, $cplBok] = selDenganCpmk($this);
+
+    Livewire::test(CplMkMatrix::class)
+        ->assertSeeHtml('data-rekap-snapshot=')
+        ->assertSeeHtml('selaraskanInput()')
+        ->assertSeeHtml('value="50"');
+});
