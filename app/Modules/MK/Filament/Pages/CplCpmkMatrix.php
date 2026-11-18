@@ -4,12 +4,14 @@ namespace App\Modules\MK\Filament\Pages;
 
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplMk;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Pages\Concerns\InteraksiKoordinatorMatrixPage;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
+use App\Modules\MK\Support\GerbangPerubahanCpmk;
 use App\Support\Filament\NavigationGroupPeran;
 use App\Support\Filament\NavigationSortPeran;
 use Filament\Notifications\Notification;
@@ -48,7 +50,41 @@ class CplCpmkMatrix extends Page
 
     public function toggle(string $cpmkId, string $cplId): void
     {
-        $cpmk = Cpmk::query()->with('mk')->findOrFail($cpmkId);
+        $mk = $this->getMkTerpilih();
+        $cpmk = $mk instanceof Mk
+            ? Cpmk::query()->where('mk_id', $mk->id)->find($cpmkId)
+            : null;
+
+        if (! $mk instanceof Mk || ! $cpmk instanceof Cpmk) {
+            $this->tolakToggle('CPMK tidak valid', 'CPMK tidak ditemukan pada mata kuliah yang sedang dipilih.');
+
+            return;
+        }
+
+        $cplMks = CplMk::query()
+            ->where('mk_id', $mk->id)
+            ->whereHas('cplBok', fn ($query) => $query->where('cpl_id', $cplId))
+            ->get();
+
+        if ($cplMks->isEmpty()) {
+            $this->tolakToggle(
+                'Pemetaan CPL–MK belum ada',
+                'Berikan bobot pada interaksi CPL ↔ MK terlebih dahulu untuk MK ini.',
+            );
+
+            return;
+        }
+
+        $semesterId = SemesterTerpilih::currentId($mk->id) ?? SemesterTerpilih::defaultId();
+
+        if (! GerbangPerubahanCpmk::bolehUbah($mk, filled($semesterId) ? (string) $semesterId : null, auth()->user())) {
+            $this->tolakToggle(
+                'Perubahan CPMK belum diizinkan',
+                'CPMK semester ini sudah berjalan. Ajukan usulan perubahan CPMK dan tunggu persetujuan Tim Kurikulum.',
+            );
+
+            return;
+        }
 
         $existing = MkCpmk::query()
             ->where('cpmk_id', $cpmkId)
@@ -74,21 +110,6 @@ class CplCpmkMatrix extends Page
             return;
         }
 
-        $cplMks = CplMk::query()
-            ->where('mk_id', $cpmk->mk_id)
-            ->whereHas('cplBok', fn ($query) => $query->where('cpl_id', $cplId))
-            ->get();
-
-        if ($cplMks->isEmpty()) {
-            Notification::make()
-                ->title('Pemetaan CPL–MK belum ada')
-                ->body('Berikan bobot pada interaksi CPL ↔ MK terlebih dahulu untuk MK ini.')
-                ->warning()
-                ->send();
-
-            return;
-        }
-
         foreach ($cplMks as $cplMk) {
             MkCpmk::query()->updateOrCreate(
                 [
@@ -98,6 +119,15 @@ class CplCpmkMatrix extends Page
                 ['bobot' => 0],
             );
         }
+    }
+
+    private function tolakToggle(string $judul, string $isi): void
+    {
+        Notification::make()
+            ->title($judul)
+            ->body($isi)
+            ->warning()
+            ->send();
     }
 
     /**

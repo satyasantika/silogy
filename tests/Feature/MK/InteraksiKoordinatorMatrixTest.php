@@ -18,6 +18,7 @@ use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\MK\Models\Subcpmk;
+use App\Modules\MK\Services\PerubahanCpmkService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
@@ -27,6 +28,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -104,6 +106,86 @@ it('matriks cpl cpmk mencentang pemetaan mk cpmk', function () {
         ->call('toggle', $cpmk->id, $cpl->id);
 
     expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->where('cpl_mk_id', $cplMk->id)->exists())->toBeTrue();
+});
+
+/**
+ * @return array{0: Mk, 1: Cpl, 2: CplMk}
+ */
+function siapkanInteraksiCplMk(object $context): array
+{
+    $mk = seedMkKoordinatorContext($context);
+    $cpl = Cpl::factory()->forAcademicUnit($context->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($context->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+
+    return [$mk, $cpl, $cplMk];
+}
+
+it('toggle menolak cpmk milik mk lain', function () {
+    [, $cpl] = siapkanInteraksiCplMk($this);
+    $mkLain = Mk::factory()->create(['academic_unit_id' => $this->prodi->id]);
+    // MK lain memetakan CPL yang sama, jadi hanya pemeriksaan kepemilikan yang menolak.
+    CplMk::query()->create([
+        'cpl_bok_id' => CplBok::query()->where('cpl_id', $cpl->id)->value('id'),
+        'mk_id' => $mkLain->id,
+        'bobot' => 100,
+    ]);
+    $cpmkLain = Cpmk::query()->create(['mk_id' => $mkLain->id, 'kode' => 'CPMK-LAIN', 'deskripsi' => 'MK lain.']);
+
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmkLain->id, $cpl->id);
+
+    expect(MkCpmk::query()->count())->toBe(0);
+});
+
+it('toggle menolak cpl tanpa interaksi pada mk terpilih', function () {
+    [$mk] = siapkanInteraksiCplMk($this);
+    $cplAsing = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $cpmk = Cpmk::query()->create(['mk_id' => $mk->id, 'kode' => 'CPMK-X', 'deskripsi' => 'Uji.']);
+
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cplAsing->id);
+
+    expect(MkCpmk::query()->count())->toBe(0);
+});
+
+it('toggle diam saja untuk cpmkId acak', function () {
+    [, $cpl] = siapkanInteraksiCplMk($this);
+
+    Livewire::test(CplCpmkMatrix::class)
+        ->call('toggle', (string) Str::uuid(), $cpl->id)
+        ->assertSuccessful();
+
+    expect(MkCpmk::query()->count())->toBe(0);
+});
+
+it('toggle ditolak koordinator saat gerbang perubahan cpmk tertutup', function () {
+    [$mk, $cpl, $cplMk] = siapkanInteraksiCplMk($this);
+    $cpmk = cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-GATE']);
+
+    // Mencentang ditolak.
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cpl->id);
+    expect(MkCpmk::query()->count())->toBe(0);
+
+    // Melepas centang juga ditolak.
+    $pivot = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 0]);
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cpl->id);
+    expect(MkCpmk::query()->whereKey($pivot->id)->exists())->toBeTrue();
+});
+
+it('toggle berhasil saat gerbang perubahan cpmk terbuka lewat usulan disetujui', function () {
+    [$mk, $cpl, $cplMk] = siapkanInteraksiCplMk($this);
+    $cpmk = cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-OPEN']);
+
+    $timkur = User::query()->where('username', 'timkur')->firstOrFail();
+    $usulan = app(PerubahanCpmkService::class)
+        ->ajukan($mk, $this->semester->id, $this->korma, 'Perlu penyesuaian rumusan CPMK.');
+    app(PerubahanCpmkService::class)->setujui($usulan, $timkur, 'Silakan.');
+
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cpl->id);
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->where('cpl_mk_id', $cplMk->id)->exists())->toBeTrue();
+
+    Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cpl->id);
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->exists())->toBeFalse();
 });
 
 it('matriks cpl cpmk hanya menampilkan kolom cpl yang terpetakan pada mk terpilih', function () {
