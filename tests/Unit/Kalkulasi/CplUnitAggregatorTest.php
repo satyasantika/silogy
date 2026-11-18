@@ -1,16 +1,21 @@
 <?php
 
+use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplBok;
+use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
 use App\Modules\Kalkulasi\Services\CplUnitAggregator;
+use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkUnit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Tests\Unit\Kalkulasi\Concerns\SetsUpKalkulasiFixtures;
@@ -227,4 +232,165 @@ it('target capaian mengikuti kurikulum cpl, bukan kurikulum aktif unit', functio
     $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
 
     expect((float) HasilCplUnit::query()->where('cpl_id', $dasar['cpl']->id)->firstOrFail()->persentase_tercapai)->toBe(100.0);
+});
+
+/**
+ * MK kedua pada prodi/kurikulum yang sama, diikuti mahasiswa yang sama, dengan cpl_mk berbobot.
+ *
+ * @return array{mk: Mk, mkUnit: MkUnit, kmm: KelasMkMahasiswa}
+ */
+function tambahMkKedua(array $dasar, ?float $bobot, ?CplBok $cplBok = null): array
+{
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $mk = Mk::factory()->create(['academic_unit_id' => $prodi->id]);
+    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create([
+        'kode' => 'IF-KALK2',
+        'kurikulum_id' => $dasar['mkUnit']->kurikulum_id,
+    ]);
+    $kelas = KelasMk::query()->create([
+        'mk_unit_id' => $mkUnit->id,
+        'semester_id' => $dasar['semester']->id,
+        'kode_kelas' => 'A',
+    ]);
+    $kmm = KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelas->id,
+        'mahasiswa_id' => $dasar['kmm']->mahasiswa_id,
+    ]);
+
+    if ($bobot !== null) {
+        CplMk::query()->create([
+            'cpl_bok_id' => ($cplBok ?? $dasar['cplBok'])->id,
+            'mk_id' => $mk->id,
+            'bobot' => $bobot,
+        ]);
+    }
+
+    return compact('mk', 'mkUnit', 'kmm');
+}
+
+function buatHasilCplMk(array $dasar, MkUnit $mkUnit, KelasMkMahasiswa $kmm, ?float $nilaiAkhir, ?float $berbobot = null): void
+{
+    HasilCplMk::query()->create([
+        'cpl_id' => $dasar['cpl']->id,
+        'mk_unit_id' => $mkUnit->id,
+        'kelas_mk_mahasiswa_id' => $kmm->id,
+        'semester_id' => $dasar['semester']->id,
+        'nilai_akhir' => $nilaiAkhir,
+        'nilai_berbobot' => $berbobot ?? $nilaiAkhir,
+    ]);
+}
+
+function hasilProdi(array $dasar): ?HasilCplUnit
+{
+    return HasilCplUnit::query()->where('cpl_id', $dasar['cpl']->id)->first();
+}
+
+it('nilai cpl prodi tertimbang memakai nilai_akhir bukan potongan nilai_berbobot', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $this->buatKurikulumAktif($prodi, 75);
+    $dasar['cplMk']->update(['bobot' => 30]);
+
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $dasar['kmm'], 90, 27);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    expect((float) hasilProdi($dasar)->rata_rata)->toBe(90.0)
+        ->and((float) hasilProdi($dasar)->persentase_tercapai)->toBe(100.0);
+});
+
+it('dua MK berbobot 60 dan 40 dirata-ratakan tertimbang', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $this->buatKurikulumAktif($prodi, 75);
+    $dasar['cplMk']->update(['bobot' => 60]);
+    $dua = tambahMkKedua($dasar, 40);
+
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $dasar['kmm'], 100, 60);
+    buatHasilCplMk($dasar, $dua['mkUnit'], $dua['kmm'], 50, 20);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    expect((float) hasilProdi($dasar)->rata_rata)->toBe(80.0);
+});
+
+it('mk tanpa bobot cpl_mk jatuh ke rata-rata sederhana', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $this->buatKurikulumAktif($prodi, 75);
+    $dua = tambahMkKedua($dasar, null);
+    CplMk::query()->delete();
+
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $dasar['kmm'], 80);
+    buatHasilCplMk($dasar, $dua['mkUnit'], $dua['kmm'], 60);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    expect((float) hasilProdi($dasar)->rata_rata)->toBe(70.0);
+});
+
+it('dua kelas pada mk yang sama dirata-ratakan dulu per mk', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $this->buatKurikulumAktif($prodi, 75);
+    $dasar['cplMk']->update(['bobot' => 50]);
+    $dua = tambahMkKedua($dasar, 50);
+
+    $kelasB = KelasMk::query()->create([
+        'mk_unit_id' => $dasar['mkUnit']->id,
+        'semester_id' => $dasar['semester']->id,
+        'kode_kelas' => 'B',
+    ]);
+    $kmmB = KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelasB->id,
+        'mahasiswa_id' => $dasar['kmm']->mahasiswa_id,
+    ]);
+
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $dasar['kmm'], 100);
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $kmmB, 60);
+    buatHasilCplMk($dasar, $dua['mkUnit'], $dua['kmm'], 100);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    // MK pertama = 80 (bukan 100/60 terpisah), MK kedua = 100, bobot sama -> 90.
+    expect((float) hasilProdi($dasar)->rata_rata)->toBe(90.0);
+});
+
+it('satu cpl ke mk lewat dua bok menjumlahkan bobot', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $this->buatKurikulumAktif($prodi, 75);
+    $dasar['cplMk']->update(['bobot' => 30]);
+    $bok2 = Bok::factory()->forAcademicUnit($prodi)->create();
+    $cplBok2 = CplBok::query()->create([
+        'cpl_id' => $dasar['cpl']->id,
+        'bok_id' => $bok2->id,
+        'bobot' => 50,
+    ]);
+    CplMk::query()->create([
+        'cpl_bok_id' => $cplBok2->id,
+        'mk_id' => $dasar['mk']->id,
+        'bobot' => 20,
+    ]);
+    $dua = tambahMkKedua($dasar, 50);
+
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $dasar['kmm'], 100);
+    buatHasilCplMk($dasar, $dua['mkUnit'], $dua['kmm'], 60);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    // Bobot MK pertama 30+20 = 50, MK kedua 50 -> (100*50 + 60*50)/100 = 80.
+    expect((float) hasilProdi($dasar)->rata_rata)->toBe(80.0);
+});
+
+it('baris nilai_akhir null diabaikan', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $this->buatKurikulumAktif($prodi, 75);
+
+    buatHasilCplMk($dasar, $dasar['mkUnit'], $dasar['kmm'], null, 50);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    expect(hasilProdi($dasar))->toBeNull();
 });

@@ -3,12 +3,14 @@
 namespace App\Modules\Kalkulasi\Services;
 
 use App\Modules\CPL\Models\Cpl;
+use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
 use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
 use App\Modules\Kalkulasi\Models\HasilCplUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\MkUnit;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class CplUnitAggregator
@@ -94,25 +96,24 @@ class CplUnitAggregator
             ->where('cpl_id', $cplId)
             ->where('semester_id', $semesterId)
             ->whereIn('mk_unit_id', $mkUnitIds)
-            ->whereNotNull('nilai_berbobot')
+            ->whereNotNull('nilai_akhir')
             ->whereHas('kelasMkMahasiswa.mahasiswa', fn ($query) => $query->where('academic_unit_id', $academicUnitId))
-            ->with('kelasMkMahasiswa')
+            ->with('kelasMkMahasiswa', 'mkUnit')
             ->get();
 
         if ($hasilRows->isEmpty()) {
             return null;
         }
 
-        $rataRata = round((float) $hasilRows->avg('nilai_berbobot'), 2);
+        $bobotPerMk = $this->bobotCplPerMk($cplId);
 
-        $perMahasiswa = $hasilRows->groupBy(
-            fn (HasilCplMk $hasil): string => (string) $hasil->kelasMkMahasiswa?->mahasiswa_id,
-        );
+        $nilaiPerMahasiswa = $hasilRows
+            ->groupBy(fn (HasilCplMk $hasil): string => (string) $hasil->kelasMkMahasiswa?->mahasiswa_id)
+            ->map(fn (Collection $baris): float => $this->nilaiCplMahasiswa($baris, $bobotPerMk));
 
-        $jumlahMahasiswa = $perMahasiswa->count();
-        $tercapai = $perMahasiswa->filter(
-            fn ($baris) => (float) $baris->avg('nilai_berbobot') >= $threshold,
-        )->count();
+        $jumlahMahasiswa = $nilaiPerMahasiswa->count();
+        $rataRata = round((float) $nilaiPerMahasiswa->avg(), 2);
+        $tercapai = $nilaiPerMahasiswa->filter(fn (float $nilai): bool => $nilai >= $threshold)->count();
 
         $persentaseTercapai = $jumlahMahasiswa > 0
             ? round($tercapai / $jumlahMahasiswa * 100, 2)
@@ -123,6 +124,64 @@ class CplUnitAggregator
             'persentase_tercapai' => $persentaseTercapai,
             'jumlah_mahasiswa' => $jumlahMahasiswa,
         ];
+    }
+
+    /**
+     * Bobot tiap MK terhadap CPL: jumlah cpl_mk.bobot lewat semua cpl_bok
+     * milik CPL ini (satu MK bisa terhubung lewat lebih dari satu BoK).
+     *
+     * @return array<string, float> mk_id => bobot
+     */
+    protected function bobotCplPerMk(string $cplId): array
+    {
+        $bobotPerMk = [];
+
+        $rows = CplMk::query()
+            ->join('cpl_bok', 'cpl_bok.id', '=', 'cpl_mk.cpl_bok_id')
+            ->where('cpl_bok.cpl_id', $cplId)
+            ->get(['cpl_mk.mk_id', 'cpl_mk.bobot']);
+
+        foreach ($rows as $row) {
+            $bobotPerMk[$row->mk_id] = ($bobotPerMk[$row->mk_id] ?? 0.0) + (float) $row->bobot;
+        }
+
+        return $bobotPerMk;
+    }
+
+    /**
+     * Nilai CPL satu mahasiswa: rata-rata nilai_akhir per MK (beberapa kelas
+     * pada MK sama dirata-ratakan dulu), lalu ditimbang bobot cpl_mk dan
+     * dibagi jumlah bobot MK yang punya nilai. MK berbobot <= 0 dilewati;
+     * bila tidak ada MK berbobot, jatuh ke rata-rata sederhana.
+     *
+     * @param  Collection<int, HasilCplMk>  $baris
+     * @param  array<string, float>  $bobotPerMk
+     */
+    protected function nilaiCplMahasiswa(Collection $baris, array $bobotPerMk): float
+    {
+        $rerataPerMk = $baris
+            ->groupBy(fn (HasilCplMk $hasil): string => (string) $hasil->mkUnit?->mk_id)
+            ->map(fn (Collection $samaMk): float => (float) $samaMk->avg('nilai_akhir'));
+
+        $jumlahBerbobot = 0.0;
+        $jumlahBobot = 0.0;
+
+        foreach ($rerataPerMk as $mkId => $rerata) {
+            $bobot = (float) ($bobotPerMk[$mkId] ?? 0);
+
+            if ($bobot <= 0) {
+                continue;
+            }
+
+            $jumlahBerbobot += $rerata * $bobot;
+            $jumlahBobot += $bobot;
+        }
+
+        if ($jumlahBobot <= 0) {
+            return (float) $baris->avg('nilai_akhir');
+        }
+
+        return $jumlahBerbobot / $jumlahBobot;
     }
 
     /**
