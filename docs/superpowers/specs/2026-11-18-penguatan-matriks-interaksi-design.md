@@ -23,7 +23,7 @@ Untuk tiap butir hanya ada satu cara yang masuk akal; penjaga memakai pola yang 
 
 ## Rancangan
 1. **Sidebar** — `PilihPeranUnit` memakai layout tanpa sidebar; topbar/menu pengguna tetap.
-2. **CPL×MK (`CplMkMatrix::updateBobot`)** — tolak pengosongan sel atau bobot menjadi 0 bila ada `mk_cpmk` di bawah `cpl_mk` itu ("Lepas pemetaan CPMK dulu"). FK `mk_cpmk.cpl_mk_id` menjadi `restrictOnDelete`; jalur reset diperiksa dan dibuat menghapus `mk_cpmk` secara eksplisit lebih dulu.
+2. **CPL×MK (`CplMkMatrix::updateBobot`)** — tolak pengosongan sel atau bobot menjadi 0 bila ada `mk_cpmk` di bawah `cpl_mk` itu ("Lepas pemetaan CPMK dulu"). Penjaga diletakkan di aplikasi (matriks), FK `mk_cpmk.cpl_mk_id` TIDAK diubah (lihat Revisi).
 3. **Bobot BoK** — buang faktor `bobotCplBok` dari `CplMkCalculator`; `nilai_berbobot = nilai_akhir × bobotCplMk`. Data lama dihitung ulang lewat `RecalkulasiCplJob`.
 4. **Gerbang CPMK (`CplCpmkMatrix::toggle`)** — panggil `GerbangPerubahanCpmk::bolehUbah` di awal.
 5. **Kepemilikan id (`toggle`)** — tolak bila `cpmk.mk_id` bukan MK terpilih atau `cplId` bukan CPL milik MK itu.
@@ -36,3 +36,6 @@ Pengerjaan TDD per butir; verifikasi: seluruh suite, PHPStan, Pint.
 
 ## Diserahkan ke pelaksana
 Teks pesan penolakan, bentuk tes, cara memicu kalkulasi ulang data lama.
+
+## Revisi saat menulis rencana (2026-11-18)
+Rencana awal mengubah FK `mk_cpmk.cpl_mk_id` menjadi `restrictOnDelete`. Setelah membaca `KurikulumResetService`, ternyata reset kurikulum/MK sengaja mengandalkan cascade DB (mk → cpl_mk → mk_cpmk → subcpmk → nilai). `restrict` di tengah rantai cascade itu berisiko menggagalkan reset sah dan tidak dapat diuji andal di semua driver. Maka perlindungan hanya di lapisan aplikasi: `CplMkMatrix::updateBobot` menolak penghapusan bila ada `mk_cpmk`. Reset sah tetap lewat cascade, tidak tersentuh.
