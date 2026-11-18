@@ -13,6 +13,7 @@ use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Pages\CplCpmkMatrix;
 use App\Modules\MK\Filament\Pages\SubcpmkAsesmenMatrix;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\EditCpmk;
+use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
@@ -186,6 +187,34 @@ it('toggle berhasil saat gerbang perubahan cpmk terbuka lewat usulan disetujui',
 
     Livewire::test(CplCpmkMatrix::class)->call('toggle', $cpmk->id, $cpl->id);
     expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->exists())->toBeFalse();
+});
+
+it('matriks menampilkan spanduk dan menonaktifkan kotak centang saat gerbang cpmk tertutup', function () {
+    [$mk] = siapkanInteraksiCplMk($this);
+    cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-GATE-UI']);
+
+    $html = Livewire::test(CplCpmkMatrix::class)
+        ->assertSee('CPMK semester ini terkunci')
+        ->html();
+
+    expect($html)->not->toContain('wire:click="toggle')
+        ->and($html)->toContain(PerubahanCpmkResource::getUrl('index'));
+});
+
+it('matriks tidak menampilkan spanduk dan kotak centang aktif saat gerbang cpmk terbuka', function () {
+    [$mk] = siapkanInteraksiCplMk($this);
+    cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-OPEN-UI']);
+
+    $timkur = User::query()->where('username', 'timkur')->firstOrFail();
+    $usulan = app(PerubahanCpmkService::class)
+        ->ajukan($mk, $this->semester->id, $this->korma, 'Perlu penyesuaian rumusan CPMK.');
+    app(PerubahanCpmkService::class)->setujui($usulan, $timkur, 'Silakan.');
+
+    $html = Livewire::test(CplCpmkMatrix::class)
+        ->assertDontSee('CPMK semester ini terkunci')
+        ->html();
+
+    expect($html)->toContain('wire:click="toggle');
 });
 
 it('matriks cpl cpmk hanya menampilkan kolom cpl yang terpetakan pada mk terpilih', function () {

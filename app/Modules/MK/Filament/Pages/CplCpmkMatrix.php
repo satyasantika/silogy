@@ -7,6 +7,7 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Filament\Pages\Concerns\InteraksiKoordinatorMatrixPage;
+use App\Modules\MK\Filament\Resources\PerubahanCpmkResource;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -144,6 +145,8 @@ class CplCpmkMatrix extends Page
                 'cpls' => collect(),
                 'terpetakan' => collect(),
                 'terkunciSubcpmk' => collect(),
+                'gerbangTertutup' => false,
+                'usulanUrl' => PerubahanCpmkResource::getUrl('index'),
             ], $this->mkTerpilihViewData());
         }
 
@@ -156,8 +159,12 @@ class CplCpmkMatrix extends Page
                 'cpls' => collect(),
                 'terpetakan' => collect(),
                 'terkunciSubcpmk' => collect(),
+                'gerbangTertutup' => false,
+                'usulanUrl' => PerubahanCpmkResource::getUrl('index'),
             ], $this->mkTerpilihViewData());
         }
+
+        $semesterId = SemesterTerpilih::currentId($mk->id) ?? SemesterTerpilih::defaultId();
 
         $cpmks = Cpmk::query()
             ->where('mk_id', $mk->id)
@@ -208,6 +215,12 @@ class CplCpmkMatrix extends Page
             'cpls' => $cpls,
             'terpetakan' => $terpetakan,
             'terkunciSubcpmk' => $terkunciSubcpmk,
+            'gerbangTertutup' => GerbangPerubahanCpmk::butuhPersetujuan(
+                $mk,
+                filled($semesterId) ? (string) $semesterId : null,
+                auth()->user(),
+            ),
+            'usulanUrl' => PerubahanCpmkResource::getUrl('index'),
         ], $this->mkTerpilihViewData());
     }
 }
