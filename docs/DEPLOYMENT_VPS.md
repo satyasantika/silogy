@@ -136,6 +136,8 @@ docker compose -f docker-compose.prod.yml exec app php artisan kalkulasi:hitung-
 Tanpa `--sync`, job masuk antrean `cpl-calculation`; pastikan container `queue` hidup
 dan pantau `queue:failed`. Perintah ini mencetak jumlah kelas yang diproses.
 
+Rilis ini juga mengubah cara agregat CPL prodi dihitung (`hasil_cpl_unit`): rata-rata dan persentase tercapai sekarang memakai nilai per mahasiswa tertimbang Σ(nilai_akhir·w)/Σw, bukan potongan `nilai_berbobot`. Karena itu perintah di atas **wajib** dijalankan sekali setelah deploy, dan persentase CPL tercapai akan tampak berubah — umumnya naik dibanding angka lama yang terlalu rendah atau nol.
+
 GitHub Secrets yang wajib ada (repo → Settings → Secrets → Actions):
 
 | Secret | Isi |
