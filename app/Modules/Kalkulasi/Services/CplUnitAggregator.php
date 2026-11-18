@@ -15,6 +15,8 @@ use Illuminate\Support\Str;
 
 class CplUnitAggregator
 {
+    use PangkasHasilTurunan;
+
     public function aggregate(string $academicUnitId, string $semesterId): void
     {
         $unit = AcademicUnit::query()->findOrFail($academicUnitId);
@@ -22,10 +24,6 @@ class CplUnitAggregator
         $cpls = Cpl::query()
             ->where('academic_unit_id', $academicUnitId)
             ->get();
-
-        if ($cpls->isEmpty()) {
-            return;
-        }
 
         $existing = HasilCplUnit::query()
             ->where('academic_unit_id', $academicUnitId)
@@ -37,7 +35,7 @@ class CplUnitAggregator
         $rows = [];
 
         $adalahProdi = $unit->type === 'study_program';
-        $bobotPerCpl = $adalahProdi ? $this->bobotCplPerMk($cpls->pluck('id')->all()) : [];
+        $bobotPerCpl = $adalahProdi && $cpls->isNotEmpty() ? $this->bobotCplPerMk($cpls->pluck('id')->all()) : [];
 
         foreach ($cpls as $cpl) {
             $stats = $adalahProdi
@@ -63,14 +61,18 @@ class CplUnitAggregator
             ];
         }
 
-        if ($rows === []) {
-            return;
+        if ($rows !== []) {
+            HasilCplUnit::query()->upsert(
+                $rows,
+                ['cpl_id', 'academic_unit_id', 'semester_id'],
+                ['rata_rata', 'persentase_tercapai', 'jumlah_mahasiswa', 'updated_at'],
+            );
         }
 
-        HasilCplUnit::query()->upsert(
-            $rows,
-            ['cpl_id', 'academic_unit_id', 'semester_id'],
-            ['rata_rata', 'persentase_tercapai', 'jumlah_mahasiswa', 'updated_at'],
+        $this->pangkasBarisBasi(
+            HasilCplUnit::class,
+            $existing,
+            array_map(fn (array $baris): string => $baris['cpl_id'], $rows),
         );
     }
 

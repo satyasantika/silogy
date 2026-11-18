@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class CplMkCalculator
 {
+    use PangkasHasilTurunan;
+
     public function calculate(string $kelasMkId, string $semesterId): void
     {
         $kelasMk = KelasMk::query()
@@ -37,10 +39,6 @@ class CplMkCalculator
             ->where('mk_id', $mkId)
             ->get();
 
-        if ($cplMks->isEmpty()) {
-            return;
-        }
-
         $existing = HasilCplMk::query()
             ->where('mk_unit_id', $mkUnitId)
             ->where('semester_id', $semesterId)
@@ -50,6 +48,7 @@ class CplMkCalculator
 
         $now = now();
         $rows = [];
+        $kunciDihasilkan = [];
 
         // Satu CPL bisa terhubung ke MK yang sama lewat lebih dari satu cpl_bok;
         // semua tautan digabung: union CPMK dan jumlah bobot, satu baris per CPL.
@@ -93,7 +92,9 @@ class CplMkCalculator
                 $nilaiAkhir = round((float) $nilaiAkhir, 2);
                 $nilaiBerbobot = round($nilaiAkhir * $bobotCplMk, 2);
 
-                $hasil = $existing->get($cplId.'|'.$kmmId);
+                $kunci = $cplId.'|'.$kmmId;
+                $kunciDihasilkan[] = $kunci;
+                $hasil = $existing->get($kunci);
 
                 $rows[] = [
                     'id' => $hasil?->id ?? (string) Str::uuid(),
@@ -109,14 +110,14 @@ class CplMkCalculator
             }
         }
 
-        if ($rows === []) {
-            return;
+        if ($rows !== []) {
+            HasilCplMk::query()->upsert(
+                $rows,
+                ['cpl_id', 'mk_unit_id', 'kelas_mk_mahasiswa_id', 'semester_id'],
+                ['nilai_akhir', 'nilai_berbobot', 'updated_at'],
+            );
         }
 
-        HasilCplMk::query()->upsert(
-            $rows,
-            ['cpl_id', 'mk_unit_id', 'kelas_mk_mahasiswa_id', 'semester_id'],
-            ['nilai_akhir', 'nilai_berbobot', 'updated_at'],
-        );
+        $this->pangkasBarisBasi(HasilCplMk::class, $existing, $kunciDihasilkan);
     }
 }

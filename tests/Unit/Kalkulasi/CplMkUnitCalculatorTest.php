@@ -196,3 +196,77 @@ it('tidak membuat baris bila tidak ada hasil cpl mk', function () {
 
     expect(HasilCplMkUnit::query()->count())->toBe(0);
 });
+
+it('memangkas baris hasil cpl mk unit yang tidak lagi dihasilkan, tanpa menyentuh baris lain', function () {
+    $univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
+    $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+    $this->buatKurikulumAktif($prodi, 75);
+
+    $mk = Mk::factory()->create(['academic_unit_id' => $prodi->id]);
+    $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create(['kode' => 'MK-PRN']);
+    $kelas = KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $semester->id, 'kode_kelas' => 'A']);
+    $mhs = Mahasiswa::factory()->create(['academic_unit_id' => $prodi->id]);
+    $kmm = KelasMkMahasiswa::query()->create(['kelas_mk_id' => $kelas->id, 'mahasiswa_id' => $mhs->id]);
+
+    $cplA = Cpl::factory()->forAcademicUnit($prodi)->create();
+    $cplB = Cpl::factory()->forAcademicUnit($prodi)->create();
+    foreach ([$cplA, $cplB] as $cpl) {
+        HasilCplMk::query()->create([
+            'cpl_id' => $cpl->id, 'mk_unit_id' => $mkUnit->id, 'kelas_mk_mahasiswa_id' => $kmm->id,
+            'semester_id' => $semester->id, 'nilai_akhir' => 80, 'nilai_berbobot' => 80,
+        ]);
+    }
+
+    $semesterLain = Semester::query()->create([
+        'kode' => '20991',
+        'nama' => 'Ganjil 2099/2100',
+        'tahun_mulai' => 2099,
+        'tahun_selesai' => 2100,
+        'jenis' => 'ganjil',
+        'status_aktif' => false,
+    ]);
+    $barisSemesterLain = HasilCplMkUnit::query()->create([
+        'cpl_id' => $cplA->id, 'mk_id' => $mk->id, 'academic_unit_id' => $prodi->id,
+        'semester_id' => $semesterLain->id, 'rata_rata' => 10, 'persentase_tercapai' => 0, 'jumlah_mahasiswa' => 1,
+    ]);
+    $barisUnitLain = HasilCplMkUnit::query()->create([
+        'cpl_id' => $cplA->id, 'mk_id' => $mk->id, 'academic_unit_id' => $univ->id,
+        'semester_id' => $semester->id, 'rata_rata' => 10, 'persentase_tercapai' => 0, 'jumlah_mahasiswa' => 1,
+    ]);
+
+    $this->calculator->calculate($prodi->id, $semester->id);
+
+    $cari = fn (Cpl $cpl) => HasilCplMkUnit::query()
+        ->where('cpl_id', $cpl->id)->where('mk_id', $mk->id)
+        ->where('academic_unit_id', $prodi->id)->where('semester_id', $semester->id);
+    $barisB = $cari($cplB)->firstOrFail();
+    expect($cari($cplA)->exists())->toBeTrue();
+
+    HasilCplMk::query()->where('cpl_id', $cplA->id)->delete();
+    $this->calculator->calculate($prodi->id, $semester->id);
+
+    expect($cari($cplA)->exists())->toBeFalse()
+        ->and(HasilCplMkUnit::query()->whereKey($barisSemesterLain->id)->exists())->toBeTrue()
+        ->and(HasilCplMkUnit::query()->whereKey($barisUnitLain->id)->exists())->toBeTrue();
+
+    $barisBBaru = $cari($cplB)->firstOrFail();
+    expect($barisBBaru->id)->toBe($barisB->id)
+        ->and($barisBBaru->created_at->toDateTimeString())->toBe($barisB->created_at->toDateTimeString());
+});
+
+it('memangkas baris hasil cpl mk unit ketika unit tidak lagi punya penawaran MK (jalur return awal)', function () {
+    $univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
+    $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
+    $mk = Mk::factory()->create(['academic_unit_id' => $univ->id]);
+    $cpl = Cpl::factory()->forAcademicUnit($univ)->create();
+
+    HasilCplMkUnit::query()->create([
+        'cpl_id' => $cpl->id, 'mk_id' => $mk->id, 'academic_unit_id' => $univ->id,
+        'semester_id' => $semester->id, 'rata_rata' => 50, 'persentase_tercapai' => 0, 'jumlah_mahasiswa' => 1,
+    ]);
+
+    $this->calculator->calculate($univ->id, $semester->id);
+
+    expect(HasilCplMkUnit::query()->count())->toBe(0);
+});

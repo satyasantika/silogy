@@ -435,3 +435,55 @@ it('mk berbobot nol dikeluarkan dari rata-rata tertimbang mahasiswa', function (
 
     expect((float) hasilProdi($dasar)->rata_rata)->toBe(90.0);
 });
+
+it('memangkas hasil cpl unit prodi untuk cpl tanpa sumber lagi, tanpa menyentuh baris lain', function () {
+    $dasar = $this->createKelasPenilaianDasar();
+    $prodi = AcademicUnit::query()->findOrFail($dasar['mk']->academic_unit_id);
+    $univ = AcademicUnit::query()->where('type', 'university')->firstOrFail();
+    $this->buatKurikulumAktif($prodi, 75);
+
+    $cplB = Cpl::factory()->forAcademicUnit($prodi)->create();
+    $cplB->update(['kurikulum_id' => $dasar['cpl']->kurikulum_id]);
+    foreach ([$dasar['cpl'], $cplB] as $cpl) {
+        HasilCplMk::query()->create([
+            'cpl_id' => $cpl->id, 'mk_unit_id' => $dasar['mkUnit']->id,
+            'kelas_mk_mahasiswa_id' => $dasar['kmm']->id, 'semester_id' => $dasar['semester']->id,
+            'nilai_akhir' => 90, 'nilai_berbobot' => 90,
+        ]);
+    }
+
+    $semesterLain = Semester::query()->create([
+        'kode' => '20991',
+        'nama' => 'Ganjil 2099/2100',
+        'tahun_mulai' => 2099,
+        'tahun_selesai' => 2100,
+        'jenis' => 'ganjil',
+        'status_aktif' => false,
+    ]);
+    $barisSemesterLain = HasilCplUnit::query()->create([
+        'cpl_id' => $dasar['cpl']->id, 'academic_unit_id' => $prodi->id, 'semester_id' => $semesterLain->id,
+        'rata_rata' => 10, 'persentase_tercapai' => 0, 'jumlah_mahasiswa' => 1,
+    ]);
+    $barisUnitLain = HasilCplUnit::query()->create([
+        'cpl_id' => $dasar['cpl']->id, 'academic_unit_id' => $univ->id, 'semester_id' => $dasar['semester']->id,
+        'rata_rata' => 10, 'persentase_tercapai' => 0, 'jumlah_mahasiswa' => 1,
+    ]);
+
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    $cari = fn (Cpl $cpl) => HasilCplUnit::query()
+        ->where('cpl_id', $cpl->id)->where('academic_unit_id', $prodi->id)->where('semester_id', $dasar['semester']->id);
+    $barisB = $cari($cplB)->firstOrFail();
+    expect($cari($dasar['cpl'])->exists())->toBeTrue();
+
+    HasilCplMk::query()->where('cpl_id', $dasar['cpl']->id)->delete();
+    $this->aggregator->aggregate($prodi->id, $dasar['semester']->id);
+
+    expect($cari($dasar['cpl'])->exists())->toBeFalse()
+        ->and(HasilCplUnit::query()->whereKey($barisSemesterLain->id)->exists())->toBeTrue()
+        ->and(HasilCplUnit::query()->whereKey($barisUnitLain->id)->exists())->toBeTrue();
+
+    $barisBBaru = $cari($cplB)->firstOrFail();
+    expect($barisBBaru->id)->toBe($barisB->id)
+        ->and($barisBBaru->created_at->toDateTimeString())->toBe($barisB->created_at->toDateTimeString());
+});

@@ -10,10 +10,13 @@ use App\Modules\Kalkulasi\Models\HasilCplMkUnit;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class CplMkUnitCalculator
 {
+    use PangkasHasilTurunan;
+
     public function calculate(string $academicUnitId, string $semesterId): void
     {
         $unitIds = AcademicUnitScope::descendantIdsIncludingSelf($academicUnitId);
@@ -25,13 +28,42 @@ class CplMkUnitCalculator
 
     protected function calculateForUnit(string $academicUnitId, string $semesterId): void
     {
+        $existing = HasilCplMkUnit::query()
+            ->where('academic_unit_id', $academicUnitId)
+            ->where('semester_id', $semesterId)
+            ->get()
+            ->keyBy(fn (HasilCplMkUnit $hasil): string => $hasil->cpl_id.'|'.$hasil->mk_id);
+
+        $rows = $this->bangunBaris($academicUnitId, $semesterId, $existing);
+
+        if ($rows !== []) {
+            HasilCplMkUnit::query()->upsert(
+                $rows,
+                ['cpl_id', 'mk_id', 'academic_unit_id', 'semester_id'],
+                ['rata_rata', 'persentase_tercapai', 'jumlah_mahasiswa', 'updated_at'],
+            );
+        }
+
+        $this->pangkasBarisBasi(
+            HasilCplMkUnit::class,
+            $existing,
+            array_map(fn (array $baris): string => $baris['cpl_id'].'|'.$baris['mk_id'], $rows),
+        );
+    }
+
+    /**
+     * @param  Collection<string, HasilCplMkUnit>  $existing
+     * @return list<array<string, mixed>>
+     */
+    protected function bangunBaris(string $academicUnitId, string $semesterId, Collection $existing): array
+    {
         $descendantIds = AcademicUnitScope::descendantIdsIncludingSelf($academicUnitId);
         $mkIds = Mk::query()
             ->whereIn('academic_unit_id', $descendantIds)
             ->pluck('id');
 
         if ($mkIds->isEmpty()) {
-            return;
+            return [];
         }
 
         // Hanya penawaran milik unit ini (beserta turunannya), bukan penawaran
@@ -42,7 +74,7 @@ class CplMkUnitCalculator
             ->pluck('id');
 
         if ($mkUnitIds->isEmpty()) {
-            return;
+            return [];
         }
 
         $cpls = Cpl::query()
@@ -50,16 +82,10 @@ class CplMkUnitCalculator
             ->get();
 
         if ($cpls->isEmpty()) {
-            return;
+            return [];
         }
 
         $hanyaMahasiswaProdi = AcademicUnit::query()->whereKey($academicUnitId)->value('type') === 'study_program';
-
-        $existing = HasilCplMkUnit::query()
-            ->where('academic_unit_id', $academicUnitId)
-            ->where('semester_id', $semesterId)
-            ->get()
-            ->keyBy(fn (HasilCplMkUnit $hasil): string => $hasil->cpl_id.'|'.$hasil->mk_id);
 
         $now = now();
         $rows = [];
@@ -120,14 +146,6 @@ class CplMkUnitCalculator
             }
         }
 
-        if ($rows === []) {
-            return;
-        }
-
-        HasilCplMkUnit::query()->upsert(
-            $rows,
-            ['cpl_id', 'mk_id', 'academic_unit_id', 'semester_id'],
-            ['rata_rata', 'persentase_tercapai', 'jumlah_mahasiswa', 'updated_at'],
-        );
+        return $rows;
     }
 }
