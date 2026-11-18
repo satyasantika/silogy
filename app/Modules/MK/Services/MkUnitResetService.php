@@ -76,9 +76,11 @@ class MkUnitResetService
     }
 
     /**
-     * Kalkulator CPL hanya meng-upsert, tidak menghapus baris lama, jadi
-     * agregat unit ini dan unit induknya dibuang dulu lalu dibangun ulang dari
-     * data yang tersisa. Dijalankan sinkron (stack dev tanpa queue worker).
+     * Reset tetap menghapus baris HasilCplMkUnit unit ini secara eksplisit
+     * sebelum dihitung ulang (reset eksplisit). Kalkulator CPL kini juga
+     * memangkas baris lama dengan kunci eksplisit, jadi agregat unit ini dan
+     * unit induknya dibangun ulang dari data yang tersisa. Dijalankan sinkron
+     * (stack dev tanpa queue worker).
      *
      * @param  list<string>  $semesterIds
      */
