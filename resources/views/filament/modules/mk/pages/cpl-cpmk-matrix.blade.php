@@ -105,7 +105,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-sm" style="margin-top:8px;opacity:.7;">
+            <p style="margin-top:8px;font-size:.8125rem;opacity:.7;">
                 Pemetaan CPL–CPMK yang sudah memiliki Sub-CPMK tidak dapat dilepas centang dari halaman ini.
             </p>
             @endif
