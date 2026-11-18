@@ -1,5 +1,6 @@
 <?php
 
+use App\Filament\Pages\Dashboard;
 use App\Models\User;
 use App\Modules\Auth\Filament\Pages\PilihPeranUnit;
 use App\Modules\Auth\Support\ActiveRole;
@@ -148,4 +149,22 @@ it('ganti peran hanya di menu identitas, bukan ikon nav RoleSwitcher', function 
     $response = $this->get('/dashboard');
     // Single-role tanpa pilihan unit: item ganti peran tidak perlu tampil.
     $response->assertDontSee('Ganti peran aktif');
+});
+
+it('halaman pilih peran tidak merender sidebar, dashboard tetap', function () {
+    $dosentimkur = User::query()->where('username', 'dosentimkur')->firstOrFail();
+    $this->actingAs($dosentimkur);
+
+    $this->get(PilihPeranUnit::getUrl())
+        ->assertOk()
+        ->assertDontSee('<aside', false)
+        ->assertSee('silogy-peran-card', false)
+        ->assertSee('Dosen Pengampu')
+        ->assertSee('Tim Kurikulum');
+
+    session([ActiveRole::SESSION_KEY => 'Dosen Pengampu']);
+
+    $this->get(Dashboard::getUrl())
+        ->assertOk()
+        ->assertSee('<aside', false);
 });

@@ -9,6 +9,7 @@ use App\Modules\Auth\Support\PeranUnitFormFields;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitTerpilih;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Lab404\Impersonate\Services\ImpersonateManager;
 
@@ -22,6 +23,14 @@ use Lab404\Impersonate\Services\ImpersonateManager;
  */
 class PilihPeranUnit extends Page
 {
+    /**
+     * Layout tanpa sidebar (topbar/menu pengguna tetap ada) agar menu peran
+     * sebelumnya tidak mengganggu saat memilih peran baru.
+     */
+    protected static string $layout = 'filament-panels::components.layout.simple';
+
+    protected Width|string|null $maxContentWidth = Width::ThreeExtraLarge;
+
     protected string $view = 'filament.modules.auth.pages.pilih-peran-unit';
 
     protected static ?string $slug = 'pilih-peran-unit';
