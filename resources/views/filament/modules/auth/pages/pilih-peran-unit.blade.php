@@ -157,6 +157,16 @@
             gap: .5rem;
             flex-wrap: wrap;
         }
+
+        /* Halaman layout sederhana: kecilkan celah atas kartu luar (hanya halaman ini). */
+        .fi-simple-main:has(.silogy-peran-cards) {
+            padding-block: 1.25rem;
+            margin-block: 1.5rem;
+        }
+
+        .fi-simple-main:has(.silogy-peran-cards) .fi-page-header-main-ctn {
+            padding-block: 0;
+        }
     </style>
 
     <x-filament::section>
