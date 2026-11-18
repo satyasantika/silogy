@@ -36,9 +36,12 @@ class CplUnitAggregator
         $now = now();
         $rows = [];
 
+        $adalahProdi = $unit->type === 'study_program';
+        $bobotPerCpl = $adalahProdi ? $this->bobotCplPerMk($cpls->pluck('id')->all()) : [];
+
         foreach ($cpls as $cpl) {
-            $stats = $unit->type === 'study_program'
-                ? $this->agregatDariMkUnits($cpl->id, $cpl->kurikulum_id, $academicUnitId, $semesterId, Kurikulum::targetCapaianUntukCpl($cpl->kurikulum_id, $academicUnitId))
+            $stats = $adalahProdi
+                ? $this->agregatDariMkUnits($cpl->id, $cpl->kurikulum_id, $academicUnitId, $semesterId, Kurikulum::targetCapaianUntukCpl($cpl->kurikulum_id, $academicUnitId), $bobotPerCpl)
                 : $this->agregatDariMkUnit($cpl->id, $academicUnitId, $semesterId);
 
             if ($stats === null) {
@@ -72,6 +75,7 @@ class CplUnitAggregator
     }
 
     /**
+     * @param  array<string, array<string, float>>  $bobotPerCpl  cpl_id => (mk_id => bobot)
      * @return array{rata_rata: float, persentase_tercapai: float, jumlah_mahasiswa: int}|null
      */
     protected function agregatDariMkUnits(
@@ -80,13 +84,14 @@ class CplUnitAggregator
         string $academicUnitId,
         string $semesterId,
         int $threshold,
+        array $bobotPerCpl,
     ): ?array {
         // Hanya penawaran pada kurikulum yang sama dengan CPL, supaya capaian
         // kurikulum lama dan baru tidak tercampur.
         $mkUnitIds = MkUnit::query()
             ->where('academic_unit_id', $academicUnitId)
             ->when($kurikulumId !== null, fn ($query) => $query->where('kurikulum_id', $kurikulumId))
-            ->pluck('id');
+            ->pluck('mk_id', 'id');
 
         if ($mkUnitIds->isEmpty()) {
             return null;
@@ -95,21 +100,21 @@ class CplUnitAggregator
         $hasilRows = HasilCplMk::query()
             ->where('cpl_id', $cplId)
             ->where('semester_id', $semesterId)
-            ->whereIn('mk_unit_id', $mkUnitIds)
+            ->whereIn('mk_unit_id', $mkUnitIds->keys())
             ->whereNotNull('nilai_akhir')
             ->whereHas('kelasMkMahasiswa.mahasiswa', fn ($query) => $query->where('academic_unit_id', $academicUnitId))
-            ->with('kelasMkMahasiswa', 'mkUnit')
+            ->with('kelasMkMahasiswa')
             ->get();
 
         if ($hasilRows->isEmpty()) {
             return null;
         }
 
-        $bobotPerMk = $this->bobotCplPerMk($cplId);
+        $bobotPerMk = $bobotPerCpl[$cplId] ?? [];
 
         $nilaiPerMahasiswa = $hasilRows
             ->groupBy(fn (HasilCplMk $hasil): string => (string) $hasil->kelasMkMahasiswa?->mahasiswa_id)
-            ->map(fn (Collection $baris): float => $this->nilaiCplMahasiswa($baris, $bobotPerMk));
+            ->map(fn (Collection $baris): float => $this->nilaiCplMahasiswa($baris, $bobotPerMk, $mkUnitIds->all()));
 
         $jumlahMahasiswa = $nilaiPerMahasiswa->count();
         $rataRata = round((float) $nilaiPerMahasiswa->avg(), 2);
@@ -127,25 +132,27 @@ class CplUnitAggregator
     }
 
     /**
-     * Bobot tiap MK terhadap CPL: jumlah cpl_mk.bobot lewat semua cpl_bok
-     * milik CPL ini (satu MK bisa terhubung lewat lebih dari satu BoK).
+     * Bobot tiap MK terhadap tiap CPL: jumlah cpl_mk.bobot lewat semua cpl_bok
+     * milik CPL itu (satu MK bisa terhubung lewat lebih dari satu BoK).
      *
-     * @return array<string, float> mk_id => bobot
+     * @param  list<string>  $cplIds
+     * @return array<string, array<string, float>> cpl_id => (mk_id => bobot)
      */
-    protected function bobotCplPerMk(string $cplId): array
+    protected function bobotCplPerMk(array $cplIds): array
     {
-        $bobotPerMk = [];
+        $bobotPerCpl = [];
 
         $rows = CplMk::query()
             ->join('cpl_bok', 'cpl_bok.id', '=', 'cpl_mk.cpl_bok_id')
-            ->where('cpl_bok.cpl_id', $cplId)
-            ->get(['cpl_mk.mk_id', 'cpl_mk.bobot']);
+            ->whereIn('cpl_bok.cpl_id', $cplIds)
+            ->toBase()
+            ->get(['cpl_bok.cpl_id', 'cpl_mk.mk_id', 'cpl_mk.bobot']);
 
         foreach ($rows as $row) {
-            $bobotPerMk[$row->mk_id] = ($bobotPerMk[$row->mk_id] ?? 0.0) + (float) $row->bobot;
+            $bobotPerCpl[$row->cpl_id][$row->mk_id] = ($bobotPerCpl[$row->cpl_id][$row->mk_id] ?? 0.0) + (float) $row->bobot;
         }
 
-        return $bobotPerMk;
+        return $bobotPerCpl;
     }
 
     /**
@@ -156,11 +163,12 @@ class CplUnitAggregator
      *
      * @param  Collection<int, HasilCplMk>  $baris
      * @param  array<string, float>  $bobotPerMk
+     * @param  array<string, string>  $mkIdPerMkUnit  mk_unit_id => mk_id
      */
-    protected function nilaiCplMahasiswa(Collection $baris, array $bobotPerMk): float
+    protected function nilaiCplMahasiswa(Collection $baris, array $bobotPerMk, array $mkIdPerMkUnit): float
     {
         $rerataPerMk = $baris
-            ->groupBy(fn (HasilCplMk $hasil): string => (string) $hasil->mkUnit?->mk_id)
+            ->groupBy(fn (HasilCplMk $hasil): string => (string) ($mkIdPerMkUnit[$hasil->mk_unit_id] ?? ''))
             ->map(fn (Collection $samaMk): float => (float) $samaMk->avg('nilai_akhir'));
 
         $jumlahBerbobot = 0.0;
