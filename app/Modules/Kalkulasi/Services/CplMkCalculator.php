@@ -51,6 +51,10 @@ class CplMkCalculator
         $now = now();
         $rows = [];
 
+        // Satu CPL bisa terhubung ke MK yang sama lewat lebih dari satu cpl_bok;
+        // semua tautan digabung: union CPMK dan jumlah bobot, satu baris per CPL.
+        $perCpl = [];
+
         foreach ($cplMks as $cplMk) {
             $cplId = $cplMk->cplBok?->cpl_id;
 
@@ -58,13 +62,22 @@ class CplMkCalculator
                 continue;
             }
 
-            $cpmkIds = $cplMk->mkCpmks->pluck('cpmk_id')->filter()->all();
+            $perCpl[$cplId]['cpmkIds'] = array_merge(
+                $perCpl[$cplId]['cpmkIds'] ?? [],
+                $cplMk->mkCpmks->pluck('cpmk_id')->filter()->all(),
+            );
+            $perCpl[$cplId]['bobot'] = ($perCpl[$cplId]['bobot'] ?? 0.0) + (float) $cplMk->bobot;
+        }
+
+        foreach ($perCpl as $cplId => $gabungan) {
+            $cplId = (string) $cplId;
+            $cpmkIds = array_values(array_unique($gabungan['cpmkIds']));
 
             if ($cpmkIds === []) {
                 continue;
             }
 
-            $bobotCplMk = (float) $cplMk->bobot / 100;
+            $bobotCplMk = $gabungan['bobot'] / 100;
 
             foreach ($kmmIds as $kmmId) {
                 $nilaiAkhir = HasilCpmk::query()
@@ -80,8 +93,7 @@ class CplMkCalculator
                 $nilaiAkhir = round((float) $nilaiAkhir, 2);
                 $nilaiBerbobot = round($nilaiAkhir * $bobotCplMk, 2);
 
-                $key = $cplId.'|'.$kmmId;
-                $hasil = $existing->get($key);
+                $hasil = $existing->get($cplId.'|'.$kmmId);
 
                 $rows[] = [
                     'id' => $hasil?->id ?? (string) Str::uuid(),
