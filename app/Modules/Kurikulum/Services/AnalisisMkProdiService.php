@@ -350,9 +350,9 @@ class AnalisisMkProdiService
      * terhadap basis 100% (lihat nilaiCplTertimbang()) — MK yang belum
      * dinilai tidak diabaikan dari penyebut, sehingga porsi kontribusi
      * tetap menekan capaian. Konsekuensinya angka di halaman ini berbeda
-     * basis dari dashboard CPL yang memakai hasil_cpl_mk.nilai_berbobot
-     * (CplUnitAggregator::agregatDariMkUnits()) — penyelarasan keduanya di
-     * luar cakupan perubahan ini.
+     * penyebut dari dashboard CPL: di sini basis ÷100, sedangkan
+     * CplUnitAggregator::agregatDariMkUnits() membagi dengan Σbobot MK yang
+     * sudah dinilai — penyelarasan keduanya di luar cakupan perubahan ini.
      *
      * @param  Collection<int, HasilCplMk>  $hasilRows  hasil_cpl_mk yang sudah difilter utk MK-MK prodi ini
      * @param  array<string, array<string, float>>  $kontribusiPerCplMk  cpl_id => (mk_id => kontribusi ternormalisasi)
