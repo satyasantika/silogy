@@ -418,7 +418,7 @@ UQ `(cpl_id, profil_lulusan_id)`
 | id | CHAR(36) | NO | PK |
 | cpl_id | CHAR(36) | NO | FK → cpl.id |
 | bok_id | CHAR(36) | NO | FK → bok.id |
-| bobot | DECIMAL(5,2) | YES | % BoK terhadap CPL |
+| bobot | DECIMAL(5,2) | YES | **Tidak dipakai dalam kalkulasi** — bobot CPL×BoK bukan bagian model OBE; kolom dipertahankan (legacy, boleh NULL) |
 | timestamps | | | |
 
 UQ `(cpl_id, bok_id)`
