@@ -9,6 +9,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Services\NormalisasiBobotCplMkService;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkCpmk;
 use App\Modules\Penilaian\Support\NormalisasiBobotDesimal;
 use App\Support\Filament\NavigationGroupPeran;
 use App\Support\Filament\NavigationSortPeran;
@@ -82,10 +83,7 @@ class CplMkMatrix extends Page
         $bobot = trim((string) $bobot);
 
         if ($bobot === '' || ! is_numeric($bobot) || (float) $bobot <= 0) {
-            CplMk::query()
-                ->where('mk_id', $mkId)
-                ->where('cpl_bok_id', $cplBokId)
-                ->delete();
+            $this->hapusSelAtauTolak($mkId, $cplBokId);
 
             return;
         }
@@ -94,10 +92,7 @@ class CplMkMatrix extends Page
         $nilai = round(min(round((float) $bobot, CplMk::DESIMAL_BOBOT), $batas), CplMk::DESIMAL_BOBOT);
 
         if ($nilai <= 0) {
-            CplMk::query()
-                ->where('mk_id', $mkId)
-                ->where('cpl_bok_id', $cplBokId)
-                ->delete();
+            $this->hapusSelAtauTolak($mkId, $cplBokId);
 
             return;
         }
@@ -106,6 +101,28 @@ class CplMkMatrix extends Page
             ['mk_id' => $mkId, 'cpl_bok_id' => $cplBokId],
             ['bobot' => $nilai],
         );
+    }
+
+    private function hapusSelAtauTolak(string $mkId, string $cplBokId): void
+    {
+        $terpetakan = MkCpmk::query()
+            ->whereHas('cplMk', fn ($q) => $q->where('mk_id', $mkId)->where('cpl_bok_id', $cplBokId))
+            ->exists();
+
+        if ($terpetakan) {
+            Notification::make()
+                ->title('Tidak dapat mengosongkan sel')
+                ->body('Lepas pemetaan CPMK pada MK ini terlebih dahulu.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        CplMk::query()
+            ->where('mk_id', $mkId)
+            ->where('cpl_bok_id', $cplBokId)
+            ->delete();
     }
 
     /**
