@@ -9,6 +9,8 @@ use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kalkulasi\Models\HasilCplMk;
+use App\Modules\Kalkulasi\Models\HasilCpmk;
+use App\Modules\Kalkulasi\Services\CplMkCalculator;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Filament\Pages\AnalisisMkProdi;
@@ -19,6 +21,7 @@ use App\Modules\Kurikulum\Services\TrenCplSemesterService;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
+use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Models\MkUnit;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
@@ -78,13 +81,25 @@ function nilaiCplTren(object $ctx, MkUnit $mkUnit, Semester $semester, Mahasiswa
         'mahasiswa_id' => $mahasiswa->id,
     ]);
 
-    HasilCplMk::query()->create([
-        'cpl_id' => $ctx->cpl->id,
-        'mk_unit_id' => $mkUnit->id,
+    // Rantai sumber nyata: CPMK (berlaku di semester itu) → MkCpmk → CplMk, lalu
+    // HasilCpmk. Hasil CPL-MK diturunkan oleh kalkulator, bukan disisipkan
+    // langsung — baris turunan tanpa sumber akan dipangkas oleh refresh halaman.
+    $cplMk = CplMk::query()
+        ->where('mk_id', $mkUnit->mk_id)
+        ->whereHas('cplBok', fn ($q) => $q->where('cpl_id', $ctx->cpl->id))
+        ->firstOrFail();
+    $cpmk = cpmkUntukSemester($mkUnit->mk_id, $semester);
+    MkCpmk::query()->where('cpl_mk_id', $cplMk->id)->where('cpmk_id', $cpmk->id)->exists()
+        || MkCpmk::factory()->forCplMkAndCpmk($cplMk, $cpmk)->create();
+
+    HasilCpmk::query()->create([
+        'cpmk_id' => $cpmk->id,
         'kelas_mk_mahasiswa_id' => $kmm->id,
-        'semester_id' => $semester->id,
+        'kelas_mk_id' => $kelas->id,
         'nilai_akhir' => $nilai,
     ]);
+
+    app(CplMkCalculator::class)->calculate($kelas->id, $semester->id);
 }
 
 it('menghitung ketercapaian cpl per semester dengan kontribusi dibagi ulang di antara mk yang dinilai', function () {
