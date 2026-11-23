@@ -86,7 +86,7 @@ it('impor massal nim nama kelas membuat kelas dan mendaftarkan mahasiswa baru pa
 });
 
 it('tarik dari sintesys mengirim kode_matakuliah pada request dan mengimpor peserta hanya untuk mk terpilih', function () {
-    $dosen = User::factory()->create(['nidn' => '0027118602']);
+    $dosen = User::factory()->create(['nuptk' => '9459764665130203']);
 
     Http::fake([
         'sintesys.test/*' => Http::response([
@@ -160,7 +160,7 @@ it('tarik dari sintesys mengirim kode_matakuliah pada request dan mengimpor pese
 });
 
 it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pendaftaran kelas lama', function () {
-    User::factory()->create(['nidn' => '0027118602']);
+    User::factory()->create(['nuptk' => '9459764665130203']);
 
     // Http::fake() tidak mengganti stub lama (append-only) — pakai fakeSequence
     // agar dua panggilan berturut ke endpoint yang sama mendapat respons beda.
@@ -169,7 +169,7 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pen
             'data' => [[
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'dosen_pengampu' => ['nuptk' => '9459764665130203'],
                 'peserta' => [
                     ['nim' => '259255111003', 'nama' => 'Peserta Uji Sintesys'],
                 ],
@@ -179,12 +179,12 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pen
             'data' => [[
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'dosen_pengampu' => ['nuptk' => '9459764665130203'],
                 'peserta' => [],
             ], [
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'D',
-                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'dosen_pengampu' => ['nuptk' => '9459764665130203'],
                 'peserta' => [
                     ['nim' => '259255111003', 'nama' => 'Peserta Uji Sintesys'],
                 ],

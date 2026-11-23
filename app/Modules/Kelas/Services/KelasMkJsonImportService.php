@@ -153,15 +153,15 @@ class KelasMkJsonImportService
             }
 
             $dosenId = null;
-            $nidn = trim((string) ($item['dosen_pengampu']['nidn'] ?? ''));
+            $nuptk = trim((string) ($item['dosen_pengampu']['nuptk'] ?? ''));
 
-            if ($nidn !== '') {
-                $dosen = User::query()->where('nidn', $nidn)->first();
+            if ($nuptk !== '') {
+                $dosen = User::query()->where('nuptk', $nuptk)->first();
 
                 if ($dosen instanceof User) {
                     $dosenId = $dosen->id;
                 } else {
-                    $errors[] = "Data ke-{$baris} ({$kodeMk}/{$kodeKelas}): dosen dengan NIDN \"{$nidn}\" tidak ditemukan.";
+                    $errors[] = "Data ke-{$baris} ({$kodeMk}/{$kodeKelas}): dosen dengan NUPTK \"{$nuptk}\" tidak ditemukan.";
                 }
             }
 

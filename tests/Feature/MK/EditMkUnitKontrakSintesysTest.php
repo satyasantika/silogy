@@ -81,7 +81,7 @@ it('tombol tarik menyesuaikan sumber: Sintesys sejak 20251, Simak untuk sebelumn
 });
 
 it('tarik data sintesys mengirim body tahun_akademik kode_prodi kode_matakuliah untuk semester terpilih', function () {
-    $dosen = User::factory()->create(['nidn' => '0027118602', 'full_name' => 'SATYA SANTIKA']);
+    $dosen = User::factory()->create(['nuptk' => '0027118602', 'full_name' => 'SATYA SANTIKA']);
 
     Http::fake([
         'sintesys.test/*' => Http::response([
@@ -93,7 +93,7 @@ it('tarik data sintesys mengirim body tahun_akademik kode_prodi kode_matakuliah 
                 'kelas' => 'A',
                 'dosen_pengampu' => [
                     'nama' => 'SATYA SANTIKA',
-                    'nidn' => '0027118602',
+                    'nuptk' => '0027118602',
                 ],
                 'peserta' => [
                     ['npm' => '259255111003', 'nama' => 'Peserta Kelas A'],
@@ -104,7 +104,7 @@ it('tarik data sintesys mengirim body tahun_akademik kode_prodi kode_matakuliah 
                 'kelas' => 'B',
                 'dosen_pengampu' => [
                     'nama' => 'SATYA SANTIKA',
-                    'nidn' => '0027118602',
+                    'nuptk' => '0027118602',
                 ],
                 'peserta' => [
                     ['npm' => '259255111005', 'nama' => 'Peserta Kelas B'],
@@ -172,7 +172,7 @@ it('tarik data sintesys mengirim body tahun_akademik kode_prodi kode_matakuliah 
 });
 
 it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pendaftaran kelas lama', function () {
-    User::factory()->create(['nidn' => '0027118602', 'full_name' => 'SATYA SANTIKA']);
+    User::factory()->create(['nuptk' => '0027118602', 'full_name' => 'SATYA SANTIKA']);
 
     // Http::fake() tidak mengganti stub lama (append-only, stub pertama yang
     // cocok tetap dipakai) — pakai fakeSequence agar dua panggilan berturut ke
@@ -182,7 +182,7 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pen
             'data' => [[
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'dosen_pengampu' => ['nuptk' => '0027118602'],
                 'peserta' => [
                     ['npm' => '259255111003', 'nama' => 'Peserta Kelas A'],
                 ],
@@ -192,12 +192,12 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada tarik kedua menghapus pen
             'data' => [[
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'dosen_pengampu' => ['nuptk' => '0027118602'],
                 'peserta' => [],
             ], [
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'D',
-                'dosen_pengampu' => ['nidn' => '0027118602'],
+                'dosen_pengampu' => ['nuptk' => '0027118602'],
                 'peserta' => [
                     ['npm' => '259255111003', 'nama' => 'Peserta Kelas A'],
                 ],
@@ -250,7 +250,7 @@ it('tarik kontrak semester simak memanggil endpoint simak bukan sintesys', funct
             'data' => [[
                 'kode_mk' => 'KP21514004',
                 'kelas' => 'C',
-                'dosen_pengampu' => ['nidn' => '', 'nama' => ''],
+                'dosen_pengampu' => ['nuptk' => '', 'nama' => ''],
                 'peserta' => [
                     ['npm' => '249255111001', 'nama' => 'Peserta Simak'],
                 ],

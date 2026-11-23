@@ -427,12 +427,13 @@ it('impor bok menolak kode cpl tidak valid dalam daftar titik koma', function ()
 
 it('impor mk dengan sks, jenis, dan koordinator', function () {
     $korma = User::query()->where('username', 'korma')->firstOrFail();
+    $korma->update(['nuptk' => '9459764665130999']);
 
     KurikulumTerpilih::set($this->kurikulumProdi->id);
 
     Livewire::test(ListMks::class)
         ->callAction(TestAction::make('bulkImport')->table(), [
-            'rows' => "Kalkulus Impor\t3\t1\t0\twajib\t\t{$korma->nidn}",
+            'rows' => "Kalkulus Impor\t3\t1\t0\twajib\t\t{$korma->nuptk}",
             'mode_duplikat' => 'lewati',
         ]);
 

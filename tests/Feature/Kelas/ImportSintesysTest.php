@@ -35,7 +35,7 @@ beforeEach(function () {
     $this->adminProdi = User::where('username', 'adminprodi')->firstOrFail();
     $this->semester = Semester::query()->where('status_aktif', true)->firstOrFail();
 
-    $this->dosen = User::factory()->create(['nidn' => '0412026601']);
+    $this->dosen = User::factory()->create(['nuptk' => '0412026601']);
     $this->mk = Mk::factory()->create(['academic_unit_id' => $this->prodi->id, 'koordinator_mk_id' => $this->dosen->id]);
     $this->mkUnit = MkUnit::factory()->forMk($this->mk)->forAcademicUnit($this->prodi)->create(['kode' => 'KP92552012']);
     $this->mahasiswa = Mahasiswa::factory()->create([
@@ -53,7 +53,7 @@ it('menampilkan pratinjau jumlah data yang tersedia lalu menjalankan impor sungg
             'data' => [[
                 'kode_mk' => 'KP92552012',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'dosen_pengampu' => ['nuptk' => '0412026601'],
                 'peserta' => [['npm' => '259255111003']],
             ]],
         ], 200),
@@ -109,7 +109,7 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada pull kedua menghapus pend
             'data' => [[
                 'kode_mk' => 'KP92552012',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'dosen_pengampu' => ['nuptk' => '0412026601'],
                 'peserta' => [['npm' => '259255111003']],
             ]],
         ], 200)
@@ -119,12 +119,12 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada pull kedua menghapus pend
             'data' => [[
                 'kode_mk' => 'KP92552012',
                 'kelas' => 'A',
-                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'dosen_pengampu' => ['nuptk' => '0412026601'],
                 'peserta' => [],
             ], [
                 'kode_mk' => 'KP92552012',
                 'kelas' => 'D',
-                'dosen_pengampu' => ['nidn' => '0412026601'],
+                'dosen_pengampu' => ['nuptk' => '0412026601'],
                 'peserta' => [['npm' => '259255111003']],
             ]],
         ], 200);

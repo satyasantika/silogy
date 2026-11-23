@@ -29,7 +29,7 @@ it('aksi impor json terpasang di header dan berhasil memproses file upload', fun
 
     $prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $adminProdi = User::where('username', 'adminprodi')->firstOrFail();
-    $dosen = User::factory()->create(['nidn' => '0412026601']);
+    $dosen = User::factory()->create(['nuptk' => '0412026601']);
 
     $mk = Mk::factory()->forAcademicUnit($prodi)->create(['koordinator_mk_id' => $adminProdi->id]);
     MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create(['kode' => 'KP92552012']);
@@ -42,7 +42,7 @@ it('aksi impor json terpasang di header dan berhasil memproses file upload', fun
         'data' => [[
             'kode_mk' => 'KP92552012',
             'kelas' => 'A',
-            'dosen_pengampu' => ['nidn' => '0412026601'],
+            'dosen_pengampu' => ['nuptk' => '0412026601'],
             'peserta' => [['npm' => 259255111003]],
         ]],
     ];

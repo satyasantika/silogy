@@ -123,7 +123,7 @@ class ListMks extends ListRecords
             ['key' => 'sks_lapangan', 'label' => 'sks lapangan', 'wajib' => false],
             ['key' => 'jenis', 'label' => 'jenis', 'wajib' => true],
             ['key' => 'kode_bok', 'label' => 'kode bahan kajian', 'wajib' => false],
-            ['key' => 'nidn_koordinator', 'label' => 'NIDN koordinator', 'wajib' => false],
+            ['key' => 'nuptk_koordinator', 'label' => 'NUPTK koordinator', 'wajib' => false],
         ];
     }
 
@@ -135,7 +135,7 @@ class ListMks extends ListRecords
             'SKS praktik dan SKS lapangan opsional; kosongkan atau isi 0 bila tidak ada.',
             'Kode bahan kajian opsional; lebih dari satu kode dipisah titik koma (;), mis. BOK-01;BOK-02.',
             'Setiap BoK harus sudah ada dan sudah dipetakan ke CPL (matriks CPL↔BoK) sebelum impor.',
-            'NIDN koordinator opsional; kosongkan bila belum ditetapkan.',
+            'NUPTK koordinator opsional; kosongkan bila belum ditetapkan.',
         ];
     }
 
@@ -174,9 +174,9 @@ class ListMks extends ListRecords
             return ['status' => 'invalid', 'keterangan' => 'Jenis harus wajib, pilihan, atau praktikum.'];
         }
 
-        if ($data['nidn_koordinator'] !== ''
-            && ! User::query()->where('nidn', $data['nidn_koordinator'])->exists()) {
-            return ['status' => 'invalid', 'keterangan' => "NIDN koordinator '{$data['nidn_koordinator']}' tidak ditemukan."];
+        if ($data['nuptk_koordinator'] !== ''
+            && ! User::query()->where('nuptk', $data['nuptk_koordinator'])->exists()) {
+            return ['status' => 'invalid', 'keterangan' => "NUPTK koordinator '{$data['nuptk_koordinator']}' tidak ditemukan."];
         }
 
         if ($data['kode_bok'] !== '') {
@@ -271,11 +271,11 @@ class ListMks extends ListRecords
      */
     protected function koordinatorId(array $data): ?string
     {
-        if ($data['nidn_koordinator'] === '') {
+        if ($data['nuptk_koordinator'] === '') {
             return null;
         }
 
-        return User::query()->where('nidn', $data['nidn_koordinator'])->value('id');
+        return User::query()->where('nuptk', $data['nuptk_koordinator'])->value('id');
     }
 
     /**

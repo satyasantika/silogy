@@ -78,21 +78,21 @@ class PesertaKelasSintesysImportService
 
             $dosenId = null;
             $email = trim((string) ($item['dosen_pengampu']['email'] ?? ''));
-            $nidn = trim((string) ($item['dosen_pengampu']['nidn'] ?? ''));
+            $nuptk = trim((string) ($item['dosen_pengampu']['nuptk'] ?? ''));
 
-            if ($email !== '' || $nidn !== '') {
+            if ($email !== '' || $nuptk !== '') {
                 $dosen = $email !== ''
                     ? User::query()->where('email', $email)->first()
                     : null;
 
-                if (! $dosen instanceof User && $nidn !== '') {
-                    $dosen = User::query()->where('nidn', $nidn)->first();
+                if (! $dosen instanceof User && $nuptk !== '') {
+                    $dosen = User::query()->where('nuptk', $nuptk)->first();
                 }
 
                 if ($dosen instanceof User) {
                     $dosenId = $dosen->id;
                 } else {
-                    $identitas = $email !== '' ? "email \"{$email}\"" : "NIDN \"{$nidn}\"";
+                    $identitas = $email !== '' ? "email \"{$email}\"" : "NUPTK \"{$nuptk}\"";
                     $errors[] = "Data ke-{$baris} ({$mkUnit->kode}/{$kodeKelas}): dosen dengan {$identitas} tidak ditemukan.";
                 }
             }

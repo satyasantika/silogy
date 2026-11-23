@@ -26,8 +26,8 @@ beforeEach(function () {
     $this->prodi = AcademicUnit::query()->where('type', 'study_program')->firstOrFail();
     $this->semester = Semester::query()->where('kode', '20252')->firstOrFail();
 
-    $this->koordinator = User::factory()->create(['nidn' => null]);
-    $this->dosen = User::factory()->create(['nidn' => '0412026601']);
+    $this->koordinator = User::factory()->create(['nuptk' => null]);
+    $this->dosen = User::factory()->create(['nuptk' => '4544744645230132']);
 
     $this->mk = Mk::factory()->forAcademicUnit($this->prodi)->create([
         'nama' => 'Ekonomi SDA dan SDM',
@@ -58,7 +58,6 @@ function payloadDasarKelasMkJson(object $context, array $overrides = []): array
                 'sks' => 3,
                 'dosen_pengampu' => [
                     'nama' => 'RINA NURYATI',
-                    'nidn' => '0412026601',
                     'nuptk' => '4544744645230132',
                 ],
                 'peserta' => [
@@ -78,7 +77,7 @@ function payloadDasarKelasMkJson(object $context, array $overrides = []): array
     ], $overrides);
 }
 
-it('membuat kelas mk baru, mengisi koordinator dari mk, mencocokkan dosen via nidn, dan mendaftarkan peserta via npm', function () {
+it('membuat kelas mk baru, mengisi koordinator dari mk, mencocokkan dosen via nuptk, dan mendaftarkan peserta via npm', function () {
     $hasil = $this->service->import(payloadDasarKelasMkJson($this));
 
     $kelas = KelasMk::query()
@@ -149,9 +148,9 @@ it('memindahkan mahasiswa dari kelas A ke kelas D pada pull berikutnya menghapus
         ->and($hasil['peserta_terdaftar'])->toBe(1);
 });
 
-it('melaporkan nidn dan kode_mk yang tidak dikenali tanpa membatalkan seluruh impor', function () {
+it('melaporkan nuptk dan kode_mk yang tidak dikenali tanpa membatalkan seluruh impor', function () {
     $payload = payloadDasarKelasMkJson($this);
-    $payload['data'][0]['dosen_pengampu']['nidn'] = '9999999999';
+    $payload['data'][0]['dosen_pengampu']['nuptk'] = '9999999999';
     $payload['data'][] = [
         'kode_mk' => 'TIDAK-ADA',
         'kelas' => 'A',
