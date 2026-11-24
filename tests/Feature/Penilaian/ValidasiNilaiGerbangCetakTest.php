@@ -242,3 +242,18 @@ it('kelas tanpa kurikulum: gerbang cetak terbuka dan tidak crash', function () {
         ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
         ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
 });
+
+it('switch mati: baris perlu_ulang tetap berlabel Perlu validasi ulang dan laporan bisa dicetak', function () {
+    validasiGerbang($this->kelas);
+    NilaiMahasiswa::query()->first()->update(['nilai' => 10]);
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
+
+    matikanValidasiKurikulum($this->kelas);
+
+    laporanGerbang($this->kelas)
+        ->assertSet('validasiDiwajibkan', false)
+        ->assertSee('Perlu validasi ulang')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
+});

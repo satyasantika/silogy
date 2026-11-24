@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Institusi\Support\AcademicUnitScope;
+use App\Modules\Institusi\Support\AcademicUnitUserRoleSync;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,7 @@ return new class extends Migration
         }
 
         $this->salinValidatorLama();
+        $this->sinkronkanPeranValidator();
     }
 
     public function down(): void
@@ -42,6 +44,30 @@ return new class extends Migration
             Schema::table('kurikulum', function (Blueprint $table) {
                 $table->dropColumn('validasi_nilai_aktif');
             });
+        }
+    }
+
+    /**
+     * Pimpinan/tim kurikulum menjadi berhak validasi lewat migrasi ini, tetapi
+     * perannya belum ada; sinkronkan. No-op bila role Validator Nilai belum
+     * dibuat (migrasi 2026_11_13_000002) atau tabel pendukung belum ada.
+     */
+    private function sinkronkanPeranValidator(): void
+    {
+        foreach (['roles', 'model_has_roles', 'users', 'academic_unit_users'] as $tabel) {
+            if (! Schema::hasTable($tabel)) {
+                return;
+            }
+        }
+
+        if (! DB::table('roles')->where('name', 'Validator Nilai')->exists()) {
+            return;
+        }
+
+        $sinkron = app(AcademicUnitUserRoleSync::class);
+
+        foreach ($sinkron->userIdsTerkait() as $userId) {
+            $sinkron->syncForUser($userId);
         }
     }
 

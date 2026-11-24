@@ -612,3 +612,26 @@ it('card Akun default dilipat dan Permission dilebur ke card Role', function () 
         ->assertFormFieldExists('permissions')
         ->assertFormFieldExists('username');
 });
+
+it('impor massal mode timpa: pimpinan berhak tetap memegang peran Validator Nilai', function () {
+    $prodi = AcademicUnit::where('type', 'study_program')->firstOrFail();
+    Kurikulum::query()->create(['academic_unit_id' => $prodi->id, 'nama' => 'Kurikulum Impor', 'tahun' => 2026, 'is_active' => true]);
+
+    $rows = "Kaprodi Impor\tkaprodiimpor@silogy.test\tRahasiaKuat123\tPimpinan\t{$prodi->code}\tkaprodiimpor";
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati'])
+        ->assertHasNoActionErrors();
+
+    $user = User::where('email', 'kaprodiimpor@silogy.test')->firstOrFail();
+    expect($user->roles()->where('name', 'Validator Nilai')->exists())->toBeTrue();
+
+    // Ulangi tanpa kode prodi: syncRoles mencabut Validator Nilai, sinkron mengembalikannya.
+    $rows = "Kaprodi Impor\tkaprodiimpor@silogy.test\tRahasiaKuat123\tPimpinan";
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'timpa'])
+        ->assertHasNoActionErrors();
+
+    expect($user->fresh()->roles()->where('name', 'Validator Nilai')->exists())->toBeTrue();
+});

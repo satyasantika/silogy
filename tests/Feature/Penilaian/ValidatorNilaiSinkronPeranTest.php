@@ -3,6 +3,7 @@
 use App\Models\Role;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Institusi\Support\AcademicUnitUserRoleSync;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\SinkronValidatorKurikulum;
 use Database\Seeders\AcademicUnitSeeder;
@@ -74,7 +75,7 @@ it('peran yang diberikan manual tanpa hak tetap dicabut oleh sinkronisasi', func
     $user->roles()->syncWithoutDetaching([$this->peranId]);
     expect(($this->punyaPeran)($user))->toBeTrue();
 
-    $hasil = app(\App\Modules\Institusi\Support\AcademicUnitUserRoleSync::class)->syncForUser($user->id);
+    $hasil = app(AcademicUnitUserRoleSync::class)->syncForUser($user->id);
 
     expect(($this->punyaPeran)($user))->toBeFalse()
         ->and($hasil['revoked'])->toBe(1);

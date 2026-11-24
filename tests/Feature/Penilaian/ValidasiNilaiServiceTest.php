@@ -112,8 +112,6 @@ it('dalam mode hanya-baca gugurkan tidak menulis dan periksa tetap mengembalikan
     $kelas = siapkanKelasValidasi(User::factory()->create())['kelas'];
     $layanan = app(ValidasiNilaiService::class);
     $layanan->validasi($kelas, User::factory()->create(), str_repeat('a', 64));
-    // Muat kurikulum sebelum ranah sandbox aktif (scope ranah menyembunyikan data non-sandbox).
-    $kelas->loadMissing('mkUnit.kurikulum');
 
     $pengguna = User::factory()->create();
     $pengguna->setAttribute('sandbox_id', 'sandbox-uji');
@@ -146,4 +144,19 @@ it('switch mati: gugurkan tidak menulis dan periksa mengembalikan status tersimp
 
     expect($layanan->periksa($kelas, str_repeat('b', 64)))->toBe(StatusValidasiNilai::Tervalidasi);
     expect($kelas->validasiNilai()->first()->gugur_at)->toBeNull();
+});
+
+it('gerbang tidak fail-open: kelas ranah inti tetap diwajibkan saat dievaluasi oleh pengguna sandbox', function () {
+    $kelas = siapkanKelasValidasi(User::factory()->create())['kelas'];
+    expect($kelas->validasiDiwajibkan())->toBeTrue();
+
+    $kelas = $kelas->fresh();
+
+    $pengguna = User::factory()->create();
+    $pengguna->setAttribute('sandbox_id', 'sandbox-uji');
+    Cache::put('sim-bersama:sandbox-uji', true, 300);
+    $this->actingAs($pengguna);
+
+    expect($kelas->mkUnit)->toBeNull()
+        ->and($kelas->validasiDiwajibkan())->toBeTrue();
 });

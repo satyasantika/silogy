@@ -4,11 +4,13 @@ namespace App\Modules\Kelas\Models;
 
 use App\Models\User;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\MkUnit;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\ValidasiNilaiKelas;
 use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
+use App\Modules\Simulasi\Support\RanahSimulasiScope;
 use App\Support\Concerns\LogsSilogyActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -53,9 +55,17 @@ class KelasMk extends Model
     /** Validasi nilai wajib bila kurikulum kelas ada dan switch-nya aktif. */
     public function validasiDiwajibkan(): bool
     {
-        $this->loadMissing('mkUnit.kurikulum');
+        // Dibaca tanpa scope ranah simulasi: data yang tersembunyi dari ranah
+        // aktif tidak boleh membuat gerbang cetak terbuka (fail-open).
+        $kurikulumId = MkUnit::withoutGlobalScope(RanahSimulasiScope::class)
+            ->whereKey($this->mk_unit_id)->value('kurikulum_id');
 
-        return $this->mkUnit?->kurikulum?->validasi_nilai_aktif === true;
+        if ($kurikulumId === null) {
+            return false;
+        }
+
+        return (bool) Kurikulum::withoutGlobalScope(RanahSimulasiScope::class)
+            ->whereKey($kurikulumId)->value('validasi_nilai_aktif');
     }
 
     /**

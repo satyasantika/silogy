@@ -3,8 +3,9 @@
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages;
 
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
-use App\Support\Filament\Pages\BaseSimpleEditRecord;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\SinkronValidatorKurikulum;
+use App\Support\Filament\Pages\BaseSimpleEditRecord;
 use Filament\Actions\DeleteAction;
 
 class EditKurikulum extends BaseSimpleEditRecord
@@ -16,15 +17,21 @@ class EditKurikulum extends BaseSimpleEditRecord
 
     protected function beforeSave(): void
     {
-        $this->validatorTambahanSebelumnya = $this->getRecord()
+        /** @var Kurikulum $kurikulum */
+        $kurikulum = $this->getRecord();
+
+        $this->validatorTambahanSebelumnya = $kurikulum
             ->validatorTambahan()->pluck('users.id')->all();
     }
 
     protected function afterSave(): void
     {
+        /** @var Kurikulum $kurikulum */
+        $kurikulum = $this->getRecord();
+
         // Select ->relationship() menulis pivot tanpa memicu event model.
         app(SinkronValidatorKurikulum::class)
-            ->sinkronkan($this->getRecord(), $this->validatorTambahanSebelumnya);
+            ->sinkronkan($kurikulum, $this->validatorTambahanSebelumnya);
     }
 
     protected function getHeaderActions(): array

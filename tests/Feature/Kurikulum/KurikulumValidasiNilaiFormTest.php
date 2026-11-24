@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Role;
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
@@ -11,8 +10,8 @@ use App\Modules\Penilaian\Models\ValidasiNilaiKelas;
 use App\Modules\Penilaian\Services\ValidasiNilaiService;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\EvaluasiSeeder;
-use Database\Seeders\SemesterSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -107,4 +106,22 @@ it('multi-select tersembunyi saat switch mati', function () {
         ->assertFormFieldIsVisible('validatorTambahan')
         ->fillForm(['validasi_nilai_aktif' => false])
         ->assertFormFieldIsHidden('validatorTambahan');
+});
+
+it('validator tambahan yang kemudian menjadi pimpinan prodi tidak terlepas dari pivot saat form disimpan', function () {
+    $orang = User::factory()->create();
+    $this->kurikulum->validatorTambahan()->attach($orang->id);
+    AcademicUnitUser::create(['academic_unit_id' => $this->prodi->id, 'user_id' => $orang->id, 'status_pimpinan' => true]);
+
+    $opsi = Livewire::test(EditKurikulum::class, ['record' => $this->kurikulum->id])
+        ->instance()->form->getFlatFields(withHidden: true)['validatorTambahan']->getOptions();
+    expect($opsi)->not->toHaveKey($orang->id);
+
+    Livewire::test(EditKurikulum::class, ['record' => $this->kurikulum->id])
+        ->fillForm(['nama' => 'Kurikulum Form Validasi (ubah)'])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($this->kurikulum->validatorTambahan()->pluck('users.id')->all())->toBe([$orang->id])
+        ->and(($this->punyaPeran)($orang))->toBeTrue();
 });

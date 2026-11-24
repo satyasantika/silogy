@@ -3,6 +3,7 @@
 namespace App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages;
 
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Services\KurikulumStateSyncService;
 use App\Modules\Kurikulum\States\DraftState;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
@@ -31,6 +32,9 @@ class CreateKurikulum extends BaseCreateRecord
         // tampil berikutnya adalah milik kurikulum lama, bukan yang baru.
         KurikulumTerpilih::set($this->record->id);
 
-        app(SinkronValidatorKurikulum::class)->sinkronkan($this->record);
+        /** @var Kurikulum $kurikulum */
+        $kurikulum = $this->getRecord();
+
+        app(SinkronValidatorKurikulum::class)->sinkronkan($kurikulum);
     }
 }

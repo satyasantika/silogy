@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Auth\Filament\Resources\UserResource;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Institusi\Support\AcademicUnitUserRoleSync;
 use App\Support\Filament\Concerns\HasImporMassal;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -175,6 +176,8 @@ class ListUsers extends ListRecords
         $roleNames = $this->parseRoleNames($data['role']);
         $user->syncRoles($roleNames->all());
         $this->relasikanProdi($user, $data, $roleNames);
+        // syncRoles di atas mencabut Validator Nilai (tidak bisa diimpor); kembalikan sesuai hak kurikulum.
+        app(AcademicUnitUserRoleSync::class)->syncForUser($user->id);
     }
 
     /**
@@ -190,6 +193,8 @@ class ListUsers extends ListRecords
         $roleNames = $this->parseRoleNames($data['role']);
         $user->syncRoles($roleNames->all());
         $this->relasikanProdi($user, $data, $roleNames);
+        // syncRoles di atas mencabut Validator Nilai (tidak bisa diimpor); kembalikan sesuai hak kurikulum.
+        app(AcademicUnitUserRoleSync::class)->syncForUser($user->id);
     }
 
     /**

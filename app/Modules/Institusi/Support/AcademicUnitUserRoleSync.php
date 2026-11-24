@@ -6,6 +6,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Penilaian\Support\ValidatorNilaiScope;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Sinkronkan role global "Pimpinan"/"Tim Kurikulum" berdasarkan status
@@ -29,6 +31,32 @@ class AcademicUnitUserRoleSync
         'Pimpinan' => 'status_pimpinan',
         'Tim Kurikulum' => 'status_tim_kurikulum',
     ];
+
+    /**
+     * Id pengguna yang perannya perlu disinkronkan: penugasan unit,
+     * validator tambahan kurikulum, dan pemegang role Validator Nilai.
+     * Dibaca langsung dari pivot (tanpa scope model).
+     *
+     * @return Collection<int, string>
+     */
+    public function userIdsTerkait(): Collection
+    {
+        $ids = DB::table('academic_unit_users')->pluck('user_id')
+            ->merge(DB::table('kurikulum_validator')->pluck('user_id'));
+
+        $roleId = DB::table('roles')->where('name', 'Validator Nilai')->value('id');
+
+        if ($roleId !== null) {
+            $ids = $ids->merge(
+                DB::table('model_has_roles')
+                    ->where('role_id', $roleId)
+                    ->where('model_type', (new User)->getMorphClass())
+                    ->pluck('model_uuid')
+            );
+        }
+
+        return $ids->map(fn ($id) => (string) $id)->unique()->values();
+    }
 
     /**
      * @return array{granted: int, revoked: int}
