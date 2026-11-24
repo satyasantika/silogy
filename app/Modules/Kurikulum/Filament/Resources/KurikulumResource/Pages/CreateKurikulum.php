@@ -6,6 +6,7 @@ use App\Modules\Kurikulum\Filament\Resources\KurikulumResource;
 use App\Modules\Kurikulum\Services\KurikulumStateSyncService;
 use App\Modules\Kurikulum\States\DraftState;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Modules\Kurikulum\Support\SinkronValidatorKurikulum;
 use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,5 +30,7 @@ class CreateKurikulum extends BaseCreateRecord
         // ini, session tetap menunjuk kurikulum lama dan CPL/BoK/MK yang
         // tampil berikutnya adalah milik kurikulum lama, bukan yang baru.
         KurikulumTerpilih::set($this->record->id);
+
+        app(SinkronValidatorKurikulum::class)->sinkronkan($this->record);
     }
 }

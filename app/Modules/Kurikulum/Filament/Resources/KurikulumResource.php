@@ -23,6 +23,7 @@ use App\Modules\Kurikulum\States\ProfilLulusanState;
 use App\Modules\Kurikulum\States\SetdosenmkState;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Models\Mk;
+use App\Modules\Penilaian\Support\ValidatorNilaiScope;
 use App\Support\Filament\DelegasiMenu;
 use App\Support\Filament\NavigationGroupPeran;
 use App\Support\Filament\NavigationSortPeran;
@@ -37,6 +38,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -253,6 +255,37 @@ class KurikulumResource extends Resource
                             ->label('Kurikulum aktif')
                             ->inline(false)
                             ->default(false),
+
+                        Toggle::make('validasi_nilai_aktif')
+                            ->label('Kurikulum ini divalidasi')
+                            ->helperText('Bila aktif, pimpinan dan tim kurikulum prodi otomatis berhak memvalidasi nilai kelas pada kurikulum ini. Bila dimatikan, tidak ada yang bisa memvalidasi; validasi yang sudah ada tetap tersimpan.')
+                            ->inline(false)
+                            ->default(true)
+                            ->live()
+                            ->columnSpanFull(),
+
+                        Select::make('validatorTambahan')
+                            ->label('Validator tambahan (mis. UPM)')
+                            ->helperText('Orang di luar pimpinan dan tim kurikulum prodi yang juga berhak memvalidasi nilai pada kurikulum ini.')
+                            ->relationship(
+                                'validatorTambahan',
+                                'full_name',
+                                modifyQueryUsing: function (Builder $query, ?Kurikulum $record): Builder {
+                                    if ($record?->exists) {
+                                        $query->whereNotIn(
+                                            'users.id',
+                                            ValidatorNilaiScope::otomatisBerhakUserIds($record)->all(),
+                                        );
+                                    }
+
+                                    return $query;
+                                },
+                            )
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->visible(fn (Get $get): bool => (bool) $get('validasi_nilai_aktif'))
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
