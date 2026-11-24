@@ -64,3 +64,35 @@ Dua penangkapan pada keadaan yang sama karena itu menghasilkan berkas yang ident
 2. `npm run tangkap-layar -- --adegan=nama-baru`
 3. Rujuk dari Markdown: `![Keterangan](aset/nama-baru.png)`
 4. `npm run tangkap-layar -- --periksa`
+
+## Audit kontras mode gelap
+
+`scripts/audit-kontras-gelap.mjs` (`npm run audit-kontras -- <opsi>`) memakai ulang masuk/sesi
+di sini, mengaktifkan mode gelap, lalu menghitung rasio kontras WCAG AA (4,5:1 teks normal,
+3:1 teks besar) setiap teks yang tampak, per (peran, halaman). Skrip hanya membaca: tidak
+mengirim formulir; modal dibuka lalu ditutup tanpa konfirmasi.
+
+Prasyarat: aplikasi berjalan dan berisi data dari `php artisan simulasi:buat` (akun `sim-*`).
+`APP_URL` bawaan `http://localhost:8008`; setel untuk port lain.
+
+```bash
+APP_URL=http://localhost:PORT npm run audit-kontras -- --peran=sim-validator
+APP_URL=http://localhost:PORT npm run audit-kontras -- --peran=sim-validator --halaman=slug
+npm run audit-kontras -- --autotest      # uji fungsi audit pada fixture, tanpa aplikasi
+```
+
+- Jalankan SATU `--peran` per proses; satu putaran penuh semua peran memakan > 10 menit.
+- `--halaman=SLUG` membatasi ke satu halaman; `--keluaran=DIR` mengganti folder keluaran.
+- Kode keluar: `0` bersih (atau autotest lulus); `1` ada temuan; `2` galat (termasuk
+  `--peran`/`--halaman` tak cocok); `3` tanpa temuan tetapi ada halaman tak tercapai, jadi
+  belum boleh disebut bersih.
+- Keluaran: `scripts/tangkap-layar/.audit-kontras/{temuan.json,laporan.md}` (tidak masuk git).
+
+Keterbatasan metode:
+
+- Teks di kanvas / Chart.js tidak diaudit.
+- Tidak ditangani: `clip` / `clip-path` / `font-size:0`, `mix-blend-mode`, `filter`,
+  `backdrop-filter`, dan teks di belakang tirai modal.
+- Latar gradien dilaporkan sebagai tak tentu (indeterminate), bukan lulus/gagal; latar
+  bergambar didaftar untuk cek visual.
+- Halaman yang tak tercapai didaftar di laporan, tidak dihitung bersih.

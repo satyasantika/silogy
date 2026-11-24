@@ -8,12 +8,14 @@
  * MEMBACA: tidak pernah mengirim formulir; modal dibuka lalu ditutup tanpa
  * konfirmasi.
  *
- *   node scripts/audit-kontras-gelap.mjs [--peran=sim-validator] [--halaman=slug] [--autotest]
+ *   APP_URL=http://localhost:PORT node scripts/audit-kontras-gelap.mjs [--peran=sim-validator] [--halaman=slug] [--keluaran=DIR] [--autotest]
+ *   (APP_URL bawaan http://localhost:8008; atau `npm run audit-kontras -- ...`)
  *
  * Kode keluar: 0 bersih / autotest lulus, 1 ada temuan, 2 galat (termasuk --peran/--halaman
  * yang tak cocok), 3 tanpa temuan tetapi ada halaman tak tercapai (belum bisa disebut bersih).
  * `--help` menampilkan ringkasan ini.
- * Keluaran: .superpowers/sdd/2026-11-24-kontras-mode-gelap/audit/{temuan.json,laporan.md}
+ * Keluaran: scripts/tangkap-layar/.audit-kontras/{temuan.json,laporan.md} (tidak masuk git;
+ * ganti dengan --keluaran=DIR). Lihat bagian "Audit kontras mode gelap" di scripts/tangkap-layar/README.md.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,7 +23,8 @@ import { chromium } from 'playwright';
 import { AKAR, BASIS } from './tangkap-layar/konfig.mjs';
 import { konteksUntuk, siapkanHalaman } from './tangkap-layar/konteks.mjs';
 
-const DIR_KELUARAN = path.join(AKAR, '.superpowers/sdd/2026-11-24-kontras-mode-gelap/audit');
+const argKeluaran = process.argv.find((a) => a.startsWith('--keluaran='))?.slice('--keluaran='.length);
+const DIR_KELUARAN = argKeluaran ? path.resolve(argKeluaran) : path.join(AKAR, 'scripts/tangkap-layar/.audit-kontras');
 
 // ── Fungsi audit di dalam halaman ─────────────────────────────────────────
 // Berdiri sendiri (diserialisasi Playwright), dipakai juga oleh --autotest.
@@ -466,14 +469,15 @@ function tulisLaporan(baru, dijalankan) {
 // ── Utama ────────────────────────────────────────────────────────────────
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log(`Audit kontras mode gelap SILOGY (WCAG AA)
-Pakai: APP_URL=http://localhost:8017 node scripts/audit-kontras-gelap.mjs [opsi]
+Pakai: APP_URL=http://localhost:PORT node scripts/audit-kontras-gelap.mjs [opsi]   (APP_URL bawaan http://localhost:8008)
   --peran=AKUN      hanya satu akun (${Object.keys(PERAN).join(', ')})
   --halaman=SLUG    hanya halaman ber-slug itu (di semua akun yang memilikinya)
+  --keluaran=DIR    folder keluaran (bawaan scripts/tangkap-layar/.audit-kontras)
   --autotest        uji fungsi audit pada fixture (tanpa aplikasi); gagal bila ada regresi
   --help, -h        pesan ini
 Kode keluar: 0 bersih / autotest lulus; 1 ada temuan; 2 galat (termasuk --peran/--halaman tak cocok);
              3 tanpa temuan tetapi ada halaman tak tercapai (belum bisa disebut bersih).
-Keluaran: .superpowers/sdd/2026-11-24-kontras-mode-gelap/audit/{temuan.json,laporan.md}`);
+Keluaran: <DIR>/{temuan.json,laporan.md}, bawaan scripts/tangkap-layar/.audit-kontras/`);
   process.exit(0);
 }
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=')[1];
