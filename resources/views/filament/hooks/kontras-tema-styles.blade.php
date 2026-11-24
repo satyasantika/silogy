@@ -93,4 +93,103 @@
         border-color: rgba(161, 161, 170, .5);
         color-scheme: dark;
     }
+
+    /*
+     * Warna aksen tetap (sebelumnya inline `color:#...`). Mode terang = nilai
+     * lama persis; pasangan `.dark` dipilih >= 4.5:1 di atas #18181b dan
+     * tint tipis di atasnya.
+     */
+    .silogy-label-langkah { color: #0b3914; }
+    .dark .silogy-label-langkah { color: #86efac; }
+
+    .silogy-aksen-biru { color: #2563eb; }
+    .dark .silogy-aksen-biru { color: #60a5fa; }
+
+    .silogy-aksen-merah { color: #c1121f; }
+    .dark .silogy-aksen-merah { color: #f87171; }
+
+    .silogy-aksen-amber { color: #b45309; }
+    .dark .silogy-aksen-amber { color: #fbbf24; }
+
+    .silogy-aksen-hijau { color: #15803d; }
+    .dark .silogy-aksen-hijau { color: #4ade80; }
+
+    /* Pil "Ditangani oleh" pada kotak syarat hulu. */
+    .silogy-chip-peran-saya {
+        background: rgba(21, 128, 61, .15);
+        color: #15803d;
+    }
+
+    .dark .silogy-chip-peran-saya {
+        background: rgba(34, 197, 94, .18);
+        color: #4ade80;
+    }
+
+    .silogy-chip-peran-lain {
+        background: rgba(180, 83, 9, .18);
+        color: #b45309;
+    }
+
+    .dark .silogy-chip-peran-lain {
+        background: rgba(245, 158, 11, .18);
+        color: #fbbf24;
+    }
+
+    /* Lencana peran di kolom pengguna. */
+    .silogy-chip-tim-kurikulum {
+        background: rgba(0, 112, 0, .14);
+        color: #0b3914;
+    }
+
+    .dark .silogy-chip-tim-kurikulum {
+        background: rgba(34, 197, 94, .18);
+        color: #86efac;
+    }
+
+    .silogy-chip-pimpinan {
+        background: rgba(37, 99, 235, .12);
+        color: #1d4ed8;
+    }
+
+    .dark .silogy-chip-pimpinan {
+        background: rgba(59, 130, 246, .18);
+        color: #93c5fd;
+    }
+
+    /* Pemisah dekoratif (koma antar kode) dan teks kecil di kartu pastel. */
+    .silogy-pemisah { opacity: .4; }
+    .dark .silogy-pemisah { opacity: .7; }
+
+    .silogy-teks-kartu-redup { opacity: .85; }
+    .dark .silogy-teks-kartu-redup { opacity: 1; }
+
+    /*
+     * Lencana total bobot (Σ) matriks CPL x MK: warna latar datang dari
+     * inline (PHP + Alpine) dengan teks putih. Di mode gelap latar diganti
+     * yang lebih tua agar putih >= 4.5:1 (#15803d 5.02, #b45309 5.02,
+     * #6b7280 4.83; merah #dc2626 sudah 4.83 dan dibiarkan).
+     */
+    .dark [data-silogy="rekap-bobot-cpl-mk"][data-status="pas"] { background: #15803d !important; }
+    .dark [data-silogy="rekap-bobot-cpl-mk"][data-status="kurang"] { background: #b45309 !important; }
+    .dark [data-silogy="rekap-bobot-cpl-mk"][data-status="kosong"] { background: #6b7280 !important; }
+
+    /*
+     * Kartu "sedang dikerjakan" (kurikulum / MK koordinator): tint #dcfce7
+     * 35% di atas kartu gelap menjadi abu-hijau terang (#5d6863) sehingga
+     * teks redup/putih turun ke < 4.5. Di mode gelap pakai tint hijau tipis.
+     */
+    .dark .silogy-kurikulum-cards .silogy-kurikulum-card-sedang-dikerjakan,
+    .dark .silogy-mk-koordinator-cards .silogy-mk-card-sedang-dikerjakan {
+        background-color: rgba(34, 197, 94, .14);
+    }
+
+    /*
+     * Placeholder mode gelap: gray-500 Filament (#71717b) hanya 3.2:1 di atas
+     * input #242427. #a1a1aa = 6.04:1 (input) / 6.91:1 (tabel #18181b).
+     */
+    .dark .fi-input::placeholder,
+    .dark .fi-select-input-placeholder,
+    .dark .fi-ta-placeholder {
+        color: #a1a1aa;
+    }
 </style>

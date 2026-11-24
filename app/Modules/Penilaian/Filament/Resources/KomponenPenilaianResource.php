@@ -266,7 +266,7 @@ class KomponenPenilaianResource extends Resource
                                     )->render();
 
                                     return sprintf(
-                                        '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">%s<span style="color:#2563eb;font-weight:600;">(%s)</span></div>',
+                                        '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">%s<span class="silogy-aksen-biru" style="font-weight:600;">(%s)</span></div>',
                                         $kodeHtml,
                                         e($service->formatBobot((float) $pivot->bobot)),
                                     );

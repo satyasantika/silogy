@@ -42,7 +42,7 @@
                                             : null,
                                     ])
                                     @if ($bokAsalMap[$bok->id])
-                                        <sup style="color:#b45309;">†</sup>
+                                        <sup class="silogy-aksen-amber">†</sup>
                                     @endif
                                 </th>
                             @endforeach
@@ -63,7 +63,7 @@
                                         ])
                                     </strong>
                                     @if ($cplAsalMap[$cpl->id])
-                                        <sup style="color:#b45309;">†</sup>
+                                        <sup class="silogy-aksen-amber">†</sup>
                                     @endif
                                 </td>
                                 @foreach ($boks as $bok)

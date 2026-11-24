@@ -101,6 +101,12 @@
                                 get total() { return this.rekapTotal; },
                                 get selisih() { return this.round1(this.rekapTotal - this.target); },
                                 get pas() { return this.selisih === 0; },
+                                get statusBadge() {
+                                    if (this.rekapTotal <= 0) return 'kosong';
+                                    if (this.pas) return 'pas';
+                                    if (this.selisih > 0) return 'lebih';
+                                    return 'kurang';
+                                },
                                 get warna() {
                                     if (this.rekapTotal <= 0) return '#9ca3af';
                                     if (this.pas) return '#16a34a';
@@ -201,7 +207,7 @@
                                             : null,
                                     ])
                                     @if ($cplAsing)
-                                        <sup style="color:#b45309;">†</sup>
+                                        <sup class="silogy-aksen-amber">†</sup>
                                     @endif
                                     <br>
                                     <span style="font-weight:400;opacity:.7;">
@@ -215,7 +221,7 @@
                                                 : null,
                                         ])
                                         @if ($bokAsing)
-                                            <sup style="color:#b45309;">†</sup>
+                                            <sup class="silogy-aksen-amber">†</sup>
                                         @endif
                                     </span>
                                 </th>
@@ -233,6 +239,12 @@
                                     $pasRekap => '#16a34a',
                                     $selisih > 0 => '#dc2626',
                                     default => '#d97706',
+                                };
+                                $statusBadge = match (true) {
+                                    $total <= 0 => 'kosong',
+                                    $pasRekap => 'pas',
+                                    $selisih > 0 => 'lebih',
+                                    default => 'kurang',
                                 };
                                 $perluNormalisasi = $total > 0 && ! $pasRekap;
                                 $nilaiAwal = [];
@@ -257,12 +269,14 @@
                                 <td class="cpl-mk-sticky cpl-mk-sticky-cell" style="position:sticky;left:0;z-index:1;padding:8px;">
                                     <strong>{{ $mk->nama }}</strong>
                                     @if ($mkAsalMap[$mk->id] ?? false)
-                                        <sup style="color:#b45309;" title="Adaptasi dari unit lain">†</sup>
+                                        <sup title="Adaptasi dari unit lain" class="silogy-aksen-amber">†</sup>
                                     @endif
                                     <br>
                                     <span
                                         data-silogy="rekap-bobot-cpl-mk"
                                         data-total="{{ $total }}"
+                                        data-status="{{ $statusBadge }}"
+                                        :data-status="statusBadge"
                                         style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;background:{{ $warnaBadge }};"
                                         :style="'display:inline-block;margin-top:4px;padding:1px 8px;border-radius:9999px;font-size:11px;font-weight:700;color:#fff;background:' + warna"
                                         :data-total="rekapTotal"

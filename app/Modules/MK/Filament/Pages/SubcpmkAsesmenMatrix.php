@@ -543,7 +543,7 @@ class SubcpmkAsesmenMatrix extends Page
         );
 
         if ($preview['kolom_tidak_dikenali'] !== []) {
-            $ringkasanHtml .= '<p style="font-size:12px;color:#b45309;margin-bottom:8px;">Kolom header diabaikan (kode Sub-CPMK tidak dikenali): '
+            $ringkasanHtml .= '<p class="silogy-aksen-amber" style="font-size:12px;margin-bottom:8px;">Kolom header diabaikan (kode Sub-CPMK tidak dikenali): '
                 .e(implode(', ', $preview['kolom_tidak_dikenali'])).'</p>';
         }
 

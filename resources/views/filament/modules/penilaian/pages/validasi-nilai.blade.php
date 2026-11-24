@@ -5,7 +5,7 @@
     >
         <div style="padding:14px 16px 16px;">
             <div style="margin-bottom:16px;max-width:420px;" data-silogy="langkah-semester">
-                <label for="semester-terpilih" style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#0b3914;">
+                <label for="semester-terpilih" class="silogy-label-langkah" style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;">
                     Semester
                 </label>
                 <select

@@ -322,11 +322,11 @@ class UserResource extends Resource
         $html = '<span>'.e($nama).'</span>';
 
         if (filter_var($state['status_pimpinan'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            $html .= '<span style="display:inline-flex;align-items:center;margin-inline-start:8px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;background:rgba(37,99,235,.12);color:#1d4ed8;">Pimpinan</span>';
+            $html .= '<span class="silogy-chip-pimpinan" style="display:inline-flex;align-items:center;margin-inline-start:8px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;">Pimpinan</span>';
         }
 
         if (filter_var($state['status_tim_kurikulum'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            $html .= '<span style="display:inline-flex;align-items:center;margin-inline-start:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;background:rgba(0,112,0,.14);color:#0b3914;">Tim kurikulum</span>';
+            $html .= '<span class="silogy-chip-tim-kurikulum" style="display:inline-flex;align-items:center;margin-inline-start:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.02em;">Tim kurikulum</span>';
         }
 
         return new HtmlString($html);

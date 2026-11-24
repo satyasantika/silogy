@@ -64,7 +64,7 @@
             <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
                 <div style="padding:14px 20px;border-radius:10px;border:1px solid rgba(37,99,235,.3);background:rgba(37,99,235,.08);min-width:220px;">
                     <span style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;opacity:.7;">Target Kelulusan CPL</span>
-                    <strong style="display:block;font-size:28px;font-weight:700;color:#2563eb;margin-top:4px;">{{ $targetCapaianLulusan }}%</strong>
+                    <strong class="silogy-aksen-biru" style="display:block;font-size:28px;font-weight:700;margin-top:4px;">{{ $targetCapaianLulusan }}%</strong>
                     <span style="display:block;font-size:11px;opacity:.65;margin-top:4px;">Persentase minimum ketercapaian rata-rata kelas</span>
                 </div>
             </div>

@@ -263,8 +263,8 @@ trait HasImporMassal
 
         $headerCells = '';
         foreach ($columns as $col) {
-            $warna = $col['wajib'] ? '#b45309' : '#2563eb';
-            $headerCells .= '<td style="'.$cellStyle.'font-weight:600;color:'.$warna.';">'.e($col['label']).'</td>';
+            $kelasWarna = $col['wajib'] ? 'silogy-aksen-amber' : 'silogy-aksen-biru';
+            $headerCells .= '<td class="'.$kelasWarna.'" style="'.$cellStyle.'font-weight:600;">'.e($col['label']).'</td>';
         }
         $baris[] = $this->renderImportContohExcelRow(1, $headerCells, $chromeStyle);
 
@@ -287,11 +287,11 @@ trait HasImporMassal
         $legendParts = [];
 
         if (collect($columns)->contains('wajib', true)) {
-            $legendParts[] = '<span style="color:#b45309;font-weight:600;">Oranye</span> = kolom wajib';
+            $legendParts[] = '<span class="silogy-aksen-amber" style="font-weight:600;">Oranye</span> = kolom wajib';
         }
 
         if (collect($columns)->contains('wajib', false)) {
-            $legendParts[] = '<span style="color:#2563eb;">Biru</span> = kolom opsional';
+            $legendParts[] = '<span class="silogy-aksen-biru">Biru</span> = kolom opsional';
         }
 
         $legend = $legendParts === []
