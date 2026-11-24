@@ -2,7 +2,7 @@
 
 Alamat SILOGY: **https://silogy.unsil.ac.id/login**
 
-Validator Nilai memeriksa nilai per kelas dan **memvalidasi**-nya. Laporan Lengkap sebuah kelas baru bisa dicetak setelah kelas itu divalidasi, sehingga cetakan menjadi bukti bahwa hasil penilaian dosen pengampu sudah diperiksa pihak penjamin mutu (misalnya UPM).
+Validator Nilai memeriksa nilai per kelas dan **memvalidasi**-nya. Pada kurikulum yang **mewajibkan validasi**, Laporan Lengkap sebuah kelas baru bisa dicetak setelah kelas itu divalidasi, sehingga cetakan menjadi bukti bahwa hasil penilaian dosen pengampu sudah diperiksa (misalnya oleh pimpinan prodi atau UPM). Kurikulum yang tidak mewajibkan validasi tidak melewati proses ini.
 
 ## Masuk
 
@@ -22,20 +22,35 @@ Anda tidak mengubah nilai, bobot, maupun peserta. Bila ada yang janggal, cukup j
 
 ## Siapa yang menjadi validator
 
-Peran ini mengikuti **penanda pada penugasan unit**, bukan dipasang terpisah.
+Hak memvalidasi ditentukan **per kurikulum**, bukan lewat penugasan unit. Pada kurikulum yang validasinya menyala, yang berhak memvalidasi kelas kurikulum itu adalah:
 
-1. Super Admin membuka data pengguna, atau Admin unit membuka data unit, pada bagian penugasan unit.
-2. Pada penugasan unit yang dimaksud, nyalakan sakelar **Validator nilai**, lalu simpan.
-3. Peran **Validator Nilai** terpasang otomatis pada pengguna itu. Bila semua penanda dimatikan, peran ikut lepas.
+1. **pimpinan prodi** pemilik kurikulum (otomatis);
+2. **Tim Kurikulum prodi** pemilik kurikulum (otomatis);
+3. **validator tambahan** yang dipilih Tim Kurikulum atau Admin pada kolom **Validator tambahan (mis. UPM)** di formulir kurikulum.
 
-Penanda berlaku per penugasan. Dosen di prodi A yang juga ditugaskan sebagai validator di prodi B hanya menjadi validator di prodi B.
+Penugasan pimpinan atau Tim Kurikulum harus berada pada **unit prodi kurikulum itu sendiri**; penugasan di fakultas atau universitas tidak otomatis berhak.
+
+Peran **Validator Nilai** terpasang otomatis pada orang yang berhak dan dilepas otomatis bila ia tidak lagi berhak pada kurikulum mana pun yang validasinya menyala. Orang yang dipilih sebagai validator tambahan boleh belum berperan Validator Nilai; perannya diberikan saat kurikulum disimpan.
+
+Peran ini tidak dapat diberikan lewat impor pengguna; impor dengan peran **Validator Nilai** ditolak dan diarahkan ke formulir kurikulum.
+
+Pimpinan prodi dan Tim Kurikulum yang ingin memvalidasi harus memilih peran **Validator Nilai** pada pemilih peran saat masuk. Selama memakai peran Kaprodi atau Tim Kurikulum, menu Validasi Nilai tidak tampil.
+
+## Kurikulum yang validasinya mati
+
+Tim Kurikulum atau Admin dapat mematikan sakelar **Kurikulum ini divalidasi** kapan saja. Akibatnya untuk kurikulum itu:
+
+- Laporan Lengkap semua kelasnya **bebas cetak**, tanpa tanda air.
+- Tidak ada validasi baru yang bisa dilakukan dan perubahan data tidak lagi menggugurkan validasi.
+- Riwayat validasi lama **tidak dihapus**: kelas yang sudah **Tervalidasi** atau **Perlu validasi ulang** tetap berlabel demikian sebagai catatan. Blok **Divalidasi oleh** tidak dicetak.
+
+Menyalakan kembali sakelar membuat aturan cetak berlaku lagi; status dihitung ulang dari isi laporan saat kelas dibuka.
 
 ## Cakupan
 
-Cakupan Anda adalah unit yang berpenanda **Validator nilai** **beserta semua unit di bawahnya**.
+Cakupan Anda adalah kelas dari **kurikulum yang menunjuk Anda** sebagai validator (otomatis atau tambahan), yang validasinya menyala.
 
-- Validator di prodi memvalidasi semua kelas yang **ditawarkan prodi itu**, termasuk kelas dari mata kuliah milik fakultas atau universitas.
-- Validator yang ditugaskan di fakultas atau universitas juga mencakup semua program studi di bawahnya.
+- Anda memvalidasi semua kelas kurikulum itu, termasuk kelas dari mata kuliah milik fakultas atau universitas yang ditawarkan di kurikulum tersebut.
 - Kelas di luar cakupan tidak tampil dan tidak bisa dibuka.
 
 ## Menu yang tersedia
@@ -71,7 +86,7 @@ Daftar hanya punya tombol **Lihat**. Tombol Validasi tidak ada di daftar, supaya
 
 Bila syarat belum terpenuhi, tombol **Validasi** tidak muncul; alasannya tampil sebagai catatan pada halaman laporan kelas.
 
-Anda **tidak dapat** memvalidasi kelas yang Anda ampu, maupun kelas dari mata kuliah yang Anda koordinatori, karena koordinator yang menentukan bobot dan pemetaan yang menjadi dasar laporan. Super Admin pun tidak otomatis boleh memvalidasi.
+Anda **tidak dapat** memvalidasi kelas yang Anda ampu, maupun kelas dari mata kuliah yang Anda koordinatori, walaupun Anda pimpinan prodi atau Tim Kurikulum yang otomatis berhak, karena koordinator yang menentukan bobot dan pemetaan yang menjadi dasar laporan. Super Admin pun tidak otomatis boleh memvalidasi.
 
 Jika data berubah setelah laporan Anda buka (misalnya dosen menyimpan nilai saat Anda memeriksa), validasi ditolak dengan pesan agar Anda memeriksa kembali. Laporan dimuat ulang; periksa lalu validasi lagi.
 
@@ -81,7 +96,7 @@ Jika data berubah setelah laporan Anda buka (misalnya dosen menyimpan nilai saat
 3. Status kembali menjadi **Belum divalidasi** dan laporan tidak bisa dicetak sampai divalidasi lagi.
 
 ### 4. Mencetak
-Pada kelas yang **Tervalidasi**, tombol **Cetak** di tab Laporan Lengkap aktif. Cetakan memuat blok **Divalidasi oleh** berisi nama Anda, jabatan penugasan (bila ada), serta tanggal dan jam validasi.
+Pada kelas yang **Tervalidasi**, tombol **Cetak** di tab Laporan Lengkap aktif. Pada kurikulum yang validasinya menyala, cetakan memuat blok **Divalidasi oleh** berisi nama Anda, jabatan penugasan (bila ada), serta tanggal dan jam validasi.
 
 ## Arti status validasi
 
@@ -109,7 +124,7 @@ Catatan tentang daftar: perubahan nilai langsung tampak di daftar. Perubahan lai
 
 ## Berlaku untuk semua kelas
 
-Aturan cetak ini berlaku untuk **semua kelas di semua semester**, termasuk kelas lama. Kelas lama berstatus **Belum divalidasi** sampai Anda memvalidasinya.
+Pada kurikulum yang validasinya menyala, aturan cetak ini berlaku untuk **semua kelas di semua semester**, termasuk kelas lama. Kelas lama berstatus **Belum divalidasi** sampai Anda memvalidasinya.
 
 ## Praktik baik
 - Buka dan telaah laporan sebelum menekan Validasi; jangan memvalidasi dari daftar saja.

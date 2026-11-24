@@ -64,7 +64,7 @@ final class PeranPanduan
             'validator-nilai' => [
                 'berkas' => '09-validator-nilai.md',
                 'label' => 'Validator Nilai',
-                'ringkas' => 'Memeriksa dan memvalidasi nilai kelas sebelum laporan dicetak.',
+                'ringkas' => 'Memeriksa dan memvalidasi nilai kelas pada kurikulum yang mewajibkan validasi.',
                 'ikon' => 'bi-patch-check',
             ],
             'alur-end-to-end' => [

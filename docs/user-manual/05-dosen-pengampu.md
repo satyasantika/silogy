@@ -60,12 +60,12 @@ Biasanya satu asesmen punya satu angka per mahasiswa, dan angka itu berlaku sama
 
 ## Mencetak laporan memerlukan validasi
 
-Tombol **Cetak** pada tab **Laporan Lengkap** hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai. Cetakan dari kelas yang belum divalidasi (termasuk lewat Ctrl+P) bertanda air **BELUM DIVALIDASI**.
+Tombol **Cetak** pada tab **Laporan Lengkap** hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai, kecuali kurikulum kelas itu tidak mewajibkan validasi (laporan bebas cetak). Cetakan dari kelas yang belum divalidasi (termasuk lewat Ctrl+P) bertanda air **BELUM DIVALIDASI**.
 
 - Validasi **gugur** bila nilai, bobot, pemetaan, peserta, atau isi Analisis & RTL berubah. Menekan **Simpan** tanpa mengubah nilai tidak menggugurkannya.
 - Nilai tidak dikunci; Anda tetap bisa mengubahnya, tetapi kelas lalu perlu divalidasi ulang.
 - Aturan ini berlaku untuk semua kelas, juga semester lampau.
-- Hubungi Validator Nilai di unit Anda untuk meminta validasi. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
+- Hubungi validator kurikulum kelas itu (pimpinan prodi, Tim Kurikulum prodi, atau validator tambahan seperti UPM) untuk meminta validasi. Anda tidak dapat memvalidasi kelas yang Anda ampu sendiri. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
 
 ## Praktik baik
 

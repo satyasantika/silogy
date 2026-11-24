@@ -70,7 +70,8 @@ Jangan menulis MK sebelum CPL ada. Jangan menawar MK di prodi sebelum MK induk (
 
    ![Sakelar kurikulum aktif](aset/tk-kurikulum-aktif.png)
 
-5. Simpan. Klik kartu kurikulum itu agar menjadi kurikulum terpilih.
+5. Atur validasi nilai. Sakelar **Kurikulum ini divalidasi** menentukan apakah Laporan Lengkap kelas pada kurikulum ini harus divalidasi sebelum dicetak. Bila menyala, pimpinan prodi dan Tim Kurikulum prodi otomatis berhak memvalidasi; tambahkan pihak lain (mis. UPM) di **Validator tambahan (mis. UPM)**. Bila dimatikan, laporan bebas cetak dan riwayat validasi lama tetap tersimpan. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
+6. Simpan. Klik kartu kurikulum itu agar menjadi kurikulum terpilih.
 
    ![Kartu kurikulum setelah simpan](aset/tk-kurikulum-kartu.png)
 

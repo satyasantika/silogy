@@ -151,7 +151,7 @@ Jika kosong: asesmen belum 100%, nilai belum disimpan, atau pemetaan CPL–CPMK 
 
 ## Mencetak laporan memerlukan validasi
 
-Tombol **Cetak** pada Laporan Lengkap hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai; cetakan kelas yang belum divalidasi bertanda air **BELUM DIVALIDASI**. Mengubah bobot atau pemetaan asesmen setelah kelas divalidasi menggugurkan validasi kelas yang laporannya terdampak, sehingga kelas itu perlu divalidasi ulang. Anda tidak dapat memvalidasi kelas dari mata kuliah yang Anda koordinatori. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
+Bila kurikulum kelas itu mewajibkan validasi (sakelar **Kurikulum ini divalidasi** menyala), tombol **Cetak** pada Laporan Lengkap hanya aktif bila kelas sudah **Tervalidasi** oleh Validator Nilai; cetakan kelas yang belum divalidasi bertanda air **BELUM DIVALIDASI**. Mengubah bobot atau pemetaan asesmen setelah kelas divalidasi menggugurkan validasi kelas yang laporannya terdampak, sehingga kelas itu perlu divalidasi ulang. Bila validasi kurikulum dimatikan, laporan bebas cetak. Anda tidak dapat memvalidasi kelas dari mata kuliah yang Anda koordinatori. Lihat [Panduan Validator Nilai](09-validator-nilai.md).
 
 ## Asesmen yang dirinci per Sub-CPMK
 

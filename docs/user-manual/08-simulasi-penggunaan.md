@@ -139,7 +139,7 @@ Semester aktif         Set dosen MK       Profil Lulusan       Komponen Nilai   
 
 ![Log aktivitas sebagai bukti audit](aset/auditor-log.png)
 
-5. **Validator Nilai** (`validator`) — **Penilaian → Validasi Nilai**: buka laporan kelas lewat **Lihat**, lalu **Validasi** agar Laporan Lengkap boleh dicetak. Validasi gugur bila nilai, bobot, pemetaan, peserta, atau Analisis & RTL berubah.
+5. **Validator Nilai** (`validator`) — **Penilaian → Validasi Nilai**: buka laporan kelas lewat **Lihat**, lalu **Validasi** agar Laporan Lengkap boleh dicetak. Berlaku pada kurikulum yang sakelar **Kurikulum ini divalidasi**-nya menyala; validator ditentukan di formulir kurikulum (pimpinan dan Tim Kurikulum prodi otomatis, ditambah **Validator tambahan**). Validasi gugur bila nilai, bobot, pemetaan, peserta, atau Analisis & RTL berubah.
 
 ✅ *Output:* laporan ketercapaian, analisis AI, bukti audit, dan kelas tervalidasi yang siap dicetak.
 
