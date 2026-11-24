@@ -10,7 +10,9 @@
  *
  *   node scripts/audit-kontras-gelap.mjs [--peran=sim-validator] [--halaman=slug] [--autotest]
  *
- * Kode keluar: 0 bersih / autotest lulus, 1 ada temuan, 2 galat.
+ * Kode keluar: 0 bersih / autotest lulus, 1 ada temuan, 2 galat (termasuk --peran/--halaman
+ * yang tak cocok), 3 tanpa temuan tetapi ada halaman tak tercapai (belum bisa disebut bersih).
+ * `--help` menampilkan ringkasan ini.
  * Keluaran: .superpowers/sdd/2026-11-24-kontras-mode-gelap/audit/{temuan.json,laporan.md}
  */
 import fs from 'node:fs';
@@ -108,7 +110,14 @@ function auditarDom(opsi) {
       grad = selektor(el) + ' => ' + bi.slice(0, 60);
     } else if (a >= 0.995) { opaq = true; grad = null; img = null; }
     // url(...) (mis. ikon panah <select>) tidak mengubah latar di bawah teks: tetap dihitung, diberi tanda.
-    if (bi !== 'none' && !/gradient\(/.test(bi)) img = selektor(el);
+    if (bi !== 'none' && !/gradient\(/.test(bi)) {
+      // Ikon kecil (mis. panah <select>): tak berulang dan ukurannya jauh di bawah kotak elemen.
+      const r = el.getBoundingClientRect();
+      const ukuran = cs.backgroundSize.split(',')[0].trim().split(/\s+/).map((v) => (v.endsWith('px') ? parseFloat(v) : NaN));
+      const lw = ukuran[0], lh = ukuran.length > 1 ? ukuran[1] : ukuran[0];
+      const kecil = cs.backgroundRepeat.startsWith('no-repeat') && lw > 0 && lh > 0 && lw * lh <= 0.25 * r.width * r.height;
+      img = { sel: selektor(el), kelas: kecil ? 'ikon-kecil' : 'gambar-lebar' };
+    }
     const hasil = { C, O, opaq, grad, img };
     memo.set(el, hasil);
     return hasil;
@@ -134,7 +143,7 @@ function auditarDom(opsi) {
     return true;
   }
 
-  const hasil = { total: 0, achados: [], takTentu: [], dilewati: 0 };
+  const hasil = { total: 0, achados: [], takTentu: [], bergambar: [], dilewati: 0 };
   function nilai(el, teks, warnaCss, cs, sumber) {
     const lp = lapis(el);
     const fg = parse(warnaCss);
@@ -151,11 +160,12 @@ function auditarDom(opsi) {
       warnaTeks: hex(fg.slice(0, 3), aFg), latarEfektif: hex(latar),
       ukuranFont: Math.round(px * 10) / 10, tebal: tebal ? 700 : parseInt(cs.fontWeight, 10) || 400,
       sebab: tandaSebab(el), sumber, fx: el.closest('[data-fx]')?.getAttribute('data-fx') || null,
-      latarSumber: lp.opaq ? 'opak' : 'kanvas-putih', adaGambar: Boolean(lp.img),
+      latarSumber: lp.opaq ? 'opak' : 'kanvas-putih', adaGambar: Boolean(lp.img), gambarKelas: lp.img ? lp.img.kelas : null, gambarDi: lp.img ? lp.img.sel : null,
     };
     if (lp.grad) { hasil.takTentu.push({ ...dasar, gradien: lp.grad }); return; }
     const rs = rasio(warnaTeks, latar);
     if (rs < (besar ? 3 : 4.5)) hasil.achados.push({ ...dasar, rasio: Math.round(rs * 100) / 100, besar });
+    else if (lp.img) hasil.bergambar.push({ ...dasar, rasio: Math.round(rs * 100) / 100 });
   }
 
   const JANGAN = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'OPTION', 'OPTGROUP', 'TITLE', 'HEAD', 'TEXTAREA']);
@@ -334,6 +344,8 @@ const FIXTURE = `<style>
   <input data-fx="baik-placeholder" class="pg" placeholder="placeholder terang" style="background:#111;border:0">
   <input data-fx="baik-nilai-input" value="isi terang" style="background:#111;color:#eee;border:0">
   <select data-fx="baik-select" style="background:#111;color:#eee;border:0"><option>pilihan terang</option></select>
+  <div data-fx="baik-ikon-kecil" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right .5rem center / 16px 16px;color:#fff;height:40px">terang di gelap, ikon kecil</div>
+  <div data-fx="baik-gambar-lebar" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') center / cover;color:#fff;height:40px">terang di gelap, gambar lebar</div>
   <div data-fx="baik-gambar-url" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right;color:#fff">terang di gelap dengan ikon url</div>
   <div style="width:80px;height:20px;overflow:auto;background:#111"><div data-fx="baik-gulir" style="margin-top:60px;color:#fff;white-space:nowrap">di luar kotak tapi dapat digulir</div></div>
   <div style="background:#000"><span data-fx="tersembunyi-opasitas0" style="color:#111;opacity:0">tidak tampak</span><span data-fx="tersembunyi-display" style="display:none;color:#000">tidak tampak</span></div>
@@ -344,7 +356,7 @@ const FIXTURE = `<style>
 const BURUK = ['buruk-putih-di-putih', 'buruk-gelap-di-gelap', 'buruk-semitransparan', 'buruk-opasitas', 'buruk-kecil-abu',
   'buruk-oklch', 'buruk-color-mix', 'buruk-color-srgb', 'buruk-placeholder', 'buruk-nilai-input', 'buruk-select', 'buruk-text-fill', 'buruk-gambar-url'];
 const BAIK = ['baik-terang-di-gelap', 'baik-gelap-di-terang', 'baik-semitransparan', 'baik-opasitas', 'baik-besar', 'baik-oklch', 'baik-color-mix',
-  'baik-placeholder', 'baik-nilai-input', 'baik-select', 'baik-gambar-url', 'baik-gulir', 'tersembunyi-opasitas0', 'tersembunyi-display', 'tersembunyi-terpotong', 'takTentu-gradien'];
+  'baik-placeholder', 'baik-nilai-input', 'baik-select', 'baik-gambar-url', 'baik-ikon-kecil', 'baik-gambar-lebar', 'baik-gulir', 'tersembunyi-opasitas0', 'tersembunyi-display', 'tersembunyi-terpotong', 'takTentu-gradien'];
 
 async function autotest(browser) {
   // Halaman kosong: tidak bergantung pada aplikasi yang berjalan.
@@ -360,6 +372,10 @@ async function autotest(browser) {
   for (const k of BURUK) if (!kena.has(k)) gagal.push(`seharusnya DITANDAI: ${k}`);
   for (const k of BAIK) if (kena.has(k)) gagal.push(`seharusnya TIDAK ditandai: ${k} (rasio ${kena.get(k)})`);
   if (!tak.has('takTentu-gradien')) gagal.push('gradien seharusnya masuk daftar tak-tentu');
+  const kelasGambar = new Map(r.bergambar.map((a) => [a.fx, a.gambarKelas]));
+  if (kelasGambar.get('baik-ikon-kecil') !== 'ikon-kecil') gagal.push(`baik-ikon-kecil harus ikon-kecil (dapat ${kelasGambar.get('baik-ikon-kecil')})`);
+  if (kelasGambar.get('baik-gambar-lebar') !== 'gambar-lebar') gagal.push(`baik-gambar-lebar harus gambar-lebar dan tampil di daftar cek visual (dapat ${kelasGambar.get('baik-gambar-lebar')})`);
+  console.log('Autotest: latar bergambar lulus =', JSON.stringify(Object.fromEntries(kelasGambar)));
   for (const k of ['buruk-gambar-url', 'baik-gambar-url']) if (tak.has(k)) gagal.push(`${k}: url() tidak boleh tak-tentu`);
   console.log('Autotest: ditandai =', JSON.stringify(Object.fromEntries(kena)), '| tak-tentu =', [...tak].join(','));
   console.log(`Autotest: ${r.total} simpul teks diaudit pada fixture (${BURUK.length} buruk, ${BAIK.length} baik/tersembunyi)`);
@@ -381,13 +397,15 @@ function tulisLaporan(baru, dijalankan) {
   const halamanLog = [...(lama.halaman ?? []).filter(luar), ...baru.halamanLog];
   const takTercapai = [...(lama.takTercapai ?? []).filter(luar), ...baru.takTercapai];
   const takTentu = [...(lama.takTentu ?? []).filter(luar), ...baru.takTentu];
+  const bergambar = [...(lama.bergambar ?? []).filter(luar), ...baru.bergambar];
+  const cekVisual = bergambar.filter((b) => b.gambarKelas === 'gambar-lebar');
   semua.sort((a, b) => a.rasio - b.rasio);
   fs.mkdirSync(DIR_KELUARAN, { recursive: true });
   const keluar = (a) => ({ halaman: a.halaman, peran: a.peran, selector: a.selector, teks: a.teks, warnaTeks: a.warnaTeks,
-    latarEfektif: a.latarEfektif, rasio: a.rasio, ukuranFont: a.ukuranFont, tebal: a.tebal, grup: a.grup, latarSumber: a.latarSumber, sumber: a.sumber, sebab: a.sebab, adaGambar: a.adaGambar });
+    latarEfektif: a.latarEfektif, rasio: a.rasio, ukuranFont: a.ukuranFont, tebal: a.tebal, grup: a.grup, latarSumber: a.latarSumber, sumber: a.sumber, sebab: a.sebab, adaGambar: a.adaGambar, gambarKelas: a.gambarKelas });
   fs.writeFileSync(path.join(DIR_KELUARAN, 'temuan.json'), JSON.stringify({
-    dibuat: new Date().toISOString(), basis: BASIS, ringkas: { temuan: semua.length, takTentu: takTentu.length, takTercapai: takTercapai.length },
-    halaman: halamanLog, temuan: semua.map(keluar), takTentu, takTercapai }, null, 2));
+    dibuat: new Date().toISOString(), basis: BASIS, ringkas: { temuan: semua.length, takTentu: takTentu.length, takTercapai: takTercapai.length, bergambarLulus: bergambar.length, cekVisual: cekVisual.length },
+    halaman: halamanLog, temuan: semua.map(keluar), takTentu, takTercapai, bergambar }, null, 2));
 
   const grup = new Map();
   for (const a of semua) {
@@ -400,14 +418,20 @@ function tulisLaporan(baru, dijalankan) {
   const hitung = new Map();
   const ringkas = semua.filter((a) => { const n = (hitung.get(a.grup) ?? 0) + 1; hitung.set(a.grup, n); return n <= 3; }).slice(0, 100);
   const L = [`# Audit kontras mode gelap`, '', `Dibuat ${new Date().toISOString()} terhadap ${BASIS}. Total temuan: **${semua.length}** (rasio < 4.5, teks besar < 3). Tak-tentu (gradien): ${takTentu.length}.`, '',
-    `**Halaman diaudit: ${halamanLog.length}. Halaman TAK TERCAPAI: ${takTercapai.length}** (bukan berarti bersih; lihat bagian tak tercapai).`, '',
+    `**Halaman diaudit: ${halamanLog.length}. Halaman TAK TERCAPAI: ${takTercapai.length}** (bukan berarti bersih; lihat bagian tak tercapai). Latar bergambar yang LULUS: ${bergambar.length} simpul (${cekVisual.length} berlatar gambar-lebar, perlu cek visual).`, '',
     '## Simpul teks per halaman', '', '| Peran | Halaman | Diaudit | Temuan | Dilewati |', '|---|---|---|---|---|',
     ...halamanLog.map((h) => `| ${h.peran} | ${h.halaman} | ${h.diaudit} | ${h.temuan} | ${h.dilewati} |`), '',
     '## Halaman tak tercapai', '', ...(takTercapai.length ? takTercapai.map((t) => `- ${t.peran}/${t.halaman}: ${t.alasan}`) : ['(tidak ada)']), '',
     '## Temuan dikelompokkan menurut sebab', '', '| # | Sebab (inline/kelas) dan warna | Jumlah | Rasio min | Halaman | Contoh |', '|---|---|---|---|---|---|',
     ...[...grup.values()].sort((a, b) => a.min - b.min).map((g, i) => `| ${i + 1} | ${esc(g.k)} | ${g.n} | ${g.min} | ${esc([...g.halaman].slice(0, 6).join(', '))}${g.halaman.size > 6 ? ' …' : ''} | ${esc(g.contoh.selector)} "${esc(g.contoh.teks)}" |`), '',
-    '## Temuan terburuk (maks. 3 per kelompok sebab, 100 baris)', '', '| Rasio | Peran | Halaman | Teks | Warna teks | Latar | px/tebal | Selector |', '|---|---|---|---|---|---|---|---|',
-    ...ringkas.map((a) => `| ${a.rasio} | ${a.peran} | ${a.halaman} | ${esc(a.teks)} | ${a.warnaTeks} | ${a.latarEfektif} | ${a.ukuranFont}/${a.tebal} | ${esc(a.selector)} |`), '',
+    '## Temuan terburuk (maks. 3 per kelompok sebab, 100 baris)', '', '| Rasio | Peran | Halaman | Teks | Warna teks | Latar | px/tebal | img | Selector |', '|---|---|---|---|---|---|---|---|---|',
+    ...ringkas.map((a) => `| ${a.rasio} | ${a.peran} | ${a.halaman} | ${esc(a.teks)} | ${a.warnaTeks} | ${a.latarEfektif} | ${a.ukuranFont}/${a.tebal} | ${a.gambarKelas ?? ''} | ${esc(a.selector)} |`), '',
+    '## Perlu cek visual (latar bergambar)', '', 'Teks lulus menurut warna latar, tetapi ada `url()` lebar di belakangnya (rasio tak memperhitungkan gambar). Ikon kecil (mis. panah select) dihitung terpisah dan tidak didaftar.', '',
+    ...(cekVisual.length ? (() => {
+      const m = new Map();
+      for (const b of cekVisual) { const k = `${b.gambarDi} | ${b.sebab}`; const g = m.get(k) ?? { k, n: 0, h: new Set(), c: b }; g.n++; g.h.add(`${b.peran}/${b.halaman}`); m.set(k, g); }
+      return [...m.values()].map((g) => `- ${g.n}x ${esc(g.k)} — contoh "${esc(g.c.teks)}" (${esc([...g.h].slice(0, 4).join(', '))})`);
+    })() : ['(tidak ada)']), '',
     '## Tak-tentu (gradien/background-clip:text; rasio tidak ditebak)', '', ...(takTentu.length ? takTentu.slice(0, 60).map((t) => `- ${t.peran}/${t.halaman}: ${t.selector} "${t.teks}" di atas ${t.gradien}`) : ['(tidak ada)']), '',
     '## Keterbatasan', '',
     '- `<select>` native: popup opsi tidak terjangkau DOM, hanya nilai terpilih yang diaudit.',
@@ -422,6 +446,18 @@ function tulisLaporan(baru, dijalankan) {
 }
 
 // ── Utama ────────────────────────────────────────────────────────────────
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`Audit kontras mode gelap SILOGY (WCAG AA)
+Pakai: APP_URL=http://localhost:8017 node scripts/audit-kontras-gelap.mjs [opsi]
+  --peran=AKUN      hanya satu akun (${Object.keys(PERAN).join(', ')})
+  --halaman=SLUG    hanya halaman ber-slug itu (di semua akun yang memilikinya)
+  --autotest        uji fungsi audit pada fixture (tanpa aplikasi); gagal bila ada regresi
+  --help, -h        pesan ini
+Kode keluar: 0 bersih / autotest lulus; 1 ada temuan; 2 galat (termasuk --peran/--halaman tak cocok);
+             3 tanpa temuan tetapi ada halaman tak tercapai (belum bisa disebut bersih).
+Keluaran: .superpowers/sdd/2026-11-24-kontras-mode-gelap/audit/{temuan.json,laporan.md}`);
+  process.exit(0);
+}
 const arg = (n) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split('=')[1];
 async function utama() {
   const browser = await chromium.launch();
@@ -435,7 +471,7 @@ async function utama() {
     const akunDaftar = Object.keys(PERAN).filter((a) => !fPeran || a === fPeran);
     if (!akunDaftar.length) throw new Error(`peran tidak dikenal: ${fPeran}. Pilihan: ${Object.keys(PERAN).join(', ')}`);
 
-    const semua = [], halamanLog = [], takTercapai = [], takTentu = [], dijalankan = new Set();
+    const semua = [], halamanLog = [], takTercapai = [], takTentu = [], bergambar = [], dijalankan = new Set();
     for (const akun of akunDaftar) {
       const daftar = PERAN[akun].halaman.filter((h) => !fHalaman || h.slug === fHalaman);
       if (!daftar.length) continue;
@@ -468,6 +504,8 @@ async function utama() {
             semua.push({ ...a, halaman: h.slug, peran: akun, grup: `${a.sumber === 'teks' ? '' : `[${a.sumber}] `}${a.sebab} | ${a.warnaTeks} on ${a.latarEfektif}` });
           }
           r.takTentu.forEach((t) => takTentu.push({ ...t, halaman: h.slug, peran: akun }));
+          const ub = new Set();
+          for (const b of r.bergambar) { const k = `${b.selector}|${b.teks}`; if (!ub.has(k)) { ub.add(k); bergambar.push({ halaman: h.slug, peran: akun, selector: b.selector, teks: b.teks, rasio: b.rasio, gambarKelas: b.gambarKelas, gambarDi: b.gambarDi, sebab: b.sebab }); } }
           halamanLog.push({ peran: akun, halaman: h.slug, diaudit: r.total, temuan: unik.size, dilewati: r.dilewati });
           const nol = r.total === 0 ? '  ← 0 simpul: halaman gagal dimuat?' : '';
           console.log(`✓ ${akun}/${h.slug}: ${r.total} simpul, ${unik.size} temuan${nol}`);
@@ -480,7 +518,8 @@ async function utama() {
       }
       await ctx.close();
     }
-    const g = tulisLaporan({ semua, halamanLog, takTercapai, takTentu }, dijalankan);
+    if (!dijalankan.size) throw new Error(`tidak ada pasangan (peran, halaman) yang cocok dengan --peran=${fPeran ?? '*'} --halaman=${fHalaman ?? '*'}`);
+    const g = tulisLaporan({ semua, halamanLog, takTercapai, takTentu, bergambar }, dijalankan);
     console.log(`\nSelesai: ${halamanLog.length} halaman diaudit, ${takTercapai.length} TAK TERCAPAI, ${semua.length} temuan, ${takTentu.length} tak-tentu (lari ini; gabungan: ${g.halamanLog.length} diaudit, ${g.takTercapai.length} tak tercapai, ${g.semua.length} temuan).`);
     if (takTercapai.length) console.error(`PERINGATAN: ${takTercapai.length} halaman tak tercapai pada lari ini; hasil bersih belum berarti aman.`);
     console.log(`Laporan: ${path.relative(AKAR, DIR_KELUARAN)}/laporan.md dan temuan.json`);
