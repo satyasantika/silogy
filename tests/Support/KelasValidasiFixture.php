@@ -9,6 +9,7 @@ use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
@@ -57,8 +58,12 @@ if (! function_exists('siapkanKelasValidasi')) {
         unset($atribut['mk_pemilik']);
 
         $semester = Semester::query()->where('status_aktif', true)->firstOrFail();
-        $mk = Mk::factory()->create(['academic_unit_id' => $pemilik->id]);
-        $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create();
+        $kurikulum = Kurikulum::query()->firstOrCreate(
+            ['academic_unit_id' => $prodi->id, 'nama' => 'Kurikulum Uji Validasi'],
+            ['tahun' => 2026, 'is_active' => true],
+        );
+        $mk = Mk::factory()->create(['academic_unit_id' => $pemilik->id, 'kurikulum_id' => $kurikulum->id]);
+        $mkUnit = MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create(['kurikulum_id' => $kurikulum->id]);
 
         $kelas = KelasMk::query()->create([
             'mk_unit_id' => $mkUnit->id,

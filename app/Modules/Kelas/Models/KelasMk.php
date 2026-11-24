@@ -50,6 +50,14 @@ class KelasMk extends Model
         return $this->belongsTo(MkUnit::class);
     }
 
+    /** Validasi nilai wajib bila kurikulum kelas ada dan switch-nya aktif. */
+    public function validasiDiwajibkan(): bool
+    {
+        $this->loadMissing('mkUnit.kurikulum');
+
+        return $this->mkUnit?->kurikulum?->validasi_nilai_aktif === true;
+    }
+
     /**
      * @return BelongsTo<Semester, $this>
      */
