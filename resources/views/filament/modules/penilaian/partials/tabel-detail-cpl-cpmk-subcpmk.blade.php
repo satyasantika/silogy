@@ -114,7 +114,8 @@
                                         Rata-rata Ketercapaian
                                     </div>
                                     <div
-                                        style="font-size:20px;font-weight:700;color:{{ $rataRataKeseluruhan !== null && $target !== null && $rataRataKeseluruhan >= $target ? '#16a34a' : '#b91c1c' }};"
+                                        class="{{ $rataRataKeseluruhan !== null && $target !== null && $rataRataKeseluruhan >= $target ? 'silogy-capaian-ok' : 'silogy-capaian-kurang' }}"
+                                        style="font-size:20px;font-weight:700;"
                                     >
                                         {{ $rataRataKeseluruhan !== null ? rtrim(rtrim(number_format($rataRataKeseluruhan, 2, '.', ''), '0'), '.').'%' : '—' }}
                                     </div>

@@ -262,9 +262,14 @@ trait HasImporMassal
         $dataRowsHtmlBersih = [];
 
         $headerCells = '';
+        $headerCellsSalin = '';
         foreach ($columns as $col) {
             $kelasWarna = $col['wajib'] ? 'silogy-aksen-amber' : 'silogy-aksen-biru';
+            $warna = $col['wajib'] ? '#b45309' : '#2563eb';
             $headerCells .= '<td class="'.$kelasWarna.'" style="'.$cellStyle.'font-weight:600;">'.e($col['label']).'</td>';
+            // Payload salin: warna inline tetap agar tempelan ke Excel/Docs
+            // tidak kehilangan oranye/biru (kelas tema tak ikut tersalin).
+            $headerCellsSalin .= '<td style="'.$cellStyle.'font-weight:600;color:'.$warna.';">'.e($col['label']).'</td>';
         }
         $baris[] = $this->renderImportContohExcelRow(1, $headerCells, $chromeStyle);
 
@@ -298,7 +303,7 @@ trait HasImporMassal
             ? ''
             : '<p class="mb-2 text-xs opacity-80">'.implode(' · ', $legendParts).'</p>';
 
-        $tombolSalin = $this->renderImportCopyContohButton($columns, $contohBaris, $headerCells, $dataRowsHtmlBersih);
+        $tombolSalin = $this->renderImportCopyContohButton($columns, $contohBaris, $headerCellsSalin, $dataRowsHtmlBersih);
 
         return new HtmlString($legend.$tabel.$tombolSalin);
     }

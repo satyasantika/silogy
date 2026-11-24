@@ -133,6 +133,24 @@ it('modal impor menampilkan tombol salin contoh data dengan payload TSV dan HTML
         ->assertMountedActionModalSeeHtml('data-copy-html="&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;');
 });
 
+it('payload salin contoh impor membawa warna header inline, sedangkan tabel layar memakai kelas tema', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    $html = Livewire::test(ListAcademicUnits::class)
+        ->mountAction('bulkImport')
+        ->getMountedActionModalHtml();
+
+    preg_match('/data-copy-html="([^"]*)"/', $html, $m);
+    $payload = html_entity_decode($m[1] ?? '');
+    $layar = str_replace($m[0] ?? '', '', $html);
+
+    expect($payload)->toContain('color:#b45309')
+        ->and($payload)->toContain('color:#2563eb')
+        ->and($payload)->not->toContain('silogy-aksen-')
+        ->and($layar)->toContain('class="silogy-aksen-amber"')
+        ->and($layar)->toContain('class="silogy-aksen-biru"');
+});
+
 it('impor unit akademik: prodi dapat berinduk ke fakultas yang baru dibuat di baris lebih awal pada tempelan yang sama', function () {
     $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
 

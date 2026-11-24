@@ -135,6 +135,12 @@
         color: #fbbf24;
     }
 
+    /* Angka rata-rata ketercapaian (kartu laporan): hijau / merah tua. */
+    .silogy-capaian-ok { color: #16a34a; }
+    .dark .silogy-capaian-ok { color: #4ade80; }
+    .silogy-capaian-kurang { color: #b91c1c; }
+    .dark .silogy-capaian-kurang { color: #f87171; }
+
     /* Lencana peran di kolom pengguna. */
     .silogy-chip-tim-kurikulum {
         background: rgba(0, 112, 0, .14);

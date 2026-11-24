@@ -78,10 +78,11 @@
     }
 
     /*
-     * Badge pada menu aktif (latar emas solid di kedua mode): mode gelap
-     * Filament memakai tint 10% + teks 400 yang tenggelam di atas emas
-     * (#ffb900 di atas #ffd700 = 1.2:1). Pakai pasangan mode terang
-     * (latar 50, teks 700) yang sudah terbaca di atas emas.
+     * Semua badge berwarna (.fi-badge.fi-color, warna apa pun) di dalam menu
+     * aktif (latar emas solid di kedua mode): mode gelap Filament memakai
+     * tint 10% + teks 400 yang tenggelam di atas emas (mis. warning: #ffb900
+     * di atas #ffd700 = 1.2:1). Pakai pasangan mode terang (latar 50, teks
+     * 700) yang sudah terbaca di atas emas.
      */
     .dark .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-badge.fi-color {
         background-color: var(--color-50);

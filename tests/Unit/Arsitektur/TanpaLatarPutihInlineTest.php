@@ -9,7 +9,7 @@
  *     teks mewarisi warna tema (terang di mode gelap) dan menjadi putih di
  *     atas putih; atau
  *   - menulis lagi warna teks inline tetap `color:#0b3914`, `#2563eb`,
- *     `#c1121f`, `#b45309`, `#15803d` (kontras < 4.5:1 di atas #18181b).
+ *     `#c1121f`, `#b45309`, `#15803d`, `#b91c1c` (kontras < 4.5:1 di atas #18181b).
  *     Inline `style` tak bisa ditimpa aturan `.dark`; pakai kelas
  *     `.silogy-label-langkah` / `.silogy-aksen-*` dari
  *     resources/views/filament/hooks/kontras-tema-styles.blade.php.
@@ -54,7 +54,7 @@ function tj_latar_putih_tanpa_warna(string $atribut): bool
 
 function tj_warna_teks_tetap(string $atribut): ?string
 {
-    if (preg_match('/(?<![-\w])color\s*:\s*#(0b3914|2563eb|c1121f|b45309|15803d)(?![0-9a-f])/i', $atribut, $m) === 1) {
+    if (preg_match('/(?<![-\w])color\s*:\s*#(0b3914|2563eb|c1121f|b45309|15803d|b91c1c)(?![0-9a-f])/i', $atribut, $m) === 1) {
         return '#'.strtolower($m[1]);
     }
 
@@ -113,6 +113,7 @@ it('mendeteksi warna teks inline tetap yang tak punya pasangan gelap', function 
         ->and(tj_warna_teks_tetap('background:linear-gradient(120deg,#007000,#0b3914);color:#fff'))->toBeNull()
         ->and(tj_warna_teks_tetap('border-left:5px solid #2563eb;background:rgba(37,99,235,.07)'))->toBeNull()
         ->and(tj_warna_teks_tetap('accent-color:#2563eb'))->toBeNull()
+        ->and(tj_warna_teks_tetap('font-size:20px;color:#b91c1c;'))->toBe('#b91c1c')
         ->and(tj_warna_teks_tetap('color:#2563eb99'))->toBeNull();
 });
 
