@@ -114,7 +114,8 @@ class AdminPanelProvider extends PanelProvider
                     .view('filament.hooks.kurikulum-cards-styles')->render()
                     .view('filament.hooks.keluar-modal-styles')->render()
                     .view('filament.hooks.unsil-theme-styles')->render()
-                    .view('filament.hooks.status-badge-styles')->render(),
+                    .view('filament.hooks.status-badge-styles')->render()
+                    .view('filament.hooks.kontras-tema-styles')->render(),
             )
             ->renderHook(
                 PanelsRenderHook::FOOTER,

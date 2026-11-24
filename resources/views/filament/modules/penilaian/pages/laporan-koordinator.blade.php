@@ -24,7 +24,8 @@
                         <select
                             id="semester-terpilih"
                             wire:model.live="semesterTerpilihId"
-                            style="width:100%;padding:8px 10px;border:1px solid rgba(128,128,128,.4);border-radius:8px;background:#fff;font-size:13px;"
+                            class="silogy-isian"
+                            style="width:100%;padding:8px 10px;border-radius:8px;font-size:13px;"
                         >
                             @foreach ($semesterOptions as $semesterId => $semesterNama)
                                 <option value="{{ $semesterId }}">{{ $semesterNama }}</option>
