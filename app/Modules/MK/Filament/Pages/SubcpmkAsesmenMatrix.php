@@ -523,7 +523,7 @@ class SubcpmkAsesmenMatrix extends Page
         } catch (ValidationException $exception) {
             $pesan = collect($exception->errors())->flatten()->join(' ');
 
-            return new HtmlString('<p style="font-size:13px;color:#dc2626;font-weight:600;">'.e($pesan).'</p>');
+            return new HtmlString('<p class="silogy-teks-galat" style="font-size:13px;font-weight:600;">'.e($pesan).'</p>');
         }
 
         $ringkasan = $preview['ringkasan'];
@@ -532,10 +532,10 @@ class SubcpmkAsesmenMatrix extends Page
             '<p style="font-size:13px;margin-bottom:8px;"><strong>%d baris dikenali</strong>%s'
             .' — <span style="color:#16a34a;font-weight:600;">%d sel diperbarui</span>, '
             .'<span class="silogy-teks-redup" style="font-weight:600;">%d sel dihapus</span>, '
-            .'<span style="color:#dc2626;font-weight:600;">%d sel tidak valid</span>.</p>',
+            .'<span class="silogy-teks-galat" style="font-weight:600;">%d sel tidak valid</span>.</p>',
             $ringkasan['baris_dikenali'],
             $ringkasan['baris_tidak_dikenali'] > 0
-                ? sprintf(' · <span style="color:#dc2626;font-weight:600;">%d baris tidak dikenali</span>', $ringkasan['baris_tidak_dikenali'])
+                ? sprintf(' · <span class="silogy-teks-galat" style="font-weight:600;">%d baris tidak dikenali</span>', $ringkasan['baris_tidak_dikenali'])
                 : '',
             $ringkasan['sel_update'],
             $ringkasan['sel_hapus'],
@@ -559,7 +559,7 @@ class SubcpmkAsesmenMatrix extends Page
             if (! $baris['dikenali']) {
                 $body .= '<tr style="border-top:1px solid rgba(128,128,128,.25);background:rgba(220,38,38,.08);">'
                     .'<td style="padding:4px 8px;font-weight:600;">'.e($baris['kode_asesmen_input']).'</td>'
-                    .'<td colspan="'.count($preview['kolom']).'" style="padding:4px 8px;color:#dc2626;">Kode asesmen tidak dikenali</td>'
+                    .'<td colspan="'.count($preview['kolom']).'" class="silogy-teks-galat" style="padding:4px 8px;">Kode asesmen tidak dikenali</td>'
                     .'</tr>';
 
                 continue;
@@ -568,14 +568,16 @@ class SubcpmkAsesmenMatrix extends Page
             $cells = '<td style="padding:4px 8px;font-weight:600;">'.e($baris['kode_asesmen_input']).'</td>';
 
             foreach ($baris['sel'] as $sel) {
-                [$warna, $isi] = match ($sel['status']) {
-                    'update' => ['#16a34a', number_format((float) $sel['bobot'], 2, ',', '.')],
-                    'hapus' => ['#6b7280', 'hapus'],
-                    'invalid' => ['#dc2626', e($sel['raw'])],
-                    default => ['#9ca3af', '—'],
+                // Galat/abu-abu memakai kelas tema (pasangan .dark); hijau dan abu
+                // terang sudah lolos kontras di mode gelap, jadi tetap inline.
+                [$kelas, $warna, $isi] = match ($sel['status']) {
+                    'update' => ['', 'color:#16a34a;', number_format((float) $sel['bobot'], 2, ',', '.')],
+                    'hapus' => ['silogy-teks-redup', '', 'hapus'],
+                    'invalid' => ['silogy-teks-galat', '', e($sel['raw'])],
+                    default => ['', 'color:#9ca3af;', '—'],
                 };
 
-                $cells .= '<td style="padding:4px 8px;text-align:center;color:'.$warna.';font-weight:600;">'.$isi.'</td>';
+                $cells .= '<td'.($kelas !== '' ? ' class="'.$kelas.'"' : '').' style="padding:4px 8px;text-align:center;'.$warna.'font-weight:600;">'.$isi.'</td>';
             }
 
             $body .= '<tr style="border-top:1px solid rgba(128,128,128,.25);">'.$cells.'</tr>';
@@ -590,7 +592,7 @@ class SubcpmkAsesmenMatrix extends Page
 
         if ($preview['errors'] !== []) {
             $ditampilkan = array_slice($preview['errors'], 0, 8);
-            $errorHtml = '<div style="margin-top:8px;font-size:12px;color:#dc2626;">'
+            $errorHtml = '<div class="silogy-teks-galat" style="margin-top:8px;font-size:12px;">'
                 .implode('<br>', array_map('e', $ditampilkan))
                 .(count($preview['errors']) > 8 ? '<br>…' : '')
                 .'</div>';

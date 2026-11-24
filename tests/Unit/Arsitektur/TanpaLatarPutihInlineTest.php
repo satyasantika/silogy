@@ -9,7 +9,10 @@
  *     teks mewarisi warna tema (terang di mode gelap) dan menjadi putih di
  *     atas putih; atau
  *   - menulis lagi warna teks inline tetap `color:#0b3914`, `#2563eb`,
- *     `#c1121f`, `#b45309`, `#15803d`, `#b91c1c` (kontras < 4.5:1 di atas #18181b).
+ *     `#c1121f`, `#b45309`, `#15803d`, `#b91c1c`, `#dc2626` (kontras < 4.5:1 di atas #18181b),
+ *     termasuk bentuk Blade dinamis `color:{{ ... '#hex' ... }}`. Pola variabel PHP
+ *     (`match`/`$warna` yang lalu disambung ke `color:`) TIDAK bisa dideteksi statis;
+ *     reviewer harus menjaganya, dan teks bantu server-side memakai kelas tema.
  *     Inline `style` tak bisa ditimpa aturan `.dark`; pakai kelas
  *     `.silogy-label-langkah` / `.silogy-aksen-*` dari
  *     resources/views/filament/hooks/kontras-tema-styles.blade.php.
@@ -54,7 +57,14 @@ function tj_latar_putih_tanpa_warna(string $atribut): bool
 
 function tj_warna_teks_tetap(string $atribut): ?string
 {
-    if (preg_match('/(?<![-\w])color\s*:\s*#(0b3914|2563eb|c1121f|b45309|15803d|b91c1c)(?![0-9a-f])/i', $atribut, $m) === 1) {
+    if (preg_match('/(?<![-\w])color\s*:\s*#(0b3914|2563eb|c1121f|b45309|15803d|b91c1c|dc2626)(?![0-9a-f])/i', $atribut, $m) === 1) {
+        return '#'.strtolower($m[1]);
+    }
+
+    // Bentuk dinamis Blade: color:{{ $x ? '#c1121f' : ... }}. Sengaja sempit
+    // (daftar hex gagal-kontras), bukan "hex apa pun": banner gradien memakai
+    // #000/#fff yang sah.
+    if (preg_match('/(?<![-\w])color\s*:\s*\{\{[^}]*?\'#(0b3914|2563eb|c1121f|b45309|15803d|b91c1c|166534|92400e|dc2626)\'/i', $atribut, $m) === 1) {
         return '#'.strtolower($m[1]);
     }
 
@@ -114,7 +124,19 @@ it('mendeteksi warna teks inline tetap yang tak punya pasangan gelap', function 
         ->and(tj_warna_teks_tetap('border-left:5px solid #2563eb;background:rgba(37,99,235,.07)'))->toBeNull()
         ->and(tj_warna_teks_tetap('accent-color:#2563eb'))->toBeNull()
         ->and(tj_warna_teks_tetap('font-size:20px;color:#b91c1c;'))->toBe('#b91c1c')
-        ->and(tj_warna_teks_tetap('color:#2563eb99'))->toBeNull();
+        ->and(tj_warna_teks_tetap('color:#2563eb99'))->toBeNull()
+        ->and(tj_warna_teks_tetap('font-size:13px;color:#dc2626;font-weight:600;'))->toBe('#dc2626')
+        ->and(tj_warna_teks_tetap('background:rgba(220,38,38,.08);border-color:#dc2626'))->toBeNull();
+});
+
+it('mendeteksi warna teks Blade dinamis berhex gagal-kontras, tanpa salah-tangkap hex sah', function () {
+    expect(tj_warna_teks_tetap("font-weight:600;color:{{ \$ok ? '#166534' : '#92400e' }};"))->toBe('#166534')
+        ->and(tj_warna_teks_tetap("color: {{ \$x ? '#16a34a' : '#DC2626' }}"))->toBe('#dc2626')
+        ->and(tj_warna_teks_tetap('color:{{ $warna }};'))->toBeNull()
+        ->and(tj_warna_teks_tetap("background:{{ \$x ? '#166534' : '#fff' }};color:#fff"))->toBeNull()
+        ->and(tj_warna_teks_tetap("color:{{ \$x ? '#000' : '#fff' }}"))->toBeNull()
+        ->and(tj_atribut_style('x.blade.php', '<p style="color:{{ $a ? \'#166534\' : \'#fff\' }};margin:0">')[0]['atribut'])
+        ->toBe("color:{{ \$a ? '#166534' : '#fff' }};margin:0");
 });
 
 it('tidak ada view Filament dengan latar putih inline tanpa color: eksplisit', function (): void {

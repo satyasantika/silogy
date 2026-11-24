@@ -9,6 +9,7 @@ use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\CreateKelasMk;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Modules\MK\Filament\Concerns\HasAdaptasiMkMassal;
 use App\Modules\MK\Filament\Resources\CpmkResource;
 use App\Modules\MK\Filament\Resources\MkResource;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
@@ -491,3 +492,27 @@ function buatTimkurProdi(AcademicUnit $prodi): User
 
     return $user;
 }
+
+it('pratinjau adaptasi MK menandai invalid dengan kelas tema, bukan warna merah inline', function () {
+    $halaman = new class
+    {
+        use HasAdaptasiMkMassal;
+
+        protected function adaptasiBaris(array $context): array
+        {
+            return [
+                ['status' => 'invalid', 'line' => 1, 'nama' => 'MK Uji', 'sumber' => 'Univ', 'keterangan' => 'Rusak', 'mk_id' => null],
+            ];
+        }
+
+        public function pratinjau(): string
+        {
+            return $this->renderAdaptasiPreview([])->toHtml();
+        }
+    };
+
+    $html = $halaman->pratinjau();
+
+    expect($html)->toContain('silogy-teks-galat')
+        ->and($html)->not->toContain('color:#dc2626');
+});

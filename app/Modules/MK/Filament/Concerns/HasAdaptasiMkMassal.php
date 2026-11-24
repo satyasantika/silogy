@@ -367,17 +367,18 @@ trait HasAdaptasiMkMassal
         foreach ($rows as $row) {
             $jumlah[$row['status']]++;
 
-            [$badge, $warna] = match ($row['status']) {
-                'baru' => ['Baru', '#16a34a'],
-                'duplikat' => ['Duplikat', '#d97706'],
-                default => ['Invalid', '#dc2626'],
+            // Invalid memakai kelas tema (pasangan .dark); hijau/amber sudah lolos kontras.
+            [$badge, $kelasBadge, $warna] = match ($row['status']) {
+                'baru' => ['Baru', '', 'color:#16a34a;'],
+                'duplikat' => ['Duplikat', '', 'color:#d97706;'],
+                default => ['Invalid', ' class="silogy-teks-galat"', ''],
             };
 
             $body .= '<tr style="border-top:1px solid rgba(128,128,128,.25);">'
                 .'<td style="padding:4px 8px;">'.$row['line'].'</td>'
                 .'<td style="padding:4px 8px;">'.e($row['nama']).'</td>'
                 .'<td style="padding:4px 8px;">'.e($row['sumber']).'</td>'
-                .'<td style="padding:4px 8px;white-space:nowrap;"><span style="font-weight:600;color:'.$warna.';">'.$badge.'</span>'
+                .'<td style="padding:4px 8px;white-space:nowrap;"><span'.$kelasBadge.' style="font-weight:600;'.$warna.'">'.$badge.'</span>'
                 .($row['keterangan'] !== '' ? '<br><span style="font-size:11px;opacity:.8;">'.e($row['keterangan']).'</span>' : '')
                 .'</td>'
                 .'</tr>';
@@ -387,7 +388,7 @@ trait HasAdaptasiMkMassal
             '<p class="text-sm" style="margin-bottom:8px;"><strong>%d mata kuliah terbaca:</strong> '
             .'<span style="color:#16a34a;font-weight:600;">%d baru</span> · '
             .'<span style="color:#d97706;font-weight:600;">%d duplikat</span> · '
-            .'<span style="color:#dc2626;font-weight:600;">%d invalid</span>. '
+            .'<span class="silogy-teks-galat" style="font-weight:600;">%d invalid</span>. '
             .'Baris invalid tidak akan diadaptasi.%s</p>',
             count($rows),
             $jumlah['baru'],

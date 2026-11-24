@@ -111,6 +111,13 @@
     .silogy-aksen-amber { color: #b45309; }
     .dark .silogy-aksen-amber { color: #fbbf24; }
 
+    /*
+     * Teks galat pratinjau impor (#dc2626, light TIDAK berubah): 3.67:1 di
+     * atas #18181b. #f87171 = 6.40:1 (#18181b) / 5.60:1 (#242427).
+     */
+    .silogy-teks-galat { color: #dc2626; }
+    .dark .silogy-teks-galat { color: #f87171; }
+
     .silogy-aksen-hijau { color: #15803d; }
     .dark .silogy-aksen-hijau { color: #4ade80; }
 
@@ -195,7 +202,10 @@
      */
     .dark .fi-input::placeholder,
     .dark .fi-select-input-placeholder,
-    .dark .fi-ta-placeholder {
+    .dark .fi-ta-placeholder,
+    .dark .fi-fo-textarea textarea::placeholder,
+    .dark .fi-fo-date-time-picker-display-text-input::placeholder,
+    .dark .fi-fo-modal-table-select-placeholder {
         color: #a1a1aa;
     }
 </style>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
@@ -1205,4 +1206,12 @@ it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda teta
         ->and(Mk::query()->where('nama', 'MK Versi')->count())->toBe(2)
         ->and(Mk::query()->where('kurikulum_id', $this->kurikulumProdi->id)->where('nama', 'MK Versi')->value('sks_teori'))->toBe(3)
         ->and(Mk::query()->where('kurikulum_id', $kurikulumLain->id)->where('nama', 'MK Versi')->value('sks_teori'))->toBe(4);
+});
+
+it('pratinjau impor menandai baris invalid dengan kelas tema, bukan warna merah inline', function () {
+    $page = new ListUsers;
+    $html = $page->renderImportPreview('Rusak|dua-kolom')->toHtml();
+
+    expect($html)->toContain('silogy-teks-galat')
+        ->and($html)->not->toContain('color:#dc2626');
 });
