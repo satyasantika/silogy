@@ -248,7 +248,7 @@ class RolePermissionSeeder extends Seeder
             // Validator Nilai
             ['username' => 'validator', 'full_name' => 'Validator Nilai',
                 'nidn' => '0000000050', 'role' => 'Validator Nilai', 'unit' => $prodi,
-                'pimpinan' => false, 'tim_kur' => false, 'validator' => true, 'jabatan' => 'Validator Nilai'],
+                'pimpinan' => false, 'tim_kur' => false, 'jabatan' => 'Validator Nilai'],
 
             // Auditor
             ['username' => 'auditor', 'full_name' => 'Auditor Mutu',
@@ -308,7 +308,6 @@ class RolePermissionSeeder extends Seeder
                         'id' => (string) Str::uuid(),
                         'status_pimpinan' => $a['pimpinan'],
                         'status_tim_kurikulum' => $a['tim_kur'],
-                        'status_validator_nilai' => $a['validator'] ?? false,
                         'jabatan' => $a['jabatan'],
                     ]
                 );

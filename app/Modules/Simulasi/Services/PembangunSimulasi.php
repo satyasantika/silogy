@@ -5,8 +5,10 @@ namespace App\Modules\Simulasi\Services;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Institusi\Support\AcademicUnitUserRoleSync;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\PerubahanCpmkRequest;
@@ -150,12 +152,14 @@ class PembangunSimulasi
         if ($jalan->kosong()) {
             $lapor('Membuat kurikulum dan satu mata kuliah kosong');
             $builder->seedProdiKosong($unit['prodi']);
+            $this->tempelkanValidatorNilai($unit['prodi'], $akun);
 
             return ['unit' => $unit, 'akun' => $akun, 'semester' => $semester];
         }
 
         // Tiap ruas rantai OBE melapor sendiri-sendiri lewat $lapor.
         $builder->seedProdiRingkas($unit['prodi'], $lapor);
+        $this->tempelkanValidatorNilai($unit['prodi'], $akun);
 
         $lapor('Mengajukan satu usulan perubahan CPMK');
         $this->buatUsulanPerubahanCpmk($unit['prodi'], $semester, $akun['sim-korma']);
@@ -255,7 +259,6 @@ class PembangunSimulasi
                 [
                     'status_pimpinan' => $definisi['pimpinan'],
                     'status_tim_kurikulum' => $definisi['tim_kurikulum'],
-                    'status_validator_nilai' => $definisi['validator_nilai'],
                     'jabatan' => $definisi['jabatan'],
                 ],
             );
@@ -264,6 +267,34 @@ class PembangunSimulasi
         }
 
         return $hasil;
+    }
+
+    /**
+     * Hak Validator Nilai berasal dari kurikulum, bukan penanda penugasan:
+     * akun simulasi bertanda validator_nilai ditempel sebagai validator
+     * tambahan pada kurikulum prodi sandbox, lalu perannya disinkronkan.
+     * Dijalankan setelah kurikulum ada; sinkronisasi memakai id pengguna
+     * sehingga sah untuk akun yang bukan akun login.
+     *
+     * @param  array<string, User>  $akun
+     */
+    protected function tempelkanValidatorNilai(AcademicUnit $prodi, array $akun): void
+    {
+        $validator = collect(AkunSimulasi::akun())
+            ->filter(fn (array $definisi): bool => $definisi['validator_nilai'])
+            ->keys()
+            ->map(fn (string $kunci): ?User => $akun[$kunci] ?? null)
+            ->filter();
+
+        $kurikulumList = Kurikulum::query()->where('academic_unit_id', $prodi->getKey())->get();
+
+        foreach ($kurikulumList as $kurikulum) {
+            $kurikulum->validatorTambahan()->syncWithoutDetaching($validator->map->getKey()->all());
+        }
+
+        foreach ($validator as $user) {
+            app(AcademicUnitUserRoleSync::class)->syncForUser((string) $user->getKey());
+        }
     }
 
     /**

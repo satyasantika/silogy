@@ -138,3 +138,13 @@ it('seeder simulasi idempoten saat dijalankan ulang', function () {
         ->and(CplKodeOverride::query()->count())->toBe($overrideCplCount)
         ->and(BokKodeOverride::query()->count())->toBe($overrideBokCount);
 });
+
+it('akun demo validator menjadi validator tambahan kurikulum demo dan berperan Validator Nilai', function () {
+    $this->seed(SimulasiSistemSeeder::class);
+
+    $validator = User::query()->where('username', 'validator')->firstOrFail();
+    $kurikulum = Kurikulum::query()->where('is_active', true)->firstOrFail();
+
+    expect($kurikulum->validatorTambahan()->whereKey($validator->id)->exists())->toBeTrue()
+        ->and($validator->fresh()->hasRole('Validator Nilai'))->toBeTrue();
+});

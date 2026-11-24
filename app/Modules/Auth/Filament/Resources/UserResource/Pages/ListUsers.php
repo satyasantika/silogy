@@ -82,6 +82,13 @@ class ListUsers extends ListRecords
             return ['status' => 'invalid', 'keterangan' => 'Role tidak ditemukan: '.$missing->join(', ').'.'];
         }
 
+        // Hak Validator Nilai diturunkan dari kurikulum (switch + validator
+        // tambahan), bukan dari peran yang ditulis saat impor: peran itu akan
+        // langsung dicabut sinkronisasi. Tolak terang-terangan, jangan diam-diam.
+        if ($roleNames->contains('Validator Nilai')) {
+            return ['status' => 'invalid', 'keterangan' => 'Role Validator Nilai tidak dapat diimpor. Tetapkan validator pada form Kurikulum (validator tambahan).'];
+        }
+
         $allowSuperAdmin = auth()->user()?->hasRole('Super Admin') ?? false;
 
         if (! $allowSuperAdmin && $roleNames->contains('Super Admin')) {
@@ -261,7 +268,6 @@ class ListUsers extends ListRecords
                 [
                     'status_pimpinan' => $roleNames->contains('Pimpinan'),
                     'status_tim_kurikulum' => $roleNames->contains('Tim Kurikulum'),
-                    'status_validator_nilai' => $roleNames->contains('Validator Nilai'),
                 ],
             );
         }

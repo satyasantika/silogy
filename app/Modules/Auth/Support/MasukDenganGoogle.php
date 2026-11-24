@@ -114,7 +114,6 @@ class MasukDenganGoogle
                 [
                     'status_pimpinan' => false,
                     'status_tim_kurikulum' => false,
-                    'status_validator_nilai' => false,
                 ],
             );
         }

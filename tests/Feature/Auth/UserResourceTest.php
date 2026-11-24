@@ -112,7 +112,7 @@ it('dapat mengimpor pengguna massal lewat copypaste dengan pemisah pipe', functi
         ->and($siti->hasRole(['Tim Kurikulum', 'Dosen Pengampu']))->toBeTrue();
 });
 
-it('impor massal: peran Validator Nilai bertahan dan penanda validator terpasang pada prodi', function () {
+it('impor massal: peran Validator Nilai ditolak dengan keterangan, hak berasal dari kurikulum', function () {
     $prodi = AcademicUnit::where('type', 'study_program')->firstOrFail();
     $rows = "Validator Impor|validatorimpor@silogy.test|RahasiaKuat123|Validator Nilai|{$prodi->code}|validatorimpor";
 
@@ -120,11 +120,8 @@ it('impor massal: peran Validator Nilai bertahan dan penanda validator terpasang
         ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati'])
         ->assertHasNoActionErrors();
 
-    $user = User::where('email', 'validatorimpor@silogy.test')->firstOrFail();
-    $pivot = AcademicUnitUser::where('user_id', $user->id)->where('academic_unit_id', $prodi->id)->firstOrFail();
-
-    expect($pivot->status_validator_nilai)->toBeTrue()
-        ->and($user->fresh()->hasRole('Validator Nilai'))->toBeTrue();
+    expect(User::where('email', 'validatorimpor@silogy.test')->exists())->toBeFalse()
+        ->and(AcademicUnitUser::where('academic_unit_id', $prodi->id)->where('status_validator_nilai', true)->exists())->toBeFalse();
 });
 
 it('dapat mengimpor pengguna dari tempelan excel (pemisah tab)', function () {

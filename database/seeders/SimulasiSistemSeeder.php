@@ -4,7 +4,9 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
+use App\Modules\Institusi\Support\AcademicUnitUserRoleSync;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use Database\Seeders\Support\SimulasiAkademikBuilder;
 use Illuminate\Database\Seeder;
 
@@ -65,6 +67,20 @@ class SimulasiSistemSeeder extends Seeder
         // 3. Rantai akademik penuh prodi Pendidikan Matematika
         //    (kurikulum→CPL→BoK→MK→CPMK→SubCPMK→kelas→nilai→kalkulasi→agregasi FKIP+Univ).
         $builder->seedProdi($prodi);
+
+        // 3b. Akun demo `validator` baru berhak setelah kurikulum demo ada
+        //     (RolePermissionSeeder berjalan lebih dulu dan sengaja tidak
+        //     membuat kurikulum): tempelkan sebagai validator tambahan.
+        $validatorDemo = User::query()->where('username', 'validator')->where('email', 'validator@silogy.test')->first();
+
+        if ($validatorDemo) {
+            Kurikulum::query()
+                ->where('academic_unit_id', $prodi->id)
+                ->get()
+                ->each(fn (Kurikulum $kurikulum) => $kurikulum->validatorTambahan()->syncWithoutDetaching([$validatorDemo->id]));
+
+            app(AcademicUnitUserRoleSync::class)->syncForUser($validatorDemo->id);
+        }
 
         // 4. MK lintas unit: tingkat universitas dan fakultas.
         $builder->seedMkUnitRingkas([
