@@ -499,7 +499,8 @@ class InputNilai extends Page
 
     protected function kelasTervalidasi(): bool
     {
-        return $this->statusValidasi === StatusValidasiNilai::Tervalidasi->value;
+        return $this->validasiDiwajibkan
+            && $this->statusValidasi === StatusValidasiNilai::Tervalidasi->value;
     }
 
     /**

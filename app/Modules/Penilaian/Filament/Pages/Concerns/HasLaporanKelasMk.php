@@ -134,6 +134,10 @@ trait HasLaporanKelasMk
     #[Locked]
     public string $statusValidasi = 'belum';
 
+    /** Apakah kurikulum kelas terpilih mewajibkan validasi nilai (switch menyala). */
+    #[Locked]
+    public bool $validasiDiwajibkan = true;
+
     /**
      * @var array{nama: string, jabatan: string|null, waktu: string}|null
      */
@@ -161,6 +165,7 @@ trait HasLaporanKelasMk
         $this->penugasanBelumSelesai = false;
         $this->sidikLaporan = null;
         $this->statusValidasi = StatusValidasiNilai::Belum->value;
+        $this->validasiDiwajibkan = true;
         $this->infoValidasi = null;
         $this->blokRtl = ['baris' => [], 'umum' => null, 'semua_tercapai' => false, 'terakhir' => null];
         $this->isianRtl = ['cpl' => [], 'umum' => null];
@@ -286,6 +291,7 @@ trait HasLaporanKelasMk
             ? app(SidikLaporanKelas::class)->dariData($this->dataUntukSidik($kelasMk))
             : null;
 
+        $this->validasiDiwajibkan = $kelasMk->validasiDiwajibkan();
         $status = app(ValidasiNilaiService::class)->periksa($kelasMk, $this->sidikLaporan);
         $this->statusValidasi = $status->value;
         $this->infoValidasi = null;
@@ -318,6 +324,11 @@ trait HasLaporanKelasMk
      */
     public function laporanSesuaiValidasi(): bool
     {
+        // Validasi tidak diwajibkan kurikulum: laporan bebas cetak.
+        if (! $this->validasiDiwajibkan) {
+            return true;
+        }
+
         if ($this->statusValidasi !== StatusValidasiNilai::Tervalidasi->value || $this->sidikLaporan === null) {
             return false;
         }

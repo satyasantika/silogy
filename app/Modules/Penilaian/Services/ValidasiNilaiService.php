@@ -36,7 +36,7 @@ class ValidasiNilaiService
 
     public function gugurkan(KelasMk $kelas): void
     {
-        if (HanyaBaca::aktif()) {
+        if (HanyaBaca::aktif() || ! $kelas->validasiDiwajibkan()) {
             return;
         }
 
@@ -50,12 +50,18 @@ class ValidasiNilaiService
 
     /**
      * Bandingkan sidik terkini dengan sidik tersimpan; bila beda (atau sidik
-     * tak tersedia) validasi digugurkan. Mode hanya-baca tetap mengembalikan
+     * tak tersedia) validasi digugurkan — kecuali validasi tidak diwajibkan
+     * kurikulum kelas itu. Mode hanya-baca tetap mengembalikan
      * PerluUlang tanpa menulis apa pun.
      */
     public function periksa(KelasMk $kelas, ?string $sidikTerkini): StatusValidasiNilai
     {
         $baris = $this->baris($kelas);
+
+        // Switch kurikulum mati: baris tersimpan dibaca apa adanya, tanpa gugur.
+        if (! $kelas->validasiDiwajibkan()) {
+            return StatusValidasiNilai::dari($baris);
+        }
 
         if ($baris !== null && $baris->gugur_at === null
             && ($sidikTerkini === null || $sidikTerkini !== $baris->sidik)) {

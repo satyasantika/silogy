@@ -6,6 +6,8 @@
         default => 'neutral',
     };
 @endphp
+@if ($this->validasiDiwajibkan || $statusValidasiEnum !== \App\Modules\Penilaian\Support\StatusValidasiNilai::Belum)
 <span data-silogy="status-validasi-nilai" class="silogy-badge silogy-tone-{{ $nadaValidasi }}">
     {{ $statusValidasiEnum->label() }}
 </span>
+@endif

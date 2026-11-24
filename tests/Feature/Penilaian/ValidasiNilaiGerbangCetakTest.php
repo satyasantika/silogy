@@ -11,6 +11,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
@@ -169,4 +170,75 @@ it('badge status validasi tampil sekali di atas tombol sub-tab', function () {
     expect(substr_count($html, 'data-silogy="status-validasi-nilai"'))->toBe(1)
         ->and($posisiBadge)->toBeLessThan(strpos($html, "@click=\"subTab = 'portofolio'\""))
         ->and($posisiBadge)->toBeLessThan(strpos($html, "x-show=\"subTab === 'laporan-lengkap'\""));
+});
+
+function matikanValidasiKurikulum(KelasMk $kelas): void
+{
+    $kelas->mkUnit->kurikulum->update(['validasi_nilai_aktif' => false]);
+    $kelas->unsetRelation('mkUnit');
+}
+
+it('switch mati: laporan boleh cetak dan lencana status tersembunyi untuk kelas belum divalidasi', function () {
+    matikanValidasiKurikulum($this->kelas);
+
+    laporanGerbang($this->kelas)
+        ->assertSet('validasiDiwajibkan', false)
+        ->assertDontSeeHtml('data-silogy="status-validasi-nilai"')
+        ->assertDontSeeHtml('data-silogy="alasan-cetak-terkunci"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"')
+        ->assertDontSee('BELUM DIVALIDASI')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"');
+});
+
+it('switch mati: ubah nilai tidak menggugurkan validasi lama', function () {
+    validasiGerbang($this->kelas);
+    $sebelum = $this->kelas->validasiNilai()->first();
+    matikanValidasiKurikulum($this->kelas);
+
+    NilaiMahasiswa::query()->first()->update(['nilai' => 10]);
+
+    $sesudah = $this->kelas->validasiNilai()->first();
+    expect($sesudah->gugur_at)->toBeNull()
+        ->and($sesudah->sidik)->toBe($sebelum->sidik);
+});
+
+it('switch mati: baris lama tetap tampil sebagai Tervalidasi', function () {
+    validasiGerbang($this->kelas);
+    matikanValidasiKurikulum($this->kelas);
+
+    laporanGerbang($this->kelas)
+        ->assertSet('statusValidasi', 'tervalidasi')
+        ->assertSeeHtml('data-silogy="status-validasi-nilai"')
+        ->assertSee('Tervalidasi')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+});
+
+it('switch dinyalakan lagi: sidik berbeda digugurkan pada pemuatan pertama', function () {
+    validasiGerbang($this->kelas);
+    matikanValidasiKurikulum($this->kelas);
+    NilaiMahasiswa::query()->first()->update(['nilai' => 10]);
+
+    laporanGerbang($this->kelas)->assertSet('statusValidasi', 'tervalidasi');
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->toBeNull();
+
+    $this->kelas->mkUnit->kurikulum->update(['validasi_nilai_aktif' => true]);
+    $this->kelas->unsetRelation('mkUnit');
+
+    laporanGerbang($this->kelas)
+        ->assertSet('validasiDiwajibkan', true)
+        ->assertSet('statusValidasi', 'perlu_ulang')
+        ->assertSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
+    expect($this->kelas->validasiNilai()->first()->gugur_at)->not->toBeNull();
+});
+
+it('kelas tanpa kurikulum: gerbang cetak terbuka dan tidak crash', function () {
+    DB::table('mk_units')->where('id', $this->kelas->mk_unit_id)->update(['kurikulum_id' => null]);
+    $this->kelas->unsetRelation('mkUnit');
+
+    laporanGerbang($this->kelas)
+        ->assertSet('validasiDiwajibkan', false)
+        ->assertDontSeeHtml('data-silogy="status-validasi-nilai"')
+        ->assertSeeHtml('onclick="silogyCetakLaporanLengkap()"')
+        ->assertDontSeeHtml('data-silogy="tanda-air-belum-divalidasi"');
 });

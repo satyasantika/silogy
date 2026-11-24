@@ -292,3 +292,16 @@ it('memuat Chart.js sejak halaman pertama, sebelum ada kelas yang dibuka', funct
         ->assertSet('kelasMkId', null)
         ->assertSeeHtml('cdn.jsdelivr.net/npm/chart.js');
 });
+
+it('switch mati: halaman Validasi Nilai tidak memuat kelas kurikulum itu', function () {
+    $kelas = siapkanKelasValidasi($this->dosen, $this->prodi)['kelas'];
+    $nama = $kelas->mkUnit->mk->nama;
+
+    Livewire::test(ValidasiNilai::class)->assertSee($nama);
+
+    $kelas->mkUnit->kurikulum->update(['validasi_nilai_aktif' => false]);
+
+    Livewire::test(ValidasiNilai::class)
+        ->assertDontSee($nama)
+        ->assertSee('Belum ada kelas dalam cakupan Anda pada semester terpilih.');
+});

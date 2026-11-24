@@ -112,6 +112,8 @@ it('dalam mode hanya-baca gugurkan tidak menulis dan periksa tetap mengembalikan
     $kelas = siapkanKelasValidasi(User::factory()->create())['kelas'];
     $layanan = app(ValidasiNilaiService::class);
     $layanan->validasi($kelas, User::factory()->create(), str_repeat('a', 64));
+    // Muat kurikulum sebelum ranah sandbox aktif (scope ranah menyembunyikan data non-sandbox).
+    $kelas->loadMissing('mkUnit.kurikulum');
 
     $pengguna = User::factory()->create();
     $pengguna->setAttribute('sandbox_id', 'sandbox-uji');
@@ -130,4 +132,18 @@ it('StatusValidasiNilai::dari(null) adalah Belum dan label berbahasa Indonesia',
     expect(StatusValidasiNilai::Belum->label())->toBe('Belum divalidasi');
     expect(StatusValidasiNilai::Tervalidasi->label())->toBe('Tervalidasi');
     expect(StatusValidasiNilai::PerluUlang->label())->toBe('Perlu validasi ulang');
+});
+
+it('switch mati: gugurkan tidak menulis dan periksa mengembalikan status tersimpan tanpa gugur', function () {
+    $kelas = siapkanKelasValidasi(User::factory()->create())['kelas'];
+    $layanan = app(ValidasiNilaiService::class);
+    $layanan->validasi($kelas, User::factory()->create(), str_repeat('a', 64));
+    $kelas->mkUnit->kurikulum->update(['validasi_nilai_aktif' => false]);
+    $kelas->unsetRelation('mkUnit');
+
+    $layanan->gugurkan($kelas);
+    expect($kelas->validasiNilai()->first()->gugur_at)->toBeNull();
+
+    expect($layanan->periksa($kelas, str_repeat('b', 64)))->toBe(StatusValidasiNilai::Tervalidasi);
+    expect($kelas->validasiNilai()->first()->gugur_at)->toBeNull();
 });

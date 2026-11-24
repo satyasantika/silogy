@@ -10,7 +10,7 @@
         // Cetak hanya bila isi yang dirender sekarang sama dengan yang divalidasi
         // (nilai yang diketik/ditempel tapi belum disimpan ikut dibandingkan).
         $tervalidasi = $this->laporanSesuaiValidasi();
-        $adaPerubahanBelumDisimpan = $this->statusValidasi === 'tervalidasi' && ! $tervalidasi;
+        $adaPerubahanBelumDisimpan = $this->validasiDiwajibkan && $this->statusValidasi === 'tervalidasi' && ! $tervalidasi;
         $statusValidasiTampil = $adaPerubahanBelumDisimpan ? 'perlu_ulang' : $this->statusValidasi;
     @endphp
 
@@ -307,7 +307,7 @@
 
                 @include('filament.modules.penilaian.partials.blok-rtl')
 
-                @if ($tervalidasi && $this->infoValidasi)
+                @if ($this->validasiDiwajibkan && $tervalidasi && $this->infoValidasi)
                     <section class="silogy-laporan-blok" data-silogy="blok-validasi-nilai" style="border:1px solid rgba(128,128,128,.3);border-radius:10px;padding:14px;font-size:13px;">
                         <div style="font-weight:600;">Divalidasi oleh {{ $this->infoValidasi['nama'] }}</div>
                         @if (filled($this->infoValidasi['jabatan']))
