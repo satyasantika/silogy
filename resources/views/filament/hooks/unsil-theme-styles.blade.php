@@ -77,6 +77,18 @@
         background-color: #000000 !important;
     }
 
+    /*
+     * Semua badge berwarna (.fi-badge.fi-color, warna apa pun) di dalam menu
+     * aktif (latar emas solid di kedua mode): mode gelap Filament memakai
+     * tint 10% + teks 400 yang tenggelam di atas emas (mis. warning: #ffb900
+     * di atas #ffd700 = 1.2:1). Pakai pasangan mode terang (latar 50, teks
+     * 700) yang sudah terbaca di atas emas.
+     */
+    .dark .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-badge.fi-color {
+        background-color: var(--color-50);
+        color: var(--text);
+    }
+
     /* Tombol Keluar di footer sidebar: chip kontras di atas hijau tua */
     .silogy-sidebar-user-actions .fi-icon-btn {
         background-color: rgba(248, 249, 250, .14) !important;
@@ -212,5 +224,16 @@
         border-radius: 9999px;
         padding-inline: calc(var(--spacing) * 2);
         justify-content: center;
+    }
+
+    /*
+     * Tombol primer mode gelap: bawaan Filament memakai primary-600 (#33972f)
+     * dengan teks putih = 3.74:1. Pakai 700 (#257c22, putih 5.27:1) dan 800
+     * saat hover (#22641e, 7.22:1). Palet primer tidak berubah; mode terang
+     * tidak tersentuh.
+     */
+    .dark .fi-btn.fi-color-primary:not(.fi-outlined) {
+        --dark-bg: var(--color-700);
+        --dark-hover-bg: var(--color-800);
     }
 </style>

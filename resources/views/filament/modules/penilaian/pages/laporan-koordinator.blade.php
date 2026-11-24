@@ -17,14 +17,15 @@
             @else
                 @if ($tampilkanFilterSemester)
                     <div style="margin-bottom:16px;max-width:420px;" data-silogy="langkah-semester">
-                        <label for="semester-terpilih" style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:6px;color:#0b3914;">
+                        <label for="semester-terpilih" class="silogy-label-langkah" style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:6px;">
                             <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#007000;color:#fff;font-size:11px;">1</span>
                             Pilih semester
                         </label>
                         <select
                             id="semester-terpilih"
                             wire:model.live="semesterTerpilihId"
-                            style="width:100%;padding:8px 10px;border:1px solid rgba(128,128,128,.4);border-radius:8px;background:#fff;font-size:13px;"
+                            class="silogy-isian"
+                            style="width:100%;padding:8px 10px;border-radius:8px;font-size:13px;"
                         >
                             @foreach ($semesterOptions as $semesterId => $semesterNama)
                                 <option value="{{ $semesterId }}">{{ $semesterNama }}</option>
@@ -34,7 +35,7 @@
                 @endif
 
                 <div data-silogy="langkah-kelas" class="silogy-langkah-batas" style="margin-bottom:16px;">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:700;color:#0b3914;">
+                    <div class="silogy-label-langkah" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:700;">
                         <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#007000;color:#fff;font-size:11px;">2</span>
                         Pilih kelas
                     </div>
@@ -61,7 +62,7 @@
                                         border:2px solid {{ $border }};background:{{ $background }};color:{{ $color }};"
                                 >
                                     <span style="display:block;font-weight:700;font-size:13px;">Kelas {{ $kelas['kode_kelas'] }}</span>
-                                    <span style="display:block;font-size:11px;margin-top:2px;opacity:.85;">
+                                    <span class="silogy-teks-kartu-redup" style="display:block;font-size:11px;margin-top:2px;">
                                         Dosen: {{ $kelas['dosen_pengampu_nama'] }}
                                     </span>
                                     <span style="display:block;font-size:12px;margin-top:2px;">
@@ -78,7 +79,7 @@
                 @if ($kelasMkId)
                     @if ($penugasanBelumSelesai)
                         <div data-silogy="langkah-tab-laporan" class="silogy-langkah-batas">
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:700;color:#0b3914;">
+                            <div class="silogy-label-langkah" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:700;">
                                 <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#007000;color:#fff;font-size:11px;">3</span>
                                 Pilih tab Laporan
                             </div>
@@ -89,7 +90,7 @@
                         </div>
                     @elseif (count($columns) === 0 || count($rows) === 0)
                         <div data-silogy="langkah-tab-laporan" class="silogy-langkah-batas">
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:700;color:#0b3914;">
+                            <div class="silogy-label-langkah" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:700;">
                                 <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#007000;color:#fff;font-size:11px;">3</span>
                                 Pilih tab Laporan
                             </div>
@@ -99,7 +100,7 @@
                         </div>
                     @else
                         <div data-silogy="langkah-tab-laporan" class="silogy-langkah-batas">
-                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:700;color:#0b3914;">
+                            <div class="silogy-label-langkah" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:700;">
                                 <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:999px;background:#007000;color:#fff;font-size:11px;">3</span>
                                 Pilih tab Laporan
                             </div>

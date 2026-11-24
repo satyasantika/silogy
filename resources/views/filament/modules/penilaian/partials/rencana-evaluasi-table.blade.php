@@ -8,18 +8,16 @@
     @php
         $ringkasan = $service->ringkasanTotalBobot($rencana['total_bobot']);
         $warnaRingkasan = match ($ringkasan['status']) {
-            'success' => '#166534',
-            'warning' => '#92400e',
-            default => '#991b1b',
+            'success' => 'silogy-teks-success',
+            'warning' => 'silogy-teks-warning',
+            default => 'silogy-teks-danger',
         };
-
-        $warnaAsesmen = '#2563eb';
     @endphp
     <div style="margin-top:1.5rem;">
         <div style="border:1px solid rgba(128,128,128,.25);border-radius:12px;overflow:hidden;background:transparent;">
             <div style="padding:12px 16px;border-bottom:1px solid rgba(128,128,128,.2);">
                 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;">
-                    <div style="display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(59,130,246,.12);color:#2563eb;min-height:56px;padding:0 14px;">
+                    <div style="display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(59,130,246,.12);min-height:56px;padding:0 14px;" class="silogy-aksen-biru">
                         <x-filament::icon icon="heroicon-o-clipboard-document-list" style="width:24px;height:24px;" />
                     </div>
                     <div>
@@ -63,7 +61,7 @@
                                                                 <td style="padding:0 8px 0 0;white-space:nowrap;vertical-align:top;">{{ $asesmen['kode'] }}:</td>
                                                                 <td style="padding:0;vertical-align:top;">
                                                                     {{ $asesmen['nama'] }}
-                                                                    (bobot: <span style="color:{{ $warnaAsesmen }};font-weight:700;">{{ $service->formatBobot($asesmen['bobot']) }}</span>)
+                                                                    (bobot: <span class="silogy-aksen-biru" style="font-weight:700;">{{ $service->formatBobot($asesmen['bobot']) }}</span>)
                                                                 </td>
                                                             </tr>
                                                         </tbody>
@@ -84,7 +82,7 @@
                                                             'jenis' => 'CPL',
                                                             'kode' => $cpl['kode'],
                                                             'deskripsi' => $cpl['deskripsi'] ?? null,
-                                                        ])@if (! $loop->last)<span style="margin:0 4px;opacity:.4;" aria-hidden="true">,</span>@endif
+                                                        ])@if (! $loop->last)<span class="silogy-pemisah" style="margin:0 4px;" aria-hidden="true">,</span>@endif
                                                     @endforeach
                                                 </span>
                                             @endif
@@ -99,7 +97,7 @@
                                                             'jenis' => 'CPMK',
                                                             'kode' => $cpmk['kode'],
                                                             'deskripsi' => $cpmk['deskripsi'] ?? null,
-                                                        ])@if (! $loop->last)<span style="margin:0 4px;opacity:.4;" aria-hidden="true">,</span>@endif
+                                                        ])@if (! $loop->last)<span class="silogy-pemisah" style="margin:0 4px;" aria-hidden="true">,</span>@endif
                                                     @endforeach
                                                 </span>
                                             @endif
@@ -113,7 +111,7 @@
                                 <th style="padding:10px 12px;text-align:right;font-weight:700;white-space:nowrap;">
                                     {{ $service->formatBobot($rencana['total_bobot']) }}
                                 </th>
-                                <th colspan="2" style="padding:10px 12px;text-align:left;font-weight:700;white-space:nowrap;color:{{ $warnaRingkasan }};">
+                                <th colspan="2" class="{{ $warnaRingkasan }}" style="padding:10px 12px;text-align:left;font-weight:700;white-space:nowrap;">
                                     @if ($ringkasan['sudah_pas'])
                                         Sudah pas 100%
                                     @else

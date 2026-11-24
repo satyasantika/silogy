@@ -65,10 +65,10 @@
         @foreach ($p['tahap'] as $i => $t)
             @php
                 $s = $t['state'];
-                $ikonWarna = match ($s) { 'selesai' => '#15803d', 'berjalan' => '#b45309', 'gagal' => '#c1121f', default => 'rgba(128,128,128,.55)' };
+                $ikonWarna = match ($s) { 'selesai' => 'silogy-aksen-hijau', 'berjalan' => 'silogy-aksen-amber', 'gagal' => 'silogy-aksen-merah', default => '' };
             @endphp
             <li style="display:flex;gap:12px;align-items:flex-start;padding:8px 0;{{ $loop->last ? '' : 'border-bottom:1px solid rgba(128,128,128,.14);' }}{{ $s === 'menunggu' ? 'opacity:.6;' : '' }}">
-                <span style="flex:none;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;color:{{ $ikonWarna }};">
+                <span style="flex:none;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;{{ $s === 'menunggu' ? 'color:rgba(128,128,128,.55);' : '' }}" class="{{ $ikonWarna }}">
                     @if ($s === 'selesai')
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="currentColor" opacity=".15"/><path d="M5.5 10.5l3 3 6-6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     @elseif ($s === 'berjalan')
@@ -80,12 +80,12 @@
                     @endif
                 </span>
                 <span style="flex:1;min-width:0;">
-                    <span style="display:block;font-size:13.5px;font-weight:{{ $s === 'berjalan' || $s === 'gagal' ? '700' : '600' }};{{ $s === 'berjalan' ? 'color:#b45309;' : '' }}{{ $s === 'gagal' ? 'color:#c1121f;' : '' }}">
+                    <span class="{{ $s === 'berjalan' ? 'silogy-aksen-amber' : ($s === 'gagal' ? 'silogy-aksen-merah' : '') }}" style="display:block;font-size:13.5px;font-weight:{{ $s === 'berjalan' || $s === 'gagal' ? '700' : '600' }};">
                         {{ $i + 1 }}. {{ $t['label'] }}
                     </span>
                     <span style="display:block;font-size:12px;opacity:.72;line-height:1.5;">{{ $t['keterangan'] }}</span>
                 </span>
-                <span style="flex:none;font-size:12px;font-variant-numeric:tabular-nums;opacity:.75;{{ $s === 'berjalan' ? 'font-weight:700;color:#b45309;opacity:1;' : '' }}">
+                <span style="flex:none;font-size:12px;font-variant-numeric:tabular-nums;opacity:.75;{{ $s === 'berjalan' ? 'font-weight:700;opacity:1;' : '' }}" class="{{ $s === 'berjalan' ? 'silogy-aksen-amber' : '' }}">
                     @if ($s === 'berjalan')
                         <span class="sim-denyut">{{ $format($t['detik']) }}</span>
                     @elseif ($s === 'selesai')
@@ -119,7 +119,7 @@
     {{-- Keadaan akhir / catatan --}}
     @if ($p['gagal'])
         <div style="border:1px solid #c1121f;background:rgba(193,18,31,.08);border-radius:10px;padding:12px 14px;">
-            <p style="font-weight:700;color:#c1121f;margin-bottom:4px;">Pembangunan gagal</p>
+            <p class="silogy-aksen-merah" style="font-weight:700;margin-bottom:4px;">Pembangunan gagal</p>
             <p style="font-size:13px;line-height:1.6;word-break:break-word;font-family:ui-monospace,Menlo,monospace;">{{ $p['galat'] }}</p>
             <p style="font-size:12px;opacity:.8;margin-top:8px;line-height:1.6;">
                 Ruang setengah jadi sudah dibongkar otomatis, jadi tidak ada sisa data. Tutup jendela ini lalu coba lagi.
@@ -128,7 +128,7 @@
         </div>
     @elseif ($p['selesai'])
         <div style="border:1px solid #15803d;background:rgba(21,128,61,.08);border-radius:10px;padding:12px 14px;">
-            <p style="font-weight:700;color:#15803d;margin-bottom:4px;">{{ $banyak ? 'Semua ruang siap dipakai' : 'Ruang siap dipakai' }}</p>
+            <p class="silogy-aksen-hijau" style="font-weight:700;margin-bottom:4px;">{{ $banyak ? 'Semua ruang siap dipakai' : 'Ruang siap dipakai' }}</p>
             <p style="font-size:12.5px;line-height:1.6;opacity:.85;">
                 @if ($banyak)
                     Token tiap ruang ada di daftar <strong>Ruang</strong> pada halaman ini. Bagikan satu token per kelompok tujuh peserta.
@@ -141,7 +141,7 @@
         </div>
     @elseif ($p['macet'])
         <div style="border:1px solid #b45309;background:rgba(180,83,9,.08);border-radius:10px;padding:12px 14px;">
-            <p style="font-weight:700;color:#b45309;margin-bottom:4px;">Tidak ada kemajuan lebih dari 2 menit</p>
+            <p class="silogy-aksen-amber" style="font-weight:700;margin-bottom:4px;">Tidak ada kemajuan lebih dari 2 menit</p>
             <p style="font-size:12.5px;line-height:1.6;opacity:.85;">
                 Proses di server mungkin terhenti (batas memori atau waktu). Ruang ini akan disapu otomatis bila tetap macet
                 lebih dari 30 menit, atau hapus sekarang lewat daftar di halaman ini.

@@ -685,3 +685,38 @@ it('cpmk belum diinteraksikan bila belum ada mk cpmk', function () {
 
     expect($cpmk->belumDiinteraksikan())->toBeTrue();
 });
+
+it('pratinjau tempel matriks memakai kelas tema untuk galat dan sel dihapus, bukan warna inline', function () {
+    $mk = seedMkKoordinatorContext($this);
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->firstOrFail();
+    $cpmk = cpmkUntukSemester($mk, $this->semester, ['kode' => 'CPMK-TMP', 'deskripsi' => 'Tempel.']);
+
+    $cpl = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+
+    $sub1 = subcpmkUntukSemester($mkCpmk->id, $this->semester->id, ['kode' => 'SUB-T1', 'deskripsi' => 'Sub 1.']);
+    subcpmkUntukSemester($mkCpmk->id, $this->semester->id, ['kode' => 'SUB-T2', 'deskripsi' => 'Sub 2.']);
+
+    KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $this->semester->id, 'kode_kelas' => 'A', 'koordinator_mk_id' => $this->korma->id]);
+
+    $komponen = komponenUntukSemester($mk->id, $this->semester->id, [
+        'evaluasi_id' => Evaluasi::query()->where('kode', 'uts')->firstOrFail()->id,
+        'kode' => 'UTS-TMP',
+        'nama' => 'UTS Tempel',
+        'bobot' => 10,
+    ]);
+    SubcpmkKomponenPenilaian::query()->create(['komponen_penilaian_id' => $komponen->id, 'subcpmk_id' => $sub1->id, 'semester_id' => $this->semester->id, 'bobot' => 7]);
+
+    $halaman = Livewire::test(SubcpmkAsesmenMatrix::class)->instance();
+
+    $raw = "Kode\tSUB-T1\tSUB-T2\nUTS-TMP\t0\tabc\nZZZ\t1\t1";
+    $html = Closure::bind(fn (): string => $this->renderTempelPreview($raw)->toHtml(), $halaman, $halaman)();
+
+    expect($html)->toContain('silogy-teks-galat')
+        ->and($html)->toContain('silogy-teks-redup')
+        ->and($html)->not->toContain('color:#dc2626')
+        ->and($html)->not->toContain('#6b7280');
+});

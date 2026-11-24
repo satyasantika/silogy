@@ -266,7 +266,7 @@ class KomponenPenilaianResource extends Resource
                                     )->render();
 
                                     return sprintf(
-                                        '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">%s<span style="color:#2563eb;font-weight:600;">(%s)</span></div>',
+                                        '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">%s<span class="silogy-aksen-biru" style="font-weight:600;">(%s)</span></div>',
                                         $kodeHtml,
                                         e($service->formatBobot((float) $pivot->bobot)),
                                     );
@@ -454,7 +454,7 @@ class KomponenPenilaianResource extends Resource
 
         $sudahPas = abs(100 - $total) < 0.01;
         $selisih = round(100 - $total, 2);
-        $color = $sudahPas ? '#166534' : '#92400e';
+        $kelas = $sudahPas ? 'silogy-teks-success' : 'silogy-teks-warning';
 
         $keterangan = $sudahPas
             ? sprintf('Total bobot komponen pada mata kuliah dan semester ini: %.2f%% — sudah pas 100%%.', $total)
@@ -465,7 +465,7 @@ class KomponenPenilaianResource extends Resource
                 abs($selisih),
             );
 
-        return new HtmlString('<span style="color:'.$color.';font-weight:600;">'.e($keterangan).'</span>');
+        return new HtmlString('<span class="'.$kelas.'" style="font-weight:600;">'.e($keterangan).'</span>');
     }
 
     public static function getRelations(): array

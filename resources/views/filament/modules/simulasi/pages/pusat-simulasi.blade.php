@@ -14,7 +14,7 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px;">
             <div>
                 <p style="font-size:12px;opacity:.7;margin-bottom:2px;">Mode latihan</p>
-                <p style="font-weight:700;font-size:15px;{{ $this->cobaPeranAktif() ? 'color:#b45309;' : '' }}">
+                <p class="{{ $this->cobaPeranAktif() ? 'silogy-aksen-amber' : '' }}" style="font-weight:700;font-size:15px;">
                     {{ $this->cobaPeranDilarangInstans() ? 'Dikunci instans' : ($this->cobaPeranAktif() ? 'Terbuka' : 'Tertutup') }}
                 </p>
             </div>
@@ -69,7 +69,7 @@
                                 </td>
                                 <td style="padding:7px 16px 7px 0;">
                                     @if ($jalan->status === 'gagal')
-                                        <span style="color:#c1121f;">Gagal</span>
+                                        <span class="silogy-aksen-merah">Gagal</span>
                                     @elseif ($jalan->status === 'berjalan')
                                         Dibangun
                                     @else
@@ -85,7 +85,7 @@
                                                     wire:click="lepasPeran('{{ $jalan->getKey() }}', '{{ $slug }}')"
                                                     wire:confirm="Lepaskan peran ini? Peserta yang sedang memegangnya akan terputus."
                                                     title="Lepas peran" aria-label="Lepas peran {{ $slug }}"
-                                                    style="color:#c1121f;font-weight:700;line-height:1;">×</button>
+                                                    class="silogy-aksen-merah" style="font-weight:700;line-height:1;">×</button>
                                         </span>
                                     @endforeach
                                 </td>
@@ -104,14 +104,14 @@
                                     <button type="button"
                                             wire:click="hapusSatu('{{ $jalan->getKey() }}')"
                                             wire:confirm="Hapus ruang {{ $jalan->pin }}? Semua peserta di dalamnya terputus. Tindakan ini tidak dapat dibatalkan."
-                                            style="color:#c1121f;font-weight:600;">
+                                            class="silogy-aksen-merah" style="font-weight:600;">
                                         Hapus
                                     </button>
                                 </td>
                             </tr>
                             @if ($jalan->status === 'gagal' && ! empty($jalan->peringatan['galat']))
                                 <tr>
-                                    <td colspan="7" style="padding:0 0 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#c1121f;">
+                                    <td colspan="7" class="silogy-aksen-merah" style="padding:0 0 8px;font-family:ui-monospace,Menlo,monospace;font-size:12px;">
                                         {{ $jalan->peringatan['galat'] }}
                                     </td>
                                 </tr>

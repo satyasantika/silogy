@@ -9,11 +9,11 @@
 <div data-syarat-hulu role="note"
      style="border:1px solid rgba(180,83,9,.45);border-left:5px solid #b45309;background:rgba(180,83,9,.07);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="flex:none;color:#b45309;">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" class="silogy-aksen-amber" style="flex:none;">
             <circle cx="10" cy="10" r="9" fill="currentColor" opacity=".15"/>
             <path d="M10 5.5v5.2M10 13.6v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
-        <p style="font-weight:700;font-size:14px;color:#b45309;">{{ $judulKotak }}</p>
+        <p class="silogy-aksen-amber" style="font-weight:700;font-size:14px;">{{ $judulKotak }}</p>
     </div>
 
     <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;">
@@ -25,7 +25,7 @@
                 <div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px;font-size:12px;">
                     <span style="display:inline-flex;align-items:center;gap:6px;">
                         <span style="opacity:.7;">Ditangani oleh</span>
-                        <span style="font-weight:700;border-radius:999px;padding:2px 10px;background:{{ $milikSaya ? 'rgba(21,128,61,.15)' : 'rgba(180,83,9,.18)' }};color:{{ $milikSaya ? '#15803d' : '#b45309' }};">
+                        <span class="{{ $milikSaya ? 'silogy-chip-peran-saya' : 'silogy-chip-peran-lain' }}" style="font-weight:700;border-radius:999px;padding:2px 10px;">
                             {{ $b['nama'] }}{{ $milikSaya ? ' (peran Anda saat ini)' : '' }}
                         </span>
                     </span>

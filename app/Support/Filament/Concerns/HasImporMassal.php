@@ -262,9 +262,14 @@ trait HasImporMassal
         $dataRowsHtmlBersih = [];
 
         $headerCells = '';
+        $headerCellsSalin = '';
         foreach ($columns as $col) {
+            $kelasWarna = $col['wajib'] ? 'silogy-aksen-amber' : 'silogy-aksen-biru';
             $warna = $col['wajib'] ? '#b45309' : '#2563eb';
-            $headerCells .= '<td style="'.$cellStyle.'font-weight:600;color:'.$warna.';">'.e($col['label']).'</td>';
+            $headerCells .= '<td class="'.$kelasWarna.'" style="'.$cellStyle.'font-weight:600;">'.e($col['label']).'</td>';
+            // Payload salin: warna inline tetap agar tempelan ke Excel/Docs
+            // tidak kehilangan oranye/biru (kelas tema tak ikut tersalin).
+            $headerCellsSalin .= '<td style="'.$cellStyle.'font-weight:600;color:'.$warna.';">'.e($col['label']).'</td>';
         }
         $baris[] = $this->renderImportContohExcelRow(1, $headerCells, $chromeStyle);
 
@@ -287,18 +292,18 @@ trait HasImporMassal
         $legendParts = [];
 
         if (collect($columns)->contains('wajib', true)) {
-            $legendParts[] = '<span style="color:#b45309;font-weight:600;">Oranye</span> = kolom wajib';
+            $legendParts[] = '<span class="silogy-aksen-amber" style="font-weight:600;">Oranye</span> = kolom wajib';
         }
 
         if (collect($columns)->contains('wajib', false)) {
-            $legendParts[] = '<span style="color:#2563eb;">Biru</span> = kolom opsional';
+            $legendParts[] = '<span class="silogy-aksen-biru">Biru</span> = kolom opsional';
         }
 
         $legend = $legendParts === []
             ? ''
             : '<p class="mb-2 text-xs opacity-80">'.implode(' · ', $legendParts).'</p>';
 
-        $tombolSalin = $this->renderImportCopyContohButton($columns, $contohBaris, $headerCells, $dataRowsHtmlBersih);
+        $tombolSalin = $this->renderImportCopyContohButton($columns, $contohBaris, $headerCellsSalin, $dataRowsHtmlBersih);
 
         return new HtmlString($legend.$tabel.$tombolSalin);
     }
@@ -662,10 +667,11 @@ trait HasImporMassal
         foreach ($rows as $row) {
             $jumlah[$row['status']]++;
 
-            [$badge, $warna] = match ($row['status']) {
-                'baru' => ['Baru', '#16a34a'],
-                'duplikat' => ['Duplikat', '#d97706'],
-                default => ['Invalid', '#dc2626'],
+            // Invalid memakai kelas tema (pasangan .dark); hijau/amber sudah lolos kontras.
+            [$badge, $kelasBadge, $warna] = match ($row['status']) {
+                'baru' => ['Baru', '', 'color:#16a34a;'],
+                'duplikat' => ['Duplikat', '', 'color:#d97706;'],
+                default => ['Invalid', ' class="silogy-teks-galat"', ''],
             };
 
             $cells = '<td style="padding:4px 8px;white-space:nowrap;">'.$row['line'].'</td>';
@@ -674,7 +680,7 @@ trait HasImporMassal
                 $cells .= '<td style="padding:4px 8px;">'.e($row['data'][$col['key']]).'</td>';
             }
 
-            $cells .= '<td style="padding:4px 8px;white-space:nowrap;"><span style="font-weight:600;color:'.$warna.';">'.$badge.'</span>'
+            $cells .= '<td style="padding:4px 8px;white-space:nowrap;"><span'.$kelasBadge.' style="font-weight:600;'.$warna.'">'.$badge.'</span>'
                 .($row['keterangan'] !== '' ? '<br><span style="font-size:11px;opacity:.8;">'.e($row['keterangan']).'</span>' : '')
                 .'</td>';
 
@@ -685,7 +691,7 @@ trait HasImporMassal
             '<p class="text-sm" style="margin-bottom:8px;"><strong>%d baris terbaca:</strong> '
             .'<span style="color:#16a34a;font-weight:600;">%d baru</span> · '
             .'<span style="color:#d97706;font-weight:600;">%d duplikat</span> · '
-            .'<span style="color:#dc2626;font-weight:600;">%d invalid</span>. '
+            .'<span class="silogy-teks-galat" style="font-weight:600;">%d invalid</span>. '
             .'Baris invalid tidak akan diimpor.%s</p>',
             count($rows),
             $jumlah['baru'],

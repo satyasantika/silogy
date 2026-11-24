@@ -49,7 +49,7 @@
                                         ])
                                     </strong>
                                     @if ($cplAsalMap[$cpl->id] ?? false)
-                                        <sup style="color:#b45309;">†</sup>
+                                        <sup class="silogy-aksen-amber">†</sup>
                                     @endif
                                 </td>
                                 @foreach ($profils as $profil)

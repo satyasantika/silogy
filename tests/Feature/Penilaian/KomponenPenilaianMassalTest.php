@@ -378,3 +378,32 @@ it('mengosongkan preview impor massal asesmen saat modal ditutup', function () {
 
     expect($halaman->get('importMassalRowsLive'))->toBe('');
 });
+
+it('teks bantu total bobot memakai kelas tema (bukan warna inline) agar terbaca di mode gelap', function () {
+    $uts = komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UTS',
+        'nama' => 'UTS',
+        'bobot' => 69,
+    ]);
+
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    Livewire::test(EditKomponenPenilaian::class, ['record' => $uts->getRouteKey()])
+        ->assertSeeHtml('class="silogy-teks-warning" style="font-weight:600;"')
+        ->assertDontSeeHtml('color:#92400e')
+        ->assertDontSeeHtml('color:#166534');
+
+    komponenUntukSemester($this->mk->id, $this->semester->id, [
+        'evaluasi_id' => $this->evaluasi->id,
+        'kode' => 'UAS',
+        'nama' => 'UAS',
+        'bobot' => 31,
+    ]);
+
+    Livewire::test(EditKomponenPenilaian::class, ['record' => $uts->getRouteKey()])
+        ->assertSeeHtml('class="silogy-teks-success" style="font-weight:600;"')
+        ->assertDontSeeHtml('color:#92400e')
+        ->assertDontSeeHtml('color:#166534');
+});

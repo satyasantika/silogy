@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Filament\Resources\CplResource\Pages\ListCpls;
@@ -131,6 +132,24 @@ it('modal impor menampilkan tombol salin contoh data dengan payload TSV dan HTML
         ->assertMountedActionModalSee('Salin contoh data')
         ->assertMountedActionModalSee("jenis\tkode\tjenjang\tnama")
         ->assertMountedActionModalSeeHtml('data-copy-html="&lt;table&gt;&lt;tbody&gt;&lt;tr&gt;');
+});
+
+it('payload salin contoh impor membawa warna header inline, sedangkan tabel layar memakai kelas tema', function () {
+    $this->actingAs(User::where('username', 'superadmin')->firstOrFail());
+
+    $html = Livewire::test(ListAcademicUnits::class)
+        ->mountAction('bulkImport')
+        ->getMountedActionModalHtml();
+
+    preg_match('/data-copy-html="([^"]*)"/', $html, $m);
+    $payload = html_entity_decode($m[1] ?? '');
+    $layar = str_replace($m[0] ?? '', '', $html);
+
+    expect($payload)->toContain('color:#b45309')
+        ->and($payload)->toContain('color:#2563eb')
+        ->and($payload)->not->toContain('silogy-aksen-')
+        ->and($layar)->toContain('class="silogy-aksen-amber"')
+        ->and($layar)->toContain('class="silogy-aksen-biru"');
 });
 
 it('impor unit akademik: prodi dapat berinduk ke fakultas yang baru dibuat di baris lebih awal pada tempelan yang sama', function () {
@@ -1187,4 +1206,12 @@ it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda teta
         ->and(Mk::query()->where('nama', 'MK Versi')->count())->toBe(2)
         ->and(Mk::query()->where('kurikulum_id', $this->kurikulumProdi->id)->where('nama', 'MK Versi')->value('sks_teori'))->toBe(3)
         ->and(Mk::query()->where('kurikulum_id', $kurikulumLain->id)->where('nama', 'MK Versi')->value('sks_teori'))->toBe(4);
+});
+
+it('pratinjau impor menandai baris invalid dengan kelas tema, bukan warna merah inline', function () {
+    $page = new ListUsers;
+    $html = $page->renderImportPreview('Rusak|dua-kolom')->toHtml();
+
+    expect($html)->toContain('silogy-teks-galat')
+        ->and($html)->not->toContain('color:#dc2626');
 });

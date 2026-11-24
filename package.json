@@ -5,7 +5,8 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "tangkap-layar": "node scripts/tangkap-layar/jalankan.mjs"
+        "tangkap-layar": "node scripts/tangkap-layar/jalankan.mjs",
+        "audit-kontras": "node scripts/audit-kontras-gelap.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

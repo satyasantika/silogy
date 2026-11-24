@@ -5,13 +5,14 @@
     >
         <div style="padding:14px 16px 16px;">
             <div style="margin-bottom:16px;max-width:420px;" data-silogy="langkah-semester">
-                <label for="semester-terpilih" style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:#0b3914;">
+                <label for="semester-terpilih" class="silogy-label-langkah" style="display:block;font-size:13px;font-weight:700;margin-bottom:6px;">
                     Semester
                 </label>
                 <select
                     id="semester-terpilih"
                     wire:model.live="semesterTerpilihId"
-                    style="width:100%;padding:8px 10px;border:1px solid rgba(128,128,128,.4);border-radius:8px;background:#fff;font-size:13px;"
+                    class="silogy-isian"
+                    style="width:100%;padding:8px 10px;border-radius:8px;font-size:13px;"
                 >
                     @foreach ($semesterOptions as $semesterId => $semesterNama)
                         <option value="{{ $semesterId }}">{{ $semesterNama }}</option>
