@@ -6,6 +6,7 @@ use App\Modules\Auth\Filament\Resources\UserResource;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\EditUser;
 use App\Modules\Auth\Filament\Resources\UserResource\Pages\ListUsers;
+use App\Modules\Auth\Support\ActiveRole;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -110,6 +111,22 @@ it('dapat mengimpor pengguna massal lewat copypaste dengan pemisah pipe', functi
         ->and(Hash::check('RahasiaKuat123', $budi->password))->toBeTrue()
         ->and($siti)->not->toBeNull()
         ->and($siti->hasRole(['Tim Kurikulum', 'Dosen Pengampu']))->toBeTrue();
+});
+
+it('impor massal tanpa kode prodi mempertahankan peran Pimpinan dan Tim Kurikulum yang diimpor', function () {
+    $rows = implode("\n", [
+        'Siti Aminah|siti@silogy.test|RahasiaKuat456|Tim Kurikulum;Dosen Pengampu||sitiaminah',
+        'Pak Kaprodi|kaprodi@silogy.test|RahasiaKuat789|Pimpinan||pakkaprodi',
+    ]);
+
+    Livewire::test(ListUsers::class)
+        ->callAction('bulkImport', ['rows' => $rows, 'mode_duplikat' => 'lewati'])
+        ->assertHasNoActionErrors();
+
+    expect(ActiveRole::ownedRoleNames(User::where('email', 'siti@silogy.test')->firstOrFail()))
+        ->toEqualCanonicalizing(['Dosen Pengampu', 'Tim Kurikulum'])
+        ->and(ActiveRole::ownedRoleNames(User::where('email', 'kaprodi@silogy.test')->firstOrFail()))
+        ->toEqualCanonicalizing(['Pimpinan']);
 });
 
 it('impor massal: peran Validator Nilai ditolak dengan keterangan, hak berasal dari kurikulum', function () {

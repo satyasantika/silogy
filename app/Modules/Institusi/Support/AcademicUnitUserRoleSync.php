@@ -86,6 +86,21 @@ class AcademicUnitUserRoleSync
     }
 
     /**
+     * Sinkronkan HANYA peran Validator Nilai seorang pengguna. Dipakai jalur
+     * yang mengatur peran lain sendiri (mis. impor pengguna) tetapi tidak bisa
+     * menyebut Validator Nilai, supaya Pimpinan/Tim Kurikulum yang diatur
+     * jalur itu tidak ikut dicabut oleh syncForUser().
+     *
+     * @return 'granted'|'revoked'|'unchanged'
+     */
+    public function syncValidatorNilaiUntukPengguna(string $userId): string
+    {
+        $user = User::query()->find($userId);
+
+        return $user ? $this->syncValidatorNilai($user) : 'unchanged';
+    }
+
+    /**
      * Peran Validator Nilai mengikuti hak dari kurikulum, bukan penanda
      * penugasan; peran yang diberikan manual tanpa hak ikut dicabut.
      *

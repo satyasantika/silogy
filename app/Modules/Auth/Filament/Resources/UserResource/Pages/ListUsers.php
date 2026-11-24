@@ -177,7 +177,8 @@ class ListUsers extends ListRecords
         $user->syncRoles($roleNames->all());
         $this->relasikanProdi($user, $data, $roleNames);
         // syncRoles di atas mencabut Validator Nilai (tidak bisa diimpor); kembalikan sesuai hak kurikulum.
-        app(AcademicUnitUserRoleSync::class)->syncForUser($user->id);
+        // Hanya peran itu yang disinkronkan: peran lain sudah ditetapkan baris impor.
+        app(AcademicUnitUserRoleSync::class)->syncValidatorNilaiUntukPengguna($user->id);
     }
 
     /**
@@ -194,7 +195,8 @@ class ListUsers extends ListRecords
         $user->syncRoles($roleNames->all());
         $this->relasikanProdi($user, $data, $roleNames);
         // syncRoles di atas mencabut Validator Nilai (tidak bisa diimpor); kembalikan sesuai hak kurikulum.
-        app(AcademicUnitUserRoleSync::class)->syncForUser($user->id);
+        // Hanya peran itu yang disinkronkan: peran lain sudah ditetapkan baris impor.
+        app(AcademicUnitUserRoleSync::class)->syncValidatorNilaiUntukPengguna($user->id);
     }
 
     /**
