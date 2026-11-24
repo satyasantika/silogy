@@ -5,10 +5,13 @@ namespace App\Modules\Institusi\Support;
 use App\Models\Role;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Penilaian\Support\ValidatorNilaiScope;
 
 /**
  * Sinkronkan role global "Pimpinan"/"Tim Kurikulum" berdasarkan status
- * penugasan unit akademik (academic_unit_users) milik seorang pengguna.
+ * penugasan unit akademik (academic_unit_users) milik seorang pengguna,
+ * dan "Validator Nilai" berdasarkan hak validasi per kurikulum
+ * (ValidatorNilaiScope::punyaHakValidasi).
  *
  * Sengaja TIDAK memakai assignRole()/hasRole()/removeRole() bawaan Spatie:
  * User::roles() di-override untuk memfilter ke role aktif switcher, tapi
@@ -25,7 +28,6 @@ class AcademicUnitUserRoleSync
     private const ROLE_COLUMNS = [
         'Pimpinan' => 'status_pimpinan',
         'Tim Kurikulum' => 'status_tim_kurikulum',
-        'Validator Nilai' => 'status_validator_nilai',
     ];
 
     /**
@@ -48,7 +50,34 @@ class AcademicUnitUserRoleSync
             $revoked += $result === 'revoked' ? 1 : 0;
         }
 
+        $result = $this->syncValidatorNilai($user);
+        $granted += $result === 'granted' ? 1 : 0;
+        $revoked += $result === 'revoked' ? 1 : 0;
+
         return ['granted' => $granted, 'revoked' => $revoked];
+    }
+
+    /**
+     * Peran Validator Nilai mengikuti hak dari kurikulum, bukan penanda
+     * penugasan; peran yang diberikan manual tanpa hak ikut dicabut.
+     *
+     * @return 'granted'|'revoked'|'unchanged'
+     */
+    private function syncValidatorNilai(User $user): string
+    {
+        $role = Role::query()->where('name', 'Validator Nilai')->first();
+
+        if (! $role) {
+            return 'unchanged';
+        }
+
+        if (ValidatorNilaiScope::punyaHakValidasi($user)) {
+            $changes = $user->roles()->syncWithoutDetaching([$role->id]);
+
+            return $changes['attached'] !== [] ? 'granted' : 'unchanged';
+        }
+
+        return $user->roles()->detach($role->id) > 0 ? 'revoked' : 'unchanged';
     }
 
     /**

@@ -192,9 +192,8 @@ if (! function_exists('siapkanKelasTigaSubcpmk')) {
 if (! function_exists('jadikanValidatorKurikulum')) {
     /**
      * Menunjuk user sebagai validator tambahan pada kurikulum kelas itu dan
-     * memberinya peran Validator Nilai langsung lewat pivot roles. Panggil
-     * setelah penulisan AcademicUnitUser, karena sinkronisasi peran lama
-     * (berbasis penanda) mencabut peran dari user tanpa penanda.
+     * memberinya peran Validator Nilai langsung lewat pivot roles (pivot
+     * kurikulum_validator saja tidak memicu sinkronisasi peran).
      */
     function jadikanValidatorKurikulum(User $user, KelasMk $kelas): void
     {

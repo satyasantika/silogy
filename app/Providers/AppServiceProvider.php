@@ -30,6 +30,7 @@ use App\Modules\Kurikulum\Listeners\LogStateTransition;
 use App\Modules\Kurikulum\Listeners\SyncKurikulumStateSubscriber;
 use App\Modules\Kurikulum\Livewire\KurikulumTerpilihBanner;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Observers\KurikulumObserver;
 use App\Modules\Kurikulum\Policies\KurikulumPolicy;
 use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\Mahasiswa\Policies\MahasiswaPolicy;
@@ -155,6 +156,7 @@ class AppServiceProvider extends ServiceProvider
         NilaiMahasiswa::observe(NilaiMahasiswaObserver::class);
         SubcpmkKomponenPenilaian::observe(SubcpmkKomponenPenilaianObserver::class);
         AcademicUnitUser::observe(AcademicUnitUserObserver::class);
+        Kurikulum::observe(KurikulumObserver::class);
         Mk::observe(MkObserver::class);
 
         $this->configureUrlForSubpathDeployment();

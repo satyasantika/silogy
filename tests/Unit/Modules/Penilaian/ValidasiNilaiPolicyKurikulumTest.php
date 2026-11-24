@@ -96,7 +96,7 @@ it('koordinator yang juga tim kurikulum ditolak di kelas MK-nya tetapi boleh di 
     $koordinasi = siapkanKelasValidasi(User::factory()->create(), $prodi, ['koordinator_mk_id' => $user->id])['kelas'];
     $lain = siapkanKelasValidasi(User::factory()->create(), $prodi)['kelas'];
     AcademicUnitUser::create(['academic_unit_id' => $prodi->id, 'user_id' => $user->id, 'status_tim_kurikulum' => true]);
-    // Peran diberikan setelah penulisan penugasan (sinkronisasi lama mencabutnya).
+    // Peran diberikan setelah penulisan penugasan (sinkronisasi peran kini berbasis hak kurikulum, bukan penanda).
     $user->roles()->syncWithoutDetaching([\App\Models\Role::where('name', 'Validator Nilai')->firstOrFail()->id]);
     $policy = app(ValidasiNilaiPolicy::class);
 

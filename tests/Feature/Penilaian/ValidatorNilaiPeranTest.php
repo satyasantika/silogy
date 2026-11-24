@@ -5,6 +5,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\SinkronValidatorKurikulum;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,16 +23,20 @@ it('seeder membuat peran Validator Nilai dengan izinnya', function () {
         ->toEqualCanonicalizing(['validasi_nilai', 'lihat_laporan', 'lihat_dashboard']);
 });
 
-it('penanda penugasan memberi dan mencabut peran', function () {
+it('pivot kurikulum memberi dan mencabut peran', function () {
     $user = User::factory()->create();
     $peranId = Role::findByName('Validator Nilai', 'web')->id;
     $prodi = AcademicUnit::where('type', 'study_program')->firstOrFail();
-    $penugasan = AcademicUnitUser::create(['academic_unit_id' => $prodi->id, 'user_id' => $user->id, 'status_validator_nilai' => true]);
+    $kurikulum = Kurikulum::query()->create(['academic_unit_id' => $prodi->id, 'nama' => 'Kurikulum Peran', 'tahun' => 2026, 'is_active' => true]);
     $punyaPeran = fn () => DB::table('model_has_roles')
         ->where('model_uuid', $user->id)->where('role_id', $peranId)->count();
+
+    $kurikulum->validatorTambahan()->attach($user->id);
+    app(SinkronValidatorKurikulum::class)->sinkronkan($kurikulum);
     expect($punyaPeran())->toBe(1);
 
-    $penugasan->update(['status_validator_nilai' => false]);
+    $kurikulum->validatorTambahan()->detach($user->id);
+    app(SinkronValidatorKurikulum::class)->sinkronkan($kurikulum, [$user->id]);
     expect($punyaPeran())->toBe(0);
 });
 

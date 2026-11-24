@@ -7,6 +7,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Models\AcademicUnitUser;
+use App\Modules\Institusi\Support\AcademicUnitUserRoleSync;
+use App\Modules\Kurikulum\Models\Kurikulum;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -311,6 +313,25 @@ class RolePermissionSeeder extends Seeder
                     ]
                 );
             }
+        }
+
+        // Hak Validator Nilai diturunkan dari kurikulum, bukan dari penanda
+        // penugasan: tempelkan akun demo `validator` sebagai validator tambahan
+        // pada kurikulum prodi demo yang sudah ada, lalu sinkronkan perannya
+        // (observer penugasan di atas mencabut peran itu karena pivot belum ada).
+        // Seeder ini sengaja TIDAK membuat kurikulum: kurikulum demo milik
+        // pembangun simulasi (SyaratHulu memakainya sebagai petunjuk "belum
+        // dibuat"), dan banyak tes menghitung kurikulum dari basis data seed.
+        // Tanpa kurikulum, penempelan dilakukan pembangun simulasi (Task 6).
+        $validatorDemo = User::query()->where('username', 'validator')->first();
+
+        if ($validatorDemo && $prodi && $validatorDemo->email === 'validator@silogy.test') {
+            Kurikulum::query()
+                ->where('academic_unit_id', $prodi->id)
+                ->get()
+                ->each(fn (Kurikulum $kurikulum) => $kurikulum->validatorTambahan()->syncWithoutDetaching([$validatorDemo->id]));
+
+            app(AcademicUnitUserRoleSync::class)->syncForUser($validatorDemo->id);
         }
 
         // =========================================================
