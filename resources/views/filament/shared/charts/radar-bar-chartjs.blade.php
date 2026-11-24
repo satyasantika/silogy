@@ -56,7 +56,18 @@
             return lines.length > 1 ? lines : text;
         }
 
+        window.silogyTemaChart = function () {
+            if (typeof Chart === 'undefined') {
+                return;
+            }
+            const gelap = document.documentElement.classList.contains('dark');
+            Chart.defaults.color = gelap ? '#d4d4d8' : '#374151';
+            // Kotak latar putih bawaan label skala radar membuat teks terang tak terbaca.
+            Chart.defaults.scales.radialLinear.ticks.backdropColor = 'transparent';
+        };
+
         window.renderRadarSilogy = function (canvas, dataset, color) {
+            window.silogyTemaChart();
             if (! canvas || typeof Chart === 'undefined') {
                 return;
             }
@@ -117,6 +128,7 @@
         };
 
         window.renderBarSilogy = function (canvas, dataset, color) {
+            window.silogyTemaChart();
             if (! canvas || typeof Chart === 'undefined') {
                 return;
             }
@@ -162,6 +174,7 @@
         const WARNA_TREN_SILOGY = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#6250d6', '#e34948'];
 
         window.renderTrenSilogy = function (canvas, tren) {
+            window.silogyTemaChart();
             if (! canvas || typeof Chart === 'undefined') {
                 return;
             }

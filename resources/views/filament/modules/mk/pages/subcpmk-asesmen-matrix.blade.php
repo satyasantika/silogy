@@ -150,10 +150,10 @@
                                         },
                                         get selisih() { return this.total - this.target; },
                                         get warna() {
-                                            if (this.total <= 0) return '#9ca3af';
-                                            if (Math.abs(this.selisih) <= 0.01) return '#16a34a';
+                                            if (this.total <= 0) return '#6b7280';
+                                            if (Math.abs(this.selisih) <= 0.01) return '#15803d';
                                             if (this.selisih > 0.01) return '#dc2626';
-                                            return '#d97706';
+                                            return '#b45309';
                                         },
                                         get perluNorm() {
                                             return this.total > 0 && Math.abs(this.selisih) > 0.01;
@@ -244,10 +244,10 @@
                                             $bobotAsesmen = (float) ($bobotAsesmenPerKomponen[$komponen->id] ?? 0);
                                             $selisih = $total - $bobotAsesmen;
                                             $warnaBadge = match (true) {
-                                                $total <= 0 => '#9ca3af',
-                                                abs($selisih) <= 0.01 => '#16a34a',
+                                                $total <= 0 => '#6b7280',
+                                                abs($selisih) <= 0.01 => '#15803d',
                                                 $selisih > 0.01 => '#dc2626',
-                                                default => '#d97706',
+                                                default => '#b45309',
                                             };
                                             $perluNormalisasi = $total > 0 && abs($selisih) > 0.01;
                                             $nilaiAwal = [];

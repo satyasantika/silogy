@@ -436,9 +436,9 @@ it('menandai warna badge total bobot sesuai perbandingan dengan bobot Asesmen', 
         ->and($html)->toContain('data-silogy="kode-keterangan-trigger"')
         ->and($html)->toContain('data-jenis="Sub-CPMK"')
         ->and($html)->toContain('data-jenis="CPMK"')
-        ->and($html)->toContain('background:#d97706;') // warning: total < bobot asesmen
+        ->and($html)->toContain('background:#b45309;') // warning: total < bobot asesmen
         ->and($html)->toContain('background:#dc2626;') // danger: total > bobot asesmen
-        ->and($html)->toContain('background:#16a34a;'); // success: total = bobot asesmen
+        ->and($html)->toContain('background:#15803d;'); // success: total = bobot asesmen
 });
 
 it('menampilkan tombol Normalisasi hanya untuk asesmen yang totalnya belum sama dengan bobotnya, dan menormalisasi saat dipanggil', function () {
@@ -553,7 +553,7 @@ it('rekap Σ asesmen ikut terbarui setelah updateBobot dan bobot 0 menghapus piv
     expect($page->html())
         ->toContain('data-total="10"')
         ->toContain('data-silogy="rekap-total-angka">10</span>')
-        ->toContain('background:#16a34a;');
+        ->toContain('background:#15803d;');
 
     expect(SubcpmkKomponenPenilaian::query()->where('komponen_penilaian_id', $komponen->id)->count())->toBe(2);
 
@@ -567,7 +567,7 @@ it('rekap Σ asesmen ikut terbarui setelah updateBobot dan bobot 0 menghapus piv
     expect($page->html())
         ->toContain('data-total="4"')
         ->toContain('data-silogy="rekap-total-angka">4</span>')
-        ->toContain('background:#d97706;');
+        ->toContain('background:#b45309;');
 });
 
 it('rekap Σ menjadi 10 setelah turun 10 ke 8 lalu isi sisa 2 pada Sub-CPMK lain', function () {
@@ -613,7 +613,7 @@ it('rekap Σ menjadi 10 setelah turun 10 ke 8 lalu isi sisa 2 pada Sub-CPMK lain
         ->toContain('data-silogy="rekap-bobot-asesmen"')
         ->toContain('data-total="10"')
         ->toContain('data-silogy="rekap-total-angka">10</span>')
-        ->toContain('background:#16a34a;')
+        ->toContain('background:#15803d;')
         ->not->toContain("mountAction('normalisasiBobotAsesmen', JSON.parse('{\u0022komponenId\u0022:\u0022".$komponen->id."\u0022}'))");
 
     expect((float) SubcpmkKomponenPenilaian::query()->where('komponen_penilaian_id', $komponen->id)->sum('bobot'))

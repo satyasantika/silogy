@@ -236,4 +236,14 @@
         --dark-bg: var(--color-700);
         --dark-hover-bg: var(--color-800);
     }
+
+    /*
+     * Tombol primer mode terang: bawaan latar primary-400 + teks primary-900
+     * = 4.3:1 (< 4.5). Teks primary-950 menaikkannya ke >= 6:1; latar tidak
+     * berubah. Variabel --text hanya dipakai mode terang.
+     */
+    .fi-btn.fi-color-primary:not(.fi-outlined) {
+        --text: var(--color-950);
+        --hover-text: var(--color-950);
+    }
 </style>

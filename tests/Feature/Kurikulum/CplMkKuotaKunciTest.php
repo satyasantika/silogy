@@ -119,7 +119,7 @@ it('rekap 99,9 tidak success dan menampilkan normalisasi', function () {
     expect(CplMk::rekapPas(99.9))->toBeFalse()
         ->and($html)
         ->toContain('Σ 99,9%')
-        ->toContain('background:#d97706')
+        ->toContain('background:#b45309')
         ->not->toContain('data-terkunci="1"')
         ->toContain('data-cplbok="'.$cplBokKosong->id.'"')
         ->toContain('Normalisasi')
@@ -164,7 +164,7 @@ it('menaikkan cpl pertama 0,1 pada sebaran 33,30/33,33/33,34 mengubah rekap menj
     $htmlAwal = Livewire::test(CplMkMatrix::class)->html();
     expect($htmlAwal)
         ->toContain('Σ 99,9%')
-        ->toContain('background:#d97706');
+        ->toContain('background:#b45309');
 
     $html = Livewire::test(CplMkMatrix::class)
         ->call('updateBobot', $mk->id, $cplBok1->id, '33.4')
@@ -175,5 +175,5 @@ it('menaikkan cpl pertama 0,1 pada sebaran 33,30/33,33/33,34 mengubah rekap menj
         ->and(CplMk::jumlahBobot(CplMk::query()->where('mk_id', $mk->id)->pluck('bobot')))->toBe(100.0)
         ->and($html)
         ->toContain('Σ 100%')
-        ->toContain('background:#16a34a');
+        ->toContain('background:#15803d');
 });

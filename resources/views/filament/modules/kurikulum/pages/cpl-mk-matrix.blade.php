@@ -108,10 +108,10 @@
                                     return 'kurang';
                                 },
                                 get warna() {
-                                    if (this.rekapTotal <= 0) return '#9ca3af';
-                                    if (this.pas) return '#16a34a';
+                                    if (this.rekapTotal <= 0) return '#6b7280';
+                                    if (this.pas) return '#15803d';
                                     if (this.selisih > 0) return '#dc2626';
-                                    return '#d97706';
+                                    return '#b45309';
                                 },
                                 get perluNorm() {
                                     return this.rekapTotal > 0 && !this.pas;
@@ -235,10 +235,10 @@
                                 $selisih = round($total - 100.0, \App\Modules\CPL\Models\CplMk::DESIMAL_BOBOT);
                                 $pasRekap = \App\Modules\CPL\Models\CplMk::rekapPas($total);
                                 $warnaBadge = match (true) {
-                                    $total <= 0 => '#9ca3af',
-                                    $pasRekap => '#16a34a',
+                                    $total <= 0 => '#6b7280',
+                                    $pasRekap => '#15803d',
                                     $selisih > 0 => '#dc2626',
-                                    default => '#d97706',
+                                    default => '#b45309',
                                 };
                                 $statusBadge = match (true) {
                                     $total <= 0 => 'kosong',

@@ -208,7 +208,7 @@ class DaftarKurikulumPimpinan extends Page implements HasActions, HasTable
     {
         $statusLabel = $kurikulum->is_active ? 'Aktif' : 'Nonaktif';
         $statusBg = $kurikulum->is_active ? '#dcfce7' : '#f3f4f6';
-        $statusColor = $kurikulum->is_active ? '#166534' : '#6b7280';
+        $statusColor = $kurikulum->is_active ? '#166534' : '#4b5563';
         $statusBorder = $kurikulum->is_active ? '#86efac' : '#d1d5db';
         $kode = filled($kurikulum->kode) ? $kurikulum->kode : '—';
 
@@ -281,7 +281,7 @@ class DaftarKurikulumPimpinan extends Page implements HasActions, HasTable
                 ]);
 
                 $background = $ada ? '#dcfce7' : '#f3f4f6';
-                $color = $ada ? '#166534' : '#6b7280';
+                $color = $ada ? '#166534' : '#4b5563';
                 $border = $ada ? '#86efac' : '#d1d5db';
                 $title = $ada
                     ? $label.' — data tersedia'

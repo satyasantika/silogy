@@ -277,7 +277,7 @@ class MataKuliahKoordinatorService
                 ]);
 
                 $background = $ada ? '#dcfce7' : '#f3f4f6';
-                $color = $ada ? '#166534' : '#6b7280';
+                $color = $ada ? '#166534' : '#4b5563';
                 $border = $ada ? '#86efac' : '#d1d5db';
                 $status = $ada ? 'Ada' : 'Belum';
 
