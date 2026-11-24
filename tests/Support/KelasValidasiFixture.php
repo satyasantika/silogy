@@ -1,12 +1,12 @@
 <?php
 
+use App\Models\Role;
 use App\Models\User;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
 use App\Modules\Institusi\Models\AcademicUnit;
-use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kalender\Models\Semester;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -189,14 +189,36 @@ if (! function_exists('siapkanKelasTigaSubcpmk')) {
     }
 }
 
-if (! function_exists('jadikanValidator')) {
-    /** Menugaskan user pada unit dengan penanda validator nilai (peran ikut otomatis). */
-    function jadikanValidator(User $user, AcademicUnit $unit): void
+if (! function_exists('jadikanValidatorKurikulum')) {
+    /**
+     * Menunjuk user sebagai validator tambahan pada kurikulum kelas itu dan
+     * memberinya peran Validator Nilai langsung lewat pivot roles. Panggil
+     * setelah penulisan AcademicUnitUser, karena sinkronisasi peran lama
+     * (berbasis penanda) mencabut peran dari user tanpa penanda.
+     */
+    function jadikanValidatorKurikulum(User $user, KelasMk $kelas): void
     {
-        AcademicUnitUser::query()->create([
-            'academic_unit_id' => $unit->id,
-            'user_id' => $user->id,
-            'status_validator_nilai' => true,
-        ]);
+        $kelas->loadMissing('mkUnit.kurikulum');
+        $kelas->mkUnit->kurikulum->validatorTambahan()->syncWithoutDetaching([$user->id]);
+
+        $user->roles()->syncWithoutDetaching([Role::query()->where('name', 'Validator Nilai')->firstOrFail()->id]);
+    }
+}
+
+if (! function_exists('jadikanValidator')) {
+    /**
+     * Menunjuk user sebagai validator tambahan pada kurikulum uji milik prodi
+     * (kurikulum yang sama dengan yang dipakai siapkanKelasValidasi, sehingga
+     * urutan pemanggilan bebas) dan memberinya peran Validator Nilai.
+     */
+    function jadikanValidator(User $user, AcademicUnit $prodi): void
+    {
+        $kurikulum = Kurikulum::query()->firstOrCreate(
+            ['academic_unit_id' => $prodi->id, 'nama' => 'Kurikulum Uji Validasi'],
+            ['tahun' => 2026, 'is_active' => true],
+        );
+        $kurikulum->validatorTambahan()->syncWithoutDetaching([$user->id]);
+
+        $user->roles()->syncWithoutDetaching([Role::query()->where('name', 'Validator Nilai')->firstOrFail()->id]);
     }
 }

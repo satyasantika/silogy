@@ -165,9 +165,10 @@ it('menyimpan matriks tanpa perubahan lewat halaman tidak menggugurkan, perubaha
 it('infoValidasi memuat jabatan penugasan validator pada unit kelas atau induknya', function () {
     $validator = User::factory()->create();
     $fakultas = $this->kelas->mkUnit->academicUnit->parent;
-    jadikanValidator($validator, $fakultas);
-    AcademicUnitUser::query()
-        ->where('user_id', $validator->id)->update(['jabatan' => 'Wakil Dekan I']);
+    AcademicUnitUser::query()->create([
+        'academic_unit_id' => $fakultas->id, 'user_id' => $validator->id, 'jabatan' => 'Wakil Dekan I',
+    ]);
+    jadikanValidator($validator, $this->kelas->mkUnit->academicUnit);
 
     $sidik = bukaLaporan($this->kelas)->get('sidikLaporan');
     app(ValidasiNilaiService::class)->validasi($this->kelas, $validator, $sidik);
