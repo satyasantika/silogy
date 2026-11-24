@@ -111,12 +111,21 @@ function auditarDom(opsi) {
     } else if (a >= 0.995) { opaq = true; grad = null; img = null; }
     // url(...) (mis. ikon panah <select>) tidak mengubah latar di bawah teks: tetap dihitung, diberi tanda.
     if (bi !== 'none' && !/gradient\(/.test(bi)) {
-      // Ikon kecil (mis. panah <select>): tak berulang dan ukurannya jauh di bawah kotak elemen.
+      // Ikon kecil (mis. panah <select>): tak berulang, sisi <= 48px, dan <= 25% kotak elemen. Semua lapis
+      // diperiksa; satu lapis lebar saja membuat elemen ini gambar-lebar. Tinggi 'auto' dianggap setinggi elemen.
       const r = el.getBoundingClientRect();
-      const ukuran = cs.backgroundSize.split(',')[0].trim().split(/\s+/).map((v) => (v.endsWith('px') ? parseFloat(v) : NaN));
-      const lw = ukuran[0], lh = ukuran.length > 1 ? ukuran[1] : ukuran[0];
-      const kecil = cs.backgroundRepeat.startsWith('no-repeat') && lw > 0 && lh > 0 && lw * lh <= 0.25 * r.width * r.height;
-      img = { sel: selektor(el), kelas: kecil ? 'ikon-kecil' : 'gambar-lebar' };
+      const ukuranDaftar = cs.backgroundSize.split(',');
+      const ulangDaftar = cs.backgroundRepeat.split(',');
+      let kecil = true;
+      ukuranDaftar.forEach((u, i) => {
+        const t = u.trim().split(/\s+/).map((v) => (v.endsWith('px') ? parseFloat(v) : NaN));
+        const ul = (ulangDaftar[i % ulangDaftar.length] || '').trim();
+        const lw = t[0], lh = t.length > 1 && !isNaN(t[1]) ? t[1] : r.height;
+        const ok = (ul === 'no-repeat' || ul === 'no-repeat no-repeat') && lw > 0 && lw <= 48 && lh > 0 && lh <= 48 && lw * lh <= 0.25 * r.width * r.height;
+        if (!ok) kecil = false;
+      });
+      // Gambar lebar milik leluhur tidak boleh tertutup ikon kecil milik keturunannya.
+      img = img && img.kelas === 'gambar-lebar' ? img : { sel: selektor(el), kelas: kecil ? 'ikon-kecil' : 'gambar-lebar' };
     }
     const hasil = { C, O, opaq, grad, img };
     memo.set(el, hasil);
@@ -345,6 +354,11 @@ const FIXTURE = `<style>
   <input data-fx="baik-nilai-input" value="isi terang" style="background:#111;color:#eee;border:0">
   <select data-fx="baik-select" style="background:#111;color:#eee;border:0"><option>pilihan terang</option></select>
   <div data-fx="baik-ikon-kecil" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right .5rem center / 16px 16px;color:#fff;height:40px">terang di gelap, ikon kecil</div>
+  <div style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') center / cover;height:60px"><div data-fx="baik-ikon-di-atas-hero" style="background:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right .5rem center / 16px 16px;color:#fff;height:40px">ikon kecil di atas hero cover</div></div>
+  <div data-fx="baik-besar-300" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat center / 300px 300px;color:#fff;height:1200px;width:1400px">elemen besar, gambar 300x300</div>
+  <div data-fx="baik-repeat-y" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') repeat-y left / 16px 16px;color:#fff;height:40px">kolom sempit repeat-y</div>
+  <div data-fx="baik-lapis-ganda" style="background:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right center / 16px 16px, url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') center / cover #111;color:#fff;height:40px">dua lapis, satu lebar</div>
+  <div data-fx="baik-satu-nilai" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right center / 16px;color:#fff;height:100px">lebar 16px tinggi auto, kotak tinggi</div>
   <div data-fx="baik-gambar-lebar" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') center / cover;color:#fff;height:40px">terang di gelap, gambar lebar</div>
   <div data-fx="baik-gambar-url" style="background:#111 url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22/%3E') no-repeat right;color:#fff">terang di gelap dengan ikon url</div>
   <div style="width:80px;height:20px;overflow:auto;background:#111"><div data-fx="baik-gulir" style="margin-top:60px;color:#fff;white-space:nowrap">di luar kotak tapi dapat digulir</div></div>
@@ -356,7 +370,7 @@ const FIXTURE = `<style>
 const BURUK = ['buruk-putih-di-putih', 'buruk-gelap-di-gelap', 'buruk-semitransparan', 'buruk-opasitas', 'buruk-kecil-abu',
   'buruk-oklch', 'buruk-color-mix', 'buruk-color-srgb', 'buruk-placeholder', 'buruk-nilai-input', 'buruk-select', 'buruk-text-fill', 'buruk-gambar-url'];
 const BAIK = ['baik-terang-di-gelap', 'baik-gelap-di-terang', 'baik-semitransparan', 'baik-opasitas', 'baik-besar', 'baik-oklch', 'baik-color-mix',
-  'baik-placeholder', 'baik-nilai-input', 'baik-select', 'baik-gambar-url', 'baik-ikon-kecil', 'baik-gambar-lebar', 'baik-gulir', 'tersembunyi-opasitas0', 'tersembunyi-display', 'tersembunyi-terpotong', 'takTentu-gradien'];
+  'baik-placeholder', 'baik-nilai-input', 'baik-select', 'baik-gambar-url', 'baik-ikon-kecil', 'baik-gambar-lebar', 'baik-ikon-di-atas-hero', 'baik-besar-300', 'baik-repeat-y', 'baik-lapis-ganda', 'baik-satu-nilai', 'baik-gulir', 'tersembunyi-opasitas0', 'tersembunyi-display', 'tersembunyi-terpotong', 'takTentu-gradien'];
 
 async function autotest(browser) {
   // Halaman kosong: tidak bergantung pada aplikasi yang berjalan.
@@ -375,6 +389,9 @@ async function autotest(browser) {
   const kelasGambar = new Map(r.bergambar.map((a) => [a.fx, a.gambarKelas]));
   if (kelasGambar.get('baik-ikon-kecil') !== 'ikon-kecil') gagal.push(`baik-ikon-kecil harus ikon-kecil (dapat ${kelasGambar.get('baik-ikon-kecil')})`);
   if (kelasGambar.get('baik-gambar-lebar') !== 'gambar-lebar') gagal.push(`baik-gambar-lebar harus gambar-lebar dan tampil di daftar cek visual (dapat ${kelasGambar.get('baik-gambar-lebar')})`);
+  for (const k of ['baik-ikon-di-atas-hero', 'baik-besar-300', 'baik-repeat-y', 'baik-lapis-ganda', 'baik-satu-nilai']) {
+    if (kelasGambar.get(k) !== 'gambar-lebar') gagal.push(`${k} harus gambar-lebar (dapat ${kelasGambar.get(k)})`);
+  }
   console.log('Autotest: latar bergambar lulus =', JSON.stringify(Object.fromEntries(kelasGambar)));
   for (const k of ['buruk-gambar-url', 'baik-gambar-url']) if (tak.has(k)) gagal.push(`${k}: url() tidak boleh tak-tentu`);
   console.log('Autotest: ditandai =', JSON.stringify(Object.fromEntries(kena)), '| tak-tentu =', [...tak].join(','));
@@ -440,7 +457,8 @@ function tulisLaporan(baru, dijalankan) {
     '- Latar `kanvas-putih` berarti tak ada leluhur opak; pada mode gelap itu patut dicurigai.',
     '- Keadaan hover/fokus/animasi dimatikan; hanya keadaan diam yang diaudit.',
     '- Konten di dalam kontainer overflow auto/scroll diaudit walau di luar kotak tampak (dijangkau dengan menggulir); hanya overflow hidden/clip yang menyembunyikan. Teks yang terpotong oleh hidden/clip tidak diaudit.',
-    '- `background-image: url(...)` tetap dihitung dengan warna latar (kolom adaGambar di JSON); hanya `*-gradient()` dan background-clip:text yang tak-tentu.'];
+    '- `url()` tetap dihitung dengan warna latar saja. Bagian "Perlu cek visual" mendaftar simpul lulus yang berlatar `gambar-lebar` (heuristik: ikon kecil = tak berulang, sisi <= 48px, <= 25% kotak elemen; selain itu lebar); ikon kecil hanya dihitung. Heuristik condong ke over-flag.',
+    '- Data per peran yang tersimpan sebelum perubahan klasifikasi gambar tidak memuat info bergambar sampai tiap halaman dijalankan ulang, sehingga hitungan di header kurang dari sebenarnya.'];
   fs.writeFileSync(path.join(DIR_KELUARAN, 'laporan.md'), L.join('\n') + '\n');
   return { semua, halamanLog, takTercapai, takTentu };
 }
