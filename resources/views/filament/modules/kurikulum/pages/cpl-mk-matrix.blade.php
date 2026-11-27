@@ -27,8 +27,11 @@
                     Bila rekap sudah 100%, sel CPL yang masih kosong dikunci (readonly) — turunkan dulu bobot CPL yang sudah terisi agar ada sisa kuota, baru isi CPL lain.
                     Kosongkan atau isi 0 untuk menghapus. MK/CPL bertanda † berasal dari adaptasi MK unit lain — sel yang murni milik unit lain bersifat baca-saja.
                 </p>
+                {{-- Wadah punya tinggi maksimum: sticky top hanya bekerja relatif terhadap
+                     kotak yang bisa di-scroll, dan overflow-x saja menjadikan wadah ini
+                     penggulir tanpa tinggi terbatas sehingga judul kolom ikut hilang. --}}
                 <div
-                    style="overflow-x:auto;"
+                    style="overflow:auto;max-height:calc(100vh - 160px);"
                     wire:key="matriks-cpl-mk"
                     x-data
                     x-init="
@@ -191,13 +194,13 @@
                 <table style="width:100%;border-collapse:collapse;font-size:13px;">
                     <thead>
                         <tr style="text-align:left;border-bottom:2px solid rgba(128,128,128,.35);">
-                            <th class="cpl-mk-sticky cpl-mk-sticky-head" style="position:sticky;left:0;z-index:2;padding:8px;">MK \ CPL (via BoK)</th>
+                            <th class="cpl-mk-sticky cpl-mk-sticky-head" style="position:sticky;top:0;left:0;z-index:4;padding:8px;">MK \ CPL (via BoK)</th>
                             @foreach ($cplBoks as $cplBok)
                                 @php
                                     $cplAsing = $cplBok->cpl && $cplBok->cpl->academic_unit_id !== $kurikulum->academic_unit_id;
                                     $bokAsing = $cplBok->bok && $cplBok->bok->academic_unit_id !== $kurikulum->academic_unit_id;
                                 @endphp
-                                <th style="padding:8px;text-align:center;white-space:nowrap;">
+                                <th class="cpl-mk-th-atas" style="position:sticky;top:0;z-index:3;padding:8px;text-align:center;white-space:nowrap;">
                                     @include('filament.modules.kurikulum.partials.kode-keterangan-trigger', [
                                         'jenis' => 'CPL',
                                         'kode' => $cplKodeMap[$cplBok->cpl_id] ?? $cplBok->cpl?->kode,
@@ -363,6 +366,15 @@
             background: #ffffff;
             white-space: normal;
             overflow-wrap: break-word;
+        }
+
+        .cpl-mk-th-atas {
+            background: #f4f4f5;
+            box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.18);
+        }
+
+        .dark .cpl-mk-th-atas {
+            background: #27272a;
         }
 
         .dark .cpl-mk-sticky-head {
