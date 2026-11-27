@@ -21,6 +21,7 @@ use App\Support\Filament\NavigationSortPeran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -35,6 +36,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
 class CpmkResource extends Resource
@@ -124,6 +126,11 @@ class CpmkResource extends Resource
 
         return $schema
             ->components([
+                Placeholder::make('peringatan_sudah_dinilai')
+                    ->hiddenLabel()
+                    ->content(new HtmlString('<p style="font-size:12px;"><strong>CPMK ini sudah dinilai.</strong> Mengubah kode atau deskripsi hanya memperbarui label; nilai mahasiswa tidak berubah. Perubahan tercatat di audit log.</p>'))
+                    ->visible(fn (?Cpmk $record): bool => $record !== null && $record->sudahDinilai())
+                    ->columnSpanFull(),
                 Section::make('CPMK')
                     ->schema([
                         Select::make('mk_id')

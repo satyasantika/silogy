@@ -9,10 +9,11 @@ use App\Modules\MK\Enums\StatusPerubahanCpmk;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\PerubahanCpmkRequest;
+use App\Modules\Penilaian\Models\NilaiMahasiswa;
 
 /**
  * Gerbang tunggal yang menjawab: bolehkah CPMK mata kuliah ini diubah untuk
- * semester ini?
+ * semester ini? (Kini: selalu boleh selama ada semester terpilih.)
  *
  * Aturannya sengaja dipusatkan di sini karena dipakai policy, form Filament,
  * matriks CPL↔CPMK, dan tombol reset — kalau tersebar, salah satu pasti
@@ -20,30 +21,17 @@ use App\Modules\MK\Models\PerubahanCpmkRequest;
  */
 final class GerbangPerubahanCpmk
 {
+    /**
+     * Koordinator bebas menambah, mengurangi, dan mengubah CPMK/Sub-CPMK
+     * kapan pun — tidak ada lagi usulan yang harus disetujui Tim Kurikulum.
+     * Yang tersisa hanyalah peringatan bagi CPMK yang sudah dinilai
+     * (lihat sudahDinilai()) dan jejak audit pada modelnya. Pintu ini
+     * dipertahankan sebagai satu titik keputusan supaya aturan bisa
+     * diketatkan lagi tanpa menyentuh policy, form, dan matriks.
+     */
     public static function bolehUbah(Mk $mk, ?string $semesterId, ?User $user = null): bool
     {
-        if ($semesterId === null) {
-            return false;
-        }
-
-        // Tim Kurikulum unit MK (atau induknya) dan Admin/Super Admin memang
-        // pemilik kewenangan itu — tidak perlu mengajukan ke dirinya sendiri.
-        if ($user instanceof User && self::userBerwenangMenyetujui($mk, $user)) {
-            return true;
-        }
-
-        // Semester yang CPMK-nya masih kosong: pengisian pertama bebas.
-        // Belum ada rumusan berjalan yang diubah, jadi tidak ada yang perlu
-        // dilindungi — koordinator tinggal memilih pakai lama atau susun baru.
-        if (! self::sudahAdaCpmk($mk, $semesterId)) {
-            return true;
-        }
-
-        return PerubahanCpmkRequest::query()
-            ->where('mk_id', $mk->id)
-            ->where('semester_id', $semesterId)
-            ->where('status', StatusPerubahanCpmk::Disetujui)
-            ->exists();
+        return $semesterId !== null;
     }
 
     /**
@@ -64,8 +52,8 @@ final class GerbangPerubahanCpmk
     }
 
     /**
-     * Perlu mengajukan usulan: sudah ada CPMK berjalan di semester ini, belum
-     * ada persetujuan, dan user bukan pihak yang berwenang menyetujui.
+     * Selalu false sejak perubahan CPMK tidak lagi butuh persetujuan; tetap
+     * ada agar tombol pengajuan dan spanduk matriks mengikuti satu sumber.
      */
     public static function butuhPersetujuan(Mk $mk, ?string $semesterId, ?User $user = null): bool
     {
@@ -81,11 +69,17 @@ final class GerbangPerubahanCpmk
             && AcademicUnitScope::userIsTimKurikulumOnUnitOrAncestor($user, $unit);
     }
 
-    private static function sudahAdaCpmk(Mk $mk, string $semesterId): bool
+    /**
+     * Apakah ada nilai mahasiswa yang terisi pada asesmen Sub-CPMK milik CPMK
+     * MK ini di semester tersebut. Sel nilai yang masih kosong tidak dihitung.
+     */
+    public static function sudahDinilai(Mk $mk, string $semesterId): bool
     {
-        return Cpmk::query()
-            ->where('mk_id', $mk->id)
-            ->untukSemester($semesterId)
+        return NilaiMahasiswa::query()
+            ->whereNotNull('nilai')
+            ->whereHas('subcpmkKomponen', fn ($pivot) => $pivot
+                ->where('semester_id', $semesterId)
+                ->whereHas('subcpmk.mkCpmk.cpmk', fn ($cpmk) => $cpmk->where('mk_id', $mk->id)))
             ->exists();
     }
 }

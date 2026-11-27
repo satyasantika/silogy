@@ -13,6 +13,7 @@ use App\Modules\Institusi\Filament\Resources\AcademicUnitResource\Pages\ListAcad
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Policies\AcademicUnitPolicy;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kelas\Filament\Resources\KelasMkResource\Pages\ListKelasMks;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Filament\Resources\KurikulumResource\Pages\EditKurikulum;
@@ -1141,12 +1142,18 @@ it('impor massal selalu tampil di header baik data kosong maupun sudah ada (CPL,
 
     expect(Cpmk::query()->where('mk_id', $mk->id)->where('kode', 'CPMK-EMPTY-01')->exists())->toBeTrue();
 
-    // CPMK adalah pengecualian dari pola "impor selalu tampil": begitu
-    // semester ini punya CPMK berjalan, mengubahnya butuh persetujuan Tim
-    // Kurikulum, jadi impor dikunci dan digantikan tombol pengajuan.
+    // Selama belum pernah dinilai, CPMK bebas diubah: impor tetap tampil.
     Livewire::test(ListCpmks::class)
-        ->assertActionHidden('bulkImport')
-        ->assertActionVisible('ajukanPerubahanCpmk');
+        ->assertActionVisible('bulkImport')
+        ->assertActionHidden('ajukanPerubahanCpmk');
+
+    // Perubahan CPMK tidak lagi butuh persetujuan: walau sudah dinilai,
+    // impor tetap tampil dan tombol pengajuan tidak pernah muncul.
+    cpmkSudahDinilai($mk, Semester::query()->findOrFail(SemesterTerpilih::currentId($mk->id)), $this->prodi);
+
+    Livewire::test(ListCpmks::class)
+        ->assertActionVisible('bulkImport')
+        ->assertActionHidden('ajukanPerubahanCpmk');
 });
 
 it('impor cpl, bok, dan mk dengan kode/nama sama pada dua kurikulum berbeda tetap dianggap baru (versioning per kurikulum)', function () {

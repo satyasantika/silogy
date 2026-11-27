@@ -12,8 +12,10 @@ use App\Modules\Institusi\Models\AcademicUnitUser;
 use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Models\ProfilLulusan;
+use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkUnit;
+use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -169,6 +171,8 @@ class ActivityLogResource extends Resource
             Cpl::class => 'CPL',
             Mk::class => 'Mata kuliah',
             MkUnit::class => 'Penawaran MK',
+            Cpmk::class => 'CPMK',
+            Subcpmk::class => 'Sub-CPMK',
             KelasMk::class => 'Kelas MK',
             NilaiMahasiswa::class => 'Nilai mahasiswa',
         ];

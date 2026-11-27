@@ -4,9 +4,13 @@ use App\Modules\BoK\Models\Bok;
 use App\Modules\CPL\Models\Cpl;
 use App\Modules\CPL\Models\CplBok;
 use App\Modules\CPL\Models\CplMk;
+use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Kelas\Models\KelasMk;
+use App\Modules\Kelas\Models\KelasMkMahasiswa;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
+use App\Modules\Mahasiswa\Models\Mahasiswa;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\CpmkSemester;
 use App\Modules\MK\Models\Mk;
@@ -17,6 +21,8 @@ use App\Modules\MK\Models\SubcpmkSemester;
 use App\Modules\Penilaian\Models\Evaluasi;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
+use App\Modules\Penilaian\Models\NilaiMahasiswa;
+use App\Modules\Penilaian\Models\SubcpmkKomponenPenilaian;
 
 /*
  * Helper test lintas berkas. Dimuat sekali lewat tests/Pest.php.
@@ -166,4 +172,49 @@ function semesterAsesmen(KomponenPenilaian|string $komponen): ?string
         ->value('semester_id');
 
     return $semesterId === null ? null : (string) $semesterId;
+}
+
+/**
+ * Tutup gerbang perubahan CPMK: beri MK sebuah CPMK (kode CPMK-NILAI) yang
+ * Sub-CPMK-nya punya asesmen dengan nilai mahasiswa pada semester itu. CPL,
+ * pemetaannya, dan seluruh rantai penilaian dibuat sendiri supaya tidak
+ * mengganggu fixture pemanggil. $nilai null meniru sel yang belum diisi.
+ */
+function cpmkSudahDinilai(Mk $mk, Semester $semester, AcademicUnit $prodi, ?float $nilai = 80): Cpmk
+{
+    $cpl = Cpl::factory()->forAcademicUnit($prodi)->create();
+    $bok = Bok::factory()->forAcademicUnit($prodi)->create();
+    $cplBok = CplBok::query()->create(['cpl_id' => $cpl->id, 'bok_id' => $bok->id]);
+    $cplMk = CplMk::query()->create(['cpl_bok_id' => $cplBok->id, 'mk_id' => $mk->id, 'bobot' => 100]);
+
+    $cpmk = cpmkUntukSemester($mk, $semester, ['kode' => 'CPMK-NILAI']);
+    $mkCpmk = MkCpmk::query()->create(['cpl_mk_id' => $cplMk->id, 'cpmk_id' => $cpmk->id, 'bobot' => 100]);
+    $subcpmk = subcpmkUntukSemester($mkCpmk, $semester, ['kode' => 'SUB-NILAI']);
+
+    $evaluasi = Evaluasi::query()->firstOrCreate(['kode' => 'uts'], ['nama' => 'Ujian Tengah Semester']);
+    $komponen = KomponenPenilaian::query()->create([
+        'mk_id' => $mk->id, 'evaluasi_id' => $evaluasi->id, 'kode' => 'UTS', 'nama' => 'UTS',
+    ]);
+    $pivot = SubcpmkKomponenPenilaian::query()->create([
+        'subcpmk_id' => $subcpmk->id,
+        'komponen_penilaian_id' => $komponen->id,
+        'semester_id' => $semester->id,
+        'bobot' => 100,
+    ]);
+
+    $mkUnit = MkUnit::query()->where('mk_id', $mk->id)->first()
+        ?? MkUnit::factory()->forMk($mk)->forAcademicUnit($prodi)->create();
+    $kelas = KelasMk::query()->create(['mk_unit_id' => $mkUnit->id, 'semester_id' => $semester->id, 'kode_kelas' => 'A']);
+    $kmm = KelasMkMahasiswa::query()->create([
+        'kelas_mk_id' => $kelas->id,
+        'mahasiswa_id' => Mahasiswa::factory()->create(['academic_unit_id' => $prodi->id])->id,
+    ]);
+
+    NilaiMahasiswa::query()->create([
+        'subcpmk_komponenpenilaian_id' => $pivot->id,
+        'kelas_mk_mahasiswa_id' => $kmm->id,
+        'nilai' => $nilai,
+    ]);
+
+    return $cpmk;
 }

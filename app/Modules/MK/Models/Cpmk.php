@@ -3,7 +3,9 @@
 namespace App\Modules\MK\Models;
 
 use App\Modules\Kalender\Models\Semester;
+use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use App\Modules\Simulasi\Models\Concerns\BerRanahSimulasi;
+use App\Support\Concerns\LogsSilogyActivity;
 use Database\Factories\CpmkFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,7 +30,7 @@ class Cpmk extends Model
     public const RANAH_KOLOM = 'mk_id';
 
     /** @use HasFactory<CpmkFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsSilogyActivity;
 
     protected $table = 'cpmk';
 
@@ -101,6 +103,18 @@ class Cpmk extends Model
             'semesters',
             fn (Builder $semester): Builder => $semester->whereKey($semesterId),
         );
+    }
+
+    /**
+     * Apakah ada nilai mahasiswa terisi pada asesmen Sub-CPMK milik CPMK ini
+     * (semester mana pun). Dipakai untuk peringatan, bukan untuk menolak.
+     */
+    public function sudahDinilai(): bool
+    {
+        return NilaiMahasiswa::query()
+            ->whereNotNull('nilai')
+            ->whereHas('subcpmkKomponen.subcpmk.mkCpmk', fn (Builder $mkCpmk): Builder => $mkCpmk->where('cpmk_id', $this->getKey()))
+            ->exists();
     }
 
     /**

@@ -303,6 +303,11 @@ class SubcpmkResource extends Resource
                     ->visible(fn (?Subcpmk $record): bool => $record !== null
                         && $record->semesters()->count() > 1)
                     ->columnSpanFull(),
+                Placeholder::make('peringatan_sudah_dinilai')
+                    ->hiddenLabel()
+                    ->content(new HtmlString('<p style="font-size:12px;"><strong>Sub-CPMK ini sudah dinilai.</strong> Mengubah kode atau deskripsi hanya memperbarui label; nilai mahasiswa tidak berubah. Perubahan tercatat di audit log.</p>'))
+                    ->visible(fn (?Subcpmk $record): bool => $record !== null && $record->sudahDinilai())
+                    ->columnSpanFull(),
                 Section::make('Sub-CPMK')
                     ->schema([
                         Select::make('mk_cpmk_id')

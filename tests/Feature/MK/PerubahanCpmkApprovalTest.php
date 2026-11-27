@@ -19,6 +19,7 @@ use App\Modules\MK\Services\CpmkPakaiUlangSemesterService;
 use App\Modules\MK\Services\PerubahanCpmkService;
 use App\Modules\MK\Support\GerbangPerubahanCpmk;
 use App\Modules\MK\Support\MkTerpilih;
+use App\Modules\Penilaian\Models\NilaiMahasiswa;
 use Database\Seeders\AcademicUnitSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Database\Seeders\SemesterSeeder;
@@ -68,11 +69,41 @@ it('semester yang CPMK-nya masih kosong boleh diisi tanpa persetujuan', function
         ->and(GerbangPerubahanCpmk::butuhPersetujuan($this->mk, $this->semester->id, $this->korma))->toBeFalse();
 });
 
-it('begitu ada CPMK berjalan, koordinator perlu persetujuan untuk mengubahnya', function () {
+it('CPMK yang belum pernah dinilai boleh diubah bebas tanpa persetujuan', function () {
     cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
 
-    expect(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeFalse()
-        ->and(GerbangPerubahanCpmk::butuhPersetujuan($this->mk, $this->semester->id, $this->korma))->toBeTrue();
+    expect(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeTrue()
+        ->and(GerbangPerubahanCpmk::butuhPersetujuan($this->mk, $this->semester->id, $this->korma))->toBeFalse();
+});
+
+it('sel nilai yang masih kosong belum dihitung sebagai sudah dinilai', function () {
+    cpmkSudahDinilai($this->mk, $this->semester, $this->prodi, null);
+
+    expect(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeTrue();
+});
+
+it('CPMK yang sudah dinilai tetap boleh diubah koordinator tanpa persetujuan', function () {
+    $cpmk = cpmkSudahDinilai($this->mk, $this->semester, $this->prodi);
+
+    expect(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeTrue()
+        ->and(GerbangPerubahanCpmk::butuhPersetujuan($this->mk, $this->semester->id, $this->korma))->toBeFalse()
+        ->and(GerbangPerubahanCpmk::sudahDinilai($this->mk, $this->semester->id))->toBeTrue()
+        ->and($cpmk->sudahDinilai())->toBeTrue()
+        ->and($this->korma->can('update', $cpmk))->toBeTrue();
+});
+
+it('mengubah kode dan deskripsi CPMK hanya memperbarui label dan tercatat di audit log', function () {
+    $cpmk = cpmkSudahDinilai($this->mk, $this->semester, $this->prodi);
+    $nilaiSebelum = NilaiMahasiswa::query()->pluck('nilai', 'id')->all();
+
+    $cpmk->update(['kode' => 'CPMK-BARU', 'deskripsi' => 'Redaksi baru.']);
+
+    expect(NilaiMahasiswa::query()->pluck('nilai', 'id')->all())->toEqual($nilaiSebelum);
+    $this->assertDatabaseHas('activity_log', [
+        'subject_type' => $cpmk::class,
+        'subject_id' => $cpmk->id,
+        'event' => 'updated',
+    ]);
 });
 
 it('memakai ulang CPMK semester lalu tidak menimbulkan usulan apa pun', function () {
@@ -103,7 +134,7 @@ it('memakai ulang CPMK semester lalu tidak menimbulkan usulan apa pun', function
 });
 
 it('koordinator mengajukan usulan dan tim kurikulum prodi menyetujuinya', function () {
-    cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
+    cpmkSudahDinilai($this->mk, $this->semester, $this->prodi);
 
     $usulan = app(PerubahanCpmkService::class)
         ->ajukan($this->mk, $this->semester->id, $this->korma, 'Rumusan CPMK perlu disesuaikan dengan OBE terbaru.');
@@ -117,9 +148,6 @@ it('koordinator mengajukan usulan dan tim kurikulum prodi menyetujuinya', functi
         'model_id' => $usulan->id,
         'to_state' => 'diajukan',
     ]);
-
-    // Selama menunggu, gerbangnya tetap tertutup.
-    expect(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeFalse();
 
     expect($this->timkur->can('setujui', $usulan))->toBeTrue();
     app(PerubahanCpmkService::class)->setujui($usulan, $this->timkur, 'Silakan diperbarui.');
@@ -174,8 +202,8 @@ it('tim kurikulum unit lain tidak berwenang menyetujui', function () {
     expect($timkurLain->fresh()->can('setujui', $usulan))->toBeFalse();
 });
 
-it('menolak usulan menutup kembali gerbangnya', function () {
-    cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
+it('menolak usulan tidak menutup gerbang karena perubahan memang bebas', function () {
+    cpmkSudahDinilai($this->mk, $this->semester, $this->prodi);
 
     $usulan = app(PerubahanCpmkService::class)
         ->ajukan($this->mk, $this->semester->id, $this->korma, 'Perlu penyesuaian.');
@@ -183,7 +211,7 @@ it('menolak usulan menutup kembali gerbangnya', function () {
     app(PerubahanCpmkService::class)->tolak($usulan, $this->timkur, 'Belum ada dasar evaluasinya.');
 
     expect($usulan->fresh()->status)->toBe(StatusPerubahanCpmk::Ditolak)
-        ->and(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeFalse();
+        ->and(GerbangPerubahanCpmk::bolehUbah($this->mk, $this->semester->id, $this->korma))->toBeTrue();
 });
 
 it('tidak boleh ada dua usulan terbuka untuk mk dan semester yang sama', function () {

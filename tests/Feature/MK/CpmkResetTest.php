@@ -11,7 +11,6 @@ use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
-use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
 use App\Modules\MK\Models\MkCpmk;
 use App\Modules\MK\Support\MkTerpilih;
@@ -64,15 +63,22 @@ it('tombol tambah manual dan impor massal tampil berdampingan', function () {
         ->assertActionExists('bulkImport');
 });
 
-it('impor massal terkunci dan tombol ajukan perubahan muncul saat CPMK semester ini sudah ada', function () {
+it('impor massal terbuka tanpa tombol ajukan selama CPMK semester ini belum pernah dinilai', function () {
     cpmkUntukSemester($this->mk, $this->semester, ['kode' => 'CPMK01']);
 
-    // Mengubah CPMK yang sudah berjalan butuh persetujuan Tim Kurikulum;
-    // jalan keluarnya adalah mengajukan usulan, bukan mengimpor diam-diam.
     Livewire::test(ListCpmks::class)
-        ->assertActionHidden('bulkImport')
-        ->assertActionHidden('create')
-        ->assertActionVisible('ajukanPerubahanCpmk');
+        ->assertActionVisible('bulkImport')
+        ->assertActionVisible('create')
+        ->assertActionHidden('ajukanPerubahanCpmk');
+});
+
+it('impor massal dan tambah manual tetap terbuka walau CPMK sudah dinilai, tanpa tombol ajukan', function () {
+    cpmkSudahDinilai($this->mk, $this->semester, $this->prodi);
+
+    Livewire::test(ListCpmks::class)
+        ->assertActionVisible('bulkImport')
+        ->assertActionVisible('create')
+        ->assertActionHidden('ajukanPerubahanCpmk');
 });
 
 it('tombol reset aktif saat belum ada cpmk yang dipetakan ke cpl-mk', function () {
