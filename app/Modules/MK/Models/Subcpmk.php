@@ -140,6 +140,17 @@ class Subcpmk extends Model
     }
 
     /**
+     * Accessor bobot sengaja melempar (bobot kini per semester di pivot);
+     * pencatat audit tidak boleh menyentuhnya.
+     *
+     * @return list<string>
+     */
+    protected function activityLogHiddenAttributes(): array
+    {
+        return ['bobot'];
+    }
+
+    /**
      * Penjaga migrasi: kolom subcpmk.bobot dihapus karena bobot kini
      * bergantung semester (satu baris Sub-CPMK dipakai beberapa semester
      * dengan asesmen berbeda). Tanpa penjaga ini pemanggil lama akan diam-
