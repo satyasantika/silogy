@@ -99,6 +99,21 @@
                     @if ($this->validasiAction->isVisible())
                         {{ $this->validasiAction }}
                     @endif
+                    {{-- Contoh hanya-baca: aksi Validasi ditolak gerbang sehingga hilang,
+                         padahal pengunjung perlu melihat tampilan sebelum divalidasi. --}}
+                    @if (\App\Modules\Simulasi\Support\HanyaBaca::aktif() && ! $this->alasanTidakBisaValidasi)
+                        <span data-silogy="simulasi-validasi-contoh" style="display:inline-flex;align-items:center;gap:8px;">
+                            <span style="font-size:12px;opacity:.8;">
+                                {{ $this->statusValidasi === \App\Modules\Penilaian\Support\StatusValidasiNilai::Tervalidasi->value
+                                    ? 'Kelas contoh ini sudah tervalidasi. Sebelum divalidasi, tombol Validasi tampil di sini.'
+                                    : 'Pada contoh hanya-baca, tombol Validasi hanya peragaan.' }}
+                            </span>
+                            <x-filament::button size="sm" color="success" disabled
+                                icon="heroicon-o-check-badge" title="Peragaan: tidak berfungsi pada contoh hanya-baca">
+                                Validasi
+                            </x-filament::button>
+                        </span>
+                    @endif
                     @if ($this->batalkanValidasiAction->isVisible())
                         {{ $this->batalkanValidasiAction }}
                     @endif

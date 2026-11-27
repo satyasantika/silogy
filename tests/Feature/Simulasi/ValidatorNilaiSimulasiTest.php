@@ -93,6 +93,16 @@ it('hanya-baca: aksi validasi dan batalkan ditolak', function () {
     expect(ValidasiNilaiKelas::query()->where('kelas_mk_id', $kelas->id)->exists())->toBeTrue();
 });
 
+it('hanya-baca: peragaan tombol Validasi mati tampil, bukan aksi sungguhan', function () {
+    sandboxValidator(true);
+    $kelas = KelasMk::query()->get()->first(fn (KelasMk $k): bool => $k->penugasanSelesai());
+
+    Livewire::test(ValidasiNilai::class)
+        ->call('bukaKelas', $kelas->id)
+        ->assertSeeHtml('data-silogy="simulasi-validasi-contoh"')
+        ->assertDontSeeHtml("mountAction('validasi')");
+});
+
 it('sandbox pribadi: sim-validator bisa membatalkan lalu memvalidasi ulang kelas prodi simulasi', function () {
     [, $validator] = sandboxValidator(false);
     $kelas = KelasMk::query()->get()->first(fn (KelasMk $k): bool => $k->penugasanSelesai());
