@@ -8,6 +8,7 @@ use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\CpmkSemester;
 use App\Modules\MK\Policies\CpmkPolicy;
+use App\Modules\MK\Services\CpmkCplPemetaanService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -17,6 +18,22 @@ class CreateCpmk extends BaseCreateRecord
     use HasKoordinatorMkScope;
 
     protected static string $resource = CpmkResource::class;
+
+    private ?string $kodeCplTerpetakan = null;
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $this->kodeCplTerpetakan = filled($data['kode_cpl_terpetakan'] ?? null)
+            ? (string) $data['kode_cpl_terpetakan']
+            : null;
+        unset($data['kode_cpl_terpetakan']);
+
+        return $data;
+    }
 
     protected function beforeCreate(): void
     {
@@ -42,12 +59,18 @@ class CreateCpmk extends BaseCreateRecord
     {
         $semesterId = SemesterTerpilih::currentId(MkTerpilih::currentId()) ?? SemesterTerpilih::defaultId();
 
+        /** @var Cpmk $record */
+        $record = $this->getRecord();
+
+        // Sama dengan impor massal: CPL yang dipilih langsung jadi pemetaan
+        // mk_cpmk, sehingga CPMK ini muncul di pilihan Sub-CPMK.
+        if ($this->kodeCplTerpetakan !== null) {
+            CpmkCplPemetaanService::petakanCpmkKeCpl($record, $this->kodeCplTerpetakan);
+        }
+
         if (blank($semesterId)) {
             return;
         }
-
-        /** @var Cpmk $record */
-        $record = $this->getRecord();
 
         CpmkSemester::query()->firstOrCreate([
             'cpmk_id' => $record->id,

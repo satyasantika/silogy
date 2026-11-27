@@ -3,6 +3,7 @@
 namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
+use App\Modules\CPL\Models\CplMk;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\EditCpmk;
@@ -25,6 +26,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -131,7 +133,15 @@ class CpmkResource extends Resource
                             ->required()
                             ->default($mkTerpilih ?? (count($mkOptions) === 1 ? array_key_first($mkOptions) : null))
                             ->disabled(filled($mkTerpilih) || count($mkOptions) === 1)
-                            ->dehydrated(),
+                            ->dehydrated()
+                            ->live(),
+
+                        Select::make('kode_cpl_terpetakan')
+                            ->label('CPL terpetakan')
+                            ->helperText('Opsional, sama dengan kolom "kode CPL terpetakan" pada impor massal. Tanpa pemetaan CPL, CPMK ini belum bisa dipilih saat membuat Sub-CPMK.')
+                            ->options(fn (Get $get): array => static::kodeCplOptions($get('mk_id')))
+                            ->searchable()
+                            ->visibleOn('create'),
 
                         TextInput::make('kode')
                             ->label('Kode')
@@ -147,6 +157,30 @@ class CpmkResource extends Resource
                     ->columns(2)
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Kode CPL yang sudah punya interaksi CPL–MK pada MK ini, kunci dan nilainya
+     * kode CPL (bentuk yang dipakai CpmkCplPemetaanService).
+     *
+     * @return array<string, string>
+     */
+    public static function kodeCplOptions(?string $mkId): array
+    {
+        if (blank($mkId)) {
+            return [];
+        }
+
+        return CplMk::query()
+            ->where('mk_id', $mkId)
+            ->with('cplBok.cpl')
+            ->get()
+            ->map(fn (CplMk $cplMk): ?string => $cplMk->cplBok?->cpl?->kode)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->mapWithKeys(fn (string $kode): array => [$kode => $kode])
+            ->all();
     }
 
     public static function table(Table $table): Table

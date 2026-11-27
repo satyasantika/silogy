@@ -12,6 +12,7 @@ use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
+use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\CreateSubcpmk;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Models\Mk;
@@ -77,6 +78,27 @@ beforeEach(function () {
         'mk_id' => $this->mk->id,
         'bobot' => 100,
     ]);
+});
+
+it('cpmk satuan dengan CPL terpilih langsung terpetakan sehingga muncul di pilihan Sub-CPMK', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+    $kodeCpl = $this->cplMk->cplBok->cpl->kode;
+
+    Livewire::test(CreateCpmk::class)
+        ->fillForm([
+            'mk_id' => $this->mk->id,
+            'kode' => 'CPMK-MAP',
+            'deskripsi' => 'Mahasiswa mampu memetakan CPMK ke CPL.',
+            'kode_cpl_terpetakan' => $kodeCpl,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $cpmk = Cpmk::query()->where('kode', 'CPMK-MAP')->firstOrFail();
+
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->where('cpl_mk_id', $this->cplMk->id)->exists())->toBeTrue()
+        ->and(SubcpmkResource::mkCpmkOptions())->not->toBeEmpty();
 });
 
 it('korma dapat membuat cpmk subcpmk dan komponen penilaian', function () {
