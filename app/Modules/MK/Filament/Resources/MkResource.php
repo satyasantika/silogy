@@ -262,9 +262,9 @@ class MkResource extends Resource
             ->whereHas('cpl', fn ($query) => $query->where('kurikulum_id', $kurikulumId))
             ->with(['cpl', 'bok'])
             ->get()
-            ->sortBy(fn (CplBok $cplBok): string => ($cplBok->cpl?->kode ?? '').'|'.($cplBok->bok?->kode ?? ''))
+            ->sortBy(fn (CplBok $cplBok): string => ($cplBok->cpl->kode).'|'.($cplBok->bok->kode))
             ->mapWithKeys(fn (CplBok $cplBok): array => [
-                (string) $cplBok->id => sprintf('%s via %s', $cplBok->cpl?->kode ?? '—', $cplBok->bok?->kode ?? '—'),
+                (string) $cplBok->id => sprintf('%s via %s', $cplBok->cpl->kode, $cplBok->bok->kode),
             ])
             ->all();
     }

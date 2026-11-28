@@ -228,7 +228,7 @@ class KomponenPenilaianResource extends Resource
             ->orderBy('kode')
             ->get()
             ->mapWithKeys(fn (Subcpmk $subcpmk): array => [
-                (string) $subcpmk->id => sprintf('%s – %s', $subcpmk->kode, $subcpmk->cpmk?->kode ?? '—'),
+                (string) $subcpmk->id => sprintf('%s – %s', $subcpmk->kode, $subcpmk->cpmk->kode),
             ])
             ->all();
     }
