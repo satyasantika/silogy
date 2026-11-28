@@ -91,4 +91,82 @@ class CpmkCplPemetaanService
             );
         }
     }
+
+    /**
+     * Kode CPL yang saat ini terpetakan ke CPMK (lewat baris mk_cpmk).
+     *
+     * @return list<string>
+     */
+    public static function kodeCplTerpetakan(Cpmk $cpmk): array
+    {
+        return MkCpmk::query()
+            ->where('cpmk_id', $cpmk->id)
+            ->with('cplMk.cplBok.cpl')
+            ->get()
+            ->map(fn (MkCpmk $mkCpmk): ?string => $mkCpmk->cplMk?->cplBok?->cpl?->kode)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Kode CPL yang pemetaannya masih dipakai Sub-CPMK, sehingga tidak boleh
+     * dilepas. Terbuka lagi dengan sendirinya begitu Sub-CPMK-nya hilang.
+     *
+     * @return list<string>
+     */
+    public static function kodeCplTerkunci(Cpmk $cpmk): array
+    {
+        return MkCpmk::query()
+            ->where('cpmk_id', $cpmk->id)
+            ->whereHas('subcpmks')
+            ->with('cplMk.cplBok.cpl')
+            ->get()
+            ->map(fn (MkCpmk $mkCpmk): ?string => $mkCpmk->cplMk?->cplBok?->cpl?->kode)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Samakan pemetaan CPMK dengan daftar kode CPL terpilih: tambah yang baru,
+     * lepas yang tidak lagi dipilih. Pemetaan yang sudah punya Sub-CPMK tidak
+     * dilepas (sama dengan aturan matriks CPL↔CPMK) karena penghapusannya ikut
+     * menghapus Sub-CPMK beserta nilainya.
+     *
+     * @param  list<string>  $kodeTerpilih
+     * @return list<string> kode CPL yang tetap terpetakan karena masih punya Sub-CPMK
+     */
+    public static function sinkronkanCpl(Cpmk $cpmk, array $kodeTerpilih): array
+    {
+        $terpilih = array_values(array_unique(array_filter(array_map('trim', $kodeTerpilih))));
+        $tertahan = [];
+
+        foreach (self::kodeCplTerpetakan($cpmk) as $kode) {
+            if (in_array($kode, $terpilih, true)) {
+                continue;
+            }
+
+            $lepas = MkCpmk::query()
+                ->where('cpmk_id', $cpmk->id)
+                ->whereHas('cplMk.cplBok.cpl', fn ($query) => $query->where('kode', $kode))
+                ->get();
+
+            if ($lepas->contains(fn (MkCpmk $mkCpmk): bool => $mkCpmk->subcpmks()->exists())) {
+                $tertahan[] = $kode;
+
+                continue;
+            }
+
+            MkCpmk::query()->whereIn('id', $lepas->pluck('id'))->delete();
+        }
+
+        foreach ($terpilih as $kode) {
+            self::petakanCpmkKeCpl($cpmk, $kode);
+        }
+
+        return $tertahan;
+    }
 }

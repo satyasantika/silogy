@@ -19,7 +19,8 @@ class CreateCpmk extends BaseCreateRecord
 
     protected static string $resource = CpmkResource::class;
 
-    private ?string $kodeCplTerpetakan = null;
+    /** @var list<string> */
+    private array $kodeCplTerpetakan = [];
 
     /**
      * @param  array<string, mixed>  $data
@@ -27,9 +28,7 @@ class CreateCpmk extends BaseCreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->kodeCplTerpetakan = filled($data['kode_cpl_terpetakan'] ?? null)
-            ? (string) $data['kode_cpl_terpetakan']
-            : null;
+        $this->kodeCplTerpetakan = array_values(array_filter((array) ($data['kode_cpl_terpetakan'] ?? [])));
         unset($data['kode_cpl_terpetakan']);
 
         return $data;
@@ -64,8 +63,8 @@ class CreateCpmk extends BaseCreateRecord
 
         // Sama dengan impor massal: CPL yang dipilih langsung jadi pemetaan
         // mk_cpmk, sehingga CPMK ini muncul di pilihan Sub-CPMK.
-        if ($this->kodeCplTerpetakan !== null) {
-            CpmkCplPemetaanService::petakanCpmkKeCpl($record, $this->kodeCplTerpetakan);
+        foreach ($this->kodeCplTerpetakan as $kodeCpl) {
+            CpmkCplPemetaanService::petakanCpmkKeCpl($record, $kodeCpl);
         }
 
         if (blank($semesterId)) {

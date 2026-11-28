@@ -13,6 +13,7 @@ use App\Modules\MK\Filament\Support\Concerns\HasMkTerpilihScope;
 use App\Modules\MK\Filament\Support\Concerns\HasSemesterTerpilihFilter;
 use App\Modules\MK\Models\Cpmk;
 use App\Modules\MK\Policies\CpmkPolicy;
+use App\Modules\MK\Services\CpmkCplPemetaanService;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Support\Filament\DelegasiMenu;
@@ -28,6 +29,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Support\Icons\Heroicon;
@@ -145,10 +147,26 @@ class CpmkResource extends Resource
 
                         Select::make('kode_cpl_terpetakan')
                             ->label('CPL terpetakan')
-                            ->helperText('Opsional, sama dengan kolom "kode CPL terpetakan" pada impor massal. Tanpa pemetaan CPL, CPMK ini belum bisa dipilih saat membuat Sub-CPMK.')
+                            ->helperText('Opsional; pilih lebih dari satu bila CPMK ini berinteraksi dengan beberapa CPL. Sama dengan kolom "kode CPL terpetakan" pada impor massal. Tanpa pemetaan CPL, CPMK ini belum bisa dipilih saat membuat Sub-CPMK. CPL yang dipakai Sub-CPMK dikunci sampai Sub-CPMK-nya dihapus.')
+                            ->multiple()
                             ->options(fn (Get $get): array => static::kodeCplOptions($get('mk_id')))
                             ->searchable()
-                            ->visibleOn('create'),
+                            // CPL yang dipakai Sub-CPMK dikunci (nonaktif dan tak bisa dilepas);
+                            // dihitung ulang tiap render sehingga terbuka lagi bila Sub-CPMK-nya hilang.
+                            ->disableOptionWhen(fn (string $value, ?Cpmk $record): bool => $record instanceof Cpmk
+                                && in_array($value, CpmkCplPemetaanService::kodeCplTerkunci($record), true))
+                            ->live()
+                            ->afterStateUpdated(function (mixed $state, Set $set, ?Cpmk $record): void {
+                                if (! $record instanceof Cpmk) {
+                                    return;
+                                }
+
+                                $set('kode_cpl_terpetakan', array_values(array_unique([
+                                    ...(array) $state,
+                                    ...CpmkCplPemetaanService::kodeCplTerkunci($record),
+                                ])));
+                            })
+                            ->columnSpanFull(),
 
                         TextInput::make('kode')
                             ->label('Kode')

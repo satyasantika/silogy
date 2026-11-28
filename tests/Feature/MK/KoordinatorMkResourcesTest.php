@@ -11,6 +11,7 @@ use App\Modules\Kelas\Models\KelasMk;
 use App\Modules\Kurikulum\Models\Kurikulum;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\CreateCpmk;
+use App\Modules\MK\Filament\Resources\CpmkResource\Pages\EditCpmk;
 use App\Modules\MK\Filament\Resources\CpmkResource\Pages\ListCpmks;
 use App\Modules\MK\Filament\Resources\SubcpmkResource;
 use App\Modules\MK\Filament\Resources\SubcpmkResource\Pages\CreateSubcpmk;
@@ -90,7 +91,7 @@ it('cpmk satuan dengan CPL terpilih langsung terpetakan sehingga muncul di pilih
             'mk_id' => $this->mk->id,
             'kode' => 'CPMK-MAP',
             'deskripsi' => 'Mahasiswa mampu memetakan CPMK ke CPL.',
-            'kode_cpl_terpetakan' => $kodeCpl,
+            'kode_cpl_terpetakan' => [$kodeCpl],
         ])
         ->call('create')
         ->assertHasNoFormErrors();
@@ -99,6 +100,64 @@ it('cpmk satuan dengan CPL terpilih langsung terpetakan sehingga muncul di pilih
 
     expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->where('cpl_mk_id', $this->cplMk->id)->exists())->toBeTrue()
         ->and(SubcpmkResource::mkCpmkOptions())->not->toBeEmpty();
+});
+
+it('cpmk bisa dipetakan ke beberapa CPL saat dibuat dan disinkronkan saat diedit', function () {
+    $this->actingAs($this->korma);
+    MkTerpilih::set($this->mk->id);
+
+    $cpl2 = Cpl::factory()->forAcademicUnit($this->prodi)->create();
+    $bok2 = Bok::factory()->forAcademicUnit($this->prodi)->create();
+    $cplMk2 = CplMk::query()->create([
+        'cpl_bok_id' => CplBok::query()->create(['cpl_id' => $cpl2->id, 'bok_id' => $bok2->id, 'bobot' => 100])->id,
+        'mk_id' => $this->mk->id,
+        'bobot' => 100,
+    ]);
+    $kode1 = $this->cplMk->cplBok->cpl->kode;
+    $kode2 = $cpl2->kode;
+
+    Livewire::test(CreateCpmk::class)
+        ->fillForm([
+            'mk_id' => $this->mk->id,
+            'kode' => 'CPMK-MULTI',
+            'deskripsi' => 'Berinteraksi dengan dua CPL.',
+            'kode_cpl_terpetakan' => [$kode1, $kode2],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $cpmk = Cpmk::query()->where('kode', 'CPMK-MULTI')->firstOrFail();
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->pluck('cpl_mk_id')->sort()->values()->all())
+        ->toEqual(collect([$this->cplMk->id, $cplMk2->id])->sort()->values()->all());
+
+    // Edit: tampil terisi, lalu lepas CPL kedua.
+    Livewire::test(EditCpmk::class, ['record' => $cpmk->getRouteKey()])
+        ->assertFormSet(['kode_cpl_terpetakan' => [$kode1, $kode2]])
+        ->fillForm(['kode_cpl_terpetakan' => [$kode1]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->pluck('cpl_mk_id')->all())->toBe([$this->cplMk->id]);
+
+    // CPL yang dipakai Sub-CPMK terkunci: tak bisa dilepas lewat form.
+    $mkCpmk = MkCpmk::query()->where('cpmk_id', $cpmk->id)->firstOrFail();
+    $sub = subcpmkUntukSemester($mkCpmk, $this->semester, ['kode' => 'SUB-KUNCI']);
+
+    Livewire::test(EditCpmk::class, ['record' => $cpmk->getRouteKey()])
+        ->set('data.kode_cpl_terpetakan', [])
+        ->assertFormSet(['kode_cpl_terpetakan' => [$kode1]])
+        ->call('save');
+
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->count())->toBe(1);
+
+    // Tanpa Sub-CPMK yang memakainya, CPL bisa dilepas kembali.
+    $sub->delete();
+
+    Livewire::test(EditCpmk::class, ['record' => $cpmk->getRouteKey()])
+        ->fillForm(['kode_cpl_terpetakan' => []])
+        ->call('save');
+
+    expect(MkCpmk::query()->where('cpmk_id', $cpmk->id)->count())->toBe(0);
 });
 
 it('korma dapat membuat cpmk subcpmk dan komponen penilaian', function () {
