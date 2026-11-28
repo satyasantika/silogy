@@ -10,6 +10,7 @@ use App\Modules\CPL\Models\CplKodeOverride;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Models\ProfilLulusan;
 use App\Modules\Kurikulum\Support\CplBokAdaptasiScope;
 use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Support\Filament\DelegasiMenu;
@@ -227,6 +228,16 @@ class CplResource extends Resource
                             ->dehydrated(fn (?Cpl $record): bool => ! $isAsing($record))
                             ->columnSpanFull(),
 
+                        Select::make('profil_lulusan_ids')
+                            ->label('Profil lulusan terpetakan')
+                            ->helperText('Opsional; pilih lebih dari satu bila CPL ini mendukung beberapa profil lulusan. Sama dengan kolom "profil lulusan" pada impor massal.')
+                            ->multiple()
+                            ->options(fn (): array => static::profilLulusanOptions())
+                            ->searchable()
+                            ->visible(fn (string $operation): bool => $operation === 'create'
+                                && (KurikulumTerpilih::current()?->academicUnit?->isProdi() ?? false))
+                            ->columnSpanFull(),
+
                         Select::make('domain')
                             ->label('Domain')
                             ->options(static::domainOptions())
@@ -237,6 +248,30 @@ class CplResource extends Resource
                     ->columns(2)
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Profil lulusan pada kurikulum terpilih (kunci id, nilai "kode – nama").
+     *
+     * @return array<string, string>
+     */
+    public static function profilLulusanOptions(): array
+    {
+        $kurikulumId = KurikulumTerpilih::currentId();
+
+        if (blank($kurikulumId)) {
+            return [];
+        }
+
+        return ProfilLulusan::query()
+            ->where('kurikulum_id', $kurikulumId)
+            ->orderBy('urutan')
+            ->orderBy('kode')
+            ->get()
+            ->mapWithKeys(fn (ProfilLulusan $profil): array => [
+                (string) $profil->id => trim($profil->kode.' – '.($profil->nama ?? ''), ' –'),
+            ])
+            ->all();
     }
 
     public static function table(Table $table): Table

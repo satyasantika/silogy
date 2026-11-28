@@ -4,11 +4,13 @@ namespace App\Modules\MK\Filament\Resources;
 
 use App\Models\User;
 use App\Modules\Auth\Support\ActiveRole;
+use App\Modules\CPL\Models\CplBok;
 use App\Modules\Institusi\Models\AcademicUnit;
 use App\Modules\Institusi\Support\AcademicUnitScope;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
+use App\Modules\Kurikulum\Support\KurikulumTerpilih;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\CreateMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\EditMk;
 use App\Modules\MK\Filament\Resources\MkResource\Pages\ListMks;
@@ -174,6 +176,15 @@ class MkResource extends Resource
                             ->label('Aktif')
                             ->default(true)
                             ->inline(false),
+
+                        Select::make('cpl_bok_ids')
+                            ->label('CPL terpetakan (via BoK)')
+                            ->helperText('Opsional; pilih pasangan CPL–BoK yang dikontribusi MK ini. Bobot dibagi rata hingga 100% dan dapat disesuaikan di Interaksi CPL ↔ MK.')
+                            ->multiple()
+                            ->options(fn (): array => static::cplBokOptions())
+                            ->searchable()
+                            ->visible(fn (string $operation): bool => $operation === 'create')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
@@ -230,6 +241,31 @@ class MkResource extends Resource
             ->orderBy('nama')
             ->get()
             ->mapWithKeys(fn (AcademicUnit $unit): array => [$unit->id => $unit->nama_lengkap])
+            ->all();
+    }
+
+    /**
+     * Pasangan CPL–BoK pada kurikulum terpilih (kunci id cpl_bok, nilai
+     * "CPL via BoK").
+     *
+     * @return array<string, string>
+     */
+    public static function cplBokOptions(): array
+    {
+        $kurikulumId = KurikulumTerpilih::currentId();
+
+        if (blank($kurikulumId)) {
+            return [];
+        }
+
+        return CplBok::query()
+            ->whereHas('cpl', fn ($query) => $query->where('kurikulum_id', $kurikulumId))
+            ->with(['cpl', 'bok'])
+            ->get()
+            ->sortBy(fn (CplBok $cplBok): string => ($cplBok->cpl?->kode ?? '').'|'.($cplBok->bok?->kode ?? ''))
+            ->mapWithKeys(fn (CplBok $cplBok): array => [
+                (string) $cplBok->id => sprintf('%s via %s', $cplBok->cpl?->kode ?? '—', $cplBok->bok?->kode ?? '—'),
+            ])
             ->all();
     }
 

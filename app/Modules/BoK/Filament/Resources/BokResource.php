@@ -7,6 +7,7 @@ use App\Modules\BoK\Filament\Resources\BokResource\Pages\EditBok;
 use App\Modules\BoK\Filament\Resources\BokResource\Pages\ListBoks;
 use App\Modules\BoK\Models\Bok;
 use App\Modules\BoK\Models\BokKodeOverride;
+use App\Modules\CPL\Models\Cpl;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasKurikulumTerpilihFilter;
 use App\Modules\Kurikulum\Filament\Support\Concerns\HasTimKurikulumUnitScope;
 use App\Modules\Kurikulum\Models\Kurikulum;
@@ -205,10 +206,43 @@ class BokResource extends Resource
                             ->disabled($isAsing)
                             ->dehydrated(fn (?Bok $record): bool => ! $isAsing($record))
                             ->columnSpanFull(),
+
+                        Select::make('cpl_ids')
+                            ->label('CPL terpetakan')
+                            ->helperText('Opsional; pilih lebih dari satu bila BoK ini mendukung beberapa CPL. Sama dengan kolom "kode CPL terpetakan" pada impor massal.')
+                            ->multiple()
+                            ->options(fn (): array => static::cplOptions())
+                            ->searchable()
+                            ->visible(fn (string $operation): bool => $operation === 'create')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * CPL pada kurikulum terpilih (kunci id, nilai "kode – deskripsi singkat").
+     *
+     * @return array<string, string>
+     */
+    public static function cplOptions(): array
+    {
+        $kurikulumId = KurikulumTerpilih::currentId();
+
+        if (blank($kurikulumId)) {
+            return [];
+        }
+
+        return Cpl::query()
+            ->where('kurikulum_id', $kurikulumId)
+            ->orderBy('urutan')
+            ->orderBy('kode')
+            ->get()
+            ->mapWithKeys(fn (Cpl $cpl): array => [
+                (string) $cpl->id => $cpl->kode.' – '.Str::limit(trim(strip_tags((string) $cpl->deskripsi)), 60),
+            ])
+            ->all();
     }
 
     public static function table(Table $table): Table

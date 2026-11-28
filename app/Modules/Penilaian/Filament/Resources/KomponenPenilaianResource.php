@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Kalender\Support\SemesterTerpilih;
 use App\Modules\MK\Filament\Support\Concerns\HasKoordinatorMkScope;
 use App\Modules\MK\Filament\Support\Concerns\HasSemesterTerpilihFilter;
+use App\Modules\MK\Models\Subcpmk;
 use App\Modules\MK\Support\MkTerpilih;
 use App\Modules\MK\Support\PenawaranMkScope;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages\CreateKomponenPenilaian;
@@ -184,6 +185,15 @@ class KomponenPenilaianResource extends Resource
                             ->required()
                             ->maxLength(100),
 
+                        Select::make('subcpmk_ids')
+                            ->label('Sub-CPMK terpetakan')
+                            ->helperText('Opsional; pilih lebih dari satu bila asesmen ini menilai beberapa Sub-CPMK. Bobot asesmen dibagi rata ke Sub-CPMK terpilih dan dapat disesuaikan setelahnya. Sama dengan kolom "SubCPMK" pada impor massal.')
+                            ->multiple()
+                            ->options(fn (Get $get): array => static::subcpmkOptions($get('mk_id'), $get('semester_id')))
+                            ->searchable()
+                            ->visible(fn (string $operation): bool => $operation === 'create')
+                            ->columnSpanFull(),
+
                         TextInput::make('bobot')
                             ->label('Bobot (%)')
                             ->numeric()
@@ -197,6 +207,30 @@ class KomponenPenilaianResource extends Resource
                     ->columns(2)
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * Sub-CPMK milik MK yang berlaku pada semester itu (kunci id, nilai
+     * "Sub-CPMK – CPMK").
+     *
+     * @return array<string, string>
+     */
+    public static function subcpmkOptions(?string $mkId, ?string $semesterId): array
+    {
+        if (blank($mkId) || blank($semesterId)) {
+            return [];
+        }
+
+        return Subcpmk::query()
+            ->untukSemester($semesterId)
+            ->whereHas('mkCpmk.cpmk', fn (Builder $query): Builder => $query->where('mk_id', $mkId))
+            ->with('mkCpmk.cpmk')
+            ->orderBy('kode')
+            ->get()
+            ->mapWithKeys(fn (Subcpmk $subcpmk): array => [
+                (string) $subcpmk->id => sprintf('%s – %s', $subcpmk->kode, $subcpmk->cpmk?->kode ?? '—'),
+            ])
+            ->all();
     }
 
     public static function table(Table $table): Table

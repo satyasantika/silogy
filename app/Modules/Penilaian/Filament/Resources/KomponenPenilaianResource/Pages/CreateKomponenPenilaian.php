@@ -2,10 +2,12 @@
 
 namespace App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource\Pages;
 
+use App\Modules\MK\Models\Subcpmk;
 use App\Modules\Penilaian\Filament\Resources\KomponenPenilaianResource;
 use App\Modules\Penilaian\Models\KomponenPenilaian;
 use App\Modules\Penilaian\Models\KomponenPenilaianSemester;
 use App\Modules\Penilaian\Policies\KomponenPenilaianPolicy;
+use App\Modules\Penilaian\Services\SubcpmkAsesmenPemetaanService;
 use App\Support\Filament\Pages\BaseCreateRecord;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -48,7 +50,9 @@ class CreateKomponenPenilaian extends BaseCreateRecord
         $semesterId = (string) ($data['semester_id'] ?? '');
         $bobot = (float) ($data['bobot'] ?? 100);
 
-        unset($data['semester_id'], $data['bobot']);
+        $subcpmkIds = array_values(array_filter(array_map('strval', (array) ($data['subcpmk_ids'] ?? []))));
+
+        unset($data['semester_id'], $data['bobot'], $data['subcpmk_ids']);
 
         /** @var KomponenPenilaian $record */
         $record = static::getModel()::create($data);
@@ -61,6 +65,18 @@ class CreateKomponenPenilaian extends BaseCreateRecord
                 ],
                 ['bobot' => $bobot],
             );
+
+            // Sama dengan kolom "SubCPMK" pada impor massal: bobot Asesmen
+            // dibagi rata ke Sub-CPMK yang dipilih (total = bobot Asesmen).
+            $tersedia = KomponenPenilaianResource::subcpmkOptions((string) $record->mk_id, $semesterId);
+
+            foreach ($subcpmkIds as $subcpmkId) {
+                $subcpmk = array_key_exists($subcpmkId, $tersedia) ? Subcpmk::query()->find($subcpmkId) : null;
+
+                if ($subcpmk instanceof Subcpmk) {
+                    SubcpmkAsesmenPemetaanService::petakanSubcpmk($record, $subcpmk, $semesterId);
+                }
+            }
         }
 
         return $record;
